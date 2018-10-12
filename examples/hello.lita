@@ -1,0 +1,62 @@
+struct Vec2 {
+    x:f32
+    y:f32
+}
+
+func test(i:i32) : f32 {
+} 
+
+var x:i32 = 1
+var z = Vec2{4, 5}
+
+var f = test(10)
+
+
+
+
+
+/*const x = 10;
+const y = "Hello";
+
+
+enum DAY {
+    MONDAY = (1<<0),
+    TUESDAY = (1<<1),
+}
+
+struct TestStruct {
+    field1: i32 field2: f64
+    field3: string
+    
+    struct {
+        a:i32;
+        b:f32;
+    }
+    
+    union {
+        struct {
+            x:f32;
+            y:f32;
+            z:f32;
+        };
+        
+        v: i32;
+        
+        
+    }
+}
+
+func testFunction(x: i32, y: string) : string {
+    for(var i:i32 = 0; i < 10; i+=1) {
+        printf("%i", i);
+    }
+    
+    var i:i32 = 10;
+    do i+=1 while(true)
+    while(i < 0) {
+        if (i < 0 ) break
+        i-=1
+    }
+    
+    return "test";
+}*/
