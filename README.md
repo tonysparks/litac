@@ -1,0 +1,2 @@
+# litac
+C like language
