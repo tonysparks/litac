@@ -18,6 +18,7 @@ import litac.ast.Decl.StructDecl;
 import litac.ast.Decl.TypedefDecl;
 import litac.ast.Decl.UnionDecl;
 import litac.ast.Decl.VarDecl;
+import litac.ast.Expr.ArrayInitExpr;
 import litac.ast.Expr.BinaryExpr;
 import litac.ast.Expr.BooleanExpr;
 import litac.ast.Expr.DotExpr;
@@ -28,7 +29,10 @@ import litac.ast.Expr.IdentifierExpr;
 import litac.ast.Expr.InitExpr;
 import litac.ast.Expr.NullExpr;
 import litac.ast.Expr.NumberExpr;
+import litac.ast.Expr.SetExpr;
 import litac.ast.Expr.StringExpr;
+import litac.ast.Expr.SubscriptGetExpr;
+import litac.ast.Expr.SubscriptSetExpr;
 import litac.ast.Expr.UnaryExpr;
 import litac.ast.Stmt.BlockStmt;
 import litac.ast.Stmt.BreakStmt;
@@ -46,9 +50,9 @@ import litac.ast.Stmt.UnionFieldStmt;
 import litac.ast.Stmt.VarFieldStmt;
 import litac.ast.Stmt.WhileStmt;
 import litac.ast.TypeInfo;
-import litac.ast.TypeInfo.EnumField;
+import litac.ast.TypeInfo.EnumFieldInfo;
 import litac.ast.TypeInfo.IdentifierTypeInfo;
-import litac.ast.TypeInfo.Parameter;
+import litac.ast.TypeInfo.ParameterInfo;
 import litac.ast.TypeInfo.TypeKind;
 import litac.util.Stack;
 
@@ -85,11 +89,13 @@ public class TypeResolver {
         private void visitModule(ModuleStmt stmt) {
             String moduleName = stmt.name;
             if(!modules.containsKey(moduleName)) {                
-                modules.put(moduleName, new TypeResolverModule(moduleName));
+                modules.put(moduleName, new TypeResolverModule(result, moduleName));
             }
             
             TypeResolverModule module = modules.get(moduleName);
             activeModules.push(module);
+            
+            pushScope();
             
             for(ImportStmt i : stmt.imports) {
                 i.visit(this);
@@ -98,6 +104,8 @@ public class TypeResolver {
             for(Decl d : stmt.declarations) {
                 d.visit(this);
             } 
+            
+            popScope();
         }
         
         private void pushScope() {
@@ -105,6 +113,7 @@ public class TypeResolver {
         }
         
         private void popScope() {
+            peekScope().resolveTypes();
             activeModules.peek().popScope();
         }
         
@@ -127,7 +136,7 @@ public class TypeResolver {
         @Override
         public void visit(ImportStmt stmt) {
             if(!modules.containsKey(stmt.moduleName)) {
-                modules.put(stmt.moduleName, new TypeResolverModule(stmt.moduleName));
+                modules.put(stmt.moduleName, new TypeResolverModule(result, stmt.moduleName));
             }
             
             activeModules.peek().imports.put(stmt.alias, modules.get(stmt.moduleName));
@@ -231,25 +240,25 @@ public class TypeResolver {
         @Override
         public void visit(ConstDecl d) {
             d.expr.visit(this);
-            peekScope().resolveType(d);
+            peekScope().addTypeDeclaration(d);
         }
 
         @Override
         public void visit(EnumDecl d) {            
-            for(EnumField f : d.fields) {
+            for(EnumFieldInfo f : d.fields) {
                 f.value.visit(this);                
             }
             
-            peekScope().resolveType(d);
+            peekScope().addTypeDeclaration(d);
         }
 
 
         @Override
         public void visit(FuncDecl d) {
-            peekScope().resolveType(d);
+            peekScope().addTypeDeclaration(d);
             pushScope();
             
-            for(Parameter p : d.parameters) {
+            for(ParameterInfo p : d.parameterInfos) {
                 peekScope().addUnresolvedType(p.type);
             }
             d.bodyStmt.visit(this);
@@ -260,7 +269,7 @@ public class TypeResolver {
 
         @Override
         public void visit(StructDecl d) {
-            peekScope().resolveType(d);
+            peekScope().addTypeDeclaration(d);
             for(FieldStmt s : d.fields) {
                 s.visit(this);
             }
@@ -269,14 +278,14 @@ public class TypeResolver {
 
         @Override
         public void visit(TypedefDecl d) {
-            peekScope().resolveType(d);
+            peekScope().addTypeDeclaration(d);
             // TODO
 
         }
 
         @Override
         public void visit(UnionDecl d) {
-            peekScope().resolveType(d);
+            peekScope().addTypeDeclaration(d);
             for(FieldStmt s : d.fields) {
                 s.visit(this);
             }
@@ -293,7 +302,7 @@ public class TypeResolver {
                 idInfo.resolve(inferredType);
             }
             
-            peekScope().resolveType(d);
+            peekScope().addTypeDeclaration(d);
             peekScope().addUnresolvedType(d.type);
         }
 
@@ -347,8 +356,9 @@ public class TypeResolver {
 
         @Override
         public void visit(GetExpr expr) {
-            expr.object.visit(this);            
-            peekScope().addUnresolvedType(expr.field);
+            expr.object.visit(this);         
+            TypeInfo inferedType = TypeInferencer.inferType(expr.object);
+            peekScope().addUnresolvedType(expr, inferedType, expr.field);
         }
 
 
@@ -369,7 +379,35 @@ public class TypeResolver {
         public void visit(DotExpr expr) {
             expr.field.visit(this);  
         }
+        
+        @Override
+        public void visit(ArrayInitExpr expr) {
+            for(Expr d : expr.dimensions) {
+                d.visit(this);
+            }
+            
+            // TODO
+            
+        }
+        
+        @Override
+        public void visit(SubscriptGetExpr expr) {
+            // TODO Auto-generated method stub
+            expr.object.visit(this);
+            expr.index.visit(this);
+        }
 
+        @Override
+        public void visit(SubscriptSetExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
+        
+        @Override
+        public void visit(SetExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
     }
     
 }

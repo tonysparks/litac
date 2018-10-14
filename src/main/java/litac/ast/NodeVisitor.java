@@ -46,7 +46,11 @@ public interface NodeVisitor {
     void visit(FuncCallExpr expr);
     void visit(IdentifierExpr expr);
     void visit(GetExpr expr);
+    void visit(SetExpr expr);
     void visit(UnaryExpr expr);
     void visit(BinaryExpr expr);
     void visit(DotExpr expr);
+    void visit(ArrayInitExpr expr);
+    void visit(SubscriptGetExpr expr);
+    void visit(SubscriptSetExpr expr);
 }

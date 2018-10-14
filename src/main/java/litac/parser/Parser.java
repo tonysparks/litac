@@ -182,15 +182,15 @@ public class Parser {
         source();
         
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);        
-        List<Parameter> parameters = parameters();
+        List<ParameterInfo> parameterInfos = parameterInfos();
         
         consume(COLON, ErrorCode.MISSING_COLON);
         
         TypeInfo returnType = type();
-        TypeInfo type = new FuncTypeInfo(identifier.getText(), returnType, parameters);
+        TypeInfo type = new FuncTypeInfo(identifier.getText(), returnType, parameterInfos);
         
         Stmt body = statement();
-        return node(new FuncDecl(identifier.getText(), type, parameters, body, returnType));
+        return node(new FuncDecl(identifier.getText(), type, parameterInfos, body, returnType));
     }
     
     private StructDecl structDeclaration() {
@@ -220,7 +220,7 @@ public class Parser {
         }
         while(!isAtEnd());
         
-        List<Field> typeFields = Stmt.fromFieldStmt(start, fields);
+        List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
         TypeInfo type = new StructTypeInfo(structName, typeFields);
         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
@@ -255,7 +255,7 @@ public class Parser {
         }
         while(!isAtEnd());
         
-        List<Field> typeFields = Stmt.fromFieldStmt(start, fields);
+        List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
         TypeInfo type = new UnionTypeInfo(unionName, typeFields);
         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
@@ -274,14 +274,14 @@ public class Parser {
         
         consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
         
-        List<EnumField> fields = new ArrayList<>();
+        List<EnumFieldInfo> fields = new ArrayList<>();
         
         do {
             if(check(RIGHT_BRACE)) {
                 break;
             }
             
-            EnumField field = enumFieldStatement();
+            EnumFieldInfo field = enumFieldStatement();
             fields.add(field);
         }
         while(match(COMMA));
@@ -366,7 +366,7 @@ public class Parser {
         }
     }
     
-    private EnumField enumFieldStatement() {
+    private EnumFieldInfo enumFieldStatement() {
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         
         Expr expr = null;
@@ -374,7 +374,7 @@ public class Parser {
             expr = constExpression();
         }
         
-        return new EnumField(identifier.getText(), expr);
+        return new EnumFieldInfo(identifier.getText(), expr);
     }
     
     private IfStmt ifStmt() {        
@@ -496,15 +496,60 @@ public class Parser {
         return node(new DotExpr(field));
     }
     
+    private ArrayInitExpr arrayInitExpr() {
+        List<Expr> dimensions = arrayDimensions();
+        
+        TypeInfo arrayOf = type();
+        
+        consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
+        
+        List<Expr> values = structArguments();
+        
+        return node(new ArrayInitExpr(arrayOf, dimensions, values));
+    }
+    
+    private List<Expr> arrayDimensions() {
+        List<Expr> dimensions = new ArrayList<>();
+        
+        do {
+            Expr sizeExpr = new NullExpr();
+            if(check(NUMBER)) {
+                sizeExpr = node(new NumberExpr((NumberToken)advance()));
+            }
+            
+            dimensions.add(sizeExpr);
+            
+            consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
+            
+            if(!match(LEFT_BRACKET)) {
+                break;
+            }
+        } 
+        while(!isAtEnd());
+        
+        return dimensions;
+    }
+    
     private Expr assignment() {
         Expr expr = or();
         
         while(match(EQUALS,
                     PLUS_EQ, MINUS_EQ, DIV_EQ, MUL_EQ,MOD_EQ,
                     LSHIFT_EQ, RSHIFT_EQ, BNOT_EQ, XOR_EQ, BAND_EQ, BOR_EQ)) {
-            Token operator = previous();
+            TokenType operator = previous().getType();
             Expr right = or();
-            expr = node(new BinaryExpr(expr, operator.getType(), right));
+            
+            if(expr instanceof GetExpr) {
+                GetExpr getExpr = (GetExpr)expr;
+                expr = node(new SetExpr(getExpr.object, getExpr.field, operator, right));
+            }
+            else if(expr instanceof SubscriptGetExpr) {
+                SubscriptGetExpr getExpr = (SubscriptGetExpr)expr;
+                expr = node(new SubscriptSetExpr(getExpr.object, getExpr.index, operator, right));
+            }
+            else {
+                expr = node(new BinaryExpr(expr, operator, right));
+            }
         }
         
         return expr;
@@ -644,7 +689,7 @@ public class Parser {
     private Expr functionCall() {
         Expr expr = primary();
         while(true) {
-            if(check(LEFT_PAREN)) {                
+            if(match(LEFT_PAREN)) {                
                 expr = finishFunctionCall(expr);
             }
             else if(check(LEFT_BRACE)) {
@@ -657,8 +702,11 @@ public class Parser {
                 List<Expr> arguments = structArguments();
                 expr = new InitExpr(idExpr.type, arguments);
             }
-            else if(check(LEFT_BRACKET)) {
-                // SubscriptGetExpr
+            else if(match(LEFT_BRACKET)) {
+                Expr index = expression();
+                consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
+                
+                expr = node(new SubscriptGetExpr(expr, index));
             }
             else if(match(DOT)) {
                 Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);                
@@ -684,13 +732,9 @@ public class Parser {
         
         if(match(IDENTIFIER)) return node(new IdentifierExpr(previous().getText(), new IdentifierTypeInfo(previous().getText())));
                 
-        if(match(LEFT_PAREN)) return groupExpr();
+        if(match(LEFT_PAREN))   return groupExpr();
+        if(match(LEFT_BRACKET)) return arrayInitExpr();
         
-//        if(match(LEFT_BRACKET)) return array();
-//        if(match(LEFT_BRACE))   return object();
-//        
-//        if(match(STAR))      return matchExpr();
-//        if(match(AMPERSAND)) return matchExpr();
         if(match(DOT))  return dotExpr();
                         
         throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
@@ -800,7 +844,7 @@ public class Parser {
     }
     
     /**
-     * Parses parameters:
+     * Parses parameterInfos:
      * 
      * func test(x:i32,y:f32,z:bool) : void {
      * }
@@ -809,10 +853,10 @@ public class Parser {
      * 
      * @return the parsed {@link ParameterList}
      */
-    private List<Parameter> parameters() {
+    private List<ParameterInfo> parameterInfos() {
         consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         
-        List<Parameter> parameters = new ArrayList<>();        
+        List<ParameterInfo> parameterInfos = new ArrayList<>();        
         if(!check(RIGHT_PAREN)) {
             do {                
                 Token param = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
@@ -821,13 +865,13 @@ public class Parser {
                 consume(COLON, ErrorCode.MISSING_COLON);
                 TypeInfo type = type();
                 
-                parameters.add(new Parameter(type, parameterName));
+                parameterInfos.add(new ParameterInfo(type, parameterName));
             }
             while(match(COMMA));
         }
         
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        return parameters;
+        return parameterInfos;
     }
     
     /**

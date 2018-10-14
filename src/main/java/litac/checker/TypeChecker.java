@@ -12,6 +12,7 @@ import litac.ast.Decl;
 import litac.ast.Expr;
 import litac.ast.NodeVisitor;
 import litac.ast.Stmt;
+import litac.ast.TypeInfo;
 import litac.ast.Decl.ConstDecl;
 import litac.ast.Decl.EnumDecl;
 import litac.ast.Decl.FuncDecl;
@@ -19,6 +20,7 @@ import litac.ast.Decl.StructDecl;
 import litac.ast.Decl.TypedefDecl;
 import litac.ast.Decl.UnionDecl;
 import litac.ast.Decl.VarDecl;
+import litac.ast.Expr.ArrayInitExpr;
 import litac.ast.Expr.BinaryExpr;
 import litac.ast.Expr.BooleanExpr;
 import litac.ast.Expr.DotExpr;
@@ -29,7 +31,10 @@ import litac.ast.Expr.IdentifierExpr;
 import litac.ast.Expr.InitExpr;
 import litac.ast.Expr.NullExpr;
 import litac.ast.Expr.NumberExpr;
+import litac.ast.Expr.SetExpr;
 import litac.ast.Expr.StringExpr;
+import litac.ast.Expr.SubscriptGetExpr;
+import litac.ast.Expr.SubscriptSetExpr;
 import litac.ast.Expr.UnaryExpr;
 import litac.ast.Stmt.BlockStmt;
 import litac.ast.Stmt.BreakStmt;
@@ -46,8 +51,8 @@ import litac.ast.Stmt.StructFieldStmt;
 import litac.ast.Stmt.UnionFieldStmt;
 import litac.ast.Stmt.VarFieldStmt;
 import litac.ast.Stmt.WhileStmt;
-import litac.ast.TypeInfo.EnumField;
-import litac.ast.TypeInfo.Parameter;
+import litac.ast.TypeInfo.EnumFieldInfo;
+import litac.ast.TypeInfo.ParameterInfo;
 import litac.ast.TypeInfo.StructTypeInfo;
 import litac.ast.TypeInfo.TypeKind;
 import litac.util.Stack;
@@ -78,13 +83,43 @@ public class TypeChecker {
         private Map<String, Module> modules;
         
         private Stack<Module> activeModules; 
-                
+        
+        private Stack<FuncDecl> funcDecls;
+        private Stack<TypeInfo> typeStack;
+        
         public TypeCheckerNodeVisitor(TypeCheckerOptions options) {
             this.options = options;
             this.result = new TypeCheckResult();
             
             this.activeModules = new Stack<>();   
             this.modules = new HashMap<>();
+            
+            this.funcDecls = new Stack<>();
+            this.typeStack = new Stack<>();
+        }
+        
+        void pushFuncDecl(FuncDecl func) {
+            this.funcDecls.push(func);
+        }
+        
+        void popsFuncDecl() {
+            this.funcDecls.pop();
+        }
+        
+        FuncDecl peekFuncDecl() {
+            return this.funcDecls.peek();
+        }
+        
+        void pushTypeInfo(TypeInfo type) {
+            this.typeStack.push(type);
+        }
+        
+        TypeInfo popTypeInfo() {
+            return this.typeStack.pop();
+        }
+        
+        TypeInfo peekTypeInfo() {
+            return this.typeStack.peek();
         }
         
         private void visitModule(ModuleStmt stmt) {
@@ -223,7 +258,7 @@ public class TypeChecker {
         public void visit(ReturnStmt stmt) {
             if(stmt.returnExpr != null) {
                 stmt.returnExpr.visit(this);
-                FuncDecl func = peekScope().peekFuncDecl();
+                FuncDecl func = peekFuncDecl();
                 peekScope().addTypeCheck(stmt.returnExpr, func.returnType);
             }
         }
@@ -256,7 +291,7 @@ public class TypeChecker {
 
         @Override
         public void visit(EnumDecl d) {            
-            for(EnumField f : d.fields) {
+            for(EnumFieldInfo f : d.fields) {
                 f.value.visit(this);
             }
             
@@ -270,17 +305,17 @@ public class TypeChecker {
             
             enterScope();
             {
-                peekScope().pushFuncDecl(d);
+                pushFuncDecl(d);
                 
                 peekScope().addType(d, d.returnType);
-                for(Parameter p : d.parameters) {
+                for(ParameterInfo p : d.parameterInfos) {
                     peekScope().addType(d, p.type);
                     peekScope().addVariable(d, p.name, p.type);
                 }
                 
                 d.bodyStmt.visit(this);
                 
-                peekScope().popsFuncDecl();
+                popsFuncDecl();
             }
             exitScope();
         }
@@ -318,14 +353,14 @@ public class TypeChecker {
             if(expr.type.isKind(TypeKind.Struct)) {
                 StructTypeInfo structInfo = expr.type.as();
                 
-                if(structInfo.fields.size() != expr.arguments.size()) {
+                if(structInfo.fieldInfos.size() != expr.arguments.size()) {
                     // TODO should this be allowed??
                     this.result.addError(expr, String.format("incorrect number of arguments"));
                 }
                 
-                for(int i = 0; i < structInfo.fields.size(); i++) {
+                for(int i = 0; i < structInfo.fieldInfos.size(); i++) {
                     if(i < expr.arguments.size()) {                       
-                        peekScope().addTypeCheck(expr.arguments.get(i), structInfo.fields.get(i).type);
+                        peekScope().addTypeCheck(expr.arguments.get(i), structInfo.fieldInfos.get(i).type);
                     }
                 }
             }
@@ -344,14 +379,14 @@ public class TypeChecker {
 
         @Override
         public void visit(IdentifierExpr expr) {
-            peekScope().pushTypeInfo(expr.type);
+            pushTypeInfo(expr.type);
         }
 
 
         @Override
         public void visit(GetExpr expr) {
             expr.object.visit(this);            
-            peekScope().pushTypeInfo(expr.field);
+            pushTypeInfo(expr.field);
         }
         
         @Override
@@ -372,8 +407,35 @@ public class TypeChecker {
         }
 
 
+        @Override
+        public void visit(ArrayInitExpr expr) {
+            for(Expr d : expr.dimensions) {
+                d.visit(this);
+            }
+            
+            // TODO
+            
+        }
+        
+        @Override
+        public void visit(SubscriptGetExpr expr) {
+            // TODO Auto-generated method stub
+            expr.object.visit(this);
+            expr.index.visit(this);
+        }
 
-
+        @Override
+        public void visit(SubscriptSetExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
+        
+        @Override
+        public void visit(SetExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
+        
     }
     
 }

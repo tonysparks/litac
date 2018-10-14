@@ -8,7 +8,7 @@ import java.util.List;
 
 import litac.ast.Decl.StructDecl;
 import litac.ast.Decl.UnionDecl;
-import litac.ast.TypeInfo.Field;
+import litac.ast.TypeInfo.FieldInfo;
 import litac.parser.ErrorCode;
 import litac.parser.ParseException;
 import litac.parser.tokens.Token;
@@ -19,28 +19,28 @@ import litac.parser.tokens.Token;
  */
 public abstract class Stmt extends Node {
 
-    public static List<Field> fromFieldStmt(Token token, List<FieldStmt> fields) {
-        List<Field> result = new ArrayList<>();
+    public static List<FieldInfo> fromFieldStmt(Token token, List<FieldStmt> fields) {
+        List<FieldInfo> result = new ArrayList<>();
         
         for(FieldStmt s : fields) {
-            Field field = null;
+            FieldInfo fieldInfo = null;
             if(s instanceof VarFieldStmt) {
                 VarFieldStmt var = (VarFieldStmt)s;
-                field = new Field(var.type, var.name);
+                fieldInfo = new FieldInfo(var.type, var.name);
             }
             else if(s instanceof StructFieldStmt) {
                 StructFieldStmt struct = (StructFieldStmt)s;
-                field = new Field(struct.decl.type, struct.decl.name);
+                fieldInfo = new FieldInfo(struct.decl.type, struct.decl.name);
             }
             else if(s instanceof UnionFieldStmt) {
                 UnionFieldStmt union = (UnionFieldStmt)s;
-                field = new Field(union.decl.type, union.decl.name);
+                fieldInfo = new FieldInfo(union.decl.type, union.decl.name);
             }
             else {
                 throw new ParseException(ErrorCode.INVALID_FIELD, token);
             }
             
-            result.add(field);
+            result.add(fieldInfo);
         }
         
         return result;

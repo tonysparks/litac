@@ -23,8 +23,9 @@ public class LitaC {
      * @param args
      */
     public static void main(String[] args) throws Exception {
-        if(args.length < 0) {
+        if(args.length < 1) {
             System.out.println("<usage> litac.exe [source files]");
+            return;
         }
         
         Scanner scanner = new Scanner(new Source(new FileReader(new File(args[0]))));

@@ -5,8 +5,8 @@ package litac.ast;
 
 import java.util.List;
 
-import litac.ast.TypeInfo.EnumField;
-import litac.ast.TypeInfo.Parameter;
+import litac.ast.TypeInfo.EnumFieldInfo;
+import litac.ast.TypeInfo.ParameterInfo;
 
 /**
  * @author Tony
@@ -64,7 +64,7 @@ public abstract class Decl extends Stmt {
     }
     
     public static class FuncDecl extends Decl {
-        public List<Parameter> parameters;
+        public List<ParameterInfo> parameterInfos;
         public Stmt bodyStmt;
         public TypeInfo returnType;
         
@@ -72,9 +72,9 @@ public abstract class Decl extends Stmt {
          * @param name
          * @param type
          */
-        public FuncDecl(String name, TypeInfo type, List<Parameter> parameters, Stmt body, TypeInfo returnType) {
+        public FuncDecl(String name, TypeInfo type, List<ParameterInfo> parameterInfos, Stmt body, TypeInfo returnType) {
             super(DeclKind.FUNC, type, name);
-            this.parameters = parameters;
+            this.parameterInfos = parameterInfos;
             this.bodyStmt = becomeParentOf(body);
             this.returnType = returnType;
         }
@@ -116,9 +116,9 @@ public abstract class Decl extends Stmt {
     }
     
     public static class EnumDecl extends Decl {
-        public List<EnumField> fields;
+        public List<EnumFieldInfo> fields;
         
-        public EnumDecl(String name, TypeInfo type, List<EnumField> fields) {
+        public EnumDecl(String name, TypeInfo type, List<EnumFieldInfo> fields) {
             super(DeclKind.ENUM, type, name);            
             this.fields = fields;
         }
@@ -144,4 +144,5 @@ public abstract class Decl extends Stmt {
             v.visit(this);
         }
     }
+
 }

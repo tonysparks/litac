@@ -128,6 +128,58 @@ public abstract class Expr extends Stmt {
 
     }
     
+    public static class ArrayInitExpr extends Expr {
+        public List<Expr> dimensions;
+        public List<Expr> values;
+        
+        public ArrayInitExpr(TypeInfo arrayOf, List<Expr> dimensions, List<Expr> values) {
+            this.dimensions = becomeParentOf(dimensions);
+            this.values = becomeParentOf(values);
+            
+            // TODO
+            resolveTo(new ArrayTypeInfo(arrayOf, null));
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+    }
+    
+    public static class SubscriptGetExpr extends Expr {
+        public Expr object;
+        public Expr index;
+        
+        public SubscriptGetExpr(Expr object, Expr index) {
+            this.object = becomeParentOf(object);
+            this.index = becomeParentOf(index);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+    }
+    
+    public static class SubscriptSetExpr extends Expr {
+        public Expr object;
+        public Expr index;
+        public TokenType operator;
+        public Expr value;
+        
+        public SubscriptSetExpr(Expr object, Expr index, TokenType operator, Expr value) {
+            this.object = becomeParentOf(object);
+            this.index = becomeParentOf(index);
+            this.operator = operator;
+            this.value = becomeParentOf(value);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+    }
+    
     public static class BooleanExpr extends ConstExpr {
 
         public boolean bool;
@@ -191,6 +243,31 @@ public abstract class Expr extends Stmt {
         public GetExpr(Expr object, TypeInfo field) {
             this.object = becomeParentOf(object);
             this.field = field;
+            
+            resolveTo(this.field);
+        }
+
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+    }
+    
+    public static class SetExpr extends Expr {
+
+        public Expr object;
+        public TypeInfo field;
+        
+        public TokenType operator;
+        public Expr value;
+        
+        
+        public SetExpr(Expr object, TypeInfo field, TokenType operator, Expr value) {
+            this.object = becomeParentOf(object);
+            this.field = field;
+            
+            this.operator = operator;
+            this.value = becomeParentOf(value);
             
             resolveTo(this.field);
         }

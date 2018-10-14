@@ -19,14 +19,15 @@ public enum TokenType {
     // Reserved words.    
     STRUCT, 
         VAR, CONST, FUNC, ENUM, FOR, WHILE, DO, IF, ELSE, BREAK, CONTINUE, RETURN, GOTO, 
-        VOID, TRUE, FALSE, NULL, BOOL,
+        NULL, VOID, 
+        TRUE, FALSE, BOOL,
         I8, U8,
         I16, U16,
         I32, U32,
         I64, U64,
         I128,U128,
-        F32, F64,
-        STRING, ARRAY, 
+        F32, F64, STRING, 
+        ARRAY, 
         MODULE, IMPORT, AS, TYPEDEF, SIZEOF,
     UNION,
     // end Reserved words
@@ -61,8 +62,11 @@ public enum TokenType {
     private static final int FIRST_RESERVED_INDEX = STRUCT.ordinal();
     private static final int LAST_RESERVED_INDEX  = UNION.ordinal();
 
-    private static final int FIRST_SPECIAL_INDEX = PLUS.ordinal();
+    private static final int FIRST_SPECIAL_INDEX = PLUS.ordinal();      
     private static final int LAST_SPECIAL_INDEX  = DOUBLE_QUOTE.ordinal();
+    
+    private static final int FIRST_PRIMITIVE_INDEX = TRUE.ordinal();
+    private static final int LAST_PRIMITIVE_INDEX  = STRING.ordinal();
 
     private String text;  // token text
 
@@ -120,5 +124,18 @@ public enum TokenType {
         for (int i = FIRST_SPECIAL_INDEX; i <= LAST_SPECIAL_INDEX; ++i) {
             SPECIAL_SYMBOLS.put(values[i].getText(), values[i]);
         }
+    }
+    
+    
+    public static Map<String, TokenType> PRIMITIVE_SYMBOLS = new HashMap<String, TokenType>();
+    static {
+        TokenType values[] = TokenType.values();
+        for (int i = FIRST_PRIMITIVE_INDEX; i <= LAST_PRIMITIVE_INDEX; ++i) {
+            PRIMITIVE_SYMBOLS.put(values[i].getText(), values[i]);
+        }
+    }
+    
+    public boolean isPrimitiveToken() {
+        return PRIMITIVE_SYMBOLS.containsKey(getText());
     }
 }

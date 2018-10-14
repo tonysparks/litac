@@ -53,6 +53,10 @@ public abstract class TypeInfo {
         return this.kind == kind;
     }
     
+    public TypeKind getKind() {
+        return this.kind;
+    }
+    
     @SuppressWarnings("unchecked")
     public <T extends TypeInfo> T as() {
         return (T) this;
@@ -62,6 +66,14 @@ public abstract class TypeInfo {
         return false;
     }
 
+    public boolean isResolved() {
+        return true;
+    }
+    
+    public TypeInfo getResolvedType() {
+        return this;
+    }
+    
     public boolean isGreater(TypeInfo type) {
         if(this == type) {
             return false;
@@ -105,7 +117,7 @@ public abstract class TypeInfo {
     public abstract boolean canCastTo(TypeInfo target);
 
     
-    public static class Field {
+    public static class FieldInfo {
         public TypeInfo type;
         public String name;
         
@@ -114,13 +126,13 @@ public abstract class TypeInfo {
          * @param type
          * @param name
          */
-        public Field(TypeInfo type, String name) {
+        public FieldInfo(TypeInfo type, String name) {
             this.type = type;
             this.name = name;
         }
     }
     
-    public static class EnumField {        
+    public static class EnumFieldInfo {        
         public String name;
         public Expr value;
         
@@ -129,13 +141,13 @@ public abstract class TypeInfo {
          * @param name
          * @param value
          */
-        public EnumField(String name, Expr value) {            
+        public EnumFieldInfo(String name, Expr value) {            
             this.name = name;
             this.value = value;
         }
     }
     
-    public static class Parameter {
+    public static class ParameterInfo {
         public TypeInfo type;
         public String name;
         
@@ -143,7 +155,7 @@ public abstract class TypeInfo {
          * @param type
          * @param name
          */
-        public Parameter(TypeInfo type, String name) {
+        public ParameterInfo(TypeInfo type, String name) {
             this.type = type;
             this.name = name;
         }
@@ -156,15 +168,15 @@ public abstract class TypeInfo {
     
     
     public static class StructTypeInfo extends TypeInfo {
-        public List<Field> fields;
+        public List<FieldInfo> fieldInfos;
 
         /**
          * @param name
-         * @param fields
+         * @param fieldInfos
          */
-        public StructTypeInfo(String name, List<Field> fields) {
+        public StructTypeInfo(String name, List<FieldInfo> fieldInfos) {
             super(TypeKind.Struct, name);
-            this.fields = fields;
+            this.fieldInfos = fieldInfos;
         }
         
         @Override
@@ -188,13 +200,13 @@ public abstract class TypeInfo {
             if(target.kind == TypeKind.Struct) {
                 StructTypeInfo targetStruct = (StructTypeInfo)target;
                 
-                if(this.fields.size() < targetStruct.fields.size()) {
+                if(this.fieldInfos.size() < targetStruct.fieldInfos.size()) {
                     return false;
                 }
                 
-                for(int i = 0; i < this.fields.size(); i++) {
-                    Field targetField = targetStruct.fields.get(i);
-                    Field thisField   = this.fields.get(i);
+                for(int i = 0; i < this.fieldInfos.size(); i++) {
+                    FieldInfo targetField = targetStruct.fieldInfos.get(i);
+                    FieldInfo thisField   = this.fieldInfos.get(i);
                     
                     // TODO
                 }
@@ -204,15 +216,15 @@ public abstract class TypeInfo {
     }
     
     public static class UnionTypeInfo extends TypeInfo {
-        public List<Field> fields;
+        public List<FieldInfo> fieldInfos;
 
         /**
          * @param name
-         * @param fields
+         * @param fieldInfos
          */
-        public UnionTypeInfo(String name, List<Field> fields) {
+        public UnionTypeInfo(String name, List<FieldInfo> fieldInfos) {
             super(TypeKind.Union, name);
-            this.fields = fields;
+            this.fieldInfos = fieldInfos;
         }
         
         @Override
@@ -236,13 +248,13 @@ public abstract class TypeInfo {
             if(target.kind == TypeKind.Union) {
                 UnionTypeInfo targetUnion = (UnionTypeInfo)target;
                 
-                if(this.fields.size() < targetUnion.fields.size()) {
+                if(this.fieldInfos.size() < targetUnion.fieldInfos.size()) {
                     return false;
                 }
                 
-                for(int i = 0; i < this.fields.size(); i++) {
-                    Field targetField = targetUnion.fields.get(i);
-                    Field thisField   = this.fields.get(i);
+                for(int i = 0; i < this.fieldInfos.size(); i++) {
+                    FieldInfo targetField = targetUnion.fieldInfos.get(i);
+                    FieldInfo thisField   = this.fieldInfos.get(i);
                     
                     // TODO
                 }
@@ -252,13 +264,13 @@ public abstract class TypeInfo {
     }
     
     public static class EnumTypeInfo extends TypeInfo {
-        public List<EnumField> fields;
+        public List<EnumFieldInfo> fields;
 
         /**
          * @param name
-         * @param fields
+         * @param fieldInfos
          */
-        public EnumTypeInfo(String name, List<EnumField> fields) {
+        public EnumTypeInfo(String name, List<EnumFieldInfo> fields) {
             super(TypeKind.Enum, name);
             this.fields = fields;
         }
@@ -291,17 +303,17 @@ public abstract class TypeInfo {
     
     public static class FuncTypeInfo extends TypeInfo {
         public TypeInfo returnType;
-        public List<Parameter> parameters;
+        public List<ParameterInfo> parameterInfos;
         
         /**
          * @param name
          * @param returnType
-         * @param parameters
+         * @param parameterInfos
          */
-        public FuncTypeInfo(String name, TypeInfo returnType, List<Parameter> parameters) {
+        public FuncTypeInfo(String name, TypeInfo returnType, List<ParameterInfo> parameterInfos) {
             super(TypeKind.Func, name);
             this.returnType = returnType;
-            this.parameters = parameters;
+            this.parameterInfos = parameterInfos;
         }
         
         @Override
@@ -319,12 +331,12 @@ public abstract class TypeInfo {
             
             if(target.kind == TypeKind.Func) {
                 FuncTypeInfo funcType = (FuncTypeInfo) target;
-                if(this.parameters.size() != funcType.parameters.size()) {
+                if(this.parameterInfos.size() != funcType.parameterInfos.size()) {
                     return false;
                 }
                 
-                for(int i = 0; i < this.parameters.size(); i++) {
-                    if(!this.parameters.get(i).type.strictEquals(funcType.parameters.get(i).type)) {
+                for(int i = 0; i < this.parameterInfos.size(); i++) {
+                    if(!this.parameterInfos.get(i).type.strictEquals(funcType.parameterInfos.get(i).type)) {
                         return false;
                     }
                 }
@@ -340,7 +352,7 @@ public abstract class TypeInfo {
         public String toString() {    
             StringBuilder sb = new StringBuilder();
             boolean isFirst = true;
-            for(Parameter p : this.parameters) {
+            for(ParameterInfo p : this.parameterInfos) {
                 if(!isFirst) sb.append(", ");
                 sb.append(p);
                 isFirst = false;
@@ -424,17 +436,15 @@ public abstract class TypeInfo {
     
     public static class ArrayTypeInfo extends TypeInfo {
         public TypeInfo arrayOf;
-        public int numberOfDimensions;
         public List<Integer> dimensions;
 
         /**
          * @param name
          * @param arrayOf
          */
-        public ArrayTypeInfo(String name, TypeInfo arrayOf, int numberOfDimensions, List<Integer> dimensions) {
-            super(TypeKind.Array, name);
+        public ArrayTypeInfo(TypeInfo arrayOf, List<Integer> dimensions) {
+            super(TypeKind.Array, "Array");
             this.arrayOf = arrayOf;
-            this.numberOfDimensions = numberOfDimensions;
             this.dimensions = dimensions;
         }
         
@@ -456,11 +466,7 @@ public abstract class TypeInfo {
                 if(!this.arrayOf.strictEquals(arrayInfo.arrayOf)) {
                     return false;
                 }
-                
-                if(this.numberOfDimensions != arrayInfo.numberOfDimensions) {
-                    return false;
-                }
-                
+                                
                 if(this.dimensions.size() != arrayInfo.dimensions.size()) {
                     return false;
                 }
@@ -582,11 +588,17 @@ public abstract class TypeInfo {
             if(isResolved()) {
                 return this.resolvedType.toString();
             }
-            return this.identifier;
+            return "[unresolved] : " + this.identifier;
         }
         
+        @Override
         public boolean isResolved() {
             return this.resolvedType != null;
+        }
+        
+        @Override
+        public TypeInfo getResolvedType() {
+            return resolvedType;
         }
         
         public void resolve(TypeInfo resolvedTo) {
@@ -603,10 +615,19 @@ public abstract class TypeInfo {
         }
         
         @Override
+        public TypeKind getKind() {
+            if(isResolved()) {
+                return this.resolvedType.getKind();
+            }
+            
+            return super.getKind();
+        }
+        
+        @Override
         @SuppressWarnings("unchecked")
         public <T extends TypeInfo> T as() {
             if(isResolved()) {
-                return (T) this.resolvedType;
+                return (T) this.resolvedType.as();
             }
             
             return (T) this;

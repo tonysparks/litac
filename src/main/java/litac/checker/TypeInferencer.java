@@ -5,6 +5,7 @@ package litac.checker;
 
 import litac.ast.AbstractNodeVisitor;
 import litac.ast.Expr;
+import litac.ast.Expr.ArrayInitExpr;
 import litac.ast.Expr.BinaryExpr;
 import litac.ast.Expr.BooleanExpr;
 import litac.ast.Expr.DotExpr;
@@ -14,6 +15,9 @@ import litac.ast.Expr.GroupExpr;
 import litac.ast.Expr.IdentifierExpr;
 import litac.ast.Expr.InitExpr;
 import litac.ast.Expr.NullExpr;
+import litac.ast.Expr.SetExpr;
+import litac.ast.Expr.SubscriptGetExpr;
+import litac.ast.Expr.SubscriptSetExpr;
 import litac.ast.Expr.UnaryExpr;
 import litac.ast.TypeInfo.FuncTypeInfo;
 import litac.ast.TypeInfo.PtrTypeInfo;
@@ -111,6 +115,36 @@ public class TypeInferencer {
             }
         }
     
+        @Override
+        public void visit(ArrayInitExpr expr) {
+            for(Expr d : expr.dimensions) {
+                d.visit(this);
+            }
+            
+            // TODO
+            
+        }
+        
+        @Override
+        public void visit(SubscriptGetExpr expr) {
+            // TODO Auto-generated method stub
+            expr.object.visit(this);
+            expr.index.visit(this);
+        }
+        
+        @Override
+        public void visit(SubscriptSetExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
+        
+        @Override
+        public void visit(SetExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
+        
+        
     }    
     
 }

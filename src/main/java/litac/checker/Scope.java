@@ -45,8 +45,7 @@ public class Scope {
     
     private List<TypeCheck> pendingChecks;
     
-    private Stack<FuncDecl> funcDecls;
-    private Stack<TypeInfo> typeStack;
+
     
     private Scope parent;
     
@@ -64,37 +63,14 @@ public class Scope {
         this.variables = new HashMap<>();
         this.pendingChecks = new ArrayList<>();
         
-        this.funcDecls = new Stack<>();
-        this.typeStack = new Stack<>();
+
     }
     
     public Scope getParent() {
         return this.parent;
     }
     
-    public void pushFuncDecl(FuncDecl func) {
-        this.funcDecls.push(func);
-    }
-    
-    public void popsFuncDecl() {
-        this.funcDecls.pop();
-    }
-    
-    public FuncDecl peekFuncDecl() {
-        return this.funcDecls.peek();
-    }
-    
-    public void pushTypeInfo(TypeInfo type) {
-        this.typeStack.push(type);
-    }
-    
-    public TypeInfo popTypeInfo() {
-        return this.typeStack.pop();
-    }
-    
-    public TypeInfo peekTypeInfo() {
-        return this.typeStack.peek();
-    }
+
     
     
     public void addTypeCheck(Expr expr, TypeInfo type) {

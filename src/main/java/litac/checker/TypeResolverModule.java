@@ -17,11 +17,11 @@ public class TypeResolverModule {
        
     public TypeResolverScope currentScope;
     
-    public TypeResolverModule(String name) {
+    public TypeResolverModule(TypeResolverResult result, String name) {
         this.name = name;
         
         this.imports = new HashMap<>();                
-        this.currentScope = new TypeResolverScope();
+        this.currentScope = new TypeResolverScope(result);
     }
     
     
