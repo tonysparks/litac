@@ -24,6 +24,10 @@ import litac.parser.tokens.TokenType;
  *
  */
 public class Parser {   
+    private int anonStructId;
+    private int anonEnumId;
+    private int loopLevel;
+    
     private final Scanner scanner;
     private final List<Token> tokens;
     private int current;
@@ -89,15 +93,21 @@ public class Parser {
         
         while(!isAtEnd()) {
             if(match(IMPORT))       imports.add(importDeclaration());
-            else if(match(VAR))     declarations.add(varDeclaration());
-            else if(match(CONST))   declarations.add(constDeclaration());
-            else if(match(FUNC))    declarations.add(funcDeclaration());
-            else if(match(STRUCT))  declarations.add(structDeclaration());
-            else if(match(UNION))   declarations.add(unionDeclaration());
-            else if(match(ENUM))    declarations.add(enumDeclaration());
-            else if(match(TYPEDEF)) declarations.add(typedefDeclaration());            
-            else if(match(SEMICOLON));
-            else throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
+            else {
+                boolean isPublic = match(PUBLIC);
+                
+                if(match(VAR))            declarations.add(varDeclaration());
+                else if(match(CONST))     declarations.add(constDeclaration());
+                else if(match(FUNC))      declarations.add(funcDeclaration());
+                else if(match(STRUCT))    declarations.add(structDeclaration());
+                else if(match(UNION))     declarations.add(unionDeclaration());
+                else if(match(ENUM))      declarations.add(enumDeclaration());
+                else if(match(TYPEDEF))   declarations.add(typedefDeclaration());            
+                else if(match(SEMICOLON)) continue;
+                else throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
+                
+                declarations.get(declarations.size() - 1).isPublic = isPublic;
+            }
         }
         
         return node(new ProgramStmt(moduleName, imports, declarations));
@@ -119,7 +129,7 @@ public class Parser {
         
         String aliasName = null;
         
-        Token library = consume(STRING, ErrorCode.MISSING_IDENTIFIER);
+        Token library = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         if(match(AS)) {
             Token alias = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
             aliasName = alias.getText();
@@ -149,7 +159,8 @@ public class Parser {
             consume(EQUALS, ErrorCode.MISSING_EQUALS);
             expr = expression();
             
-            type = new IdentifierTypeInfo(identifier.getText());
+            //type = new IdentifierTypeInfo(identifier.getText());
+            type = null;
         }
         
         
@@ -203,6 +214,9 @@ public class Parser {
             Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
             structName = identifier.getText();
         }
+        else {
+            structName = String.format("<anonymous-struct-%d>", anonStructId++);
+        }
         
         consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
         
@@ -237,6 +251,9 @@ public class Parser {
         if(check(IDENTIFIER)) {
             Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
             unionName = identifier.getText();
+        }
+        else {
+            unionName = String.format("<anonymous-union-%d>", anonEnumId++);
         }
         
         consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
@@ -316,6 +333,7 @@ public class Parser {
         if(match(BREAK))        return breakStmt();
         if(match(CONTINUE))     return continueStmt();
         if(match(RETURN))       return returnStmt();
+        if(match(DEFER))        return deferStmt();
                         
         return expression();
     }
@@ -392,24 +410,30 @@ public class Parser {
         return node(new IfStmt(condExpr, thenStmt, elseStmt));
     }
     
-    private WhileStmt whileStmt() {        
+    private WhileStmt whileStmt() {       
+        this.loopLevel++;
+        
         consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         
         Stmt bodyStmt = statement();
+        this.loopLevel--;
         
         return node(new WhileStmt(condExpr, bodyStmt));
     }
     
-    private DoWhileStmt doWhileStmt() {        
+    private DoWhileStmt doWhileStmt() {
+        this.loopLevel++;
         Stmt bodyStmt = statement();
         
         consume(WHILE, ErrorCode.MISSING_COLON);
         consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        
+        this.loopLevel--;
         
         return node(new DoWhileStmt(condExpr, bodyStmt));
     }
@@ -423,17 +447,25 @@ public class Parser {
         Stmt postStmt = statement();
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
+        this.loopLevel++;
         Stmt bodyStmt = statement();
+        this.loopLevel--;
         
         return node(new ForStmt(initStmt, condExpr, postStmt, bodyStmt));
     }
     
     
-    private BreakStmt breakStmt() {                        
+    private BreakStmt breakStmt() {     
+        if(this.loopLevel < 1) {
+            throw error(previous(), ErrorCode.INVALID_BREAK);
+        }
         return node(new BreakStmt());
     }
     
-    private ContinueStmt continueStmt() {                        
+    private ContinueStmt continueStmt() {
+        if(this.loopLevel < 1) {
+            throw error(previous(), ErrorCode.INVALID_CONTINUE);
+        }
         return node(new ContinueStmt());
     }
     
@@ -444,6 +476,10 @@ public class Parser {
         }
         
         return node(new ReturnStmt(returnExpr));
+    }
+    
+    private DeferStmt deferStmt() {
+        return node(new DeferStmt(statement()));
     }
     
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -700,7 +736,7 @@ public class Parser {
                 advance(); // eat the {
                 IdentifierExpr idExpr = (IdentifierExpr)expr;
                 List<Expr> arguments = structArguments();
-                expr = new InitExpr(idExpr.type, arguments);
+                expr = node(new InitExpr(idExpr.type, arguments));
             }
             else if(match(LEFT_BRACKET)) {
                 Expr index = expression();
@@ -741,7 +777,11 @@ public class Parser {
     }     
     
     private Expr finishFunctionCall(Expr callee) {
-        List<Expr> arguments = arguments();        
+        List<Expr> arguments = arguments();
+        if(callee instanceof IdentifierExpr) {
+            IdentifierExpr idExpr = (IdentifierExpr)callee;
+            callee = new FuncIdentifierExpr(idExpr.variable, idExpr.type);
+        }
         return node(new FuncCallExpr(callee, arguments));
     }
     
@@ -764,7 +804,7 @@ public class Parser {
                 break;
             }
             
-            type = new PtrTypeInfo("Ptr", type);                    
+            type = new PtrTypeInfo(type);                    
         } while(!isAtEnd());
         
         return type;
@@ -774,63 +814,63 @@ public class Parser {
         Token t = peek();
         switch(t.getType()) {
             case BOOL: {
-                TypeInfo type = new PrimitiveTypeInfo("bool", TypeKind.bool);
+                TypeInfo type = TypeInfo.BOOL_TYPE;
                 return ptrType(type);
             }
             case I8: {
-                TypeInfo type = new PrimitiveTypeInfo("i8", TypeKind.i8);
+                TypeInfo type = TypeInfo.I8_TYPE;
                 return ptrType(type);
             }
             case U8: {
-                TypeInfo type = new PrimitiveTypeInfo("u8", TypeKind.u8);
+                TypeInfo type = TypeInfo.U8_TYPE;
                 return ptrType(type);
             }
             case I16: {
-                TypeInfo type = new PrimitiveTypeInfo("i16", TypeKind.i16);
+                TypeInfo type = TypeInfo.I16_TYPE;
                 return ptrType(type);
             }
             case U16: {
-                TypeInfo type = new PrimitiveTypeInfo("u16", TypeKind.u16);
+                TypeInfo type = TypeInfo.U16_TYPE;
                 return ptrType(type);
             }
             case I32: {
-                TypeInfo type = new PrimitiveTypeInfo("i32", TypeKind.i32);
+                TypeInfo type = TypeInfo.I32_TYPE;
                 return ptrType(type);
             }
             case U32: {
-                TypeInfo type = new PrimitiveTypeInfo("u32", TypeKind.u32);
+                TypeInfo type = TypeInfo.U32_TYPE;
                 return ptrType(type);
             }
             case I64: {
-                TypeInfo type = new PrimitiveTypeInfo("i64", TypeKind.i64);
+                TypeInfo type = TypeInfo.I64_TYPE;
                 return ptrType(type);
             }
             case U64: {
-                TypeInfo type = new PrimitiveTypeInfo("u64", TypeKind.u64);
+                TypeInfo type = TypeInfo.U64_TYPE;
                 return ptrType(type);
             }
             case I128: {
-                TypeInfo type = new PrimitiveTypeInfo("i128", TypeKind.i128);
+                TypeInfo type = TypeInfo.I128_TYPE;
                 return ptrType(type);
             }
             case U128: {
-                TypeInfo type = new PrimitiveTypeInfo("u128", TypeKind.u128);
+                TypeInfo type = TypeInfo.U128_TYPE;
                 return ptrType(type);
             }
             case F32: {
-                TypeInfo type = new PrimitiveTypeInfo("f32", TypeKind.f32);
+                TypeInfo type = TypeInfo.F32_TYPE;
                 return ptrType(type);
             }
             case F64: {
-                TypeInfo type = new PrimitiveTypeInfo("f64", TypeKind.f64);
+                TypeInfo type = TypeInfo.F64_TYPE;
+                return ptrType(type);
+            }
+            case VOID: {
+                TypeInfo type = TypeInfo.VOID_TYPE;
                 return ptrType(type);
             }
             case IDENTIFIER: {
                 TypeInfo type = new IdentifierTypeInfo(t.getText());
-                return ptrType(type);
-            }
-            case VOID: {
-                TypeInfo type = new VoidTypeInfo();
                 return ptrType(type);
             }
             case STRING: {
@@ -929,6 +969,7 @@ public class Parser {
      */
     private <T extends Node> T node(T node) {
         if(this.startToken != null) {
+            node.setSourceFile(this.scanner.getSourceFile());
             node.setSourceLine(this.scanner.getSourceLine(this.startToken.getLineNumber()));
             node.setLineNumber(this.startToken.getLineNumber());
         }

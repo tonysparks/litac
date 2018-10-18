@@ -12,6 +12,23 @@ import java.util.List;
  */
 public abstract class TypeInfo {
     
+    public static final TypeInfo BOOL_TYPE = new PrimitiveTypeInfo("bool", TypeKind.bool);
+    public static final TypeInfo I8_TYPE   = new PrimitiveTypeInfo("i8", TypeKind.i8);
+    public static final TypeInfo U8_TYPE   = new PrimitiveTypeInfo("u8", TypeKind.u8);
+    public static final TypeInfo I16_TYPE  = new PrimitiveTypeInfo("i16", TypeKind.i16);
+    public static final TypeInfo U16_TYPE  = new PrimitiveTypeInfo("u16", TypeKind.u16);
+    public static final TypeInfo I32_TYPE  = new PrimitiveTypeInfo("i32", TypeKind.i32);
+    public static final TypeInfo U32_TYPE  = new PrimitiveTypeInfo("u32", TypeKind.u32);
+    public static final TypeInfo I64_TYPE  = new PrimitiveTypeInfo("i64", TypeKind.i64);
+    public static final TypeInfo U64_TYPE  = new PrimitiveTypeInfo("u64", TypeKind.u64);
+    public static final TypeInfo I128_TYPE = new PrimitiveTypeInfo("i128", TypeKind.i128);
+    public static final TypeInfo U128_TYPE = new PrimitiveTypeInfo("u128", TypeKind.u128);
+    public static final TypeInfo F32_TYPE  = new PrimitiveTypeInfo("f32", TypeKind.f32);
+    public static final TypeInfo F64_TYPE  = new PrimitiveTypeInfo("f64", TypeKind.f64);
+    public static final TypeInfo NULL_TYPE = new NullTypeInfo();
+    public static final TypeInfo VOID_TYPE = new VoidTypeInfo();
+    
+    
     public static enum TypeKind {
         bool,
         i8,  u8,
@@ -36,7 +53,7 @@ public abstract class TypeInfo {
         Identifier,
     }
     
-    public TypeKind kind;
+    protected TypeKind kind;
     public String name;
     
     TypeInfo(TypeKind kind, String name) {
@@ -55,6 +72,10 @@ public abstract class TypeInfo {
     
     public TypeKind getKind() {
         return this.kind;
+    }
+    
+    public String getName() {
+        return this.name;
     }
     
     @SuppressWarnings("unchecked")
@@ -208,7 +229,9 @@ public abstract class TypeInfo {
                     FieldInfo targetField = targetStruct.fieldInfos.get(i);
                     FieldInfo thisField   = this.fieldInfos.get(i);
                     
-                    // TODO
+                    if(!targetField.type.strictEquals(thisField.type)) {
+                        return false;
+                    }
                 }
             }
             return false;
@@ -256,7 +279,9 @@ public abstract class TypeInfo {
                     FieldInfo targetField = targetUnion.fieldInfos.get(i);
                     FieldInfo thisField   = this.fieldInfos.get(i);
                     
-                    // TODO
+                    if(!targetField.type.strictEquals(thisField.type)) {
+                        return false;
+                    }
                 }
             }
             return false;
@@ -402,8 +427,8 @@ public abstract class TypeInfo {
          * @param name
          * @param ptrOf
          */
-        public PtrTypeInfo(String name, TypeInfo ptrOf) {
-            super(TypeKind.Ptr, name);
+        public PtrTypeInfo(TypeInfo ptrOf) {
+            super(TypeKind.Ptr, "ptr");
             this.ptrOf = ptrOf;
         }
         
@@ -411,23 +436,23 @@ public abstract class TypeInfo {
         public String toString() {    
             return ptrOf.toString() + "*";
         }
-        
+                
         @Override
         public boolean canCastTo(TypeInfo target) {
             if(target == this) {
                 return true;
             }
             
-            if(target.kind == TypeKind.Identifier) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
+            if(target.isKind(TypeKind.Identifier)) {
+                IdentifierTypeInfo idInfo = target.as();
                 if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
+                    return canCastTo(idInfo.getResolvedType());
                 }
             }
             
-            if(target.kind == TypeKind.Ptr) {
-                PtrTypeInfo ptrInfo = (PtrTypeInfo)target;
-                return this.ptrOf.canCastTo(ptrInfo.ptrOf);
+            if(target.isKind(TypeKind.Ptr)) {
+                PtrTypeInfo ptrInfo = target.as();
+                return this.ptrOf.getResolvedType().canCastTo(ptrInfo.ptrOf.getResolvedType());
             }
             
             return false;
@@ -486,7 +511,7 @@ public abstract class TypeInfo {
     
     public static class PrimitiveTypeInfo extends TypeInfo {        
         
-        public PrimitiveTypeInfo(String name, TypeKind kind) {
+        private PrimitiveTypeInfo(String name, TypeKind kind) {
             super(kind, name);            
         }
         
@@ -511,7 +536,7 @@ public abstract class TypeInfo {
     }
     
     public static class VoidTypeInfo extends TypeInfo {
-        public VoidTypeInfo() {
+        private VoidTypeInfo() {
             super(TypeKind.Void, "void");            
         }
         
@@ -543,7 +568,7 @@ public abstract class TypeInfo {
     }
     
     public static class NullTypeInfo extends TypeInfo {
-        public NullTypeInfo() {
+        private NullTypeInfo() {
             super(TypeKind.Null, "null");            
         }
         
@@ -608,7 +633,7 @@ public abstract class TypeInfo {
         @Override
         public boolean isKind(TypeKind kind) {
             if(isResolved()) {
-                return this.resolvedType.kind == kind;
+                return this.resolvedType.isKind(kind);
             }
             
             return super.isKind(kind);
@@ -639,10 +664,10 @@ public abstract class TypeInfo {
                 return true;
             }
                         
-            if(target.kind == this.kind) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
+            if(target.isKind(this.kind)) {
+                IdentifierTypeInfo idInfo = target.as();
                 if(isResolved() && idInfo.isResolved()) {
-                    return this.resolvedType.canCastTo(idInfo.resolvedType);
+                    return this.resolvedType.canCastTo(idInfo.getResolvedType());
                 }
             }
             else if(isResolved()) {

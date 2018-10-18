@@ -13,6 +13,8 @@ public enum ErrorCode {
     INVALID_NUMBER("Invalid number"),
     INVALID_FIELD("Invalid field member"),
     INVALID_IMPORT_ACCESS("Invalid import access"),
+    INVALID_CONTINUE("Invalid continue statement"),
+    INVALID_BREAK("Invalid break statement"),    
     INVALID_OBJECT_INIT("Invalid structure initializer"),
 
     MISSING_COMMA("Missing ,"),

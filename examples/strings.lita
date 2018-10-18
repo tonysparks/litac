@@ -1,0 +1,10 @@
+module strings
+
+struct String {
+
+}
+
+func length(str: string) : u32 {
+//    return String {}
+
+}

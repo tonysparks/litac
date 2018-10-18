@@ -1,29 +1,77 @@
-/*struct Vec2 {
-    x:f32
-    y:f32
+module test
+
+// imports the file name
+import strings as str
+
+public var day = DAY.MONDAY
+enum DAY {
+    MONDAY  = (1<<0),
+    TUESDAY = (1<<1),
 }
 
+//StructInit before StructDecl
+//var z = Vec2{4, 5, X{5}}
+
 func test(i:i32) : Vec2 {
-    var v = Vec2{3.0,4.0}
+
+    var i = DAY.TUESDAY
+    i = DAY.MONDAY
+    
+    var v = Vec2{3.0,4.0,X{5.0}}
+    v.x = 10
+    while (true) 
+        continue
+    
+    var s = []Vec2 {
+        Vec2{1.0,2.0, X{0}}
+    }
+    s[0].x = s[0].X.v
+    
     return v;
-} */
+} 
+
+func testPtr(i:i32**, v:Vec2*): Vec2* {
+    var v = Vec2{3.0,4.0,X{5.0}}
+    defer {
+        v.x = 10
+    }
+    return &v
+}
+
+var vv = Vec2{3.0,4.0,X{5.0}}
+var zz = &10
+var ww = &zz
+var q:Vec2* = testPtr(&zz, &vv) 
+//var qq = opopo
+
+struct Vec2 {
+    x:f32
+    y:f32
+    
+    struct X {
+        v:f32
+    }
+}
+
+var yy = 0
+var t = 1 + 0 
+
 
 //var x:i32 = 1
 //var z = Vec2{4, 5}
 
+
 //var f = &test(10).x
 
-var a = []i32 {
-    1, 2, 3
-} 
+//var a = []i32 {
+    //1, 2, 3
+//} 
 
-var b = a[0] = 10
+//var b = a[0] = 10
+//var z = blah;
 
 
-/*
-var s = Vec2[] {
-    Vec2{1.0,2.0}
-}*/
+
 
 
 /*const x = 10;

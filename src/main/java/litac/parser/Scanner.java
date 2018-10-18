@@ -64,6 +64,13 @@ public class Scanner {
     }
 
     /**
+     * @return The source file of this code
+     */
+    public String getSourceFile() {
+        return this.source.getSourceName();
+    }
+    
+    /**
      * The scanned {@link Token}s
      * 
      * @return The scanned {@link Token}s

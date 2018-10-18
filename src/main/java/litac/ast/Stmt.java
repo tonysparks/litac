@@ -250,4 +250,17 @@ public abstract class Stmt extends Node {
             v.visit(this);
         }
     }
+    
+    public static class DeferStmt extends Stmt {
+        public Stmt stmt;
+        
+        public DeferStmt(Stmt stmt) {
+            this.stmt = stmt;
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);            
+        }
+    }
 }

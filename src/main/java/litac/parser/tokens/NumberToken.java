@@ -6,7 +6,6 @@ import static litac.parser.tokens.TokenType.*;
 import java.math.BigInteger;
 
 import litac.ast.TypeInfo;
-import litac.ast.TypeInfo.*;
 import litac.parser.Source;
 
 
@@ -108,14 +107,14 @@ public class NumberToken extends Token {
             if (type != ERROR) {
                 type = NUMBER;
                 value = integerValue;
-                typeInfo = new PrimitiveTypeInfo("i32", TypeKind.i32);
+                typeInfo = TypeInfo.I32_TYPE;
             }
             else if (value == RANGE_INTEGER) {                
                 long longValue = computeLongValue(wholeDigits);
                 
                 type = I64;
                 value = longValue;
-                typeInfo = new PrimitiveTypeInfo("i64", TypeKind.i64);
+                typeInfo = TypeInfo.I64_TYPE;
             }
         }
 
@@ -126,7 +125,7 @@ public class NumberToken extends Token {
             if (type != ERROR) {
                 type = NUMBER;
                 value = floatValue;
-                typeInfo = new PrimitiveTypeInfo("f64", TypeKind.f64);
+                typeInfo = TypeInfo.F64_TYPE;
             }
         }
 
