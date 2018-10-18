@@ -5,53 +5,19 @@ package litac.c;
 
 import java.io.File;
 
-import litac.ast.Decl.ConstDecl;
-import litac.ast.Decl.EnumDecl;
-import litac.ast.Decl.FuncDecl;
-import litac.ast.Decl.StructDecl;
-import litac.ast.Decl.TypedefDecl;
-import litac.ast.Decl.UnionDecl;
-import litac.ast.Decl.VarDecl;
-import litac.ast.Expr.ArrayInitExpr;
-import litac.ast.Expr.BinaryExpr;
-import litac.ast.Expr.BooleanExpr;
-import litac.ast.Expr.DotExpr;
-import litac.ast.Expr.FuncCallExpr;
-import litac.ast.Expr.GetExpr;
-import litac.ast.Expr.GroupExpr;
-import litac.ast.Expr.IdentifierExpr;
-import litac.ast.Expr.InitExpr;
-import litac.ast.Expr.NullExpr;
-import litac.ast.Expr.NumberExpr;
-import litac.ast.Expr.SetExpr;
-import litac.ast.Expr.StringExpr;
-import litac.ast.Expr.SubscriptGetExpr;
-import litac.ast.Expr.SubscriptSetExpr;
-import litac.ast.Expr.UnaryExpr;
-import litac.Errors;
+import litac.ast.Decl.*;
 import litac.ast.Expr;
+import litac.ast.Expr.*;
+import litac.ast.Stmt.*;
 import litac.ast.NodeVisitor;
-import litac.ast.Stmt.BlockStmt;
-import litac.ast.Stmt.BreakStmt;
-import litac.ast.Stmt.ContinueStmt;
-import litac.ast.Stmt.DoWhileStmt;
-import litac.ast.Stmt.ForStmt;
-import litac.ast.Stmt.IfStmt;
-import litac.ast.Stmt.ImportStmt;
-import litac.ast.Stmt.ModuleStmt;
-import litac.ast.Stmt.ProgramStmt;
-import litac.ast.Stmt.ReturnStmt;
-import litac.ast.Stmt.StructFieldStmt;
-import litac.ast.Stmt.UnionFieldStmt;
-import litac.ast.Stmt.VarFieldStmt;
-import litac.ast.Stmt.WhileStmt;
+
+import litac.Errors;
+
 import litac.checker.TypeCheckResult;
 import litac.checker.TypeCheckResult.TypeCheckError;
 import litac.checker.TypeChecker;
 import litac.checker.TypeChecker.TypeCheckerOptions;
-import litac.checker.TypeResolver;
-import litac.checker.TypeResolverResult;
-import litac.checker.TypeResolverResult.TypeResolverError;
+import litac.util.OS.OsType;
 
 /**
  * @author Tony
@@ -60,18 +26,22 @@ import litac.checker.TypeResolverResult.TypeResolverError;
 public class Transpiler {
 
     public static class TranspilerOptions {
-        public File outputDir;
+        public File outputDir;        
+        public String outputFileName;
+        public TypeCheckerOptions checkerOptions;
+        public OsType targetOS;
+        
+        public TranspilerOptions() {
+            this.checkerOptions = new TypeCheckerOptions();
+            this.outputDir = new File(System.getProperty("user.dir"), "output");
+            this.outputFileName = "a";
+            
+            this.targetOS = OsType.WINDOWS;
+        }
     }
 
     public static void transpile(ProgramStmt program, TranspilerOptions options) {
-        TypeResolverResult resolverResult = TypeResolver.resolveTypes(program);
-        if(resolverResult.hasErrors()) {
-            for(TypeResolverError error : resolverResult.getErrors()) {
-                Errors.typeCheckError(error.stmt, error.message);
-            }
-        }
-        
-        TypeCheckResult checkerResult = TypeChecker.typeCheck(new TypeCheckerOptions(), program);
+        TypeCheckResult checkerResult = TypeChecker.typeCheck(options.checkerOptions, program);
         if(checkerResult.hasErrors()) {
             for(TypeCheckError error : checkerResult.getErrors()) {
                 Errors.typeCheckError(error.stmt, error.message);
@@ -183,6 +153,11 @@ public class Transpiler {
 
         }
 
+        @Override
+        public void visit(DeferStmt stmt) {
+            // TODO Auto-generated method stub
+            
+        }
   
         @Override
         public void visit(ConstDecl d) {
@@ -281,6 +256,11 @@ public class Transpiler {
 
         }
 
+        @Override
+        public void visit(FuncIdentifierExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
 
         @Override
         public void visit(GetExpr expr) {

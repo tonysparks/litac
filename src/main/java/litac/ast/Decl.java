@@ -27,11 +27,13 @@ public abstract class Decl extends Stmt {
     public TypeInfo type;
     public DeclKind kind;
     public String name;
+    public boolean isPublic;
     
     public Decl(DeclKind kind, TypeInfo type, String name) {
         this.kind = kind;
         this.type = type;
         this.name = name;
+        this.isPublic = false;
     }
     
     public static class VarDecl extends Decl {
@@ -98,6 +100,10 @@ public abstract class Decl extends Stmt {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        public void updateName(String name) {
+            this.name = name;
         }
     }       
     

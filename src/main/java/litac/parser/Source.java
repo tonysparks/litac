@@ -30,6 +30,8 @@ public class Source implements AutoCloseable {
     private int currentPos; // current source line position
     
     private List<String> lines;
+    
+    private String sourceName;
 
     /**
      * 
@@ -38,7 +40,8 @@ public class Source implements AutoCloseable {
      * @throws IOException
      *             if an I/O error occurred
      */
-    public Source(Reader reader) {
+    public Source(String sourceName, Reader reader) {
+        this.sourceName = sourceName;
         this.lineNum = 0;
         this.currentPos = -2; // set to -2 to read the first source line
         this.lines = new ArrayList<>();
@@ -46,6 +49,13 @@ public class Source implements AutoCloseable {
                 (BufferedReader)reader : new BufferedReader(reader);
                 
         this.errorToken = new ErrorToken(this, ErrorCode.UNKNOWN_ERROR, "");
+    }
+    
+    /**
+     * @return the sourceName
+     */
+    public String getSourceName() {
+        return sourceName;
     }
 
     public String getLine(int lineNumber) {

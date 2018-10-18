@@ -3,6 +3,7 @@
  */
 package litac.ast;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import litac.ast.TypeInfo.*;
@@ -74,7 +75,7 @@ public abstract class Expr extends Stmt {
     }
     
     public boolean isResolved() {
-        return this.resolvedTo != null;
+        return this.resolvedTo != null && this.resolvedTo.isResolved();
     }
     
     
@@ -136,8 +137,19 @@ public abstract class Expr extends Stmt {
             this.dimensions = becomeParentOf(dimensions);
             this.values = becomeParentOf(values);
             
-            // TODO
-            resolveTo(new ArrayTypeInfo(arrayOf, null));
+            List<Integer> dims = new ArrayList<Integer>(dimensions.size());
+            for(Expr d : dimensions) {
+                if(d instanceof NumberExpr) {
+                    NumberExpr n = (NumberExpr)d;
+                    dims.add((Integer)n.number.getValue());
+                }
+                else {
+                    // must infer size from values
+                    dims.add(-1);
+                }
+            }
+            
+            resolveTo(new ArrayTypeInfo(arrayOf, dims));
         }
         
         @Override
@@ -172,6 +184,8 @@ public abstract class Expr extends Stmt {
             this.index = becomeParentOf(index);
             this.operator = operator;
             this.value = becomeParentOf(value);
+            
+            resolveTo(value.getResolvedType());
         }
         
         @Override
@@ -188,7 +202,7 @@ public abstract class Expr extends Stmt {
          * 
          */
         public BooleanExpr(boolean bool) {
-            super(new PrimitiveTypeInfo("bool", TypeKind.bool));
+            super(TypeInfo.BOOL_TYPE);
             this.bool = bool;
             
             resolveTo(this.type);
@@ -295,7 +309,7 @@ public abstract class Expr extends Stmt {
         
     public static class NullExpr extends ConstExpr {
         public NullExpr() {
-            super(new NullTypeInfo());
+            super(TypeInfo.NULL_TYPE);
             
             resolveTo(this.type);
         }
@@ -380,5 +394,18 @@ public abstract class Expr extends Stmt {
 
     }
 
+    public static class FuncIdentifierExpr extends IdentifierExpr {
+
+        public FuncIdentifierExpr(String variable, TypeInfo type) {
+            super(variable, type);
+        }
+
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+
+    }
+    
 
 }

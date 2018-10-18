@@ -27,6 +27,7 @@ public interface NodeVisitor {
     void visit(ContinueStmt stmt);
     void visit(ReturnStmt stmt);
     void visit(BlockStmt stmt);
+    void visit(DeferStmt stmt);
     
     void visit(ConstDecl d);
     void visit(EnumDecl d);
@@ -45,6 +46,7 @@ public interface NodeVisitor {
     void visit(GroupExpr expr);
     void visit(FuncCallExpr expr);
     void visit(IdentifierExpr expr);
+    void visit(FuncIdentifierExpr expr);
     void visit(GetExpr expr);
     void visit(SetExpr expr);
     void visit(UnaryExpr expr);

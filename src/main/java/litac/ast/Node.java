@@ -19,8 +19,23 @@ public abstract class Node {
     private Node parentNode;
     private int lineNumber;
     private String sourceLine;
+    private String sourceFile;
         
     public abstract void visit(NodeVisitor v);
+    
+    /**
+     * @return the sourceFile
+     */
+    public String getSourceFile() {
+        return sourceFile;
+    }
+    
+    /**
+     * @param sourceFile the sourceFile to set
+     */
+    public void setSourceFile(String sourceFile) {
+        this.sourceFile = sourceFile;
+    }
     
     /**
      * @return the sourceLine

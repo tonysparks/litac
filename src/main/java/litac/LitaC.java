@@ -28,12 +28,15 @@ public class LitaC {
             return;
         }
         
-        Scanner scanner = new Scanner(new Source(new FileReader(new File(args[0]))));
+        File moduleFile = new File(args[0]);
+        Scanner scanner = new Scanner(new Source(moduleFile.getName(), new FileReader(moduleFile)));
         Parser parser = new Parser(scanner);
         ProgramStmt program = parser.parseProgram();
         
+        TranspilerOptions options = new TranspilerOptions();
+        options.checkerOptions.srcDir = moduleFile.getParentFile();
         
-        Transpiler.transpile(program, new TranspilerOptions());
+        Transpiler.transpile(program, options);
         
 
     }
