@@ -8,7 +8,8 @@ import java.util.List;
 
 import litac.ast.Decl.StructDecl;
 import litac.ast.Decl.UnionDecl;
-import litac.ast.TypeInfo.FieldInfo;
+import litac.checker.TypeInfo;
+import litac.checker.TypeInfo.FieldInfo;
 import litac.parser.ErrorCode;
 import litac.parser.ParseException;
 import litac.parser.tokens.Token;
@@ -66,19 +67,6 @@ public abstract class Stmt extends Node {
 
     }
 
-    
-    public static class ProgramStmt extends ModuleStmt {
-        
-        public ProgramStmt(String name, List<ImportStmt> imports, List<Decl> decl) {
-            super(name, imports, decl);
-        }
-
-        @Override
-        public void visit(NodeVisitor v) {
-            v.visit(this);
-        }
-
-    }
     
     public static class ImportStmt extends Stmt {
         public String moduleName;

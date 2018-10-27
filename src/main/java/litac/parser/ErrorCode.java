@@ -16,6 +16,7 @@ public enum ErrorCode {
     INVALID_CONTINUE("Invalid continue statement"),
     INVALID_BREAK("Invalid break statement"),    
     INVALID_OBJECT_INIT("Invalid structure initializer"),
+    INVALID_MODULE_ACCESS("Invalid module access"),
 
     MISSING_COMMA("Missing ,"),
     MISSING_SEMICOLON("Missing ;"),

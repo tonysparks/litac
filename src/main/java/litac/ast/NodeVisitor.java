@@ -13,7 +13,6 @@ import litac.ast.Expr.*;
  */
 public interface NodeVisitor {
 
-    void visit(ProgramStmt stmt);
     void visit(ModuleStmt stmt);
     void visit(ImportStmt stmt);
     void visit(VarFieldStmt stmt);
@@ -51,8 +50,177 @@ public interface NodeVisitor {
     void visit(SetExpr expr);
     void visit(UnaryExpr expr);
     void visit(BinaryExpr expr);
-    void visit(DotExpr expr);
     void visit(ArrayInitExpr expr);
     void visit(SubscriptGetExpr expr);
     void visit(SubscriptSetExpr expr);
+    
+    
+    public static abstract class AbstractNodeVisitor implements NodeVisitor {
+
+        @Override
+        public void visit(ModuleStmt stmt) {
+        }
+
+        @Override
+        public void visit(ImportStmt stmt) {
+        }
+        
+        @Override
+        public void visit(InitExpr expr) {
+        }
+        
+        @Override
+        public void visit(StructFieldStmt stmt) {
+        }
+        
+        @Override
+        public void visit(UnionFieldStmt stmt) {
+        }
+        
+        @Override
+        public void visit(VarFieldStmt stmt) {
+        }
+        
+
+        @Override
+        public void visit(IfStmt stmt) {
+        }
+
+        @Override
+        public void visit(WhileStmt stmt) {
+        }
+
+
+        @Override
+        public void visit(DoWhileStmt stmt) {
+        }
+
+
+        @Override
+        public void visit(ForStmt stmt) {
+        }
+
+        @Override
+        public void visit(BreakStmt stmt) {
+        }
+
+        @Override
+        public void visit(ContinueStmt stmt) {
+        }
+
+
+        @Override
+        public void visit(ReturnStmt stmt) {
+        }
+
+        @Override
+        public void visit(BlockStmt stmt) {
+        }
+        
+        @Override
+        public void visit(DeferStmt stmt) {
+        }
+
+
+        @Override
+        public void visit(ConstDecl d) {
+        }
+
+        @Override
+        public void visit(EnumDecl d) {
+        }
+
+
+        @Override
+        public void visit(FuncDecl d) {
+        }
+
+
+        @Override
+        public void visit(StructDecl d) {
+        }
+
+
+        @Override
+        public void visit(TypedefDecl d) {
+        }
+
+        @Override
+        public void visit(UnionDecl d) {
+        }
+
+
+        @Override
+        public void visit(VarDecl d) {
+        }
+
+
+        @Override
+        public void visit(NullExpr expr) {
+        }
+
+
+        @Override
+        public void visit(BooleanExpr expr) {
+        }
+
+        @Override
+        public void visit(NumberExpr expr) {
+        }
+
+
+        @Override
+        public void visit(StringExpr expr) {
+        }
+
+
+        @Override
+        public void visit(GroupExpr expr) {
+        }
+
+        @Override
+        public void visit(FuncCallExpr expr) {
+        }
+
+
+        @Override
+        public void visit(IdentifierExpr expr) {
+        }
+
+        @Override
+        public void visit(FuncIdentifierExpr expr) {
+        }
+
+        @Override
+        public void visit(GetExpr expr) {
+        }
+
+
+        @Override
+        public void visit(UnaryExpr expr) {
+        }
+
+
+        @Override
+        public void visit(BinaryExpr expr) {
+        }
+
+        @Override
+        public void visit(ArrayInitExpr expr) {
+        }
+        
+        @Override
+        public void visit(SetExpr expr) {
+        }
+        
+        @Override
+        public void visit(SubscriptGetExpr expr) {
+        }
+        
+        @Override
+        public void visit(SubscriptSetExpr expr) {
+        }
+        
+    }
+
 }

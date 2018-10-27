@@ -1,10 +1,18 @@
 module strings
 
-struct String {
-
+public struct String {
+    len: u32
+    str: string
 }
 
-func length(str: string) : u32 {
+public func new(str: string) : String {
+    return String {
+        0_u32,
+        str
+    }
+}
+
+public func length(str: string) : u32 {
 //    return String {}
 
 }

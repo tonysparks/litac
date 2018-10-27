@@ -6,7 +6,7 @@ package litac;
 import java.io.File;
 import java.io.FileReader;
 
-import litac.ast.Stmt.ProgramStmt;
+import litac.ast.Stmt.ModuleStmt;
 import litac.c.Transpiler;
 import litac.c.Transpiler.TranspilerOptions;
 import litac.parser.Parser;
@@ -31,7 +31,7 @@ public class LitaC {
         File moduleFile = new File(args[0]);
         Scanner scanner = new Scanner(new Source(moduleFile.getName(), new FileReader(moduleFile)));
         Parser parser = new Parser(scanner);
-        ProgramStmt program = parser.parseProgram();
+        ModuleStmt program = parser.parseModule();
         
         TranspilerOptions options = new TranspilerOptions();
         options.checkerOptions.srcDir = moduleFile.getParentFile();

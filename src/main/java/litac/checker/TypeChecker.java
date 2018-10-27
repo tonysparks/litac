@@ -9,16 +9,15 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import litac.ast.AbstractNodeVisitor;
+import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Decl;
 import litac.ast.Expr;
 import litac.ast.Stmt;
-import litac.ast.TypeInfo;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Node;
 import litac.ast.Stmt.*;
-import litac.ast.TypeInfo.*;
+import litac.checker.TypeInfo.*;
 import litac.parser.Parser;
 import litac.parser.Scanner;
 import litac.parser.Source;
@@ -38,7 +37,7 @@ public class TypeChecker {
     }
     
     
-    public static TypeCheckResult typeCheck(TypeCheckerOptions options, ProgramStmt stmt) {
+    public static TypeCheckResult typeCheck(TypeCheckerOptions options, ModuleStmt stmt) {
         TypeCheckResult result = new TypeCheckResult();
         
         // First build up an inventory of all declarations
@@ -66,7 +65,8 @@ public class TypeChecker {
             this.options = options;
         }
         
-        private void visitModule(ModuleStmt stmt) {
+        @Override
+        public void visit(ModuleStmt stmt) {
             String moduleName = stmt.name;
             
             this.module = new Module(result, moduleName);
@@ -77,17 +77,7 @@ public class TypeChecker {
             
             for(Decl d : stmt.declarations) {
                 d.visit(this);
-            } 
-        }
-                
-        @Override
-        public void visit(ProgramStmt stmt) {
-            visitModule(stmt);
-        }
-        
-        @Override
-        public void visit(ModuleStmt stmt) {
-            visitModule(stmt);
+            }
         }
         
         @Override
@@ -114,7 +104,7 @@ public class TypeChecker {
             }
                         
             Parser parser = new Parser(new Scanner(source));
-            ProgramStmt program = parser.parseProgram();
+            ModuleStmt program = parser.parseModule();
             
             TypeCheckResult moduleResult = typeCheck(this.options, program);
             this.result.merge(moduleResult);
@@ -124,7 +114,7 @@ public class TypeChecker {
         }
         
         @Override
-        public void visit(VarFieldStmt stmt) {
+        public void visit(VarFieldStmt stmt) {            
         }
 
         @Override
@@ -239,7 +229,7 @@ public class TypeChecker {
         private void checkTypes() {        
             for(TypeCheck check : this.pendingChecks) {
                 if(check.otherType != null) {
-                    if(!check.type.canCastTo(check.otherType)) {
+                    if(!check.type.getResolvedType().canCastTo(check.otherType.getResolvedType())) {
                         result.addError(check.stmt,
                                 "'%s' is not of type '%s'", check.otherType, check.type);
                     }
@@ -252,27 +242,13 @@ public class TypeChecker {
                                 "unresolved type expression", check.stmt);
                     }
                     
-                    if(!check.type.canCastTo(expr.getResolvedType())) {
+                    if(!check.type.getResolvedType().canCastTo(expr.getResolvedType().getResolvedType())) {
                         result.addError(check.stmt,
                                 "'%s' is not of type '%s'", expr.getResolvedType(), check.type);
                     }
                 }
             }
         }    
-        
-        private void visitModule(ModuleStmt stmt) {            
-            enterScope();
-            
-            for(ImportStmt i : stmt.imports) {
-                i.visit(this);
-            }
-            
-            for(Decl d : stmt.declarations) {
-                d.visit(this);
-            } 
-            
-            exitScope();
-        }
         
         private void enterScope() {
             this.module.pushScope();
@@ -289,6 +265,10 @@ public class TypeChecker {
         
 
         private void resolveType(TypeInfo type) {
+            if(type == null) {
+                return;
+            }
+            
             if(!type.isResolved()) {
                 TypeInfo resolvedType = module.getType(type.getName());
                 IdentifierTypeInfo idType = type.as();
@@ -300,14 +280,35 @@ public class TypeChecker {
             }
         }
         
-        @Override
-        public void visit(ProgramStmt stmt) {
-            visitModule(stmt);
+        private void resolveType(TypeInfo type, TypeInfo resolvedType) {
+            if(type == null) {
+                return;
+            }
+            
+            if(!type.isResolved()) {                
+                IdentifierTypeInfo idType = type.as();
+                idType.resolve(resolvedType);
+            }
+            else if(type.isKind(TypeKind.Ptr)) {
+                PtrTypeInfo ptrInfo = type.as();
+                resolveType(ptrInfo.ptrOf, resolvedType);
+            }
         }
+        
         
         @Override
         public void visit(ModuleStmt stmt) {
-            visitModule(stmt);
+            enterScope();
+            
+            for(ImportStmt i : stmt.imports) {
+                i.visit(this);
+            }
+            
+            for(Decl d : stmt.declarations) {
+                d.visit(this);
+            } 
+            
+            exitScope();
         }
         
         
@@ -418,6 +419,12 @@ public class TypeChecker {
                 d.type = d.expr.getResolvedType();
             }
             
+            // if we can't infer the type, some
+            // type hasn't been resolved correctly
+            if(d.type == null) {
+                return;
+            }
+            
             resolveType(d.type);
             
             peekScope().addVariable(d, d.name, d.type);
@@ -473,6 +480,11 @@ public class TypeChecker {
             for(FieldStmt s : d.fields) {
                 s.visit(this);
             }
+        }
+        
+        @Override
+        public void visit(VarFieldStmt stmt) {
+            resolveType(stmt.type);
         }
 
         @Override
@@ -551,7 +563,7 @@ public class TypeChecker {
             
             TypeInfo type = expr.object.getResolvedType();
             if(!type.isKind(TypeKind.Func)) {
-                this.result.addError(expr, "'%s' is not a function", type);
+                this.result.addError(expr, "'%s' is not a function", type.getName());
                 return;
             }
             
@@ -559,7 +571,7 @@ public class TypeChecker {
             expr.resolveTo(funcInfo.returnType);
             
             if(funcInfo.parameterInfos.size() != expr.arguments.size()) {
-                this.result.addError(expr, "'%s' called with incorrect number of arguments", type);
+                this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
             }
             
             for(int i = 0; i < funcInfo.parameterInfos.size(); i++) {
@@ -608,6 +620,74 @@ public class TypeChecker {
         }
 
 
+        private void resolveAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {            
+            switch(type.getKind()) {
+                case Ptr: {
+                    PtrTypeInfo ptrInfo = type.as();
+                    resolveAggregate(ptrInfo.ptrOf, field, expr, value);
+                    break;
+                }
+                case Struct: {
+                    StructTypeInfo structInfo = type.as();
+                    for(FieldInfo fieldInfo : structInfo.fieldInfos) {                                                        
+                        if(fieldInfo.name.equals(field.getName())) {
+                            if(!field.isResolved()) {
+                                resolveType(field, fieldInfo.type);
+                            }
+                            
+                            expr.resolveTo(fieldInfo.type);
+                            if(value != null) {
+                                addTypeCheck(expr, value.getResolvedType(), fieldInfo.type);
+                            }
+                            
+                            return;
+                        }
+                    }
+                    this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);
+                    break;
+                }                
+                case Union: {
+                    UnionTypeInfo unionInfo = type.as();
+                    for(FieldInfo fieldInfo : unionInfo.fieldInfos) {
+                        if(fieldInfo.name.equals(field.getName())) {
+                            if(!field.isResolved()) {
+                                resolveType(field, fieldInfo.type);
+                            }
+                            
+                            expr.resolveTo(fieldInfo.type);
+                            if(value != null) {
+                                addTypeCheck(expr, value.getResolvedType(), fieldInfo.type);
+                            }
+                            
+                            return;
+                        }
+                    }
+                    this.result.addError(expr, "'%s' does not have field '%s'", unionInfo.name, field.name);
+                    break;
+                }
+                case Enum: {
+                    if(value != null) {
+                        this.result.addError(expr, "'%s.%s' can not be reassigned", type.name, field.name);
+                    }
+                    else {
+                        EnumTypeInfo enumInfo = type.as();
+                        for(EnumFieldInfo fieldInfo : enumInfo.fields) {
+                            if(fieldInfo.name.equals(field.getName())) {                                
+                                //expr.resolveTo(fieldInfo.value.getResolvedType());
+                                expr.resolveTo(enumInfo);
+                                return;
+                            }
+                        }
+                        this.result.addError(expr, "'%s' does not have field '%s'", enumInfo.name, field.name);
+                    }
+                    break;
+                }
+                default: {
+                    this.result.addError(expr, "'%s' is an invalid type for aggregate access", type.getName());
+                }
+            }
+        }
+        
         @Override
         public void visit(GetExpr expr) {
             expr.object.visit(this);            
@@ -616,48 +696,21 @@ public class TypeChecker {
             
             if(!expr.field.isResolved()) {
                 TypeInfo type = expr.object.getResolvedType();
-                switch(type.getKind()) {
-                    case Struct: {
-                        StructTypeInfo structInfo = type.as();
-                        for(FieldInfo fieldInfo : structInfo.fieldInfos) {
-                            if(fieldInfo.name.equals(expr.field.getName())) {
-                                expr.resolveTo(fieldInfo.type);
-                                break;
-                            }
-                        }
-                        break;
-                    }                
-                    case Union: {
-                        UnionTypeInfo unionInfo = type.as();
-                        for(FieldInfo fieldInfo : unionInfo.fieldInfos) {
-                            if(fieldInfo.name.equals(expr.field.getName())) {
-                                expr.resolveTo(fieldInfo.type);
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                    case Enum: {
-                        EnumTypeInfo enumInfo = type.as();
-                        for(EnumFieldInfo fieldInfo : enumInfo.fields) {
-                            if(fieldInfo.name.equals(expr.field.getName())) {
-                                //expr.resolveTo(fieldInfo.value.getResolvedType());
-                                expr.resolveTo(enumInfo);
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                    default: {
-                        this.result.addError(expr, "'%s' is an invalid type for aggregate access", type.getName());
-                    }
-                }
+                resolveAggregate(type, expr.field, expr, null);
             }
         }
         
         @Override
-        public void visit(DotExpr expr) {
-            expr.field.visit(this);                
+        public void visit(SetExpr expr) {
+            expr.object.visit(this);            
+            expr.value.visit(this);
+            
+            resolveType(expr.field);
+            
+            if(!expr.field.isResolved()) {
+                TypeInfo type = expr.object.getResolvedType();
+                resolveAggregate(type, expr.field, expr, expr.value);
+            }
         }
 
         @Override
@@ -836,44 +889,7 @@ public class TypeChecker {
             addTypeCheck(expr.object, expr.value.getResolvedType(), objectInfo);
         }
         
-        @Override
-        public void visit(SetExpr expr) {
-            expr.object.visit(this);            
-            expr.value.visit(this);
-            
-            resolveType(expr.field);
-            
-            if(!expr.field.isResolved()) {
-                TypeInfo type = expr.object.getResolvedType();
-                if(type.isKind(TypeKind.Struct)) {
-                    StructTypeInfo structInfo = type.as();
-                    for(FieldInfo fieldInfo : structInfo.fieldInfos) {
-                        if(fieldInfo.name.equals(expr.field.getName())) {
-                            expr.resolveTo(fieldInfo.type);
-                            addTypeCheck(expr.object, expr.value.getResolvedType(), fieldInfo.type);
-                            return;
-                        }
-                    }
-                    
-                    this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, expr.field.name);
-                }
-                else if(type.isKind(TypeKind.Union)) {
-                    UnionTypeInfo unionInfo = type.as();
-                    for(FieldInfo fieldInfo : unionInfo.fieldInfos) {
-                        if(fieldInfo.name.equals(expr.field.getName())) {
-                            expr.resolveTo(fieldInfo.type);
-                            addTypeCheck(expr.object, expr.value.getResolvedType(), fieldInfo.type);
-                            return;
-                        }
-                    }
-                    
-                    this.result.addError(expr, "'%s' does not have field '%s'", unionInfo.name, expr.field.name);
-                }
-                else /*if(type.isKind(TypeKind.Enum))*/ {
-                    this.result.addError(expr, "'%s.%s' can not be reassigned", type.name, expr.field.name);
-                }
-            }
-        }
+       
         
     }
     

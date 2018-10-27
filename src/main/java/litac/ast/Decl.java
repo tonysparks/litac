@@ -5,8 +5,9 @@ package litac.ast;
 
 import java.util.List;
 
-import litac.ast.TypeInfo.EnumFieldInfo;
-import litac.ast.TypeInfo.ParameterInfo;
+import litac.checker.TypeInfo;
+import litac.checker.TypeInfo.EnumFieldInfo;
+import litac.checker.TypeInfo.ParameterInfo;
 
 /**
  * @author Tony

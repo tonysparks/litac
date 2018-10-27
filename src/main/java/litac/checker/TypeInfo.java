@@ -1,9 +1,11 @@
 /*
  * see license.txt
  */
-package litac.ast;
+package litac.checker;
 
 import java.util.List;
+
+import litac.ast.Expr;
 
 
 /**
@@ -51,6 +53,17 @@ public abstract class TypeInfo {
         Void,
         
         Identifier,
+        ;
+        
+        public static TypeKind fromString(String str) {
+            for(TypeKind kind : values()) {
+                if(kind.name().equals(str)) {
+                    return kind;
+                }
+            }
+            
+            return null;
+        }
     }
     
     protected TypeKind kind;
@@ -120,7 +133,7 @@ public abstract class TypeInfo {
             them = idInfo.resolvedType;
         }
         
-        return me.kind.ordinal() < them.kind.ordinal();
+        return me.kind.ordinal() > them.kind.ordinal();
     }
         
     public boolean strictEquals(TypeInfo other) {
@@ -128,8 +141,8 @@ public abstract class TypeInfo {
             return true;
         }
         
-        if(other.kind.equals(this.kind)) {                
-            return other.name.equals(this.name);
+        if(other.isKind(this.getKind())) {
+            return other.getResolvedType().getName().equals(this.getResolvedType().getName());
         }
         
         return false;
@@ -528,7 +541,9 @@ public abstract class TypeInfo {
             
             // Warnings, allow everything to be casted?
             if(target.isPrimitive()) {
-                return true;
+                if(target.isGreater(this)) {
+                    return true;
+                }
             }
             
             return false;

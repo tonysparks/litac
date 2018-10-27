@@ -11,7 +11,8 @@ import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
-import litac.ast.TypeInfo.*;
+import litac.checker.TypeInfo;
+import litac.checker.TypeInfo.*;
 import litac.parser.tokens.NumberToken;
 import litac.parser.tokens.Token;
 import litac.parser.tokens.TokenType;
@@ -53,46 +54,19 @@ public class Parser {
      * @return the {@link ModuleStmt}
      */
     public ModuleStmt parseModule() {
-        
-        List<ImportStmt> imports = new ArrayList<>();
-        List<Decl> declarations = new ArrayList<>();
-        
-        String moduleName = ""; // default to global module
-        if(match(MODULE))  moduleName = moduleDeclaration();
-        
-        while(!isAtEnd()) {
-            if(match(IMPORT))       imports.add(importDeclaration());
-            else if(match(VAR))     declarations.add(varDeclaration());
-            else if(match(CONST))   declarations.add(constDeclaration());
-            else if(match(FUNC))    declarations.add(funcDeclaration());
-            else if(match(STRUCT))  declarations.add(structDeclaration());
-            else if(match(UNION))   declarations.add(unionDeclaration());
-            else if(match(ENUM))    declarations.add(enumDeclaration());
-            else if(match(TYPEDEF)) declarations.add(typedefDeclaration());
-            else if(match(SEMICOLON));
-            else throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
-        }
                 
-        return node(new ModuleStmt(moduleName, imports, declarations));
-    }
-
-    
-
-    /**
-     * Parses the program
-     * 
-     * @return the {@link ProgramStmt}
-     */
-    public ProgramStmt parseProgram() {
-        
         List<ImportStmt> imports = new ArrayList<>();
         List<Decl> declarations = new ArrayList<>();
         
         String moduleName = ""; // default to global module
-        if(match(MODULE))  moduleName = moduleDeclaration();
+        if(match(MODULE))  {
+            moduleName = moduleDeclaration();
+        }
         
         while(!isAtEnd()) {
-            if(match(IMPORT))       imports.add(importDeclaration());
+            if(match(IMPORT)) {
+                imports.add(importDeclaration());
+            }
             else {
                 boolean isPublic = match(PUBLIC);
                 
@@ -110,7 +84,7 @@ public class Parser {
             }
         }
         
-        return node(new ProgramStmt(moduleName, imports, declarations));
+        return node(new ModuleStmt(moduleName, imports, declarations));
     }
     
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -128,14 +102,19 @@ public class Parser {
         source();
         
         String aliasName = null;
+        String moduleName = null;
         
-        Token library = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        Token library = consume(STRING, ErrorCode.MISSING_IDENTIFIER);
         if(match(AS)) {
             Token alias = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
             aliasName = alias.getText();
         }
         
-        return node(new ImportStmt(library.getText(), aliasName));
+        // removes the string quotes
+        String libTxt = library.getText();
+        moduleName = libTxt.substring(1, libTxt.length() - 1);
+        
+        return node(new ImportStmt(moduleName, aliasName));
     }
         
     private VarDecl varDeclaration() {
@@ -159,7 +138,6 @@ public class Parser {
             consume(EQUALS, ErrorCode.MISSING_EQUALS);
             expr = expression();
             
-            //type = new IdentifierTypeInfo(identifier.getText());
             type = null;
         }
         
@@ -523,14 +501,6 @@ public class Parser {
         
         return expr;
     }
-            
-    private DotExpr dotExpr() {
-        Expr field = null;
-        if(match(IDENTIFIER))  field = node(new IdentifierExpr(previous().getText(), new IdentifierTypeInfo(previous().getText())));
-        else if(match(STRING)) field = node(new StringExpr(previous().getText()));
-        
-        return node(new DotExpr(field));
-    }
     
     private ArrayInitExpr arrayInitExpr() {
         List<Expr> dimensions = arrayDimensions();
@@ -744,6 +714,9 @@ public class Parser {
                 
                 expr = node(new SubscriptGetExpr(expr, index));
             }
+            else if(match(COLON_COLON)) {
+                
+            }
             else if(match(DOT)) {
                 Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);                
                 expr = node(new GetExpr(expr, new IdentifierTypeInfo(name.getText())));
@@ -765,14 +738,15 @@ public class Parser {
         
         if(match(NUMBER))  return node(new NumberExpr((NumberToken)previous()));        
         if(match(STRING))  return node(new StringExpr(previous().getValue().toString()));
-        
-        if(match(IDENTIFIER)) return node(new IdentifierExpr(previous().getText(), new IdentifierTypeInfo(previous().getText())));
                 
         if(match(LEFT_PAREN))   return groupExpr();
         if(match(LEFT_BRACKET)) return arrayInitExpr();
-        
-        if(match(DOT))  return dotExpr();
                         
+        if(check(IDENTIFIER)) {
+            String identifier = identifier();
+            return node(new IdentifierExpr(identifier, new IdentifierTypeInfo(identifier)));
+        }
+        
         throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
     }     
     
@@ -780,7 +754,7 @@ public class Parser {
         List<Expr> arguments = arguments();
         if(callee instanceof IdentifierExpr) {
             IdentifierExpr idExpr = (IdentifierExpr)callee;
-            callee = new FuncIdentifierExpr(idExpr.variable, idExpr.type);
+            callee = node(new FuncIdentifierExpr(idExpr.variable, idExpr.type));
         }
         return node(new FuncCallExpr(callee, arguments));
     }
@@ -870,17 +844,36 @@ public class Parser {
                 return ptrType(type);
             }
             case IDENTIFIER: {
-                TypeInfo type = new IdentifierTypeInfo(t.getText());
+                String identifier = identifier();                
+                TypeInfo type = new IdentifierTypeInfo(identifier);
+                
+                // identifier() consumes multiple tokens, 
+                // account for advance in ptr check
+                rewind();
+                
                 return ptrType(type);
             }
             case STRING: {
-                TypeInfo type = new StrTypeInfo(null);
+                TypeInfo type = new StrTypeInfo(t.getText());
                 return ptrType(type);
             }
             // case FUNC: TODO
             default:
                 throw error(t, ErrorCode.UNEXPECTED_TOKEN);
         }
+    }
+    
+    private String identifier() {
+        Token token = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        String identifier = token.getText();
+        
+        // imported module type
+        if(match(COLON_COLON)) {            
+            Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+            identifier = String.format("%s::%s", identifier, name.getText());
+        }
+        
+        return identifier;
     }
     
     /**
@@ -1074,6 +1067,13 @@ public class Parser {
      */
     private Token peek() {
         return this.tokens.get(current);
+    }
+    
+    private void rewind() {
+        this.current--;
+        if(this.current < 0) {
+            this.current = 0;
+        }
     }
         
     /**

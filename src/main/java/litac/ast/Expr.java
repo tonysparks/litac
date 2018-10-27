@@ -6,8 +6,8 @@ package litac.ast;
 import java.util.ArrayList;
 import java.util.List;
 
-import litac.ast.TypeInfo.*;
-import litac.ast.TypeInfo.TypeKind;
+import litac.checker.TypeInfo;
+import litac.checker.TypeInfo.*;
 import litac.parser.ErrorCode;
 import litac.parser.ParseException;
 import litac.parser.tokens.NumberToken;
@@ -208,21 +208,6 @@ public abstract class Expr extends Stmt {
             resolveTo(this.type);
         }
         
-        
-        @Override
-        public void visit(NodeVisitor v) {
-            v.visit(this);
-        }
-
-    }
-    
-    public static class DotExpr extends Expr {
-
-        public Expr field;
-        
-        public DotExpr(Expr field) {
-            this.field = becomeParentOf(field);
-        }
         
         @Override
         public void visit(NodeVisitor v) {

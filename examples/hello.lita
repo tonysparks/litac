@@ -1,9 +1,16 @@
 module test
 
 // imports the file name
-import strings as str
+import "strings" as str
 
-public var day = DAY.MONDAY
+//const m1 = 3_33i32
+//const m2 = 3_33i64
+//const m3 = 3_33f32
+//const m4 = 3_33_f32
+//const m5 = 3_33_f323
+const m6 = 0x0f32 // doesn't use f32 as type as this is valid hex number
+
+//public var day = DAY.MONDAY
 enum DAY {
     MONDAY  = (1<<0),
     TUESDAY = (1<<1),
@@ -12,18 +19,39 @@ enum DAY {
 //StructInit before StructDecl
 //var z = Vec2{4, 5, X{5}}
 
+struct String {
+    u: Vec2
+}
+
+//var tt:i32 = true // should fail
+
+var str: str::String = str::new("Hello")
 func test(i:i32) : Vec2 {
 
-    var i = DAY.TUESDAY
-    i = DAY.MONDAY
+  //  var i = DAY.TUESDAY
+  //  i = DAY.MONDAY
+    
+    
+    var l = str::length("hello")
     
     var v = Vec2{3.0,4.0,X{5.0}}
     v.x = 10
-    while (true) 
+    var v2 = &v;
+    while (true) {
+        var x = 0; 
+        if(v2.x > 5f32) {
+            x += 1
+        }
+        else {
+            x -= 1
+            break
+        }
+    
         continue
+    }
     
     var s = []Vec2 {
-        Vec2{1.0,2.0, X{0}}
+        Vec2{1.0,2.0, X{0.}}
     }
     s[0].x = s[0].X.v
     
@@ -41,7 +69,8 @@ func testPtr(i:i32**, v:Vec2*): Vec2* {
 var vv = Vec2{3.0,4.0,X{5.0}}
 var zz = &10
 var ww = &zz
-var q:Vec2* = testPtr(&zz, &vv) 
+var q:Vec2* = testPtr(&zz, &vv)
+
 //var qq = opopo
 
 struct Vec2 {

@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import litac.ast.Stmt;
-import litac.ast.TypeInfo;
 
 /**
  * @author Tony
