@@ -17,6 +17,8 @@ import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Node;
 import litac.ast.Stmt.*;
+import litac.checker.Scope.Variable;
+import litac.checker.TypeCheckResult.TypeCheckError;
 import litac.checker.TypeInfo.*;
 import litac.parser.Parser;
 import litac.parser.Scanner;
@@ -115,6 +117,10 @@ public class TypeChecker {
         
         @Override
         public void visit(VarFieldStmt stmt) {            
+        }
+        
+        @Override
+        public void visit(ParameterDecl d) {
         }
 
         @Override
@@ -240,6 +246,13 @@ public class TypeChecker {
                     if(!expr.isResolved()) {
                         result.addError(check.stmt,
                                 "unresolved type expression", check.stmt);
+                        return;
+                    }
+                    
+                    if(!check.type.isResolved()) {
+                        result.addError(check.stmt,
+                                "unresolved type expression", check.stmt);
+                        return;
                     }
                     
                     if(!check.type.getResolvedType().canCastTo(expr.getResolvedType().getResolvedType())) {
@@ -264,19 +277,24 @@ public class TypeChecker {
         }
         
 
-        private void resolveType(TypeInfo type) {
+        private void resolveType(Stmt stmt, TypeInfo type) {
             if(type == null) {
                 return;
             }
             
             if(!type.isResolved()) {
                 TypeInfo resolvedType = module.getType(type.getName());
-                IdentifierTypeInfo idType = type.as();
-                idType.resolve(resolvedType);
+                if(resolvedType == null) {
+                    this.result.addError(stmt, "'%s' is an unknown type", type.getName());
+                }
+                else {
+                    IdentifierTypeInfo idType = type.as();
+                    idType.resolve(resolvedType);
+                }
             }
             else if(type.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = type.as();
-                resolveType(ptrInfo.ptrOf);
+                resolveType(stmt, ptrInfo.ptrOf);
             }
         }
         
@@ -425,7 +443,7 @@ public class TypeChecker {
                 return;
             }
             
-            resolveType(d.type);
+            resolveType(d, d.type);
             
             peekScope().addVariable(d, d.name, d.type);
             addTypeCheck(d.expr, d.type);
@@ -441,7 +459,7 @@ public class TypeChecker {
                 d.type = d.expr.getResolvedType();
             }
             
-            resolveType(d.type);
+            resolveType(d, d.type);
             
             peekScope().addVariable(d, d.name, d.type);
             addTypeCheck(d.expr, d.type);
@@ -461,10 +479,10 @@ public class TypeChecker {
             enterScope();
             {
                  
-                resolveType(d.returnType);
-                for(ParameterInfo p : d.parameterInfos) {
-                    resolveType(p.type);
-                    peekScope().addVariable(d, p.name, p.type);
+                resolveType(d, d.returnType);
+                for(ParameterDecl p : d.parameterDecls) {
+                    resolveType(p, p.type);
+                    peekScope().addVariable(p, p.name, p.type);
                 }
                 
                 d.bodyStmt.visit(this);
@@ -475,7 +493,7 @@ public class TypeChecker {
 
         @Override
         public void visit(StructDecl d) {
-            resolveType(d.type);
+            resolveType(d, d.type);
             
             for(FieldStmt s : d.fields) {
                 s.visit(this);
@@ -484,12 +502,12 @@ public class TypeChecker {
         
         @Override
         public void visit(VarFieldStmt stmt) {
-            resolveType(stmt.type);
+            resolveType(stmt, stmt.type);
         }
 
         @Override
         public void visit(UnionDecl d) {
-            resolveType(d.type);
+            resolveType(d, d.type);
             
             for(FieldStmt s : d.fields) {
                 s.visit(this);
@@ -570,19 +588,19 @@ public class TypeChecker {
             FuncTypeInfo funcInfo = type.as();
             expr.resolveTo(funcInfo.returnType);
             
-            if(funcInfo.parameterInfos.size() != expr.arguments.size()) {
+            if(funcInfo.parameterDecls.size() != expr.arguments.size()) {
                 this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
             }
             
-            for(int i = 0; i < funcInfo.parameterInfos.size(); i++) {
-                TypeInfo paramInfo = funcInfo.parameterInfos.get(i).type;
-                resolveType(paramInfo);
+            for(int i = 0; i < funcInfo.parameterDecls.size(); i++) {
+                TypeInfo paramInfo = funcInfo.parameterDecls.get(i).type;
+                resolveType(expr, paramInfo);
                 
                 if(i < expr.arguments.size()) {
                     Expr arg = expr.arguments.get(i);
                     arg.visit(this);
                     
-                    resolveType(arg.getResolvedType());
+                    resolveType(arg, arg.getResolvedType());
                     addTypeCheck(arg, arg.getResolvedType(), paramInfo);
                 }
             }
@@ -592,7 +610,7 @@ public class TypeChecker {
         @Override
         public void visit(IdentifierExpr expr) {
             if(!expr.type.isResolved()) {
-                TypeInfo resolvedType = peekScope().getVariable(expr.variable); 
+                Variable resolvedType = peekScope().getVariable(expr.variable); 
                 
                 if(resolvedType == null) {
                     this.result.addError(expr, "unknown variable '%s'", expr.type.getName());
@@ -600,7 +618,8 @@ public class TypeChecker {
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(resolvedType);
+                type.resolve(resolvedType.type);
+                expr.declType = resolvedType.decl;
             }
         }
         
@@ -692,7 +711,7 @@ public class TypeChecker {
         public void visit(GetExpr expr) {
             expr.object.visit(this);            
             
-            resolveType(expr.field);
+            resolveType(expr, expr.field);
             
             if(!expr.field.isResolved()) {
                 TypeInfo type = expr.object.getResolvedType();
@@ -705,7 +724,7 @@ public class TypeChecker {
             expr.object.visit(this);            
             expr.value.visit(this);
             
-            resolveType(expr.field);
+            resolveType(expr, expr.field);
             
             if(!expr.field.isResolved()) {
                 TypeInfo type = expr.object.getResolvedType();
@@ -787,7 +806,7 @@ public class TypeChecker {
         @Override
         public void visit(ArrayInitExpr expr) {
             ArrayTypeInfo arrayInfo = expr.getResolvedType().as();
-            resolveType(arrayInfo.arrayOf);
+            resolveType(expr, arrayInfo.arrayOf);
             
             for(Expr d : expr.dimensions) {
                 d.visit(this);

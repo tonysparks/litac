@@ -6,6 +6,7 @@ package litac.checker;
 import java.util.HashMap;
 import java.util.Map;
 
+import litac.ast.Decl;
 import litac.ast.Stmt;
 
 /**
@@ -14,10 +15,20 @@ import litac.ast.Stmt;
  */
 public class Scope {
     
+    public static class Variable {
+        public Decl decl;
+        public TypeInfo type;
+        
+        Variable(Decl decl, TypeInfo type) {
+            this.decl = decl;
+            this.type = type;
+        }
+    }
+    
     private Scope parent;
     private TypeCheckResult result;
     
-    private Map<String, TypeInfo> variables;    
+    private Map<String, Variable> variables;    
     
     
     public Scope(TypeCheckResult result) {
@@ -35,17 +46,17 @@ public class Scope {
         return this.parent;
     }
     
-    public void addVariable(Stmt stmt, String variableName, TypeInfo type) {
+    public void addVariable(Decl decl, String variableName, TypeInfo type) {
         if(this.variables.containsKey(variableName)) {
-            this.result.addError(stmt, "variable '%s' already defined", variableName);
+            this.result.addError(decl, "variable '%s' already defined", variableName);
         }
                 
-        this.variables.put(variableName, type);
+        this.variables.put(variableName, new Variable(decl, type));
     }
         
 
     
-    public TypeInfo getVariable(String varName) {
+    public Variable getVariable(String varName) {
         if(this.variables.containsKey(varName)) {
             return this.variables.get(varName);
         }
@@ -66,13 +77,13 @@ public class Scope {
      * @param type
      */
     public void updateVariable(Stmt stmt, String varName, TypeInfo type) {
-        TypeInfo definedType = getVariable(varName);
+        Variable definedType = getVariable(varName);
         if(definedType == null) {
             this.result.addError(stmt, "'%s' has not been declared", varName);
             return;
         }
         
-        if(!definedType.canCastTo(type)) {
+        if(!definedType.type.canCastTo(type)) {
             this.result.addError(stmt, "'%s' of type '%s' can't be assigned to type '%s'", varName, definedType, type);
             return;
         }

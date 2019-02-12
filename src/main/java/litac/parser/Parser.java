@@ -11,6 +11,7 @@ import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
+import litac.checker.Attributes;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.parser.tokens.NumberToken;
@@ -26,7 +27,7 @@ import litac.parser.tokens.TokenType;
  */
 public class Parser {   
     private int anonStructId;
-    private int anonEnumId;
+    private int anonUnionId;
     private int loopLevel;
     
     private final Scanner scanner;
@@ -80,7 +81,9 @@ public class Parser {
                 else if(match(SEMICOLON)) continue;
                 else throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
                 
-                declarations.get(declarations.size() - 1).isPublic = isPublic;
+                Attributes attrs = declarations.get(declarations.size() - 1).attributes; 
+                attrs.isPublic = isPublic;
+                attrs.isGlobal = true;
             }
         }
         
@@ -171,7 +174,7 @@ public class Parser {
         source();
         
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);        
-        List<ParameterInfo> parameterInfos = parameterInfos();
+        List<ParameterDecl> parameterInfos = parameterDecls();
         
         consume(COLON, ErrorCode.MISSING_COLON);
         
@@ -186,6 +189,7 @@ public class Parser {
         source();
         
         Token start = peek();
+        boolean isAnon = false;
         
         String structName = null;
         if(check(IDENTIFIER)) {
@@ -194,6 +198,7 @@ public class Parser {
         }
         else {
             structName = String.format("<anonymous-struct-%d>", anonStructId++);
+            isAnon = true;
         }
         
         consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
@@ -213,7 +218,7 @@ public class Parser {
         while(!isAtEnd());
         
         List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new StructTypeInfo(structName, typeFields);
+        TypeInfo type = new StructTypeInfo(structName, typeFields, isAnon);
         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
@@ -224,6 +229,7 @@ public class Parser {
         source();
         
         Token start = peek();
+        boolean isAnon = false;
         
         String unionName = null;
         if(check(IDENTIFIER)) {
@@ -231,7 +237,8 @@ public class Parser {
             unionName = identifier.getText();
         }
         else {
-            unionName = String.format("<anonymous-union-%d>", anonEnumId++);
+            unionName = String.format("<anonymous-union-%d>", anonUnionId++);
+            isAnon = true;
         }
         
         consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
@@ -251,7 +258,7 @@ public class Parser {
         while(!isAtEnd());
         
         List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new UnionTypeInfo(unionName, typeFields);
+        TypeInfo type = new UnionTypeInfo(unionName, typeFields, isAnon);
         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
@@ -343,19 +350,19 @@ public class Parser {
                 consume(COLON, ErrorCode.MISSING_COLON);
                 TypeInfo type = type();
                 
-                return new VarFieldStmt(identifier.getText(), type);
+                return node(new VarFieldStmt(identifier.getText(), type));
             }                
             case STRUCT: {
                 advance();
                 
                 StructDecl struct = structDeclaration();
-                return new StructFieldStmt(struct);                
+                return node(new StructFieldStmt(struct));
             }
             case UNION: {
                 advance();
                 
                 UnionDecl union = unionDeclaration();
-                return new UnionFieldStmt(union);                
+                return node(new UnionFieldStmt(union));                
             }
             default:
                 throw error(peek(), ErrorCode.INVALID_FIELD);
@@ -877,7 +884,7 @@ public class Parser {
     }
     
     /**
-     * Parses parameterInfos:
+     * Parses parameter declarations:
      * 
      * func test(x:i32,y:f32,z:bool) : void {
      * }
@@ -886,10 +893,10 @@ public class Parser {
      * 
      * @return the parsed {@link ParameterList}
      */
-    private List<ParameterInfo> parameterInfos() {
+    private List<ParameterDecl> parameterDecls() {
         consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         
-        List<ParameterInfo> parameterInfos = new ArrayList<>();        
+        List<ParameterDecl> parameterInfos = new ArrayList<>();        
         if(!check(RIGHT_PAREN)) {
             do {                
                 Token param = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
@@ -898,7 +905,7 @@ public class Parser {
                 consume(COLON, ErrorCode.MISSING_COLON);
                 TypeInfo type = type();
                 
-                parameterInfos.add(new ParameterInfo(type, parameterName));
+                parameterInfos.add(new ParameterDecl(type, parameterName));
             }
             while(match(COMMA));
         }

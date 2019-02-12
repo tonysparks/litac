@@ -1,7 +1,7 @@
 /*
  * see license.txt
  */
-package litac.c;
+package litac.compiler.c;
 
 import java.io.File;
 import java.io.FileReader;
@@ -25,6 +25,8 @@ import litac.checker.TypeChecker;
 import litac.checker.TypeChecker.TypeCheckerOptions;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.compiler.Buf;
+import litac.compiler.CompileException;
 import litac.parser.Parser;
 import litac.parser.Scanner;
 import litac.parser.Source;
@@ -34,7 +36,7 @@ import litac.util.OS.OsType;
  * @author Tony
  *
  */
-public class Transpiler {
+public class CTranspiler {
 
     public static class TranspilerOptions {
         public File outputDir;        
@@ -92,7 +94,7 @@ public class Transpiler {
                 FuncTypeInfo funcInfo = type.as();
                 buf.out("%s %s(", funcInfo.returnType.getResolvedType(), funcInfo.name);
                 boolean isFirst = true;                
-                for(ParameterInfo p : funcInfo.parameterInfos) {
+                for(ParameterDecl p : funcInfo.parameterDecls) {
                     if(!isFirst) buf.out(",");
                     
                     buf.out("%s", p.type.getResolvedType());
@@ -206,6 +208,10 @@ public class Transpiler {
         }
 
         @Override
+        public void visit(ParameterDecl d) {
+        }
+        
+        @Override
         public void visit(StructFieldStmt stmt) {
             buf.outln();
             buf.out("struct %s {", stmt.decl.name);
@@ -262,7 +268,7 @@ public class Transpiler {
             buf.outln();
             buf.out("%s %s(", d.returnType, d.name);
             boolean isFirst = true;
-            for(ParameterInfo p : d.parameterInfos) {
+            for(ParameterDecl p : d.parameterDecls) {
                 if(!isFirst) {
                     buf.out(",");
                 }

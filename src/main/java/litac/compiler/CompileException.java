@@ -1,7 +1,7 @@
 /*
  * see license.txt
  */
-package litac.c;
+package litac.compiler;
 
 /**
  * @author Tony

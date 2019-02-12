@@ -97,7 +97,7 @@ public class Module {
     }
     
     private void addPublicDecl(Decl decl, String name, TypeInfo type) {
-        if(decl.isPublic) {
+        if(decl.attributes.isPublic) {
             if(type.isKind(TypeKind.Func)) {
                 FuncTypeInfo funcInfo = type.as();
                 this.publicFuncTypes.put(name, funcInfo);

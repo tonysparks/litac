@@ -35,6 +35,7 @@ public interface NodeVisitor {
     void visit(TypedefDecl d);
     void visit(UnionDecl d);
     void visit(VarDecl d);
+    void visit(ParameterDecl d);
     
     
     void visit(InitExpr expr);
@@ -152,6 +153,10 @@ public interface NodeVisitor {
 
         @Override
         public void visit(VarDecl d) {
+        }
+        
+        @Override
+        public void visit(ParameterDecl d) {
         }
 
 

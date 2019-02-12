@@ -1,0 +1,20 @@
+const D:f64 = 10000.0342_f64
+public const YY:i32 = 55
+
+struct test {
+    x: f32
+    
+    struct {
+        y: f32*
+    }
+}
+
+func main(len:i32, args:i8**): i32 {
+    if(len > 1) {
+        len = 1;
+    }
+    else {
+        len = 2;
+    }
+    return 1 + len;
+}

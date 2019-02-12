@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.*;
+import litac.checker.TypeInfo.ArrayTypeInfo;
+import litac.checker.TypeInfo.StrTypeInfo;
+import litac.checker.TypeInfo.TypeKind;
 import litac.parser.ErrorCode;
 import litac.parser.ParseException;
 import litac.parser.tokens.NumberToken;
@@ -365,6 +367,7 @@ public abstract class Expr extends Stmt {
 
         public String variable;
         public TypeInfo type;
+        public Decl declType;
         
         public IdentifierExpr(String variable, TypeInfo type) {
             this.variable = variable;

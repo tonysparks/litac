@@ -7,8 +7,8 @@ import java.io.File;
 import java.io.FileReader;
 
 import litac.ast.Stmt.ModuleStmt;
-import litac.c.Transpiler;
-import litac.c.Transpiler.TranspilerOptions;
+import litac.compiler.llvm.LLVMTranspiler;
+import litac.compiler.llvm.LLVMTranspiler.TranspilerOptions;
 import litac.parser.Parser;
 import litac.parser.Scanner;
 import litac.parser.Source;
@@ -36,7 +36,7 @@ public class LitaC {
         TranspilerOptions options = new TranspilerOptions();
         options.checkerOptions.srcDir = moduleFile.getParentFile();
         
-        Transpiler.transpile(program, options);
+        LLVMTranspiler.transpile(program, options);
         
 
     }

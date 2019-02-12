@@ -5,6 +5,7 @@ package litac.checker;
 
 import java.util.List;
 
+import litac.ast.Decl.ParameterDecl;
 import litac.ast.Expr;
 
 
@@ -181,36 +182,19 @@ public abstract class TypeInfo {
         }
     }
     
-    public static class ParameterInfo {
-        public TypeInfo type;
-        public String name;
-        
-        /**
-         * @param type
-         * @param name
-         */
-        public ParameterInfo(TypeInfo type, String name) {
-            this.type = type;
-            this.name = name;
-        }
-        
-        @Override
-        public String toString() {    
-            return this.name + ": " + this.type;
-        }
-    }
-    
     
     public static class StructTypeInfo extends TypeInfo {
         public List<FieldInfo> fieldInfos;
+        public boolean isAnonymous;
 
         /**
          * @param name
          * @param fieldInfos
          */
-        public StructTypeInfo(String name, List<FieldInfo> fieldInfos) {
+        public StructTypeInfo(String name, List<FieldInfo> fieldInfos, boolean isAnon) {
             super(TypeKind.Struct, name);
             this.fieldInfos = fieldInfos;
+            this.isAnonymous = isAnon;
         }
         
         @Override
@@ -253,14 +237,16 @@ public abstract class TypeInfo {
     
     public static class UnionTypeInfo extends TypeInfo {
         public List<FieldInfo> fieldInfos;
-
+        public boolean isAnonymous;
+        
         /**
          * @param name
          * @param fieldInfos
          */
-        public UnionTypeInfo(String name, List<FieldInfo> fieldInfos) {
+        public UnionTypeInfo(String name, List<FieldInfo> fieldInfos, boolean isAnon) {
             super(TypeKind.Union, name);
             this.fieldInfos = fieldInfos;
+            this.isAnonymous = isAnon;
         }
         
         @Override
@@ -341,17 +327,17 @@ public abstract class TypeInfo {
     
     public static class FuncTypeInfo extends TypeInfo {
         public TypeInfo returnType;
-        public List<ParameterInfo> parameterInfos;
+        public List<ParameterDecl> parameterDecls;
         
         /**
          * @param name
          * @param returnType
-         * @param parameterInfos
+         * @param parameterDecls
          */
-        public FuncTypeInfo(String name, TypeInfo returnType, List<ParameterInfo> parameterInfos) {
+        public FuncTypeInfo(String name, TypeInfo returnType, List<ParameterDecl> parameterDecls) {
             super(TypeKind.Func, name);
             this.returnType = returnType;
-            this.parameterInfos = parameterInfos;
+            this.parameterDecls = parameterDecls;
         }
         
         @Override
@@ -369,12 +355,12 @@ public abstract class TypeInfo {
             
             if(target.kind == TypeKind.Func) {
                 FuncTypeInfo funcType = (FuncTypeInfo) target;
-                if(this.parameterInfos.size() != funcType.parameterInfos.size()) {
+                if(this.parameterDecls.size() != funcType.parameterDecls.size()) {
                     return false;
                 }
                 
-                for(int i = 0; i < this.parameterInfos.size(); i++) {
-                    if(!this.parameterInfos.get(i).type.strictEquals(funcType.parameterInfos.get(i).type)) {
+                for(int i = 0; i < this.parameterDecls.size(); i++) {
+                    if(!this.parameterDecls.get(i).type.strictEquals(funcType.parameterDecls.get(i).type)) {
                         return false;
                     }
                 }
@@ -390,7 +376,7 @@ public abstract class TypeInfo {
         public String toString() {    
             StringBuilder sb = new StringBuilder();
             boolean isFirst = true;
-            for(ParameterInfo p : this.parameterInfos) {
+            for(ParameterDecl p : this.parameterDecls) {
                 if(!isFirst) sb.append(", ");
                 sb.append(p);
                 isFirst = false;
