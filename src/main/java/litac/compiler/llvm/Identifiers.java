@@ -4,7 +4,6 @@
 package litac.compiler.llvm;
 
 import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  * @author Tony
@@ -12,7 +11,26 @@ import java.util.Queue;
  */
 public class Identifiers {
 
-    private LinkedList<String> temp;
+    public static class Identifier {
+        public String name;
+        public String llvmName;
+        public int index;
+        
+        /**
+         * @param name
+         * @param llvmName
+         * @param index
+         */
+        public Identifier(String name, String llvmName, int index) {
+            this.name = name;
+            this.llvmName = llvmName;
+            this.index = index;
+        }
+        
+        
+    }
+    
+    private LinkedList<Identifier> temp;
     private int index;
     
     /**
@@ -22,9 +40,20 @@ public class Identifiers {
         this.temp = new LinkedList<>();
     }
     
-    public String get(int index) {
+    public Identifier getByIndex(int index) {
         return this.temp.get(index);
     }
+    
+    public Identifier getByName(String idName) {
+        for(Identifier id : this.temp) {
+            if(id.name.equals(idName)) {
+                return id;
+            }
+        }
+        
+        return null;
+    }
+    
     
     public void alloc(int n) {
         while(n --> 0) {
@@ -32,17 +61,24 @@ public class Identifiers {
         }
     }
     
-    public String alloc() {
-        String name = "%" + this.index++;
-        this.temp.add(name);
-        return name;
+    public Identifier alloc(String idName) {
+        String llvmName = "%" + this.index;
+        Identifier id = new Identifier(idName, llvmName, this.index);
+        
+        this.temp.add(id);
+        this.index++;
+        return id;
     }
     
-    public String peek() {
+    public Identifier alloc() {
+        return alloc("");
+    }
+    
+    public Identifier peek() {
         return this.temp.peekLast();
     }
     
-    public String dealloc() {
+    public Identifier dealloc() {
         return this.temp.pollLast();
     }
 

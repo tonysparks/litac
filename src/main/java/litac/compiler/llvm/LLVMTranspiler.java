@@ -411,18 +411,19 @@ public class LLVMTranspiler {
             
             this.scope.enter();
             Identifiers ids = this.scope.peekIdentifiers();
-            ids.alloc(); // always start at %1 (%0 register is reserved for???)
-//            
-//            int paramIndex = d.parameterInfos.size();            
-//            for(int i = 0; i < d.parameterInfos.size(); i++) {
-//                ParameterInfo p = d.parameterInfos.get(i);
-//                buf.out("%%%s = alloca %s \n", p.name, type(p.type));
-//            }
-//            
-//            for(int i = d.parameterInfos.size() - 1; i >=0; i--) {
-//                ParameterInfo p = d.parameterInfos.get(i);                
-//                buf.out("store %s %s, %s* %s \n", type(p.type), ids.get(i), type(p.type), ids.get(paramIndex + (paramIndex - i)));
-//            }
+            ids.alloc();
+            
+            int paramIndex = d.parameterDecls.size();          
+                        
+            for(int i = 0; i < d.parameterDecls.size(); i++) {
+                ParameterDecl p = d.parameterDecls.get(i);
+                buf.out("%s = alloca %s \n", ids.alloc(p.name).llvmName, type(p.type));
+            }
+            
+            for(int i = d.parameterDecls.size() - 1; i >=0; i--) {
+                ParameterDecl p = d.parameterDecls.get(i);                
+                //buf.out("store %s %s, %s* %s \n", type(p.type), ids.get(i), type(p.type), ids.get(paramIndex + (paramIndex - i)));
+            }
             
             d.bodyStmt.visit(this);
             
@@ -534,7 +535,7 @@ public class LLVMTranspiler {
                 elseLbl = endLbl;
             }
             
-            buf.out("br i1 %s, label %%%s, label %%%s \n", ids.peek(), thenLbl, elseLbl);
+            buf.out("br i1 %s, label %%%s, label %%%s \n", ids.peek().llvmName, thenLbl, elseLbl);
             
             buf.out("%s: \n", thenLbl);
             stmt.thenStmt.visit(this);            
@@ -597,7 +598,7 @@ public class LLVMTranspiler {
         public void visit(ReturnStmt stmt) {
             if(stmt.returnExpr != null) {
                 stmt.returnExpr.visit(this);
-                String retId = this.scope.peekIdentifiers().dealloc(); 
+                String retId = this.scope.peekIdentifiers().dealloc().llvmName; 
                 buf.out("ret %s %s", type(stmt.returnExpr.getResolvedType()), retId);                
             }
             else {
@@ -814,32 +815,32 @@ public class LLVMTranspiler {
             TypeInfo resultInfo = expr.getResolvedType();
                         
             if(expr.operator == TokenType.EQUALS) {
-//                String id = this.scope.peekIdentifiers().alloc();
-//                String type = type(expr.left.getResolvedType());
-//                buf.out("%s = alloca %s \n", id, type);
-//                
-//                buf.out("store %s ", type(expr.right.getResolvedType()));
-//                expr.right.visit(this);
-//                buf.out(", %s* %s", type, id);
-//                buf.out("\n");
-//                expr.left.visit(this);
-//                buf.out(" = load %s, %s* %s\n", type, type, id);
-                
-                //String id = this.scope.peekIdentifiers().alloc();
+                String id = this.scope.peekIdentifiers().alloc().llvmName;
                 String type = type(expr.left.getResolvedType());
-                //buf.out("%s = alloca %s \n", id, type);
+                buf.out("%s = alloca %s \n", id, type);
                 
                 buf.out("store %s ", type(expr.right.getResolvedType()));
                 expr.right.visit(this);
-                buf.out(", %s* ", type);
-                expr.left.visit(this);
+                buf.out(", %s* %s", type, id);
                 buf.out("\n");
+                expr.left.visit(this);
+                buf.out(" = load %s, %s* %s\n", type, type, id);
+                
+                //String id = this.scope.peekIdentifiers().alloc();
+//                String type = type(expr.left.getResolvedType());
+//                //buf.out("%s = alloca %s \n", id, type);
+//                
+//                buf.out("store %s ", type(expr.right.getResolvedType()));
+//                expr.right.visit(this);
+//                buf.out(", %s* ", type);
+//                expr.left.visit(this);
+//                buf.out(" \n");
                 //buf.out(" = load %s, %s* %s\n", type, type, id);
                 
                 return; /// RETURN
             }
             
-            String id = this.scope.peekIdentifiers().alloc();
+            String id = this.scope.peekIdentifiers().alloc().llvmName;
             buf.out("%s = ", id);
             
             visitComparison(expr, resultInfo);
