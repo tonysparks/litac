@@ -1,19 +1,142 @@
 package litac.parser;
 
 
-import static litac.parser.tokens.TokenType.*;
+import static litac.parser.tokens.TokenType.AND;
+import static litac.parser.tokens.TokenType.AS;
+import static litac.parser.tokens.TokenType.AT;
+import static litac.parser.tokens.TokenType.BAND;
+import static litac.parser.tokens.TokenType.BAND_EQ;
+import static litac.parser.tokens.TokenType.BNOT;
+import static litac.parser.tokens.TokenType.BNOT_EQ;
+import static litac.parser.tokens.TokenType.BOR;
+import static litac.parser.tokens.TokenType.BOR_EQ;
+import static litac.parser.tokens.TokenType.BREAK;
+import static litac.parser.tokens.TokenType.COLON;
+import static litac.parser.tokens.TokenType.COLON_COLON;
+import static litac.parser.tokens.TokenType.COMMA;
+import static litac.parser.tokens.TokenType.CONST;
+import static litac.parser.tokens.TokenType.CONTINUE;
+import static litac.parser.tokens.TokenType.DEFER;
+import static litac.parser.tokens.TokenType.DIV_EQ;
+import static litac.parser.tokens.TokenType.DO;
+import static litac.parser.tokens.TokenType.DOT;
+import static litac.parser.tokens.TokenType.ELSE;
+import static litac.parser.tokens.TokenType.END_OF_FILE;
+import static litac.parser.tokens.TokenType.ENUM;
+import static litac.parser.tokens.TokenType.EQUALS;
+import static litac.parser.tokens.TokenType.EQUALS_EQUALS;
+import static litac.parser.tokens.TokenType.FALSE;
+import static litac.parser.tokens.TokenType.FOR;
+import static litac.parser.tokens.TokenType.FUNC;
+import static litac.parser.tokens.TokenType.GREATER_EQUALS;
+import static litac.parser.tokens.TokenType.GREATER_THAN;
+import static litac.parser.tokens.TokenType.IDENTIFIER;
+import static litac.parser.tokens.TokenType.IF;
+import static litac.parser.tokens.TokenType.IMPORT;
+import static litac.parser.tokens.TokenType.LEFT_BRACE;
+import static litac.parser.tokens.TokenType.LEFT_BRACKET;
+import static litac.parser.tokens.TokenType.LEFT_PAREN;
+import static litac.parser.tokens.TokenType.LESS_EQUALS;
+import static litac.parser.tokens.TokenType.LESS_THAN;
+import static litac.parser.tokens.TokenType.LSHIFT;
+import static litac.parser.tokens.TokenType.LSHIFT_EQ;
+import static litac.parser.tokens.TokenType.MINUS;
+import static litac.parser.tokens.TokenType.MINUS_EQ;
+import static litac.parser.tokens.TokenType.MOD;
+import static litac.parser.tokens.TokenType.MODULE;
+import static litac.parser.tokens.TokenType.MOD_EQ;
+import static litac.parser.tokens.TokenType.MUL_EQ;
+import static litac.parser.tokens.TokenType.NOT;
+import static litac.parser.tokens.TokenType.NOT_EQUALS;
+import static litac.parser.tokens.TokenType.NULL;
+import static litac.parser.tokens.TokenType.NUMBER;
+import static litac.parser.tokens.TokenType.OR;
+import static litac.parser.tokens.TokenType.PLUS;
+import static litac.parser.tokens.TokenType.PLUS_EQ;
+import static litac.parser.tokens.TokenType.PUBLIC;
+import static litac.parser.tokens.TokenType.RETURN;
+import static litac.parser.tokens.TokenType.RIGHT_BRACE;
+import static litac.parser.tokens.TokenType.RIGHT_BRACKET;
+import static litac.parser.tokens.TokenType.RIGHT_PAREN;
+import static litac.parser.tokens.TokenType.RSHIFT;
+import static litac.parser.tokens.TokenType.RSHIFT_EQ;
+import static litac.parser.tokens.TokenType.SEMICOLON;
+import static litac.parser.tokens.TokenType.SLASH;
+import static litac.parser.tokens.TokenType.STAR;
+import static litac.parser.tokens.TokenType.STRING;
+import static litac.parser.tokens.TokenType.STRUCT;
+import static litac.parser.tokens.TokenType.TRUE;
+import static litac.parser.tokens.TokenType.TYPEDEF;
+import static litac.parser.tokens.TokenType.UNION;
+import static litac.parser.tokens.TokenType.VAR;
+import static litac.parser.tokens.TokenType.VAR_ARGS;
+import static litac.parser.tokens.TokenType.WHILE;
+import static litac.parser.tokens.TokenType.XOR_EQ;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import litac.Errors;
-import litac.ast.*;
-import litac.ast.Decl.*;
-import litac.ast.Expr.*;
-import litac.ast.Stmt.*;
+import litac.ast.Decl;
+import litac.ast.Decl.ConstDecl;
+import litac.ast.Decl.EnumDecl;
+import litac.ast.Decl.FuncDecl;
+import litac.ast.Decl.ParameterDecl;
+import litac.ast.Decl.StructDecl;
+import litac.ast.Decl.TypedefDecl;
+import litac.ast.Decl.UnionDecl;
+import litac.ast.Decl.VarDecl;
+import litac.ast.Expr;
+import litac.ast.Expr.ArrayInitExpr;
+import litac.ast.Expr.BinaryExpr;
+import litac.ast.Expr.BooleanExpr;
+import litac.ast.Expr.ConstExpr;
+import litac.ast.Expr.FuncCallExpr;
+import litac.ast.Expr.FuncIdentifierExpr;
+import litac.ast.Expr.GetExpr;
+import litac.ast.Expr.GroupExpr;
+import litac.ast.Expr.IdentifierExpr;
+import litac.ast.Expr.InitExpr;
+import litac.ast.Expr.NullExpr;
+import litac.ast.Expr.NumberExpr;
+import litac.ast.Expr.SetExpr;
+import litac.ast.Expr.StringExpr;
+import litac.ast.Expr.SubscriptGetExpr;
+import litac.ast.Expr.SubscriptSetExpr;
+import litac.ast.Expr.UnaryExpr;
+import litac.ast.Node;
+import litac.ast.Stmt;
+import litac.ast.Stmt.BlockStmt;
+import litac.ast.Stmt.BreakStmt;
+import litac.ast.Stmt.ContinueStmt;
+import litac.ast.Stmt.DeferStmt;
+import litac.ast.Stmt.DoWhileStmt;
+import litac.ast.Stmt.EmptyStmt;
+import litac.ast.Stmt.FieldStmt;
+import litac.ast.Stmt.ForStmt;
+import litac.ast.Stmt.IfStmt;
+import litac.ast.Stmt.ImportStmt;
+import litac.ast.Stmt.ModuleStmt;
+import litac.ast.Stmt.NoteStmt;
+import litac.ast.Stmt.ParametersStmt;
+import litac.ast.Stmt.ReturnStmt;
+import litac.ast.Stmt.StructFieldStmt;
+import litac.ast.Stmt.UnionFieldStmt;
+import litac.ast.Stmt.VarFieldStmt;
+import litac.ast.Stmt.WhileStmt;
 import litac.checker.Attributes;
+import litac.checker.Note;
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.*;
+import litac.checker.TypeInfo.ArrayTypeInfo;
+import litac.checker.TypeInfo.EnumFieldInfo;
+import litac.checker.TypeInfo.EnumTypeInfo;
+import litac.checker.TypeInfo.FieldInfo;
+import litac.checker.TypeInfo.FuncTypeInfo;
+import litac.checker.TypeInfo.IdentifierTypeInfo;
+import litac.checker.TypeInfo.PtrTypeInfo;
+import litac.checker.TypeInfo.StrTypeInfo;
+import litac.checker.TypeInfo.StructTypeInfo;
+import litac.checker.TypeInfo.UnionTypeInfo;
 import litac.parser.tokens.NumberToken;
 import litac.parser.tokens.Token;
 import litac.parser.tokens.TokenType;
@@ -57,6 +180,7 @@ public class Parser {
     public ModuleStmt parseModule() {
                 
         List<ImportStmt> imports = new ArrayList<>();
+        List<NoteStmt> moduleNotes = new ArrayList<>();
         List<Decl> declarations = new ArrayList<>();
         
         String moduleName = ""; // default to global module
@@ -69,6 +193,7 @@ public class Parser {
                 imports.add(importDeclaration());
             }
             else {
+                List<NoteStmt> notes = notes();
                 boolean isPublic = match(PUBLIC);
                 
                 if(match(VAR))            declarations.add(varDeclaration());
@@ -78,16 +203,24 @@ public class Parser {
                 else if(match(UNION))     declarations.add(unionDeclaration());
                 else if(match(ENUM))      declarations.add(enumDeclaration());
                 else if(match(TYPEDEF))   declarations.add(typedefDeclaration());            
-                else if(match(SEMICOLON)) continue;
+                else if(match(SEMICOLON)) {
+                    if(notes != null) {
+                        for(NoteStmt note : notes) {
+                            moduleNotes.add(note);
+                        }
+                    }
+                    continue;
+                }
                 else throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
                 
                 Attributes attrs = declarations.get(declarations.size() - 1).attributes; 
                 attrs.isPublic = isPublic;
                 attrs.isGlobal = true;
+                attrs.notes = notes;
             }
         }
         
-        return node(new ModuleStmt(moduleName, imports, declarations));
+        return node(new ModuleStmt(moduleName, imports, moduleNotes, declarations));
     }
     
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -173,16 +306,23 @@ public class Parser {
     private FuncDecl funcDeclaration() {
         source();
         
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);        
-        List<ParameterDecl> parameterInfos = parameterDecls();
-        
+        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        ParametersStmt parameters = parametersStmt();
+                
         consume(COLON, ErrorCode.MISSING_COLON);
         
         TypeInfo returnType = type();
-        TypeInfo type = new FuncTypeInfo(identifier.getText(), returnType, parameterInfos);
+        TypeInfo type = new FuncTypeInfo(identifier.getText(), returnType, parameters.params, parameters.isVararg);
         
-        Stmt body = statement();
-        return node(new FuncDecl(identifier.getText(), type, parameterInfos, body, returnType));
+        Stmt body;
+        if(match(SEMICOLON)) {
+            body = node(new EmptyStmt());
+        }
+        else {        
+            body = statement();
+        }
+        
+        return node(new FuncDecl(identifier.getText(), type, parameters, body, returnType));
     }
     
     private StructDecl structDeclaration() {
@@ -301,6 +441,32 @@ public class Parser {
     }
     
 
+    private List<NoteStmt> notes() {
+        List<NoteStmt> notes = null;
+        if(check(AT)) {
+            notes = new ArrayList<>();
+            
+            while(match(AT)) {
+                Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+                List<String> attributes = new ArrayList<>();
+                if(match(LEFT_PAREN)) {                    
+                    do {
+                        if(match(STRING)) {                            
+                            attributes.add(previous().getValue().toString());
+                        }
+                    }
+                    while(match(COMMA));
+                    
+                    consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+                }     
+                
+                notes.add(node(new NoteStmt(new Note(identifier.getText(), attributes))));
+            }
+        }
+        
+        return notes;
+    }
+    
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      *                      Statement parsing
      *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -509,6 +675,13 @@ public class Parser {
         return expr;
     }
     
+    private InitExpr aggregateInitExpr() {        
+        // TODO: Figure out how to infer which type this is
+        // based off of the parameter index
+        List<Expr> arguments = structArguments();
+        return node(new InitExpr(null, arguments));
+    }
+    
     private ArrayInitExpr arrayInitExpr() {
         List<Expr> dimensions = arrayDimensions();
         
@@ -707,7 +880,8 @@ public class Parser {
             }
             else if(check(LEFT_BRACE)) {
                 if(!(expr instanceof IdentifierExpr)) {
-                    throw error(peek(), ErrorCode.INVALID_ASSIGNMENT);
+                    //throw error(peek(), ErrorCode.INVALID_ASSIGNMENT);
+                    return expr;
                 }
                 
                 advance(); // eat the {
@@ -720,9 +894,6 @@ public class Parser {
                 consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
                 
                 expr = node(new SubscriptGetExpr(expr, index));
-            }
-            else if(match(COLON_COLON)) {
-                
             }
             else if(match(DOT)) {
                 Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);                
@@ -748,7 +919,8 @@ public class Parser {
                 
         if(match(LEFT_PAREN))   return groupExpr();
         if(match(LEFT_BRACKET)) return arrayInitExpr();
-                        
+        if(match(LEFT_BRACE))   return aggregateInitExpr();                
+        
         if(check(IDENTIFIER)) {
             String identifier = identifier();
             return node(new IdentifierExpr(identifier, new IdentifierTypeInfo(identifier)));
@@ -791,11 +963,37 @@ public class Parser {
         return type;
     }
     
+    private TypeInfo arrayType(TypeInfo type) {
+        do {
+            advance();
+        
+            Token n = peek();
+            if(!n.getType().equals(LEFT_BRACKET)) {
+                break;
+            }
+            
+            advance();
+            
+            n = peek();
+            
+            Token size = consume(NUMBER, ErrorCode.INVALID_CONST_EXPR);
+            //int dimension = size.
+            
+            type = new PtrTypeInfo(type);                    
+        } while(!isAtEnd());
+        
+        return type;
+    }
+    
     private TypeInfo type() {
         Token t = peek();
         switch(t.getType()) {
             case BOOL: {
                 TypeInfo type = TypeInfo.BOOL_TYPE;
+                return ptrType(type);
+            }
+            case CHAR: {
+                TypeInfo type = TypeInfo.CHAR_TYPE;
                 return ptrType(type);
             }
             case I8: {
@@ -864,6 +1062,9 @@ public class Parser {
                 TypeInfo type = new StrTypeInfo(t.getText());
                 return ptrType(type);
             }
+//            case LEFT_BRACKET: {
+//                TypeInfo type = new ArrayTypeInfo();
+//            }
             // case FUNC: TODO
             default:
                 throw error(t, ErrorCode.UNEXPECTED_TOKEN);
@@ -893,25 +1094,35 @@ public class Parser {
      * 
      * @return the parsed {@link ParameterList}
      */
-    private List<ParameterDecl> parameterDecls() {
+    private ParametersStmt parametersStmt() {
         consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         
-        List<ParameterDecl> parameterInfos = new ArrayList<>();        
+        List<ParameterDecl> parameterInfos = new ArrayList<>();
+        boolean isVarargs = false;
+        
         if(!check(RIGHT_PAREN)) {
             do {                
-                Token param = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-                String parameterName = param.getText();
-                
-                consume(COLON, ErrorCode.MISSING_COLON);
-                TypeInfo type = type();
-                
-                parameterInfos.add(new ParameterDecl(type, parameterName));
+                if(match(VAR_ARGS)) {
+                    isVarargs = true;
+                    if(!check(RIGHT_PAREN)) {
+                        throw error(peek(), ErrorCode.INVALID_VARARG_POSITION);
+                    }
+                }
+                else {
+                    Token param = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+                    String parameterName = param.getText();
+                    
+                    consume(COLON, ErrorCode.MISSING_COLON);
+                    TypeInfo type = type();
+                    
+                    parameterInfos.add(new ParameterDecl(type, parameterName));
+                }
             }
             while(match(COMMA));
         }
         
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        return parameterInfos;
+        return node(new ParametersStmt(parameterInfos, isVarargs));
     }
     
     /**

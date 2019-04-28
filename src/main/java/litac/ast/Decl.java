@@ -73,7 +73,7 @@ public abstract class Decl extends Stmt {
             return this.name + ": " + this.type;
         }
     }
-    
+        
     public static class ConstDecl extends Decl {
         public Expr expr;
         
@@ -89,17 +89,17 @@ public abstract class Decl extends Stmt {
     }
     
     public static class FuncDecl extends Decl {
-        public List<ParameterDecl> parameterDecls;
+        public ParametersStmt params;;
         public Stmt bodyStmt;
         public TypeInfo returnType;
-        
+                
         /**
          * @param name
          * @param type
          */
-        public FuncDecl(String name, TypeInfo type, List<ParameterDecl> parameterDecls, Stmt body, TypeInfo returnType) {
+        public FuncDecl(String name, TypeInfo type, ParametersStmt params, Stmt body, TypeInfo returnType) {
             super(DeclKind.FUNC, type, name);
-            this.parameterDecls = parameterDecls;
+            this.params = becomeParentOf(params);
             this.bodyStmt = becomeParentOf(body);
             this.returnType = returnType;
         }
@@ -173,5 +173,4 @@ public abstract class Decl extends Stmt {
             v.visit(this);
         }
     }
-
 }

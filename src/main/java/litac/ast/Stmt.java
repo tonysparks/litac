@@ -6,8 +6,10 @@ package litac.ast;
 import java.util.ArrayList;
 import java.util.List;
 
+import litac.ast.Decl.ParameterDecl;
 import litac.ast.Decl.StructDecl;
 import litac.ast.Decl.UnionDecl;
+import litac.checker.Note;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.FieldInfo;
 import litac.parser.ErrorCode;
@@ -51,13 +53,15 @@ public abstract class Stmt extends Node {
 
         public String name;
         public List<ImportStmt> imports;
+        public List<NoteStmt> notes;
         public List<Decl> declarations;
         
         
-        public ModuleStmt(String name, List<ImportStmt> imports, List<Decl> declarations) {
+        public ModuleStmt(String name, List<ImportStmt> imports, List<NoteStmt> notes, List<Decl> declarations) {
             this.name = name;
             this.imports = becomeParentOf(imports);
-            this.declarations = becomeParentOf(declarations);        
+            this.notes = becomeParentOf(notes);
+            this.declarations = becomeParentOf(declarations);
         }
         
         @Override
@@ -83,6 +87,19 @@ public abstract class Stmt extends Node {
         }
     }
     
+
+    public static class NoteStmt extends Stmt {
+        public Note note;
+        
+        public NoteStmt(Note note) {
+            this.note = note;
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);            
+        } 
+    }
     
     public static abstract class FieldStmt extends Stmt {        
     }
@@ -157,6 +174,14 @@ public abstract class Stmt extends Node {
         }
         
 
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+    }
+    
+    public static class EmptyStmt extends Stmt {
+        
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
@@ -249,6 +274,21 @@ public abstract class Stmt extends Node {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);            
+        }
+    }
+    
+    public static class ParametersStmt extends Stmt {
+        public List<ParameterDecl> params;
+        public boolean isVararg;
+        
+        public ParametersStmt(List<ParameterDecl> params, boolean isVararg) {
+            this.params = becomeParentOf(params);
+            this.isVararg = isVararg;
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
         }
     }
 }

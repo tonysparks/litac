@@ -4,14 +4,10 @@
 package litac;
 
 import java.io.File;
-import java.io.FileReader;
 
-import litac.ast.Stmt.ModuleStmt;
-import litac.compiler.llvm.LLVMTranspiler;
-import litac.compiler.llvm.LLVMTranspiler.TranspilerOptions;
-import litac.parser.Parser;
-import litac.parser.Scanner;
-import litac.parser.Source;
+import litac.compiler.BackendOptions;
+import litac.compiler.BackendOptions.BackendType;
+import litac.compiler.Compiler;
 
 /**
  * @author Tony
@@ -19,26 +15,27 @@ import litac.parser.Source;
  */
 public class LitaC {
 
+    public static final String VERSION = "v0.1.0";
+    
     /**
      * @param args
      */
     public static void main(String[] args) throws Exception {
         if(args.length < 1) {
             System.out.println("<usage> litac.exe [source files]");
+            //System.out.println("   -backend=C|LLVM   Options are either C or LLVM, C is default");
             return;
         }
         
         File moduleFile = new File(args[0]);
-        Scanner scanner = new Scanner(new Source(moduleFile.getName(), new FileReader(moduleFile)));
-        Parser parser = new Parser(scanner);
-        ModuleStmt program = parser.parseModule();
         
-        TranspilerOptions options = new TranspilerOptions();
+        BackendOptions options = new BackendOptions(BackendType.C);
         options.checkerOptions.srcDir = moduleFile.getParentFile();
+        options.cOptions.run = true;
         
-        LLVMTranspiler.transpile(program, options);
-        
-
+        Compiler compiler = new Compiler(options);
+        compiler.compile(moduleFile);
     }
 
+    
 }

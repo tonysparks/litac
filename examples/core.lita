@@ -1,0 +1,15 @@
+module core
+
+@include("stdio.h");
+
+
+@foreign public func printf(s:char*, ...) : void;
+
+public struct Vec3 {
+    v: f32
+}
+
+public func Vec3Add(a:Vec3,b:Vec3,out:Vec3*) : Vec3* {
+    out.v = a.v + b.v;
+    return out;
+}

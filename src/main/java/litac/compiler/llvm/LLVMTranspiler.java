@@ -48,7 +48,7 @@ public class LLVMTranspiler {
     private static final DecimalFormat f32Format = new DecimalFormat("##0.0####E0"); // TODO set proper mantissa // "##0.#####E0"
     private static final DecimalFormat f64Format = new DecimalFormat("##0.0####E0"); // TODO set proper mantissa
     
-    public static class TranspilerOptions {
+    public static class LLVMOptions {
         public File outputDir;        
         public String outputFileName;
         public TypeCheckerOptions checkerOptions;
@@ -56,7 +56,7 @@ public class LLVMTranspiler {
         public boolean useTabs;
         public int indentWidth;
         
-        public TranspilerOptions() {
+        public LLVMOptions() {
             this.checkerOptions = new TypeCheckerOptions();
             this.outputDir = new File(System.getProperty("user.dir"), "output");
             this.outputFileName = "a";
@@ -68,21 +68,15 @@ public class LLVMTranspiler {
         }
     }
 
-    public static void transpile(ModuleStmt program, TranspilerOptions options) throws Exception {
-        TypeCheckResult checkerResult = TypeChecker.typeCheck(options.checkerOptions, program);
+    public static void transpile(ModuleStmt program, LLVMOptions options) throws Exception {
+        TypeCheckResult checkerResult = null;// TypeChecker.typeCheck(options.checkerOptions, program);
         if(checkerResult.hasErrors()) {
             for(TypeCheckError error : checkerResult.getErrors()) {
                 Errors.typeCheckError(error.stmt, error.message);
             }
         }
-        
 
-        String tabSpaces = "";
-        for(int i = 0; i < options.indentWidth; i++) {
-            tabSpaces += " ";
-        }
-        
-        Buf buf = new Buf(tabSpaces, options.useTabs);
+        Buf buf = new Buf(options.indentWidth, options.useTabs);
         
      //   writeForwardDeclarations(checkerResult.getModule(), buf);
         
@@ -149,7 +143,7 @@ public class LLVMTranspiler {
             writeModule(m, buf, visited);
         }
         
-        buf.out("; Start Module '%s' \n", module.name);
+        buf.out("; Start Module '%s' \n", module.name());
         
         for(TypeInfo type : module.getDeclaredTypes()) {
             writeForwardDecl(module, buf, type);
@@ -159,7 +153,7 @@ public class LLVMTranspiler {
             writeForwardDecl(module, buf, type);
         }
         
-        buf.out("; End Module '%s' \n\n", module.name);
+        buf.out("; End Module '%s' \n\n", module.name());
     }
     
     private static void writeForwardDeclarations(Module module, Buf buf) {
@@ -202,7 +196,7 @@ public class LLVMTranspiler {
 //            EnumFieldStmt stmt;
 //        }
                 
-        private TranspilerOptions options;
+        private LLVMOptions options;
         
         private List<ModuleStmt> modules;
         private Buf buf;
@@ -213,7 +207,7 @@ public class LLVMTranspiler {
         private LLVMScope scope;
         
         
-        public LLVMWriterNodeVisitor(TranspilerOptions options, ModuleStmt program, Buf buf) {
+        public LLVMWriterNodeVisitor(LLVMOptions options, ModuleStmt program, Buf buf) {
             this.options = options;
             this.buf = buf;
             
@@ -282,6 +276,10 @@ public class LLVMTranspiler {
             this.modules.add(program);
         }
 
+        @Override
+        public void visit(NoteStmt stmt) {
+        }
+        
         @Override
         public void visit(VarFieldStmt stmt) {
             buf.out("%s", type(stmt.type));
@@ -394,7 +392,7 @@ public class LLVMTranspiler {
             buf.outln();
             buf.out("define %s @%s(", type(d.returnType), d.name);
             boolean isFirst = true;
-            for(ParameterDecl p : d.parameterDecls) {
+            for(ParameterDecl p : d.params.params) {
                 if(!isFirst) {
                     buf.out(",");
                 }
@@ -413,15 +411,15 @@ public class LLVMTranspiler {
             Identifiers ids = this.scope.peekIdentifiers();
             ids.alloc();
             
-            int paramIndex = d.parameterDecls.size();          
+            int paramIndex = d.params.params.size();          
                         
-            for(int i = 0; i < d.parameterDecls.size(); i++) {
-                ParameterDecl p = d.parameterDecls.get(i);
+            for(int i = 0; i < d.params.params.size(); i++) {
+                ParameterDecl p = d.params.params.get(i);
                 buf.out("%s = alloca %s \n", ids.alloc(p.name).llvmName, type(p.type));
             }
             
-            for(int i = d.parameterDecls.size() - 1; i >=0; i--) {
-                ParameterDecl p = d.parameterDecls.get(i);                
+            for(int i = d.params.params.size() - 1; i >=0; i--) {
+                ParameterDecl p = d.params.params.get(i);                
                 //buf.out("store %s %s, %s* %s \n", type(p.type), ids.get(i), type(p.type), ids.get(paramIndex + (paramIndex - i)));
             }
             
@@ -517,6 +515,10 @@ public class LLVMTranspiler {
         
         @Override
         public void visit(ParameterDecl d) {
+        }
+        
+        @Override
+        public void visit(ParametersStmt stmt) {
         }
 
         
@@ -622,6 +624,9 @@ public class LLVMTranspiler {
             // TODO
         }
   
+        @Override
+        public void visit(EmptyStmt stmt) {
+        }
         
         @Override
         public void visit(InitExpr expr) {

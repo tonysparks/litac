@@ -98,9 +98,15 @@ public abstract class Expr extends Stmt {
         
         public InitExpr(TypeInfo type, List<Expr> arguments) {
             this.type = type;
-            this.arguments = arguments;
+            this.arguments = becomeParentOf(arguments);
             
             resolveTo(type);
+        }
+        
+        @Override
+        public void resolveTo(TypeInfo type) {        
+            super.resolveTo(type);
+            this.type = type;
         }
         
         @Override

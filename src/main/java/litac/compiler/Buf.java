@@ -14,7 +14,12 @@ public class Buf {
     private final String tabSpaces;
     private final boolean useTabs;
     
-    public Buf(String tabSpaces, boolean useTabs) {
+    public Buf(int indentWidth, boolean useTabs) {
+        String tabSpaces = "";
+        for(int i = 0; i < indentWidth; i++) {
+            tabSpaces += " ";
+        }
+        
         this.tabSpaces = tabSpaces;
         this.useTabs = useTabs;
         

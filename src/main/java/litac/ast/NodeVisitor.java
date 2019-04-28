@@ -15,6 +15,7 @@ public interface NodeVisitor {
 
     void visit(ModuleStmt stmt);
     void visit(ImportStmt stmt);
+    void visit(NoteStmt stmt);
     void visit(VarFieldStmt stmt);
     void visit(StructFieldStmt stmt);
     void visit(UnionFieldStmt stmt);
@@ -27,6 +28,8 @@ public interface NodeVisitor {
     void visit(ReturnStmt stmt);
     void visit(BlockStmt stmt);
     void visit(DeferStmt stmt);
+    void visit(EmptyStmt stmt);
+    void visit(ParametersStmt stmt);
     
     void visit(ConstDecl d);
     void visit(EnumDecl d);
@@ -121,7 +124,19 @@ public interface NodeVisitor {
         @Override
         public void visit(DeferStmt stmt) {
         }
+        
+        @Override
+        public void visit(EmptyStmt stmt) {
+        }
+        
+        @Override
+        public void visit(ParametersStmt stmt) {
+        }
 
+        @Override
+        public void visit(NoteStmt stmt) {
+        }
+        
 
         @Override
         public void visit(ConstDecl d) {

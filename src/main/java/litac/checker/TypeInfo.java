@@ -16,6 +16,7 @@ import litac.ast.Expr;
 public abstract class TypeInfo {
     
     public static final TypeInfo BOOL_TYPE = new PrimitiveTypeInfo("bool", TypeKind.bool);
+    public static final TypeInfo CHAR_TYPE = new PrimitiveTypeInfo("char", TypeKind.Char);
     public static final TypeInfo I8_TYPE   = new PrimitiveTypeInfo("i8", TypeKind.i8);
     public static final TypeInfo U8_TYPE   = new PrimitiveTypeInfo("u8", TypeKind.u8);
     public static final TypeInfo I16_TYPE  = new PrimitiveTypeInfo("i16", TypeKind.i16);
@@ -34,6 +35,7 @@ public abstract class TypeInfo {
     
     public static enum TypeKind {
         bool,
+        Char,
         i8,  u8,
         i16, u16,
         i32, u32,
@@ -77,7 +79,11 @@ public abstract class TypeInfo {
     
     @Override
     public String toString() {    
-        return this.kind.name();
+        return this.kind.name().toLowerCase();
+    }
+    
+    public boolean isAnonymous() {
+        return false;
     }
     
     public boolean isKind(TypeKind kind) {
@@ -198,6 +204,11 @@ public abstract class TypeInfo {
         }
         
         @Override
+        public boolean isAnonymous() {
+            return isAnonymous;
+        }
+        
+        @Override
         public String toString() {        
             return "struct " + this.name;
         }
@@ -247,6 +258,11 @@ public abstract class TypeInfo {
             super(TypeKind.Union, name);
             this.fieldInfos = fieldInfos;
             this.isAnonymous = isAnon;
+        }
+        
+        @Override
+        public boolean isAnonymous() {
+            return isAnonymous;
         }
         
         @Override
@@ -328,16 +344,18 @@ public abstract class TypeInfo {
     public static class FuncTypeInfo extends TypeInfo {
         public TypeInfo returnType;
         public List<ParameterDecl> parameterDecls;
+        public boolean isVararg;
         
         /**
          * @param name
          * @param returnType
          * @param parameterDecls
          */
-        public FuncTypeInfo(String name, TypeInfo returnType, List<ParameterDecl> parameterDecls) {
+        public FuncTypeInfo(String name, TypeInfo returnType, List<ParameterDecl> parameterDecls, boolean isVararg) {
             super(TypeKind.Func, name);
             this.returnType = returnType;
             this.parameterDecls = parameterDecls;
+            this.isVararg = isVararg;
         }
         
         @Override
@@ -356,6 +374,10 @@ public abstract class TypeInfo {
             if(target.kind == TypeKind.Func) {
                 FuncTypeInfo funcType = (FuncTypeInfo) target;
                 if(this.parameterDecls.size() != funcType.parameterDecls.size()) {
+                    return false;
+                }
+                
+                if(this.isVararg != funcType.isVararg) {
                     return false;
                 }
                 
@@ -381,6 +403,14 @@ public abstract class TypeInfo {
                 sb.append(p);
                 isFirst = false;
             }
+            
+            if(this.isVararg) {
+                if(!isFirst) {
+                    sb.append(",");
+                }
+                sb.append("...");
+            }
+            
             return String.format("func %s(%s) : %s", this.name, sb, this.returnType);
         }
     }
@@ -415,6 +445,16 @@ public abstract class TypeInfo {
                 return true;
             }
             
+            // Account for c style strings
+            if(target.isKind(TypeKind.Ptr)) {
+                PtrTypeInfo ptrInfo = target.as();
+                if(ptrInfo.ptrOf.isKind(TypeKind.Char) ||
+                   ptrInfo.ptrOf.isKind(TypeKind.u8) ||
+                   ptrInfo.ptrOf.isKind(TypeKind.i8)) {
+                    return true;
+                }
+            }
+            
             return false;
         }
     }
@@ -423,12 +463,17 @@ public abstract class TypeInfo {
         public TypeInfo ptrOf;
 
         /**
-         * @param name
+         * @param moduleName
          * @param ptrOf
          */
         public PtrTypeInfo(TypeInfo ptrOf) {
             super(TypeKind.Ptr, "ptr");
             this.ptrOf = ptrOf;
+        }
+                
+        @Override
+        public String getName() {
+            return ptrOf.getName() + "*";
         }
         
         @Override
@@ -463,7 +508,7 @@ public abstract class TypeInfo {
         public List<Integer> dimensions;
 
         /**
-         * @param name
+         * @param moduleName
          * @param arrayOf
          */
         public ArrayTypeInfo(TypeInfo arrayOf, List<Integer> dimensions) {
@@ -629,6 +674,15 @@ public abstract class TypeInfo {
         
         public void resolve(TypeInfo resolvedTo) {
             this.resolvedType = resolvedTo;
+        }
+        
+        @Override
+        public boolean isAnonymous() {
+            if(isResolved()) {
+                return this.resolvedType.isAnonymous();
+            }
+            
+            return super.isAnonymous();
         }
         
         @Override

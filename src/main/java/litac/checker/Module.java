@@ -6,24 +6,32 @@ package litac.checker;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import litac.ast.Decl;
 import litac.ast.Decl.*;
 import litac.checker.TypeInfo.*;
+import litac.util.Names;
 import litac.ast.Stmt;
+import litac.ast.Stmt.ModuleStmt;
+import litac.ast.Stmt.NoteStmt;
 
 /**
+ * Keeps track of 
+ * 
  * @author Tony
  *
  */
 public class Module {
 
-    public String name;        
-    public Scope currentScope;
+    private String name;        
+    private Scope currentScope;
     
     private Map<String, Module> imports;
+    private ModuleStmt moduleStmt;
+    
     
     private Map<String, FuncTypeInfo> funcTypes;
     private Map<String, StructTypeInfo> structTypes;
@@ -36,11 +44,16 @@ public class Module {
     private Map<String, FuncTypeInfo> importedFuncTypes;
     private Map<String, TypeInfo> importedAggregateTypes;
     
+    private Map<String, TypeInfo> foreignTypes;
+    
+    private List<NoteStmt> notes;
+    
     private TypeCheckResult result;
     
     
-    public Module(TypeCheckResult result, String name) {
+    public Module(TypeCheckResult result, ModuleStmt moduleStmt, String name) {
         this.result = result;
+        this.moduleStmt = moduleStmt;
         this.name = name;
         
         this.imports = new HashMap<>();         
@@ -52,10 +65,18 @@ public class Module {
         this.publicFuncTypes = new HashMap<>();
         this.publicTypes = new HashMap<>();
         
+        this.foreignTypes = new HashMap<>();
+        
         this.importedFuncTypes = new HashMap<>();
         this.importedAggregateTypes = new HashMap<>();
         
+        this.notes = new ArrayList<>();
+        
         this.currentScope = new Scope(result);
+    }
+    
+    public ModuleStmt getModuleStmt() {
+        return moduleStmt;
     }
     
     public Collection<Module> getImports() {
@@ -75,37 +96,87 @@ public class Module {
         return result;
     }
     
+    public boolean isForeignType(String name) {
+        return this.foreignTypes.containsKey(name);
+    }
+    
+    public boolean isImported(String name) {
+        return this.importedAggregateTypes.containsKey(name) || 
+               this.importedFuncTypes.containsKey(name);
+    }
+    
     public void importModule(Stmt stmt, Module module, String alias) {
         if(module == null) {
             this.result.addError(stmt, "unable to import module '%s' ", alias);
             return;
         }
-        
-        this.imports.put(alias, module);    
-        
+                
+        this.imports.put(alias, module);
+               
         for(Entry<String, FuncTypeInfo> funcType: module.publicFuncTypes.entrySet()) {
-            this.importedFuncTypes.put(String.format("%s::%s", alias, funcType.getKey()), funcType.getValue());
+            this.importedFuncTypes.put(Names.litaName(alias, funcType.getKey()), funcType.getValue());
         }
         
         for(Entry<String, TypeInfo> aggType: module.publicTypes.entrySet()) {
-            this.importedAggregateTypes.put(String.format("%s::%s", alias, aggType.getKey()), aggType.getValue());
+            this.importedAggregateTypes.put(Names.litaName(alias, aggType.getKey()), aggType.getValue());
         }
+        
+        
+        for(Entry<String, TypeInfo> typeEntry: module.foreignTypes.entrySet()) {
+            TypeInfo type = typeEntry.getValue();
+            if(type.isKind(TypeKind.Func)) {
+                this.importedFuncTypes.put(Names.litaName(alias, typeEntry.getKey()), type.as());
+            }
+            else {
+                this.importedAggregateTypes.put(Names.litaName(alias, typeEntry.getKey()), type);
+            }
+        }
+        
+        this.foreignTypes.putAll(module.foreignTypes);
+        this.notes.addAll(module.notes);
+    }
+    
+    public List<NoteStmt> getNotes() {
+        return notes;
     }
     
     public Module getModule(String name) {
         return this.imports.get(name);
     }
     
+    private boolean isForeign(Decl decl) {
+        if(decl.attributes.notes != null) {
+            for(NoteStmt n : decl.attributes.notes) {
+                if(n.note.name.equalsIgnoreCase("foreign")) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
     private void addPublicDecl(Decl decl, String name, TypeInfo type) {
         if(decl.attributes.isPublic) {
-            if(type.isKind(TypeKind.Func)) {
+            if(type.isKind(TypeKind.Func)) {                
                 FuncTypeInfo funcInfo = type.as();
                 this.publicFuncTypes.put(name, funcInfo);
             }
             else {
                 this.publicTypes.put(name, type);
             }
+            
+
+            if(isForeign(decl)) {
+                this.foreignTypes.put(name, type);
+            }
         }
+        
+        
+    }
+    
+    public void declareNote(NoteStmt stmt) {
+        this.notes.add(stmt);
     }
     
     public void declareFunc(FuncDecl stmt, String funcName, FuncTypeInfo type) {
@@ -221,6 +292,14 @@ public class Module {
     public Scope popScope() {
         this.currentScope = this.currentScope.getParent();
         return this.currentScope;
+    }
+    
+    public Scope currentScope() {
+        return this.currentScope;
+    }
+    
+    public String name() {
+        return this.name;
     }
 
     @Override
