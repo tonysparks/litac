@@ -4,20 +4,13 @@
 package litac.compiler;
 
 import java.io.File;
-import java.io.FileReader;
 
 import litac.Errors;
 import litac.ast.Stmt;
-import litac.ast.Stmt.ModuleStmt;
 import litac.checker.TypeCheckResult;
-import litac.checker.TypeChecker;
 import litac.checker.TypeCheckResult.TypeCheckError;
+import litac.checker.TypeChecker;
 import litac.compiler.c.CTranspiler;
-import litac.compiler.c.CTranspiler.COptions;
-import litac.compiler.llvm.LLVMTranspiler;
-import litac.parser.Parser;
-import litac.parser.Scanner;
-import litac.parser.Source;
 
 /**
  * @author Tony
@@ -43,7 +36,9 @@ public class Compiler {
         CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
         TypeCheckResult result = typeCheck(options, unit);
         
-        compile(options, result, unit);
+        if(!result.hasErrors()) {
+            compile(options, result, unit);
+        }
     }
     
     private TypeCheckResult typeCheck(BackendOptions options, CompilationUnit unit) {

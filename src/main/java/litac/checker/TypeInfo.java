@@ -32,6 +32,27 @@ public abstract class TypeInfo {
     public static final TypeInfo NULL_TYPE = new NullTypeInfo();
     public static final TypeInfo VOID_TYPE = new VoidTypeInfo();
     
+    public static TypeInfo fromString(String typeName) {
+        switch(typeName) {
+            case "bool": return BOOL_TYPE;
+            case "char": return CHAR_TYPE;
+            case "i8":   return I8_TYPE;
+            case "u8":   return U8_TYPE;
+            case "i16":  return I16_TYPE;
+            case "u16":  return U16_TYPE;
+            case "i32":  return I32_TYPE;
+            case "u32":  return U32_TYPE;
+            case "i64":  return I64_TYPE;
+            case "u64":  return U64_TYPE;
+            case "i128": return I128_TYPE;
+            case "u128": return U128_TYPE;
+            case "f32":  return F32_TYPE;
+            case "f64":  return F64_TYPE;
+            case "null":   return NULL_TYPE;
+            case "void":   return VOID_TYPE;
+            default: return null;
+        }
+    }
     
     public static enum TypeKind {
         bool,
@@ -470,6 +491,19 @@ public abstract class TypeInfo {
             super(TypeKind.Ptr, "ptr");
             this.ptrOf = ptrOf;
         }
+        
+        /**
+         * @return the base type of the pointer
+         */
+        public TypeInfo getBaseType() {
+            TypeInfo base = this.ptrOf;
+            while(base != null && base.isKind(TypeKind.Ptr)) {
+                PtrTypeInfo subPtr = base.as();
+                base = subPtr.ptrOf;
+            }
+                
+            return base;
+        }
                 
         @Override
         public String getName() {
@@ -499,22 +533,53 @@ public abstract class TypeInfo {
                 return this.ptrOf.getResolvedType().canCastTo(ptrInfo.ptrOf.getResolvedType());
             }
             
+            if(target.isKind(TypeKind.Array)) {
+                ArrayTypeInfo arrayInfo = target.as();
+                return this.ptrOf.getResolvedType().canCastTo(arrayInfo.arrayOf.getResolvedType());
+            }
+            
+            if(target.isKind(TypeKind.Null)) {
+                return true;
+            }
+            
             return false;
         }
     }
     
     public static class ArrayTypeInfo extends TypeInfo {
         public TypeInfo arrayOf;
-        public List<Integer> dimensions;
+        public int length;
+        public Expr lengthExpr;
 
-        /**
-         * @param moduleName
-         * @param arrayOf
-         */
-        public ArrayTypeInfo(TypeInfo arrayOf, List<Integer> dimensions) {
+        public ArrayTypeInfo(TypeInfo arrayOf, int length, Expr lengthExpr) {
             super(TypeKind.Array, "Array");
             this.arrayOf = arrayOf;
-            this.dimensions = dimensions;
+            this.length = length;
+            this.lengthExpr = lengthExpr;
+        }
+        
+        
+        /**
+         * @return the base type of the array
+         */
+        public TypeInfo getBaseType() {
+            TypeInfo base = this.arrayOf;
+            while(base != null && base.isKind(TypeKind.Array)) {
+                ArrayTypeInfo subArray = base.as();
+                base = subArray.arrayOf;
+            }
+                
+            return base;
+        }
+        
+        @Override
+        public String getName() {        
+            return arrayOf.getName() + "[]";
+        }
+        
+        @Override
+        public String toString() {
+            return arrayOf.getName() + "[]";
         }
         
         @Override
@@ -523,30 +588,29 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            if(target.kind == TypeKind.Identifier) {
+            if(target.isKind(TypeKind.Identifier)) {
                 IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
                 if(idInfo.isResolved()) {
                     return canCastTo(idInfo.resolvedType);
                 }
             }
             
-            if(target.kind == TypeKind.Array) {
+            if(target.isKind(TypeKind.Array)) {
                 ArrayTypeInfo arrayInfo = (ArrayTypeInfo)target;
                 if(!this.arrayOf.strictEquals(arrayInfo.arrayOf)) {
                     return false;
                 }
                                 
-                if(this.dimensions.size() != arrayInfo.dimensions.size()) {
+                if(this.length != arrayInfo.length) {
                     return false;
                 }
                 
-                for(int i = 0; i < this.dimensions.size(); i++) {
-                    if(this.dimensions.get(i) != arrayInfo.dimensions.get(i)) {
-                        return false;
-                    }
-                }
-                
                 return true;
+            }
+            
+            if(target.isKind(TypeKind.Ptr)) {
+                PtrTypeInfo ptrInfo = target.as();
+                return this.arrayOf.canCastTo(ptrInfo.ptrOf.getResolvedType());
             }
             
             return false;
@@ -609,7 +673,7 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            return true;
+            return false;
         }
     }
     

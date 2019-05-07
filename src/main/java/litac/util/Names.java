@@ -40,4 +40,11 @@ public class Names {
         }
         return "";
     }
+    
+    public static String moduleFromBackendName(String name) {
+        if(name.contains("__")) {
+            return name.substring(0, name.indexOf("__"));
+        }
+        return "";
+    }
 }

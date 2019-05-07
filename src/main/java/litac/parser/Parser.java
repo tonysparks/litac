@@ -1,142 +1,24 @@
 package litac.parser;
 
 
-import static litac.parser.tokens.TokenType.AND;
-import static litac.parser.tokens.TokenType.AS;
-import static litac.parser.tokens.TokenType.AT;
-import static litac.parser.tokens.TokenType.BAND;
-import static litac.parser.tokens.TokenType.BAND_EQ;
-import static litac.parser.tokens.TokenType.BNOT;
-import static litac.parser.tokens.TokenType.BNOT_EQ;
-import static litac.parser.tokens.TokenType.BOR;
-import static litac.parser.tokens.TokenType.BOR_EQ;
-import static litac.parser.tokens.TokenType.BREAK;
-import static litac.parser.tokens.TokenType.COLON;
-import static litac.parser.tokens.TokenType.COLON_COLON;
-import static litac.parser.tokens.TokenType.COMMA;
-import static litac.parser.tokens.TokenType.CONST;
-import static litac.parser.tokens.TokenType.CONTINUE;
-import static litac.parser.tokens.TokenType.DEFER;
-import static litac.parser.tokens.TokenType.DIV_EQ;
-import static litac.parser.tokens.TokenType.DO;
-import static litac.parser.tokens.TokenType.DOT;
-import static litac.parser.tokens.TokenType.ELSE;
-import static litac.parser.tokens.TokenType.END_OF_FILE;
-import static litac.parser.tokens.TokenType.ENUM;
-import static litac.parser.tokens.TokenType.EQUALS;
-import static litac.parser.tokens.TokenType.EQUALS_EQUALS;
-import static litac.parser.tokens.TokenType.FALSE;
-import static litac.parser.tokens.TokenType.FOR;
-import static litac.parser.tokens.TokenType.FUNC;
-import static litac.parser.tokens.TokenType.GREATER_EQUALS;
-import static litac.parser.tokens.TokenType.GREATER_THAN;
-import static litac.parser.tokens.TokenType.IDENTIFIER;
-import static litac.parser.tokens.TokenType.IF;
-import static litac.parser.tokens.TokenType.IMPORT;
-import static litac.parser.tokens.TokenType.LEFT_BRACE;
-import static litac.parser.tokens.TokenType.LEFT_BRACKET;
-import static litac.parser.tokens.TokenType.LEFT_PAREN;
-import static litac.parser.tokens.TokenType.LESS_EQUALS;
-import static litac.parser.tokens.TokenType.LESS_THAN;
-import static litac.parser.tokens.TokenType.LSHIFT;
-import static litac.parser.tokens.TokenType.LSHIFT_EQ;
-import static litac.parser.tokens.TokenType.MINUS;
-import static litac.parser.tokens.TokenType.MINUS_EQ;
-import static litac.parser.tokens.TokenType.MOD;
-import static litac.parser.tokens.TokenType.MODULE;
-import static litac.parser.tokens.TokenType.MOD_EQ;
-import static litac.parser.tokens.TokenType.MUL_EQ;
-import static litac.parser.tokens.TokenType.NOT;
-import static litac.parser.tokens.TokenType.NOT_EQUALS;
-import static litac.parser.tokens.TokenType.NULL;
-import static litac.parser.tokens.TokenType.NUMBER;
-import static litac.parser.tokens.TokenType.OR;
-import static litac.parser.tokens.TokenType.PLUS;
-import static litac.parser.tokens.TokenType.PLUS_EQ;
-import static litac.parser.tokens.TokenType.PUBLIC;
-import static litac.parser.tokens.TokenType.RETURN;
-import static litac.parser.tokens.TokenType.RIGHT_BRACE;
-import static litac.parser.tokens.TokenType.RIGHT_BRACKET;
-import static litac.parser.tokens.TokenType.RIGHT_PAREN;
-import static litac.parser.tokens.TokenType.RSHIFT;
-import static litac.parser.tokens.TokenType.RSHIFT_EQ;
-import static litac.parser.tokens.TokenType.SEMICOLON;
-import static litac.parser.tokens.TokenType.SLASH;
-import static litac.parser.tokens.TokenType.STAR;
-import static litac.parser.tokens.TokenType.STRING;
-import static litac.parser.tokens.TokenType.STRUCT;
-import static litac.parser.tokens.TokenType.TRUE;
-import static litac.parser.tokens.TokenType.TYPEDEF;
-import static litac.parser.tokens.TokenType.UNION;
-import static litac.parser.tokens.TokenType.VAR;
-import static litac.parser.tokens.TokenType.VAR_ARGS;
-import static litac.parser.tokens.TokenType.WHILE;
-import static litac.parser.tokens.TokenType.XOR_EQ;
+import static litac.parser.tokens.TokenType.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import litac.Errors;
 import litac.ast.Decl;
-import litac.ast.Decl.ConstDecl;
-import litac.ast.Decl.EnumDecl;
-import litac.ast.Decl.FuncDecl;
-import litac.ast.Decl.ParameterDecl;
-import litac.ast.Decl.StructDecl;
-import litac.ast.Decl.TypedefDecl;
-import litac.ast.Decl.UnionDecl;
-import litac.ast.Decl.VarDecl;
+import litac.ast.Decl.*;
 import litac.ast.Expr;
-import litac.ast.Expr.ArrayInitExpr;
-import litac.ast.Expr.BinaryExpr;
-import litac.ast.Expr.BooleanExpr;
-import litac.ast.Expr.ConstExpr;
-import litac.ast.Expr.FuncCallExpr;
-import litac.ast.Expr.FuncIdentifierExpr;
-import litac.ast.Expr.GetExpr;
-import litac.ast.Expr.GroupExpr;
-import litac.ast.Expr.IdentifierExpr;
-import litac.ast.Expr.InitExpr;
-import litac.ast.Expr.NullExpr;
-import litac.ast.Expr.NumberExpr;
-import litac.ast.Expr.SetExpr;
-import litac.ast.Expr.StringExpr;
-import litac.ast.Expr.SubscriptGetExpr;
-import litac.ast.Expr.SubscriptSetExpr;
-import litac.ast.Expr.UnaryExpr;
+import litac.ast.Expr.*;
 import litac.ast.Node;
 import litac.ast.Stmt;
-import litac.ast.Stmt.BlockStmt;
-import litac.ast.Stmt.BreakStmt;
-import litac.ast.Stmt.ContinueStmt;
-import litac.ast.Stmt.DeferStmt;
-import litac.ast.Stmt.DoWhileStmt;
-import litac.ast.Stmt.EmptyStmt;
-import litac.ast.Stmt.FieldStmt;
-import litac.ast.Stmt.ForStmt;
-import litac.ast.Stmt.IfStmt;
-import litac.ast.Stmt.ImportStmt;
-import litac.ast.Stmt.ModuleStmt;
-import litac.ast.Stmt.NoteStmt;
-import litac.ast.Stmt.ParametersStmt;
-import litac.ast.Stmt.ReturnStmt;
-import litac.ast.Stmt.StructFieldStmt;
-import litac.ast.Stmt.UnionFieldStmt;
-import litac.ast.Stmt.VarFieldStmt;
-import litac.ast.Stmt.WhileStmt;
+import litac.ast.Stmt.*;
 import litac.checker.Attributes;
 import litac.checker.Note;
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.ArrayTypeInfo;
-import litac.checker.TypeInfo.EnumFieldInfo;
-import litac.checker.TypeInfo.EnumTypeInfo;
-import litac.checker.TypeInfo.FieldInfo;
-import litac.checker.TypeInfo.FuncTypeInfo;
-import litac.checker.TypeInfo.IdentifierTypeInfo;
-import litac.checker.TypeInfo.PtrTypeInfo;
-import litac.checker.TypeInfo.StrTypeInfo;
-import litac.checker.TypeInfo.StructTypeInfo;
-import litac.checker.TypeInfo.UnionTypeInfo;
+import litac.checker.TypeInfo.*;
 import litac.parser.tokens.NumberToken;
 import litac.parser.tokens.Token;
 import litac.parser.tokens.TokenType;
@@ -308,10 +190,12 @@ public class Parser {
         
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         ParametersStmt parameters = parametersStmt();
-                
-        consume(COLON, ErrorCode.MISSING_COLON);
         
-        TypeInfo returnType = type();
+        TypeInfo returnType = TypeInfo.VOID_TYPE;
+        if(match(COLON)) {
+            returnType = type();
+        }
+        
         TypeInfo type = new FuncTypeInfo(identifier.getText(), returnType, parameters.params, parameters.isVararg);
         
         Stmt body;
@@ -341,26 +225,28 @@ public class Parser {
             isAnon = true;
         }
         
-        consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
-        
         List<FieldStmt> fields = new ArrayList<>();
         
-        do {
-            if(check(RIGHT_BRACE)) {
-                break;
+        if(!match(SEMICOLON)) {        
+            consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
+            
+            do {
+                if(check(RIGHT_BRACE)) {
+                    break;
+                }
+                
+                FieldStmt field = fieldStatement();
+                fields.add(field);
+                
+                eatSemicolon();
             }
-            
-            FieldStmt field = fieldStatement();
-            fields.add(field);
-            
-            eatSemicolon();
+            while(!isAtEnd());
+            consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         }
-        while(!isAtEnd());
         
         List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
         TypeInfo type = new StructTypeInfo(structName, typeFields, isAnon);
         
-        consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
         return node(new StructDecl(structName, type, fields));
     }
@@ -678,44 +564,24 @@ public class Parser {
     private InitExpr aggregateInitExpr() {        
         // TODO: Figure out how to infer which type this is
         // based off of the parameter index
-        List<Expr> arguments = structArguments();
+        List<InitArgExpr> arguments = structArguments();
         return node(new InitExpr(null, arguments));
     }
     
     private ArrayInitExpr arrayInitExpr() {
-        List<Expr> dimensions = arrayDimensions();
+        TypeInfo array = type();
+        if(!array.isKind(TypeKind.Array)) {
+            throw error(previous(), ErrorCode.MISSING_LEFT_BRACE);
+        }
         
-        TypeInfo arrayOf = type();
+        List<Expr> values = Collections.emptyList();
+        if(match(LEFT_BRACE)) {            
+            values = arrayArguments();            
+        }
         
-        consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
-        
-        List<Expr> values = structArguments();
-        
-        return node(new ArrayInitExpr(arrayOf, dimensions, values));
+        return node(new ArrayInitExpr(array, values));
     }
-    
-    private List<Expr> arrayDimensions() {
-        List<Expr> dimensions = new ArrayList<>();
         
-        do {
-            Expr sizeExpr = new NullExpr();
-            if(check(NUMBER)) {
-                sizeExpr = node(new NumberExpr((NumberToken)advance()));
-            }
-            
-            dimensions.add(sizeExpr);
-            
-            consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
-            
-            if(!match(LEFT_BRACKET)) {
-                break;
-            }
-        } 
-        while(!isAtEnd());
-        
-        return dimensions;
-    }
-    
     private Expr assignment() {
         Expr expr = or();
         
@@ -869,7 +735,42 @@ public class Parser {
             Expr right = unary();
             return node(new UnaryExpr(operator.getType(), right)); 
         }
+        else if(match(LEFT_PAREN)) {
+            return cast();
+        }
+        else if(match(SIZEOF)) {
+            return sizeof();
+        }
+        
         return functionCall();
+    }
+    
+    private Expr cast() {
+        TypeInfo castTo = type();
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        Expr expr = expression();
+        return node(new CastExpr(castTo, expr));
+    }
+    
+    private Expr sizeof() {
+        boolean hasParen = match(TokenType.LEFT_PAREN);
+        
+        Expr expr = null;
+        
+        Token t = peek();        
+        if(t.getType().isPrimitiveToken() || t.getType().equals(LEFT_BRACKET)) {            
+            TypeInfo type = type();
+            expr = new IdentifierExpr(type.getName(), type);
+        }
+        else {
+            expr = expression();
+        }
+                
+        if(hasParen) {
+            consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        }
+        
+        return node(new SizeOfExpr(expr));
     }
     
     private Expr functionCall() {
@@ -886,7 +787,7 @@ public class Parser {
                 
                 advance(); // eat the {
                 IdentifierExpr idExpr = (IdentifierExpr)expr;
-                List<Expr> arguments = structArguments();
+                List<InitArgExpr> arguments = structArguments();
                 expr = node(new InitExpr(idExpr.type, arguments));
             }
             else if(match(LEFT_BRACKET)) {
@@ -918,14 +819,14 @@ public class Parser {
         if(match(STRING))  return node(new StringExpr(previous().getValue().toString()));
                 
         if(match(LEFT_PAREN))   return groupExpr();
-        if(match(LEFT_BRACKET)) return arrayInitExpr();
+        if(check(LEFT_BRACKET)) return arrayInitExpr();
         if(match(LEFT_BRACE))   return aggregateInitExpr();                
         
         if(check(IDENTIFIER)) {
             String identifier = identifier();
             return node(new IdentifierExpr(identifier, new IdentifierTypeInfo(identifier)));
         }
-        
+                
         throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
     }     
     
@@ -948,41 +849,47 @@ public class Parser {
         match(SEMICOLON);
     }
     
-    private TypeInfo ptrType(TypeInfo type) {
+    private TypeInfo chainableType(TypeInfo type) {
         do {
             advance();
         
             Token n = peek();
-            if(!n.getType().equals(STAR)) {
+            if(n.getType().equals(STAR)) {
+                type = new PtrTypeInfo(type);
+            }
+            else if(n.getType().equals(LEFT_BRACKET)) {
+                type = arrayType(type);
+            }
+            else {
                 break;
             }
-            
-            type = new PtrTypeInfo(type);                    
         } while(!isAtEnd());
         
         return type;
     }
+        
+    private ArrayTypeInfo arrayType(TypeInfo type) {
+        TypeInfo arrayOf = type;
+        int length = -1;
     
-    private TypeInfo arrayType(TypeInfo type) {
-        do {
-            advance();
+        advance(); // eat [
         
-            Token n = peek();
-            if(!n.getType().equals(LEFT_BRACKET)) {
-                break;
+        Expr lengthExpr = null;
+        if(!peek().getType().equals(RIGHT_BRACKET)) {
+            Expr expr = expression();
+            
+            if(expr instanceof NumberExpr) {
+                lengthExpr = expr;
             }
-            
-            advance();
-            
-            n = peek();
-            
-            Token size = consume(NUMBER, ErrorCode.INVALID_CONST_EXPR);
-            //int dimension = size.
-            
-            type = new PtrTypeInfo(type);                    
-        } while(!isAtEnd());
+            else if(expr instanceof IdentifierExpr) {
+                lengthExpr = expr;
+            }
+            else {
+                throw error(peek(), ErrorCode.INVALID_ARRAY_DIMENSION_EXPR);
+            }            
+        }
         
-        return type;
+        return new ArrayTypeInfo(arrayOf, length, lengthExpr);                    
     }
     
     private TypeInfo type() {
@@ -990,63 +897,63 @@ public class Parser {
         switch(t.getType()) {
             case BOOL: {
                 TypeInfo type = TypeInfo.BOOL_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case CHAR: {
                 TypeInfo type = TypeInfo.CHAR_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case I8: {
                 TypeInfo type = TypeInfo.I8_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U8: {
                 TypeInfo type = TypeInfo.U8_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case I16: {
                 TypeInfo type = TypeInfo.I16_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U16: {
                 TypeInfo type = TypeInfo.U16_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case I32: {
                 TypeInfo type = TypeInfo.I32_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U32: {
                 TypeInfo type = TypeInfo.U32_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case I64: {
                 TypeInfo type = TypeInfo.I64_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U64: {
                 TypeInfo type = TypeInfo.U64_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case I128: {
                 TypeInfo type = TypeInfo.I128_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U128: {
                 TypeInfo type = TypeInfo.U128_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case F32: {
                 TypeInfo type = TypeInfo.F32_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case F64: {
                 TypeInfo type = TypeInfo.F64_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case VOID: {
                 TypeInfo type = TypeInfo.VOID_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case IDENTIFIER: {
                 String identifier = identifier();                
@@ -1056,15 +963,19 @@ public class Parser {
                 // account for advance in ptr check
                 rewind();
                 
-                return ptrType(type);
+                return chainableType(type);
             }
             case STRING: {
                 TypeInfo type = new StrTypeInfo(t.getText());
-                return ptrType(type);
+                return chainableType(type);
             }
-//            case LEFT_BRACKET: {
-//                TypeInfo type = new ArrayTypeInfo();
-//            }
+            case LEFT_BRACKET: {                
+                ArrayTypeInfo type = arrayType(null);
+                advance();
+                
+                type.arrayOf = type();
+                return type;
+            }
             // case FUNC: TODO
             default:
                 throw error(t, ErrorCode.UNEXPECTED_TOKEN);
@@ -1148,7 +1059,7 @@ public class Parser {
         return arguments;
     }
 
-    private List<Expr> structArguments() {
+    private List<Expr> arrayArguments() {
         List<Expr> arguments = new ArrayList<>();
         if(!check(RIGHT_BRACE)) {        
             do {
@@ -1156,6 +1067,32 @@ public class Parser {
             } 
             while(match(COMMA));            
         }
+        
+        consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
+        
+        return arguments;
+    }
+    
+    private List<InitArgExpr> structArguments() {
+        List<InitArgExpr> arguments = new ArrayList<>();
+        int argPosition = 0;
+        do {
+            if(check(RIGHT_BRACE)) {
+                break;
+            }
+            
+            String fieldName = null;
+            if(match(DOT)) {
+                fieldName = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER).getText();
+                consume(COLON, ErrorCode.MISSING_COLON);
+            }
+            
+            Expr value = expression();
+            InitArgExpr argExpr = new InitArgExpr(fieldName, argPosition++, value);
+            arguments.add(node(argExpr));
+             
+        }
+        while(match(COMMA));            
         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         

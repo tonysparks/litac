@@ -3,11 +3,9 @@
  */
 package litac.ast;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.ArrayTypeInfo;
 import litac.checker.TypeInfo.StrTypeInfo;
 import litac.checker.TypeInfo.TypeKind;
 import litac.parser.ErrorCode;
@@ -73,7 +71,12 @@ public abstract class Expr extends Stmt {
     }
     
     public void resolveTo(TypeInfo type) {
-        this.resolvedTo = type;
+        if(type != null) {
+            this.resolvedTo = type.isResolved() ? type.getResolvedType() : type;
+        }
+        else {
+            this.resolvedTo = null;
+        }
     }
     
     public boolean isResolved() {
@@ -92,11 +95,59 @@ public abstract class Expr extends Stmt {
         }
     }
     
+    public static class CastExpr extends Expr {
+        public TypeInfo castTo;
+        public Expr expr;
+        
+        public CastExpr(TypeInfo castTo, Expr expr) {
+            this.expr = becomeParentOf(expr);
+            this.castTo = castTo;
+            
+            resolveTo(castTo);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+    }
+    
+    public static class SizeOfExpr extends Expr {
+        public Expr expr;
+        
+        public SizeOfExpr(Expr expr) {
+            this.expr = becomeParentOf(expr);
+            resolveTo(TypeInfo.U64_TYPE);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+    }
+    
+    public static class InitArgExpr extends Expr {
+        public String fieldName;
+        public int argPosition;
+        public Expr value;
+        
+        public InitArgExpr(String fieldName, int argPosition, Expr value) {
+            this.fieldName = fieldName;
+            this.argPosition = argPosition;
+            this.value = becomeParentOf(value);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+    }
+    
     public static class InitExpr extends Expr {
         public TypeInfo type;
-        public List<Expr> arguments;
+        public List<InitArgExpr> arguments;
         
-        public InitExpr(TypeInfo type, List<Expr> arguments) {
+        public InitExpr(TypeInfo type, List<InitArgExpr> arguments) {
             this.type = type;
             this.arguments = becomeParentOf(arguments);
             
@@ -138,26 +189,12 @@ public abstract class Expr extends Stmt {
     }
     
     public static class ArrayInitExpr extends Expr {
-        public List<Expr> dimensions;
         public List<Expr> values;
         
-        public ArrayInitExpr(TypeInfo arrayOf, List<Expr> dimensions, List<Expr> values) {
-            this.dimensions = becomeParentOf(dimensions);
+        public ArrayInitExpr(TypeInfo array, List<Expr> values) {
             this.values = becomeParentOf(values);
-            
-            List<Integer> dims = new ArrayList<Integer>(dimensions.size());
-            for(Expr d : dimensions) {
-                if(d instanceof NumberExpr) {
-                    NumberExpr n = (NumberExpr)d;
-                    dims.add((Integer)n.number.getValue());
-                }
-                else {
-                    // must infer size from values
-                    dims.add(-1);
-                }
-            }
-            
-            resolveTo(new ArrayTypeInfo(arrayOf, dims));
+
+            resolveTo(array);
         }
         
         @Override

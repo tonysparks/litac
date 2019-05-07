@@ -41,7 +41,10 @@ public interface NodeVisitor {
     void visit(ParameterDecl d);
     
     
-    void visit(InitExpr expr);
+    void visit(CastExpr expr);
+    void visit(SizeOfExpr expr);
+    void visit(InitArgExpr expr);    
+    void visit(InitExpr expr);    
     void visit(NullExpr expr);
     void visit(BooleanExpr expr);
     void visit(NumberExpr expr);
@@ -67,6 +70,10 @@ public interface NodeVisitor {
 
         @Override
         public void visit(ImportStmt stmt) {
+        }
+        
+        @Override
+        public void visit(InitArgExpr expr) {
         }
         
         @Override
@@ -174,6 +181,13 @@ public interface NodeVisitor {
         public void visit(ParameterDecl d) {
         }
 
+        @Override
+        public void visit(CastExpr expr) {
+        }
+        
+        @Override
+        public void visit(SizeOfExpr expr) {
+        }
 
         @Override
         public void visit(NullExpr expr) {

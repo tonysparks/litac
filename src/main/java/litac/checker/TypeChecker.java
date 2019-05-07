@@ -191,13 +191,16 @@ public class TypeChecker {
             public Stmt stmt;
             public TypeInfo type;
             public TypeInfo otherType;
+            public boolean isCasted;
             
             public TypeCheck(Stmt stmt, 
                              TypeInfo type,
-                             TypeInfo otherType) {
+                             TypeInfo otherType,
+                             boolean isCasted) {
                 this.stmt = stmt;
                 this.type = type;            
                 this.otherType = otherType;
+                this.isCasted = isCasted;
             }
         }
         
@@ -214,25 +217,62 @@ public class TypeChecker {
         }
         
         private void addTypeCheck(Expr expr, TypeInfo type) {
-            this.pendingChecks.add(new TypeCheck(expr, type, null));
+            addTypeCheck(expr, type, null);
         }
         
         private void addTypeCheck(Stmt stmt, TypeInfo type, TypeInfo otherType) {
-            this.pendingChecks.add(new TypeCheck(stmt, type, otherType));
+            addTypeCheck(stmt, type, otherType, false);
         }
         
+        private void addTypeCheck(Stmt stmt, TypeInfo type, TypeInfo otherType, boolean isCasted) {
+            this.pendingChecks.add(new TypeCheck(stmt, type, otherType, isCasted));
+        }
+        
+        private void checkType(Stmt stmt, TypeInfo a, TypeInfo b, boolean isCasted) {
+            if(isCasted) {
+                if(!a.isKind(TypeKind.Ptr) || !b.isKind(TypeKind.Ptr)) {
+                    if(!a.canCastTo(b) && !b.canCastTo(a)) {
+                        result.addError(stmt,
+                                "'%s' can't be casted to '%s'", b, a);    
+                    }
+                }
+            }
+            else if(!a.canCastTo(b)) {
+                result.addError(stmt,
+                        "'%s' is not of type '%s'", b, a);
+            }
+        }
         
         /**
          * Does type checks for the full module, type checks are delayed to the end of walking the AST tree as certain
          * types may not have been resolved at time of processing the AST node.  
          */
-        private void checkTypes() {        
+        private void checkTypes() {     
+            if(result.hasErrors()) {
+                return;
+            }
+            
             for(TypeCheck check : this.pendingChecks) {
+                if(check.type == null) {
+                    result.addError(check.stmt,
+                            "unresolved type expression");
+                    return;
+                }
+                
                 if(check.otherType != null) {
-                    if(!check.type.getResolvedType().canCastTo(check.otherType.getResolvedType())) {
+                    if(!check.type.isResolved()) {
                         result.addError(check.stmt,
-                                "'%s' is not of type '%s'", check.otherType, check.type);
+                                "unresolved type expression", check.type);
+                        return;
                     }
+                    
+                    if(!check.otherType.isResolved()) {
+                        result.addError(check.stmt,
+                                "unresolved type expression", check.otherType);
+                        return;
+                    }
+                    
+                    checkType(check.stmt, check.type.getResolvedType(), check.otherType.getResolvedType(), check.isCasted);                    
                 }
                 else {
                     Expr expr = (Expr)check.stmt;
@@ -249,10 +289,7 @@ public class TypeChecker {
                         return;
                     }
                     
-                    if(!check.type.getResolvedType().canCastTo(expr.getResolvedType().getResolvedType())) {
-                        result.addError(check.stmt,
-                                "'%s' is not of type '%s'", expr.getResolvedType(), check.type);
-                    }
+                    checkType(check.stmt, check.type.getResolvedType(), expr.getResolvedType().getResolvedType(), check.isCasted);                                        
                 }
             }
         }    
@@ -270,6 +307,23 @@ public class TypeChecker {
             return module.currentScope();
         }
         
+        private void validateArrayDimension(Stmt stmt, TypeInfo type) {
+            switch(type.getKind()) {
+                case i128:
+                case i16:
+                case i32:
+                case i64:
+                case i8:
+                case u128:
+                case u16:
+                case u32:
+                case u64:
+                case u8:
+                    break;
+                default:                    
+                    this.result.addError(stmt, "'%s' invalid array length type", type.getName());
+            }
+        }
 
         private void resolveType(Stmt stmt, TypeInfo type) {
             if(type == null) {
@@ -290,6 +344,42 @@ public class TypeChecker {
                 PtrTypeInfo ptrInfo = type.as();
                 resolveType(stmt, ptrInfo.ptrOf);
             }
+            else if(type.isKind(TypeKind.Array)) {
+                ArrayTypeInfo arrayInfo = type.as();
+                resolveType(stmt, arrayInfo.arrayOf);
+                
+                if(arrayInfo.length < 0) {
+                    if(arrayInfo.lengthExpr == null) {
+                        this.result.addError(stmt, "'%s' has an unknown array length", type.getName());    
+                    }
+                    else {
+                        arrayInfo.lengthExpr.visit(this);
+                        
+                        if(arrayInfo.lengthExpr instanceof NumberExpr) {
+                              NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
+                              validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
+                              
+                              arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
+                              
+                          }
+                          else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
+                              IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
+                              if(iExpr.declType instanceof ConstDecl) {
+                                  validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
+                                  
+                                  ConstDecl cExpr = (ConstDecl)iExpr.declType;
+                                  NumberExpr nExpr = (NumberExpr)cExpr.expr;
+                                  
+                                  arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
+                              }
+                              else {
+                                  this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
+                              }
+                          }
+                    }
+                }
+                
+            }
         }
         
         private void resolveType(TypeInfo type, TypeInfo resolvedType) {
@@ -304,6 +394,38 @@ public class TypeChecker {
             else if(type.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = type.as();
                 resolveType(ptrInfo.ptrOf, resolvedType);
+            }
+            else if(type.isKind(TypeKind.Array)) {
+                ArrayTypeInfo arrayInfo = type.as();
+                resolveType(arrayInfo.arrayOf, resolvedType);
+                
+                if(arrayInfo.length < 0) {
+                    if(arrayInfo.lengthExpr != null) {
+                        arrayInfo.lengthExpr.visit(this);
+                        
+                        if(arrayInfo.lengthExpr instanceof NumberExpr) {
+                              NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
+                              validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
+                              
+                              arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
+                              
+                          }
+                          else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
+                              IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
+                              if(iExpr.declType instanceof ConstDecl) {
+                                  validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
+                                  
+                                  ConstDecl cExpr = (ConstDecl)iExpr.declType;
+                                  NumberExpr nExpr = (NumberExpr)cExpr.expr;
+                                  
+                                  arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
+                              }
+                              else {
+                                  this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
+                              }
+                          }
+                    }
+                }
             }
         }
         
@@ -428,7 +550,9 @@ public class TypeChecker {
         
         @Override
         public void visit(VarDecl d) {
-            d.expr.visit(this);
+            if(d.expr != null) {
+                d.expr.visit(this);
+            }
             
             // infer the type from the expression
             if(d.type == null) {
@@ -444,7 +568,10 @@ public class TypeChecker {
             resolveType(d, d.type);
             
             peekScope().addVariable(d, d.name, d.type);
-            addTypeCheck(d.expr, d.type);
+            
+            if(d.expr != null) {
+                addTypeCheck(d.expr, d.type);
+            }
         }
         
   
@@ -569,8 +696,67 @@ public class TypeChecker {
         }
         
         @Override
+        public void visit(CastExpr expr) {
+            resolveType(expr, expr.castTo);
+            expr.expr.visit(this);
+            
+            addTypeCheck(expr, expr.expr.getResolvedType(), expr.castTo, true);
+        }
+        
+        @Override
+        public void visit(SizeOfExpr expr) {
+            //expr.expr.visit(this);
+        }
+        
+        @Override
+        public void visit(InitArgExpr expr) {
+            expr.value.visit(this);
+            expr.resolveTo(expr.value.getResolvedType());
+        }
+                
+        private void checkAggregateInitFields(InitExpr expr, TypeInfo aggInfo, List<FieldInfo> fieldInfos, List<InitArgExpr> arguments) {
+            if(fieldInfos.size() != arguments.size()) {
+                // TODO should this be allowed??
+                this.result.addError(expr, "incorrect number of arguments");
+            }
+            
+            
+            // Validate Named fields
+            for(int index = 0; index < arguments.size(); index++) {
+                InitArgExpr arg = arguments.get(index);
+                if(arg.fieldName == null) {                    
+                    if(arg.argPosition >= fieldInfos.size()) {
+                        this.result.addError(arg, "No field defined at position '%d' for '%s'", arg.argPosition, aggInfo.getName());
+                    }
+                    else {
+                        FieldInfo fieldInfo = fieldInfos.get(arg.argPosition);
+                        addTypeCheck(arg, fieldInfo.type);
+                    }
+                }
+                else {
+                    boolean matchedField = false;
+                    for(int i = 0; i < fieldInfos.size(); i++) {
+                        FieldInfo fieldInfo = fieldInfos.get(i);
+                        
+                        if(fieldInfo.name.equals(arg.fieldName)) {
+                            addTypeCheck(arg, fieldInfo.type);
+                                       
+                            matchedField = true;
+                            break;
+                        }
+                    }
+                    
+                    if(!matchedField) {
+                        this.result.addError(arg, "'%s' is not defined in '%s'", arg.fieldName, aggInfo.getName());
+                    }
+                }
+            }
+            
+        }
+        
+        @Override
         public void visit(InitExpr expr) {
-            for(Expr e : expr.arguments) {
+            for(InitArgExpr e : expr.arguments) {
                 e.visit(this);
             }
             
@@ -588,17 +774,8 @@ public class TypeChecker {
             switch(type.getKind()) {
                 case Struct: {
                     StructTypeInfo structInfo = expr.type.as();
+                    checkAggregateInitFields(expr, structInfo, structInfo.fieldInfos, expr.arguments);
                     
-                    if(structInfo.fieldInfos.size() != expr.arguments.size()) {
-                        // TODO should this be allowed??
-                        this.result.addError(expr, "incorrect number of arguments");
-                    }
-                    
-                    for(int i = 0; i < structInfo.fieldInfos.size(); i++) {
-                        if(i < expr.arguments.size()) {                       
-                            addTypeCheck(expr.arguments.get(i), structInfo.fieldInfos.get(i).type);
-                        }
-                    }
                     break;
                 }
                 case Union: {
@@ -873,11 +1050,7 @@ public class TypeChecker {
         @Override
         public void visit(ArrayInitExpr expr) {
             ArrayTypeInfo arrayInfo = expr.getResolvedType().as();
-            resolveType(expr, arrayInfo.arrayOf);
-            
-            for(Expr d : expr.dimensions) {
-                d.visit(this);
-            }
+            resolveType(expr, arrayInfo);
             
             for(Expr v : expr.values) {
                 v.visit(this);
@@ -886,7 +1059,9 @@ public class TypeChecker {
             }
             
             // TODO -- validate sizes?
-            
+            if(arrayInfo.length < 0) {
+                //if(expr.
+            }
             
         }
         

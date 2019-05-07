@@ -7,18 +7,11 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
-import litac.ast.Stmt.*;
-import litac.Errors;
-import litac.checker.Module;
 import litac.checker.TypeCheckResult;
-import litac.checker.TypeCheckResult.TypeCheckError;
-import litac.checker.TypeChecker;
-import litac.checker.TypeChecker.TypeCheckerOptions;
 import litac.compiler.BackendOptions;
 import litac.compiler.Buf;
 import litac.compiler.CompilationUnit;
 import litac.util.Exec;
-import litac.util.OS.OsType;
 
 /**
  * @author Tony

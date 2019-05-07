@@ -629,6 +629,23 @@ public class LLVMTranspiler {
         }
         
         @Override
+        public void visit(CastExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
+        
+        @Override
+        public void visit(SizeOfExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
+        
+        @Override
+        public void visit(InitArgExpr expr) {
+            // TODO Auto-generated method stub
+        }
+        
+        @Override
         public void visit(InitExpr expr) {
             buf.out("%s {", expr.type.getName());
             boolean isFirst = true;
@@ -977,12 +994,7 @@ public class LLVMTranspiler {
 
         @Override
         public void visit(ArrayInitExpr expr) {
-            for(Expr d : expr.dimensions) {
-                d.visit(this);
-            }
-            
             // TODO
-            
         }
         
         @Override

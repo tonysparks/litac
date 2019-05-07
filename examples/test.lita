@@ -1,16 +1,33 @@
+@include("stdio.h");
+@foreign public func printf(s:char*, ...) : void;
 
+//public var arr: []i32 = []i32 {0}
+//var i:i32 = 10
+//var ptrI:i32* = &i
+//var p: []i32** = []i32** { &ptrI } 
+
+
+//var a = i32[2][2]
+
+const size = 2
+
+var a:[size]i32 = [size]i32 {
+    14,15
+}
+
+func main(len:i32, args:char**): i32 {
+    printf("%d", a[0])
+}
+
+/*
 import "core" as std;
-
-/*@include("stdio.h");
-//@foreign func printf(s:char*, n:i32) : void;
-@foreign func printf(s:char*, ...) : void;*/
-
 
 const D:f64 = 10000.0342_f64
 public const YY:i32 = 0x20
 public const Z:f32 = 55.0_f32
 
-//public var arr: i32[] = {0}
+//public var arr: []i32 = {0}
+
 
 struct Vec2 {
     x: f32    
@@ -72,7 +89,7 @@ func main(len:i32, args:char**): i32 {
     }
     
     for(var i = 0; i < 10; i += 1) {
-        std::printf("Output: %d", i)
+        std::printf("Output: %d\n", i)
     }
     
     
@@ -83,10 +100,7 @@ func main(len:i32, args:char**): i32 {
         len = 2;
         return len;
     }
-    
-    
-    
-    //printf("Num: %d\n", (f32)len);
+
     std::printf("Vec.x: %f\n", out.x)
     std::printf("Vec.y: %f\n", out.y)
     std::printf("Vec.z: %f\n", out.z)
@@ -95,4 +109,4 @@ func main(len:i32, args:char**): i32 {
     std::printf("YY: %d\n", YY)
     
     return 0;
-}
+}*/
