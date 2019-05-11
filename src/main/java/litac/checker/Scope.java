@@ -26,16 +26,16 @@ public class Scope {
     }
     
     private Scope parent;
-    private TypeCheckResult result;
+    private PhaseResult result;
     
     private Map<String, Variable> variables;    
     
     
-    public Scope(TypeCheckResult result) {
+    public Scope(PhaseResult result) {
         this(result, null);
     }
     
-    public Scope(TypeCheckResult result, Scope parent) {
+    public Scope(PhaseResult result, Scope parent) {
         this.result = result;
         this.parent = parent;
         

@@ -20,31 +20,17 @@ public class NameCache {
 
     // Name => BackendName
     private Map<String, String> backendNames;
-    
-    // Name => Lita Name 
-//    private Map<String, String> litaNames;
-    
-    // Module Alias => Actual Module name
-//    private Map<String, String> moduleAliases;
-    
+        
     // CurrentModule => import alias => actual module name
     private Map<String, Map<String, String>> lookup;
     
     private Set<String> foreignIdentifiers;
-    
-    // Key: CurrentModule, Value: { AliasName => RealName }
-    // Example:
-    // CurrentModule         Alias
-    //    default     =>   std => core
-//    private Map<String, Map<String, String>> aliases;
     
     // BackendName => TypeInfo
     private Map<String, TypeInfo> types;
     
     public NameCache() {
         this.backendNames = new HashMap<>();
-//        this.litaNames = new HashMap<>();
-//        this.moduleAliases = new HashMap<>();
         
         this.lookup = new HashMap<>();
         this.foreignIdentifiers = new HashSet<>();
@@ -73,25 +59,14 @@ public class NameCache {
         
         addPrimitive(TypeInfo.VOID_TYPE);
     }
-
-//    public String getLitaName(String normalName) {
-//        return this.litaNames.get(normalName);
-//    }
     
-//    public String getBackendName(String litaName) {
-//        String moduleAlias = Names.moduleFrom(litaName);
-//        String normalName  = Names.identifierFrom(litaName);
-//        String moduleName = this.moduleAliases.get(moduleAlias);
-//        
-//        String normalizedLitaName = Names.litaName(moduleName, normalName);
-//        return this.backendNames.get(normalizedLitaName);
-//    }
+    public boolean hasBackendName(String currentModule, String litaName) {
+        return getBackendName(currentModule, litaName) != null;
+    }
     
     public String getBackendName(String currentModule, String litaName) {                   
         Map<String, String> aliases = this.lookup.get(currentModule);
         if(aliases == null) {
-            //throw new NullPointerException("Invalid module '" + currentModule + "'");
-//            return null;
             String moduleAlias = Names.moduleFrom(litaName);
             if(moduleAlias == null || moduleAlias.equals("")) {
                 String thisModuleName = Names.backendName(currentModule, litaName);
@@ -110,9 +85,6 @@ public class NameCache {
         
         String backendName = Names.backendName(actualModuleName, normalName);
         return this.backendNames.get(backendName);
-        
-//        String normalizedLitaName = Names.litaName(actualModuleName, normalName);
-//        return this.backendNames.get(Names.backendName(normalizedLitaName)); 
     }
     
     private void addPrimitive(TypeInfo type) {
@@ -122,7 +94,6 @@ public class NameCache {
     public String getActualModuleName(String currentModule, String moduleAlias) {
         Map<String, String> aliases = this.lookup.get(currentModule);
         if(aliases == null) {
-            //throw new NullPointerException("Invalid module '" + currentModule + "'");
             return null;
         }
         
@@ -138,11 +109,6 @@ public class NameCache {
         aliases.put(coord.moduleAlias, coord.moduleName);
         aliases.put(coord.moduleName, coord.moduleName);
         
-//        this.moduleAliases.put(coord.moduleAlias, coord.moduleName);
-        
-//        String litaName = Names.litaName(coord.moduleName, normalName);
-//        this.litaNames.put(normalName, litaName);
-        
         String backendName = Names.backendName(coord.moduleName, normalName);
         this.backendNames.put(backendName, backendName);
         
@@ -154,32 +120,7 @@ public class NameCache {
             this.types.put(backendName, type);
         }
     }
-    
-//    public void add(NameCoord coord, String normalName, boolean isForeign, boolean isType, TypeInfo type) {
-//        if(!this.lookup.containsKey(coord.parentModuleName)) {
-//            this.lookup.put(coord.parentModuleName, new HashMap<>());
-//        }
-//        
-//        Map<String, String> aliases = this.lookup.get(coord.parentModuleName);
-//        aliases.put(coord.moduleAlias, coord.moduleName);
-//        
-//        this.moduleAliases.put(coord.moduleAlias, coord.moduleName);
-//        
-//        String litaName = Names.litaName(coord.moduleName, normalName);
-//        this.litaNames.put(normalName, litaName);
-//        
-//        String backendName = Names.backendName(litaName);
-//        this.backendNames.put(normalName, backendName);
-//        
-//        if(isForeign) {
-//            this.foreignIdentifiers.add(backendName);            
-//        }
-//        
-//        if(isType) {
-//            this.types.put(backendName, type);
-//        }
-//    }
-    
+        
     public boolean isForeign(String backendName) {
         return this.foreignIdentifiers.contains(backendName);
     }
@@ -197,7 +138,7 @@ public class NameCache {
     public Map<String, TypeInfo> getTypes() {
         return types;
     }
-        
+    
     public static NameCache build(CompilationUnit unit) {
         NameCache names = new NameCache();
         NameCacheNodeVisitor visitor = new NameCacheNodeVisitor(names, unit);

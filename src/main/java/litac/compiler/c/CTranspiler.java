@@ -7,7 +7,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
-import litac.checker.TypeCheckResult;
+import litac.checker.PhaseResult;
 import litac.compiler.BackendOptions;
 import litac.compiler.Buf;
 import litac.compiler.CompilationUnit;
@@ -47,7 +47,7 @@ public class CTranspiler {
      * @param options
      * @throws Exception
      */
-    public static void transpile(TypeCheckResult checkerResult, CompilationUnit unit, BackendOptions options) throws Exception {        
+    public static void transpile(PhaseResult checkerResult, CompilationUnit unit, BackendOptions options) throws Exception {        
         Buf buf = toC(unit, options.cOptions);        
         File cOutput = writeCFile(buf, options);
 
@@ -65,9 +65,12 @@ public class CTranspiler {
         Buf buf = new Buf(options.indentWidth, options.useTabs);        
         
         NameCache names = NameCache.build(unit);
-                
-        CWriterNodeVisitor visitor = new CWriterNodeVisitor(unit, names, options, buf);                
-        unit.getMain().visit(visitor);
+        
+//        GenericsNodeVisitor generics = new GenericsNodeVisitor(unit, names);
+//        unit.getMain().visit(generics);
+        
+        CWriterNodeVisitor cWriter = new CWriterNodeVisitor(unit, names, options, buf);                
+        unit.getMain().visit(cWriter);
         
         return buf;
     }

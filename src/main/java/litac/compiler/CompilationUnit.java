@@ -102,7 +102,7 @@ public class CompilationUnit {
                 return;                
             }
             
-            File importFile = new File(this.options.checkerOptions.srcDir.getAbsolutePath(), moduleName + ".lita");
+            File importFile = new File(this.options.srcDir.getAbsolutePath(), moduleName + ".lita");
             try {
                 ModuleStmt module = readModule(importFile);
                 this.unit.imports.put(moduleName, module);

@@ -3,12 +3,14 @@
  */
 package litac.compiler.c;
 
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import litac.LitaC;
 import litac.ast.Decl;
@@ -100,13 +102,17 @@ public class CWriterNodeVisitor implements NodeVisitor {
         
         switch(type.getKind()) {
             case Func: {
-                FuncTypeInfo funcInfo = type.as();                                
+                FuncTypeInfo funcInfo = type.as();     
+                if(!funcInfo.genericParams.isEmpty()) {
+                    return;
+                }
+                
                 buf.out("%s %s(", getTypeNameForC(funcInfo.returnType, currentModule), typeName);
                 boolean isFirst = true;                
                 for(ParameterDecl p : funcInfo.parameterDecls) {
                     if(!isFirst) buf.out(",");
                     
-                    buf.out("%s", getTypeNameForC(p.type.getResolvedType(), currentModule));
+                    buf.out("%s", getTypeNameForC(p.type, currentModule));
                     
                     isFirst = false;
                 }
@@ -135,11 +141,41 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }
     }
     
-    private void writeForwardDeclarations(Buf buf) {        
-        Map<String, TypeInfo> types = this.names.getTypes();
-        for(Map.Entry<String, TypeInfo> type : types.entrySet()) {
-            writeForwardDecl(buf, type.getKey(), type.getValue());
+    private final Comparator<Map.Entry<String, TypeInfo>> comp = new Comparator<Map.Entry<String, TypeInfo>>() {
+        @Override
+        public int compare(Entry<String, TypeInfo> a, Entry<String, TypeInfo> b) {
+            if(a.equals(b)) {
+                return 0;
+            }
+            
+            TypeKind aKind = a.getValue().getKind();
+            TypeKind bKind = b.getValue().getKind();
+            
+            if(aKind == TypeKind.Func) {
+                if(bKind == TypeKind.Func) {
+                    return 0;
+                }
+                return 1;
+            }
+            else {
+                if(bKind == TypeKind.Func) {
+                    return -1;
+                }
+            }
+            return 0;
         }
+    };
+    
+    private void writeForwardDeclarations(Buf buf) {        
+        this.names.getTypes().entrySet()
+                  .stream()
+                  .sorted(comp)
+                  .forEach(type -> writeForwardDecl(buf, type.getKey(), type.getValue()));
+        
+//        Map<String, TypeInfo> types = this.names.getTypes();
+//        for(Map.Entry<String, TypeInfo> type : types.entrySet()) {
+//            writeForwardDecl(buf, type.getKey(), type.getValue());
+//        }
     }
     
     private String typeDeclForC(TypeInfo type, String declName) {
@@ -402,15 +438,20 @@ public class CWriterNodeVisitor implements NodeVisitor {
             return;
         }
         
+        FuncTypeInfo funcInfo = d.type.as();
+        if(funcInfo.hasGenerics()) {
+            return;
+        }
+        
         buf.outln();
-        buf.out("%s %s(", getTypeNameForC(d.returnType.getResolvedType()), name);
+        buf.out("%s %s(", getTypeNameForC(d.returnType), name);
         boolean isFirst = true;
         for(ParameterDecl p : d.params.params) {
             if(!isFirst) {
                 buf.out(",");
             }
             
-            buf.out("%s %s", getTypeNameForC(p.type.getResolvedType()), p.name);
+            buf.out("%s %s", getTypeNameForC(p.type), p.name);
             
             isFirst = false;
         }
@@ -633,6 +674,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
         else {
             buf.out("(%s) {", expr.type.name);
         }*/
+        
+        if(!(expr.getParentNode() instanceof Decl)) {
+            buf.out("(%s)", getTypeNameForC(expr.type));
+        }
         
         buf.out(" {");
         boolean isFirst = true;

@@ -30,7 +30,7 @@ public class LitaC {
         File moduleFile = new File(args[0]);
         
         BackendOptions options = new BackendOptions(BackendType.C);
-        options.checkerOptions.srcDir = moduleFile.getParentFile();
+        options.srcDir = moduleFile.getParentFile();
         options.cOptions.run = true;
         
         Compiler compiler = new Compiler(options);

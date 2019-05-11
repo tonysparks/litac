@@ -4,7 +4,6 @@
 package litac.checker;
 
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,175 +15,44 @@ import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Node;
 import litac.ast.Stmt.*;
-import litac.checker.Scope.Variable;
 import litac.checker.TypeInfo.*;
-import litac.compiler.CompilationUnit;
-import litac.compiler.CompileException;
 
 /**
+ * Responsible to ensuring that the expected defined {@link TypeInfo}s are used, i.e., type checking of the program. 
+ * 
  * @author Tony
  *
  */
 public class TypeChecker {
+    
+    private PhaseResult result;
+    
+    public TypeChecker(PhaseResult result) {
+        this.result = result;
+    }
 
-    public static class TypeCheckerOptions {
-        public File srcDir;
-        
-        public TypeCheckerOptions() {
-            this.srcDir = new File(System.getProperty("user.dir"));
+    /**
+     * Runs a type check on the supplied Module
+     * 
+     * @param module
+     */
+    public void typeCheck(Module module) {
+        for(Module m : module.getImports()) {            
+            typeCheckModule(m);
         }
-    }
-    
-    private TypeCheckerOptions options;
-    private CompilationUnit unit;
-    
-    public TypeChecker(TypeCheckerOptions options, CompilationUnit unit) {
-        this.options = options;
-        this.unit = unit;
-    }
-
-    public TypeCheckResult typeCheck() {
-        return typeCheckModule(this.unit.getMain());
-    }
-    
-    
-    private TypeCheckResult typeCheckModule(ModuleStmt module) {
-        TypeCheckResult result = new TypeCheckResult();
         
-        // First build up an inventory of all declarations
-        DeclNodeVisitor declVisitor = new DeclNodeVisitor(result);
-        declVisitor.visit(module);
-        
-        // Now validate types        
-        TypeCheckerNodeVisitor checker = new TypeCheckerNodeVisitor(result, declVisitor.module);
-        module.visit(checker);
+        typeCheckModule(module);                
+    }
+    
+    
+    private void typeCheckModule(Module module) {
+        TypeCheckerNodeVisitor checker = new TypeCheckerNodeVisitor(this.result);
+        module.getModuleStmt().visit(checker);
         
         checker.checkTypes();
-        
-        result.setModule(declVisitor.module);
-        
-        return result;
     }
     
-    private class DeclNodeVisitor extends AbstractNodeVisitor {
-        Module module;
-        TypeCheckResult result;
-        
-        public DeclNodeVisitor(TypeCheckResult result) {
-            this.result = result;
-        }
-        
-        @Override
-        public void visit(ModuleStmt stmt) {
-            String moduleName = stmt.name;
-            
-            this.module = new Module(result, stmt, moduleName);
-            
-            for(ImportStmt i : stmt.imports) {
-                i.visit(this);
-            }
-            
-            for(Decl d : stmt.declarations) {
-                d.visit(this);
-            }
-            
-//            for(NoteStmt n : stmt.notes) {
-//                this.module.declareNote(n);
-//            }
-        }
-        
-        @Override
-        public void visit(ImportStmt stmt) {                                
-            String moduleName = stmt.alias != null ? stmt.alias : stmt.moduleName;
-            
-            if(this.module.getModule(moduleName) != null) {
-                this.result.addError(stmt, "duplicate import of module '%s'", moduleName);
-                return;
-            }
-            
-            ModuleStmt module = unit.getImports().get(stmt.moduleName);
-            
-            TypeCheckResult moduleResult = typeCheckModule(module);
-            this.result.merge(moduleResult);
-            
-            
-            this.module.importModule(stmt, moduleResult.getModule(), moduleName);
-        }
-        
-        @Override
-        public void visit(VarFieldStmt stmt) {            
-        }
-        
-        @Override
-        public void visit(ParameterDecl d) {
-        }
-
-        @Override
-        public void visit(StructFieldStmt stmt) {
-            Node parent = stmt.getParentNode();
-            if(parent instanceof StructDecl) {
-                StructDecl decl = (StructDecl)parent;
-                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
-            }
-            
-            stmt.decl.visit(this);      
-        }
-
-        @Override
-        public void visit(UnionFieldStmt stmt) {
-            Node parent = stmt.getParentNode();
-            if(parent instanceof UnionDecl) {
-                UnionDecl decl = (UnionDecl)parent;
-                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
-            }
-            
-            stmt.decl.visit(this);
-        }
-        
-        @Override
-        public void visit(EnumDecl d) {            
-            this.module.declareEnum(d, d.name, (EnumTypeInfo)d.type);    
-            this.module.currentScope().addVariable(d, d.name, d.type);
-            
-            for(EnumFieldInfo f : d.fields) {
-                if(!f.value.isResolved()) {
-                    f.value.resolveTo(TypeInfo.I32_TYPE);
-                }
-            }
-        }
-
-
-        @Override
-        public void visit(FuncDecl d) {
-            this.module.declareFunc(d, d.name, (FuncTypeInfo)d.type);
-        }
-
-
-        @Override
-        public void visit(StructDecl d) {
-            this.module.declareStruct(d, d.name, (StructTypeInfo)d.type);
-            
-            for(FieldStmt s : d.fields) {
-                s.visit(this);
-            }
-        }
-
-        @Override
-        public void visit(UnionDecl d) {
-            this.module.declareUnion(d, d.name, (UnionTypeInfo)d.type);
-            
-            for(FieldStmt s : d.fields) {
-                s.visit(this);
-            }
-        }
-        
-        @Override
-        public void visit(TypedefDecl d) {
-            // TODO
-        }
-
-    }
-    
+       
     private class TypeCheckerNodeVisitor extends AbstractNodeVisitor {
 
         class TypeCheck {
@@ -204,15 +72,11 @@ public class TypeChecker {
             }
         }
         
-        private Module module;
-        private TypeCheckResult result;
-        
+        private PhaseResult result;
         private List<TypeCheck> pendingChecks;
         
-        public TypeCheckerNodeVisitor(TypeCheckResult result, Module module) {
+        public TypeCheckerNodeVisitor(PhaseResult result) {
             this.result = result;
-            this.module = module;
-            
             this.pendingChecks = new ArrayList<>();     
         }
         
@@ -294,146 +158,8 @@ public class TypeChecker {
             }
         }    
         
-        private void enterScope() {
-            this.module.pushScope();
-            
-        }
-        
-        private void exitScope() {            
-            module.popScope();
-        }
-        
-        private Scope peekScope() {
-            return module.currentScope();
-        }
-        
-        private void validateArrayDimension(Stmt stmt, TypeInfo type) {
-            switch(type.getKind()) {
-                case i128:
-                case i16:
-                case i32:
-                case i64:
-                case i8:
-                case u128:
-                case u16:
-                case u32:
-                case u64:
-                case u8:
-                    break;
-                default:                    
-                    this.result.addError(stmt, "'%s' invalid array length type", type.getName());
-            }
-        }
-
-        private void resolveType(Stmt stmt, TypeInfo type) {
-            if(type == null) {
-                return;
-            }
-            
-            if(!type.isResolved()) {
-                TypeInfo resolvedType = module.getType(type.getName());
-                if(resolvedType == null) {
-                    this.result.addError(stmt, "'%s' is an unknown type", type.getName());
-                }
-                else {
-                    IdentifierTypeInfo idType = type.as();
-                    idType.resolve(resolvedType);
-                }
-            }
-            else if(type.isKind(TypeKind.Ptr)) {
-                PtrTypeInfo ptrInfo = type.as();
-                resolveType(stmt, ptrInfo.ptrOf);
-            }
-            else if(type.isKind(TypeKind.Array)) {
-                ArrayTypeInfo arrayInfo = type.as();
-                resolveType(stmt, arrayInfo.arrayOf);
-                
-                if(arrayInfo.length < 0) {
-                    if(arrayInfo.lengthExpr == null) {
-                        this.result.addError(stmt, "'%s' has an unknown array length", type.getName());    
-                    }
-                    else {
-                        arrayInfo.lengthExpr.visit(this);
-                        
-                        if(arrayInfo.lengthExpr instanceof NumberExpr) {
-                              NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
-                              validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
-                              
-                              arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              
-                          }
-                          else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
-                              IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
-                              if(iExpr.declType instanceof ConstDecl) {
-                                  validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
-                                  
-                                  ConstDecl cExpr = (ConstDecl)iExpr.declType;
-                                  NumberExpr nExpr = (NumberExpr)cExpr.expr;
-                                  
-                                  arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              }
-                              else {
-                                  this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
-                              }
-                          }
-                    }
-                }
-                
-            }
-        }
-        
-        private void resolveType(TypeInfo type, TypeInfo resolvedType) {
-            if(type == null) {
-                return;
-            }
-            
-            if(!type.isResolved()) {                
-                IdentifierTypeInfo idType = type.as();
-                idType.resolve(resolvedType);
-            }
-            else if(type.isKind(TypeKind.Ptr)) {
-                PtrTypeInfo ptrInfo = type.as();
-                resolveType(ptrInfo.ptrOf, resolvedType);
-            }
-            else if(type.isKind(TypeKind.Array)) {
-                ArrayTypeInfo arrayInfo = type.as();
-                resolveType(arrayInfo.arrayOf, resolvedType);
-                
-                if(arrayInfo.length < 0) {
-                    if(arrayInfo.lengthExpr != null) {
-                        arrayInfo.lengthExpr.visit(this);
-                        
-                        if(arrayInfo.lengthExpr instanceof NumberExpr) {
-                              NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
-                              validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
-                              
-                              arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              
-                          }
-                          else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
-                              IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
-                              if(iExpr.declType instanceof ConstDecl) {
-                                  validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
-                                  
-                                  ConstDecl cExpr = (ConstDecl)iExpr.declType;
-                                  NumberExpr nExpr = (NumberExpr)cExpr.expr;
-                                  
-                                  arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              }
-                              else {
-                                  this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
-                              }
-                          }
-                    }
-                }
-            }
-        }
-        
-        
         @Override
         public void visit(ModuleStmt stmt) {
-            enterScope();
-            
             for(ImportStmt i : stmt.imports) {
                 i.visit(this);
             }
@@ -441,8 +167,6 @@ public class TypeChecker {
             for(Decl d : stmt.declarations) {
                 d.visit(this);
             } 
-            
-            exitScope();
         }
         
         
@@ -455,46 +179,33 @@ public class TypeChecker {
         @Override
         public void visit(IfStmt stmt) {
             stmt.condExpr.visit(this);
-            
-            enterScope();
             stmt.thenStmt.visit(this);
-            exitScope();
             
             if(stmt.elseStmt != null) {
-                enterScope();
                 stmt.elseStmt.visit(this);
-                exitScope();    
             }
         }
 
         @Override
         public void visit(WhileStmt stmt) {
             stmt.condExpr.visit(this);
-            
-            enterScope();
             stmt.bodyStmt.visit(this);
-            exitScope();
         }
 
 
         @Override
         public void visit(DoWhileStmt stmt) {
-            enterScope();
             stmt.bodyStmt.visit(this);
-            exitScope();
-            
             stmt.condExpr.visit(this);
         }
 
  
         @Override
         public void visit(ForStmt stmt) {
-            enterScope();
             stmt.initStmt.visit(this);
             stmt.condExpr.visit(this);
             stmt.postStmt.visit(this);
             stmt.bodyStmt.visit(this);
-            exitScope();
         }
 
         @Override
@@ -531,12 +242,9 @@ public class TypeChecker {
 
         @Override
         public void visit(BlockStmt stmt) {
-            enterScope();
             for(Stmt s : stmt.stmts) {
                 s.visit(this);
             }
-            exitScope();
-
         }
         
         @Override
@@ -554,21 +262,6 @@ public class TypeChecker {
                 d.expr.visit(this);
             }
             
-            // infer the type from the expression
-            if(d.type == null) {
-                d.type = d.expr.getResolvedType();
-            }
-            
-            // if we can't infer the type, some
-            // type hasn't been resolved correctly
-            if(d.type == null) {
-                return;
-            }
-            
-            resolveType(d, d.type);
-            
-            peekScope().addVariable(d, d.name, d.type);
-            
             if(d.expr != null) {
                 addTypeCheck(d.expr, d.type);
             }
@@ -578,15 +271,7 @@ public class TypeChecker {
         @Override
         public void visit(ConstDecl d) {
             d.expr.visit(this);
-
-            // infer the type from the expression
-            if(d.type == null) {
-                d.type = d.expr.getResolvedType();
-            }
             
-            resolveType(d, d.type);
-            
-            peekScope().addVariable(d, d.name, d.type);
             addTypeCheck(d.expr, d.type);
         }
 
@@ -598,28 +283,19 @@ public class TypeChecker {
             }
         }
 
+        
 
         @Override
         public void visit(FuncDecl d) {
-            enterScope();
-            {
-                 
-                resolveType(d, d.returnType);
-                for(ParameterDecl p : d.params.params) {
-                    resolveType(p, p.type);
-                    peekScope().addVariable(p, p.name, p.type);
-                }
-                
+            FuncTypeInfo funcInfo = d.type.as();
+            if(!funcInfo.hasGenerics()) {
                 d.bodyStmt.visit(this);
             }
-            exitScope();
         }
 
 
         @Override
         public void visit(StructDecl d) {
-            resolveType(d, d.type);
-            
             for(FieldStmt s : d.fields) {
                 s.visit(this);
             }
@@ -627,13 +303,10 @@ public class TypeChecker {
         
         @Override
         public void visit(VarFieldStmt stmt) {
-            resolveType(stmt, stmt.type);
         }
 
         @Override
         public void visit(UnionDecl d) {
-            resolveType(d, d.type);
-            
             for(FieldStmt s : d.fields) {
                 s.visit(this);
             }
@@ -643,61 +316,8 @@ public class TypeChecker {
         public void visit(TypedefDecl d) {
         }
 
-        private TypeInfo getAggregateFieldTypeInfo(InitExpr expr) {
-            TypeInfo type = null;
-            if(expr.type != null) {
-                type = this.module.getType(expr.type.getName());               
-            }
-            // anonymous aggregate
-            else {
-                Node parent = expr.getParentNode();
-                if(parent instanceof InitExpr) {
-                    InitExpr parentExpr = (InitExpr)parent;
-                    
-                    TypeInfo aggInfo;
-                    if(!parentExpr.isResolved()) {
-                        aggInfo = getAggregateFieldTypeInfo(parentExpr);
-                    }
-                    else {
-                        aggInfo = parentExpr.getResolvedType();
-                    }
-                    
-                    
-                    int index = 0;
-                    for(Expr e : parentExpr.arguments) {
-                        if(e == expr) {
-                            break;
-                        }
-                        
-                        index++;
-                    }
-                                   
-                    
-                    if(aggInfo.isKind(TypeKind.Struct)) {                        
-                        StructTypeInfo structInfo = aggInfo.as();
-                        if(index >= structInfo.fieldInfos.size()) {
-                            this.result.addError(expr, "invalid struct initialize index");
-                        }
-                        else {
-                            FieldInfo field = structInfo.fieldInfos.get(index);
-                            type = field.type;
-                            expr.resolveTo(type);
-                        }
-                    }
-                    else if(aggInfo.isKind(TypeKind.Union)) {
-                        // TODO:
-                        throw new CompileException("Not implemented yet");
-                    }
-                    
-                }
-            }
-            
-            return type;
-        }
-        
         @Override
         public void visit(CastExpr expr) {
-            resolveType(expr, expr.castTo);
             expr.expr.visit(this);
             
             addTypeCheck(expr, expr.expr.getResolvedType(), expr.castTo, true);
@@ -705,13 +325,13 @@ public class TypeChecker {
         
         @Override
         public void visit(SizeOfExpr expr) {
+            // TODO: Verify it's a type??
             //expr.expr.visit(this);
         }
         
         @Override
         public void visit(InitArgExpr expr) {
             expr.value.visit(this);
-            expr.resolveTo(expr.value.getResolvedType());
         }
                 
         private void checkAggregateInitFields(InitExpr expr, TypeInfo aggInfo, List<FieldInfo> fieldInfos, List<InitArgExpr> arguments) {
@@ -760,17 +380,7 @@ public class TypeChecker {
                 e.visit(this);
             }
             
-            TypeInfo type = getAggregateFieldTypeInfo(expr);          
-            if(type == null) {
-                this.result.addError(expr, "'%s' is an unknown type", expr.type);
-                return;
-            }
-            
-            if(!expr.type.isResolved()) {
-                IdentifierTypeInfo idInfo = expr.type.as();
-                idInfo.resolve(type);
-            }
-            
+            TypeInfo type = expr.getResolvedType();                        
             switch(type.getKind()) {
                 case Struct: {
                     StructTypeInfo structInfo = expr.type.as();
@@ -779,7 +389,7 @@ public class TypeChecker {
                     break;
                 }
                 case Union: {
-                    UnionTypeInfo unionInfo = expr.type.as();
+//                    UnionTypeInfo unionInfo = expr.type.as();
                     // TODO, think about how these types are initialized
                     
 //                    if(unionInfo.fieldInfos.size() != expr.arguments.size()) {
@@ -813,8 +423,6 @@ public class TypeChecker {
             }
             
             FuncTypeInfo funcInfo = type.as();
-            expr.resolveTo(funcInfo.returnType);
-            
             if(funcInfo.parameterDecls.size() != expr.arguments.size()) {
                 if(funcInfo.parameterDecls.size() > expr.arguments.size() || !funcInfo.isVararg) {                    
                     this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
@@ -824,13 +432,11 @@ public class TypeChecker {
             int i = 0;
             for(; i < funcInfo.parameterDecls.size(); i++) {
                 TypeInfo paramInfo = funcInfo.parameterDecls.get(i).type;
-                resolveType(expr, paramInfo);
                 
                 if(i < expr.arguments.size()) {
                     Expr arg = expr.arguments.get(i);
                     arg.visit(this);
                     
-                    resolveType(arg, arg.getResolvedType());
                     addTypeCheck(arg, arg.getResolvedType(), paramInfo);
                 }
             }
@@ -839,64 +445,34 @@ public class TypeChecker {
                 for(; i < expr.arguments.size(); i++) {
                     Expr arg = expr.arguments.get(i);
                     arg.visit(this);
-                    
-                    resolveType(arg, arg.getResolvedType());
                 }                
             }
         }
 
 
         @Override
-        public void visit(IdentifierExpr expr) {
-            if(!expr.type.isResolved()) {
-                Variable resolvedType = peekScope().getVariable(expr.variable); 
-                
-                if(resolvedType == null) {
-                    this.result.addError(expr, "unknown variable '%s'", expr.type.getName());
-                    return;
-                }
-                
-                IdentifierTypeInfo type = expr.type.as();
-                type.resolve(resolvedType.type);
-                expr.declType = resolvedType.decl;
-            }
+        public void visit(IdentifierExpr expr) {            
         }
         
         @Override
-        public void visit(FuncIdentifierExpr expr) {
-            if(!expr.type.isResolved()) {
-                TypeInfo resolvedType = this.module.getFuncType(expr.variable); 
-                
-                if(resolvedType == null) {
-                    this.result.addError(expr, "unknown function '%s'", expr.variable);
-                    return;
-                }
-                
-                IdentifierTypeInfo type = expr.type.as();
-                type.resolve(resolvedType);
-            }
+        public void visit(FuncIdentifierExpr expr) {            
         }
         
-        private boolean resolveAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {            
+        private boolean typeCheckAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {            
             switch(type.getKind()) {
                 case Ptr: {
                     PtrTypeInfo ptrInfo = type.as();
-                    return resolveAggregate(ptrInfo.ptrOf, field, expr, value);                    
+                    return typeCheckAggregate(ptrInfo.ptrOf, field, expr, value);                    
                 }
                 case Struct: {
                     StructTypeInfo structInfo = type.as();
                     for(FieldInfo fieldInfo : structInfo.fieldInfos) {  
                         if(fieldInfo.type.isAnonymous()) {
-                            if(resolveAggregate(fieldInfo.type, field, expr, value)) {
+                            if(typeCheckAggregate(fieldInfo.type, field, expr, value)) {
                                 return true;
                             }
                         }
-                        else if(fieldInfo.name.equals(field.getName())) {
-                            if(!field.isResolved()) {
-                                resolveType(field, fieldInfo.type);
-                            }
-                            
-                            expr.resolveTo(fieldInfo.type);
+                        else if(fieldInfo.name.equals(field.getName())) {                            
                             if(value != null) {
                                 addTypeCheck(expr, value.getResolvedType(), fieldInfo.type);
                             }
@@ -911,11 +487,6 @@ public class TypeChecker {
                     UnionTypeInfo unionInfo = type.as();
                     for(FieldInfo fieldInfo : unionInfo.fieldInfos) {
                         if(fieldInfo.name.equals(field.getName())) {
-                            if(!field.isResolved()) {
-                                resolveType(field, fieldInfo.type);
-                            }
-                            
-                            expr.resolveTo(fieldInfo.type);
                             if(value != null) {
                                 addTypeCheck(expr, value.getResolvedType(), fieldInfo.type);
                             }
@@ -934,8 +505,6 @@ public class TypeChecker {
                         EnumTypeInfo enumInfo = type.as();
                         for(EnumFieldInfo fieldInfo : enumInfo.fields) {
                             if(fieldInfo.name.equals(field.getName())) {                                
-                                //expr.resolveTo(fieldInfo.value.getResolvedType());
-                                expr.resolveTo(enumInfo);
                                 return true;
                             }
                         }
@@ -955,12 +524,8 @@ public class TypeChecker {
         public void visit(GetExpr expr) {
             expr.object.visit(this);            
             
-            if(!expr.field.isResolved()) {
-                TypeInfo type = expr.object.getResolvedType();
-                resolveAggregate(type, expr.field, expr, null);
-            }
-            
-            resolveType(expr, expr.field);
+            TypeInfo type = expr.object.getResolvedType();
+            typeCheckAggregate(type, expr.field, expr, null);
         }
         
         @Override
@@ -968,12 +533,8 @@ public class TypeChecker {
             expr.object.visit(this);            
             expr.value.visit(this);
             
-            if(!expr.field.isResolved()) {
-                TypeInfo type = expr.object.getResolvedType();
-                resolveAggregate(type, expr.field, expr, expr.value);
-            }
-            
-            resolveType(expr, expr.field);
+            TypeInfo type = expr.object.getResolvedType();
+            typeCheckAggregate(type, expr.field, expr, expr.value);
         }
 
         @Override
@@ -988,30 +549,15 @@ public class TypeChecker {
                         return;
                     }
                     
-                    PtrTypeInfo ptrInfo = type.as();
-                    expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
                     break;
                 }
-                case BAND: {
-                    TypeInfo type = expr.expr.getResolvedType();
-                    PtrTypeInfo ptrInfo = new PtrTypeInfo(type);
-                    expr.resolveTo(ptrInfo);
-                    break;
-                }
-                case NOT: {
-                    expr.resolveTo(TypeInfo.BOOL_TYPE);
-                    break;
-                }
-                default: {
-                    expr.resolveTo(expr.expr.getResolvedType());
-                }
+                default:
             }
         }
 
         @Override
         public void visit(GroupExpr expr) {
             expr.expr.visit(this);
-            expr.resolveTo(expr.expr.getResolvedType());
         }
 
         @Override
@@ -1019,48 +565,94 @@ public class TypeChecker {
             expr.left.visit(this);
             expr.right.visit(this);
             
+            TypeInfo leftType = expr.left.getResolvedType();
+            TypeInfo rightType = expr.right.getResolvedType();
+            
+            addTypeCheck(expr.left, rightType);
+            addTypeCheck(expr.right, leftType);
+            
+            
             switch(expr.operator) {
-                case AND:
-                case OR:
-                    expr.resolveTo(TypeInfo.BOOL_TYPE);
-                    break;
-                default:
-                    if(expr.left.isResolved() && expr.right.isResolved()) {
-                        TypeInfo leftType = expr.left.getResolvedType();
-                        TypeInfo rightType = expr.right.getResolvedType();
-                        
-                        if(leftType.strictEquals(rightType)) {
-                            expr.resolveTo(leftType);
-                        }
-                        else if(leftType.isGreater(rightType)) {
-                            expr.resolveTo(leftType);
-                        }
-                        else {
-                            expr.resolveTo(rightType);
-                        }
+            
+                case BAND:
+                case BAND_EQ:
+                case BNOT:
+                case BNOT_EQ:
+                case BOR:
+                case BOR_EQ:
+                case XOR:
+                case XOR_EQ:
+                case LSHIFT:
+                case LSHIFT_EQ:
+                case RSHIFT:
+                case RSHIFT_EQ: {
+                    if(!TypeInfo.isInteger(leftType)) {
+                        this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getName());
+                    }
+                    
+                    if(!TypeInfo.isInteger(rightType)) {
+                        this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getName());
                     }
                     break;
-            }
+                }
+                    
+                case AND:
+                case OR:
+                    break;
+                
+                case EQUALS_EQUALS:
+                case NOT_EQUALS:
+                    break;
+                    
+                case GREATER_EQUALS:
+                case GREATER_THAN:
+                case LESS_EQUALS:
+                case LESS_THAN:
+                    if(!TypeInfo.isNumber(leftType)) {
+                        this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getName());
+                    }
+                    
+                    if(!TypeInfo.isNumber(rightType)) {
+                        this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getName());
+                    }
+                    
+                    break;
+                
+                case MINUS:
+                case MINUS_EQ:
+                case PLUS:
+                case PLUS_EQ:
+                case MOD:
+                case MOD_EQ:
+                case STAR:
+                case MUL_EQ:
+                case SLASH:
+                case DIV_EQ:
+                    
+                    if(!TypeInfo.isNumber(leftType) || !leftType.isKind(TypeKind.Ptr)) {
+                        this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getName());
+                    }
+                    
+                    if(!TypeInfo.isNumber(rightType) || !rightType.isKind(TypeKind.Ptr)) {
+                        this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getName());
+                    }
+                    
+                    break;
+            default:
+                break;
             
-            addTypeCheck(expr.left, expr.right.getResolvedType());
-            addTypeCheck(expr.right, expr.left.getResolvedType());
+            }
         }
 
 
         @Override
         public void visit(ArrayInitExpr expr) {
             ArrayTypeInfo arrayInfo = expr.getResolvedType().as();
-            resolveType(expr, arrayInfo);
             
             for(Expr v : expr.values) {
                 v.visit(this);
                 
                 addTypeCheck(v, v.getResolvedType(), arrayInfo.arrayOf.getResolvedType());
-            }
-            
-            // TODO -- validate sizes?
-            if(arrayInfo.length < 0) {
-                //if(expr.
             }
             
         }
@@ -1073,15 +665,8 @@ public class TypeChecker {
             TypeKind objectKind = expr.object.getResolvedType().getKind();
             switch(objectKind) {
                 case Str:
-                    expr.resolveTo(TypeInfo.CHAR_TYPE);
-                    break;
                 case Array:
-                    ArrayTypeInfo arrayInfo = expr.object.getResolvedType().as();
-                    expr.resolveTo(arrayInfo.arrayOf.getResolvedType());
-                    break;
                 case Ptr:
-                    PtrTypeInfo ptrInfo = expr.object.getResolvedType().as();
-                    expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
                     break;
                 default: {
                     this.result.addError(expr, "invalid index into '%s'", objectKind.name());
@@ -1150,9 +735,6 @@ public class TypeChecker {
             
             addTypeCheck(expr.object, expr.value.getResolvedType(), objectInfo);
         }
-        
-       
-        
     }
     
 }

@@ -69,6 +69,10 @@ public abstract class Stmt extends Node {
             v.visit(this);
         }
 
+        @Override
+        protected Node doCopy() {            
+            return new ModuleStmt(this.name, copy(this.imports), copy(this.notes), copy(this.declarations));
+        }
     }
 
     
@@ -85,6 +89,11 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new ImportStmt(this.moduleName, this.alias);
+        }
     }
     
 
@@ -99,6 +108,11 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);            
         } 
+        
+        @Override
+        protected Node doCopy() {            
+            return new NoteStmt(this.note);
+        }
     }
     
     public static abstract class FieldStmt extends Stmt {        
@@ -117,6 +131,11 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new VarFieldStmt(this.name, this.type.copy());
+        }
     }
     
     public static class StructFieldStmt extends FieldStmt {
@@ -129,6 +148,11 @@ public abstract class Stmt extends Node {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new StructFieldStmt(this.decl.copy());
         }
     }
     
@@ -143,6 +167,11 @@ public abstract class Stmt extends Node {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new UnionFieldStmt(this.decl.copy());
         }
     }
  
@@ -162,6 +191,11 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new IfStmt(copy(this.condExpr), copy(this.thenStmt), copy(this.elseStmt));
+        }
     }
     
     public static class WhileStmt extends Stmt {
@@ -178,6 +212,11 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new WhileStmt(copy(this.condExpr), copy(this.bodyStmt));
+        }
     }
     
     public static class EmptyStmt extends Stmt {
@@ -185,6 +224,11 @@ public abstract class Stmt extends Node {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new EmptyStmt();
         }
     }
     
@@ -201,6 +245,11 @@ public abstract class Stmt extends Node {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new DoWhileStmt(copy(this.condExpr), copy(this.bodyStmt));
         }
     }
     
@@ -222,6 +271,11 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new ForStmt(copy(this.initStmt), copy(this.condExpr), copy(this.postStmt), copy(this.bodyStmt));
+        }
     }
     
     public static class BreakStmt extends Stmt {
@@ -229,12 +283,22 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new BreakStmt();
+        }
     }
         
     public static class ContinueStmt extends Stmt {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new ContinueStmt();
         }
     }
 
@@ -249,6 +313,11 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new ReturnStmt(copy(this.returnExpr));
+        }
     }
     
     public static class BlockStmt extends Stmt {
@@ -262,6 +331,11 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new BlockStmt(copy(this.stmts));
+        }
     }
     
     public static class DeferStmt extends Stmt {
@@ -274,6 +348,11 @@ public abstract class Stmt extends Node {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);            
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new DeferStmt(copy(this.stmt));
         }
     }
     
@@ -289,6 +368,11 @@ public abstract class Stmt extends Node {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new ParametersStmt(copy(this.params), this.isVararg);
         }
     }
 }

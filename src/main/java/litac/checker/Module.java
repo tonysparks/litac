@@ -19,7 +19,7 @@ import litac.ast.Stmt.ModuleStmt;
 import litac.ast.Stmt.NoteStmt;
 
 /**
- * Keeps track of 
+ * Keeps track of a modules defined types.
  * 
  * @author Tony
  *
@@ -48,10 +48,10 @@ public class Module {
     
     private List<NoteStmt> notes;
     
-    private TypeCheckResult result;
+    private PhaseResult result;
     
     
-    public Module(TypeCheckResult result, ModuleStmt moduleStmt, String name) {
+    public Module(PhaseResult result, ModuleStmt moduleStmt, String name) {
         this.result = result;
         this.moduleStmt = moduleStmt;
         this.name = name;

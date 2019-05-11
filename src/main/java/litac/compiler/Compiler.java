@@ -7,9 +7,12 @@ import java.io.File;
 
 import litac.Errors;
 import litac.ast.Stmt;
-import litac.checker.TypeCheckResult;
-import litac.checker.TypeCheckResult.TypeCheckError;
+import litac.checker.GenericsResolver;
+import litac.checker.Module;
+import litac.checker.PhaseResult;
+import litac.checker.PhaseResult.PhaseError;
 import litac.checker.TypeChecker;
+import litac.checker.TypeResolver;
 import litac.compiler.c.CTranspiler;
 
 /**
@@ -33,38 +36,45 @@ public class Compiler {
     }
     
     public void compile(File rootModule) throws Exception {
+        PhaseResult result = new PhaseResult();
+        
         CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
-        TypeCheckResult result = typeCheck(options, unit);
+        typeCheck(options, result, unit);
         
         if(!result.hasErrors()) {
             compile(options, result, unit);
         }
     }
     
-    private TypeCheckResult typeCheck(BackendOptions options, CompilationUnit unit) {
-        TypeChecker checker = new TypeChecker(options.checkerOptions, unit);
-        
-        TypeCheckResult checkerResult = checker.typeCheck();
-        if(checkerResult.hasErrors()) {
-            for(TypeCheckError error : checkerResult.getErrors()) {
-                Errors.typeCheckError(error.stmt, error.message);
-            }            
+    private void typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
+        GenericsResolver generics = new GenericsResolver(unit);        
+        TypeResolver resolver = new TypeResolver(result, unit);        
+        TypeChecker checker = new TypeChecker(result);
+                
+        Module main = resolver.resolveTypes();
+        if(!result.hasErrors()) {
+            generics.applyGenerics(resolver, main);
         }
         
-        return checkerResult;
+        if(!result.hasErrors()) {
+            checker.typeCheck(main);
+        }
+        
+        if(result.hasErrors()) {
+            for(PhaseError error : result.getErrors()) {
+                Errors.typeCheckError(error.stmt, error.message);
+            }            
+        }                
     }
     
-    private static void compile(BackendOptions options, TypeCheckResult checkerResult, CompilationUnit unit) throws Exception {
-        switch(options.backendType) {
-            case LLVM: {                
-//                options.llvmOptions.checkerOptions.srcDir = moduleFile.getParentFile();
-//                
-//                LLVMTranspiler.transpile(program, options.llvmOptions);
-                break;
-            }
+    private static void compile(BackendOptions options, PhaseResult checkerResult, CompilationUnit unit) throws Exception {
+        switch(options.backendType) {            
             case C: {
                 CTranspiler.transpile(checkerResult, unit, options);
                 break;
+            }
+            default: {
+                throw error(null, "unsupported backend type '%s'", options.backendType.toString());
             }
         }        
     }

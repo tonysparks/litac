@@ -3,6 +3,7 @@
  */
 package litac.checker;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import litac.ast.Decl.ParameterDecl;
@@ -32,6 +33,23 @@ public abstract class TypeInfo {
     public static final TypeInfo NULL_TYPE = new NullTypeInfo();
     public static final TypeInfo VOID_TYPE = new VoidTypeInfo();
     
+    public static TypeInfo copy(TypeInfo type) {
+        if(type != null) {
+            return type.copy();
+        }
+        
+        return null;
+    }
+    
+    public static List<TypeInfo> copy(List<TypeInfo> types) {
+        List<TypeInfo> copies = new ArrayList<>(types.size());
+        for(TypeInfo t : types) {
+            copies.add(t.copy());
+        }
+        
+        return copies;
+    }
+    
     public static TypeInfo fromString(String typeName) {
         switch(typeName) {
             case "bool": return BOOL_TYPE;
@@ -51,6 +69,115 @@ public abstract class TypeInfo {
             case "null":   return NULL_TYPE;
             case "void":   return VOID_TYPE;
             default: return null;
+        }
+    }
+
+    public static boolean isFloat(TypeInfo type) {
+        switch(type.getKind()) {
+            case Identifier: {
+                IdentifierTypeInfo idType = type.as();
+                return isFloat(idType.getResolvedType());
+            }
+            case Any:
+            case f32:
+            case f64:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    public static boolean isUnsignedInteger(TypeInfo type) {
+        switch(type.getKind()) {
+            case Identifier: {
+                IdentifierTypeInfo idType = type.as();
+                return isUnsignedInteger(idType.getResolvedType());
+            }
+            case Any:
+            case u128:
+            case u16:
+            case u32:
+            case u64:
+            case u8:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    
+    public static boolean isSignedInteger(TypeInfo type) {
+        switch(type.getKind()) {
+            case Identifier: {
+                IdentifierTypeInfo idType = type.as();
+                return isSignedInteger(idType.getResolvedType());
+            }
+            case Any:
+            case Char:
+            case Enum:
+            case i128:
+            case i16:
+            case i32:
+            case i64:
+            case i8:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    public static boolean isInteger(TypeInfo type) {
+        switch(type.getKind()) {
+            case Identifier: {
+                IdentifierTypeInfo idType = type.as();
+                return isInteger(idType.getResolvedType());
+            }
+            case Any:
+            case Char:
+            case Enum:
+            case i128:
+            case i16:
+            case i32:
+            case i64:
+            case i8:
+
+            case u128:
+            case u16:
+            case u32:
+            case u64:
+            case u8:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    public static boolean isNumber(TypeInfo type) {
+        switch(type.getKind()) {
+            case Identifier: {
+                IdentifierTypeInfo idType = type.as();
+                return isNumber(idType.getResolvedType());
+            }
+            case Any:
+            case Char:
+            case Enum:
+            case i128:
+            case i16:
+            case i32:
+            case i64:
+            case i8:
+
+            case u128:
+            case u16:
+            case u32:
+            case u64:
+            case u8:
+                
+            case f32:
+            case f64:
+                return true;
+            default:
+                return false;
         }
     }
     
@@ -77,6 +204,7 @@ public abstract class TypeInfo {
         Void,
         
         Identifier,
+        Any
         ;
         
         public static TypeKind fromString(String str) {
@@ -177,7 +305,7 @@ public abstract class TypeInfo {
     }
     
     public abstract boolean canCastTo(TypeInfo target);
-
+    public abstract TypeInfo copy();
     
     public static class FieldInfo {
         public TypeInfo type;
@@ -209,6 +337,39 @@ public abstract class TypeInfo {
         }
     }
     
+    public static abstract class GenericTypeInfo extends TypeInfo {
+        public List<GenericParam> genericParams;
+        
+        public GenericTypeInfo(TypeKind kind, String name, List<GenericParam> genericParams) {
+            super(kind, name);
+            this.genericParams = genericParams;
+        }
+        
+        public boolean hasGenerics() {
+            return !this.genericParams.isEmpty();
+        }
+    }
+    
+    public static class AnyTypeInfo extends TypeInfo {
+        public AnyTypeInfo(String name) {
+            super(TypeKind.Any, name);
+        }
+        
+        @Override
+        public boolean canCastTo(TypeInfo target) {
+            return true;
+        }
+        
+        @Override
+        public String toString() {        
+            return this.name;
+        }
+        
+        @Override
+        public TypeInfo copy() {        
+            return new AnyTypeInfo(this.name);
+        }
+    }
     
     public static class StructTypeInfo extends TypeInfo {
         public List<FieldInfo> fieldInfos;
@@ -232,6 +393,11 @@ public abstract class TypeInfo {
         @Override
         public String toString() {        
             return "struct " + this.name;
+        }
+                
+        @Override
+        public TypeInfo copy() {
+            return new StructTypeInfo(this.name, fieldInfos, isAnonymous);
         }
         
         @Override
@@ -263,6 +429,11 @@ public abstract class TypeInfo {
                     }
                 }
             }
+            
+            if(target.isKind(TypeKind.Any)) {
+                return true;
+            }
+            
             return false;
         }
     }
@@ -289,6 +460,11 @@ public abstract class TypeInfo {
         @Override
         public String toString() {        
             return "union " + this.name;
+        }
+        
+        @Override
+        public TypeInfo copy() {
+            return new UnionTypeInfo(this.name, this.fieldInfos, this.isAnonymous);
         }
         
         @Override
@@ -320,6 +496,11 @@ public abstract class TypeInfo {
                     }
                 }
             }
+            
+            if(target.isKind(TypeKind.Any)) {
+                return true;
+            }
+            
             return false;
         }
     }
@@ -342,6 +523,11 @@ public abstract class TypeInfo {
         }
         
         @Override
+        public TypeInfo copy() {
+            return new EnumTypeInfo(this.name, this.fields);
+        }
+        
+        @Override
         public boolean canCastTo(TypeInfo target) {
             if(target == this) {
                 return true;
@@ -358,25 +544,33 @@ public abstract class TypeInfo {
                 return this.name.equals(target.name);
             }
             
+            if(target.isKind(TypeKind.Any)) {
+                return true;
+            }
+            
             return false;
         }
     }
     
-    public static class FuncTypeInfo extends TypeInfo {
+    public static class FuncTypeInfo extends GenericTypeInfo {
         public TypeInfo returnType;
         public List<ParameterDecl> parameterDecls;
         public boolean isVararg;
         
-        /**
-         * @param name
-         * @param returnType
-         * @param parameterDecls
-         */
-        public FuncTypeInfo(String name, TypeInfo returnType, List<ParameterDecl> parameterDecls, boolean isVararg) {
-            super(TypeKind.Func, name);
+        public FuncTypeInfo(String name, 
+                            TypeInfo returnType, 
+                            List<ParameterDecl> parameterDecls, 
+                            boolean isVararg,
+                            List<GenericParam> genericParams) {
+            super(TypeKind.Func, name, genericParams);
             this.returnType = returnType;
             this.parameterDecls = parameterDecls;
             this.isVararg = isVararg;
+        }
+        
+        @Override
+        public TypeInfo copy() {
+            return new FuncTypeInfo(this.name, this.returnType.copy(), this.parameterDecls, this.isVararg, this.genericParams);
         }
         
         @Override
@@ -412,27 +606,45 @@ public abstract class TypeInfo {
                        
             }
             
+            if(target.isKind(TypeKind.Any)) {
+                return true;
+            }
+            
             return false;
         }
         
         @Override
         public String toString() {    
-            StringBuilder sb = new StringBuilder();
+            StringBuilder genParams = new StringBuilder();
+            
             boolean isFirst = true;
+            if(!this.genericParams.isEmpty()) {
+                genParams.append("<");
+                for(GenericParam p: this.genericParams) {
+                    if(!isFirst) genParams.append(", ");
+                    genParams.append(p.name);
+                    isFirst = false;
+                }
+                genParams.append(">");
+            }
+            
+            
+            isFirst = true;
+            StringBuilder params = new StringBuilder();
             for(ParameterDecl p : this.parameterDecls) {
-                if(!isFirst) sb.append(", ");
-                sb.append(p);
+                if(!isFirst) params.append(", ");
+                params.append(p);
                 isFirst = false;
             }
             
             if(this.isVararg) {
                 if(!isFirst) {
-                    sb.append(",");
+                    params.append(",");
                 }
-                sb.append("...");
+                params.append("...");
             }
             
-            return String.format("func %s(%s) : %s", this.name, sb, this.returnType);
+            return String.format("func %s%s(%s) : %s", this.name, genParams, params, this.returnType);
         }
     }
     
@@ -447,6 +659,11 @@ public abstract class TypeInfo {
         @Override
         public String toString() {    
             return "string";
+        }
+        
+        @Override
+        public TypeInfo copy() {
+            return new StrTypeInfo(this.str);
         }
         
         @Override
@@ -476,6 +693,10 @@ public abstract class TypeInfo {
                 }
             }
             
+            if(target.isKind(TypeKind.Any)) {
+                return true;
+            }
+            
             return false;
         }
     }
@@ -503,6 +724,11 @@ public abstract class TypeInfo {
             }
                 
             return base;
+        }
+        
+        @Override
+        public TypeInfo copy() {
+            return new PtrTypeInfo(this.ptrOf.copy());
         }
                 
         @Override
@@ -542,6 +768,10 @@ public abstract class TypeInfo {
                 return true;
             }
             
+            if(target.isKind(TypeKind.Any)) {
+                return true;
+            }
+            
             return false;
         }
     }
@@ -558,6 +788,10 @@ public abstract class TypeInfo {
             this.lengthExpr = lengthExpr;
         }
         
+        @Override
+        public TypeInfo copy() {
+            return new ArrayTypeInfo(copy(this.arrayOf), this.length, this.lengthExpr);
+        }
         
         /**
          * @return the base type of the array
@@ -613,6 +847,10 @@ public abstract class TypeInfo {
                 return this.arrayOf.canCastTo(ptrInfo.ptrOf.getResolvedType());
             }
             
+            if(target.isKind(TypeKind.Any)) {
+                return true;
+            }
+            
             return false;
         }
     }
@@ -621,6 +859,11 @@ public abstract class TypeInfo {
         
         private PrimitiveTypeInfo(String name, TypeKind kind) {
             super(kind, name);            
+        }
+        
+        @Override
+        public TypeInfo copy() {
+            return this;
         }
         
         @Override
@@ -641,6 +884,10 @@ public abstract class TypeInfo {
                 }
             }
             
+            if(target.isKind(TypeKind.Any)) {
+                return true;
+            }
+            
             return false;
         }
     }
@@ -655,6 +902,10 @@ public abstract class TypeInfo {
             return "void";
         }
         
+        @Override
+        public TypeInfo copy() {
+            return this;
+        }
 
         @Override
         public boolean canCastTo(TypeInfo target) {
@@ -688,6 +939,11 @@ public abstract class TypeInfo {
         }
         
         @Override
+        public TypeInfo copy() {
+            return this;
+        }
+        
+        @Override
         public boolean canCastTo(TypeInfo target) {
             if(target == this) {
                 return true;
@@ -716,6 +972,11 @@ public abstract class TypeInfo {
             super(TypeKind.Identifier, identifier);
             this.identifier = identifier;
             this.resolvedType = null;
+        }
+        
+        @Override
+        public TypeInfo copy() {
+            return new IdentifierTypeInfo(this.identifier);
         }
         
         @Override

@@ -16,6 +16,7 @@ import litac.ast.Node;
 import litac.ast.Stmt;
 import litac.ast.Stmt.*;
 import litac.checker.Attributes;
+import litac.checker.GenericParam;
 import litac.checker.Note;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
@@ -189,6 +190,11 @@ public class Parser {
         source();
         
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
+        }
+        
         ParametersStmt parameters = parametersStmt();
         
         TypeInfo returnType = TypeInfo.VOID_TYPE;
@@ -196,7 +202,11 @@ public class Parser {
             returnType = type();
         }
         
-        TypeInfo type = new FuncTypeInfo(identifier.getText(), returnType, parameters.params, parameters.isVararg);
+        TypeInfo type = new FuncTypeInfo(identifier.getText(), 
+                                         returnType, 
+                                         parameters.params, 
+                                         parameters.isVararg,
+                                         genericParams);
         
         Stmt body;
         if(match(SEMICOLON)) {
@@ -776,7 +786,7 @@ public class Parser {
     private Expr functionCall() {
         Expr expr = primary();
         while(true) {
-            if(match(LEFT_PAREN)) {                
+            if(check(LESS_THAN) || match(LEFT_PAREN)) {                
                 expr = finishFunctionCall(expr);
             }
             else if(check(LEFT_BRACE)) {
@@ -831,12 +841,19 @@ public class Parser {
     }     
     
     private Expr finishFunctionCall(Expr callee) {
+        List<TypeInfo> genericArgs = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericArgs = genericArguments();
+            consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
+        }
+
         List<Expr> arguments = arguments();
         if(callee instanceof IdentifierExpr) {
             IdentifierExpr idExpr = (IdentifierExpr)callee;
             callee = node(new FuncIdentifierExpr(idExpr.variable, idExpr.type));
         }
-        return node(new FuncCallExpr(callee, arguments));
+        
+        return node(new FuncCallExpr(callee, arguments, genericArgs));
     }
     
     private Expr groupExpr() {
@@ -1055,6 +1072,35 @@ public class Parser {
         }
         
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        
+        return arguments;
+    }
+    
+    private List<GenericParam> genericParameters() {
+        List<GenericParam> arguments = new ArrayList<>();
+        if(!check(GREATER_THAN)) {        
+            do {
+                String typeName = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER).getText();
+                arguments.add(new GenericParam(typeName));
+            } 
+            while(match(COMMA));            
+        }
+        
+        consume(GREATER_THAN, ErrorCode.MISSING_GENERIC_END);
+        
+        return arguments;
+    }
+    
+    private List<TypeInfo> genericArguments() {
+        List<TypeInfo> arguments = new ArrayList<>();
+        if(!check(GREATER_THAN)) {        
+            do {
+                arguments.add(type());
+            } 
+            while(match(COMMA));            
+        }
+        
+        consume(GREATER_THAN, ErrorCode.MISSING_GENERIC_END);
         
         return arguments;
     }

@@ -51,6 +51,11 @@ public abstract class Decl extends Stmt {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new VarDecl(this.name, this.type.copy(), copy(this.expr));
+        }
     }
     
     public static class ParameterDecl extends Decl {
@@ -72,6 +77,11 @@ public abstract class Decl extends Stmt {
         public String toString() {    
             return this.name + ": " + this.type;
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new ParameterDecl(this.type.copy(), this.name);
+        }
     }
         
     public static class ConstDecl extends Decl {
@@ -86,10 +96,15 @@ public abstract class Decl extends Stmt {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new ConstDecl(this.name, this.type.copy(), this.expr.copy());
+        }
     }
     
     public static class FuncDecl extends Decl {
-        public ParametersStmt params;;
+        public ParametersStmt params;
         public Stmt bodyStmt;
         public TypeInfo returnType;
                 
@@ -107,6 +122,11 @@ public abstract class Decl extends Stmt {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);  
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new FuncDecl(this.name, this.type.copy(), copy(params), copy(this.bodyStmt), this.returnType.copy());
         }
     }
     
@@ -128,6 +148,11 @@ public abstract class Decl extends Stmt {
         public void updateName(String name) {
             this.name = name;
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new StructDecl(this.name, this.type.copy(), copy(this.fields));
+        }
     }       
     
     public static class UnionDecl extends Decl {
@@ -142,6 +167,11 @@ public abstract class Decl extends Stmt {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        @Override
+        protected Node doCopy() {            
+            return new UnionDecl(this.name, this.type.copy(), copy(this.fields));
+        }
     }
     
     public static class EnumDecl extends Decl {
@@ -155,6 +185,11 @@ public abstract class Decl extends Stmt {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new EnumDecl(this.name, this.type.copy(), this.fields);
         }
     }
     
@@ -171,6 +206,11 @@ public abstract class Decl extends Stmt {
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new TypedefDecl(this.name, this.type.copy(), this.typeToAlias, this.alias);
         }
     }
 }
