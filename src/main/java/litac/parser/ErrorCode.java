@@ -9,6 +9,7 @@ package litac.parser;
 public enum ErrorCode {
     INVALID_ASSIGNMENT("Invalid assignment statement"),
     INVALID_CONST_EXPR("Invalid constant expression"),
+    INVALID_ARRAY_DIMENSION_EXPR("Invalid array dimension expression"),
     INVALID_CHARACTER("Invalid character"),
     INVALID_NUMBER("Invalid number"),
     INVALID_FIELD("Invalid field member"),
@@ -17,6 +18,7 @@ public enum ErrorCode {
     INVALID_BREAK("Invalid break statement"),    
     INVALID_OBJECT_INIT("Invalid structure initializer"),
     INVALID_MODULE_ACCESS("Invalid module access"),
+    INVALID_VARARG_POSITION("Invalid variable argument position"),
 
     MISSING_COMMA("Missing ,"),
     MISSING_SEMICOLON("Missing ;"),
@@ -27,8 +29,10 @@ public enum ErrorCode {
     MISSING_RIGHT_PAREN("Missing )"),
     MISSING_LEFT_PAREN("Missing ("),
     MISSING_LEFT_BRACE("Missing {"),
+    MISSING_ARRAY_BRACKETS("Missing []"),
     MISSING_COLON("Missing :"),
     MISSING_WHILE("Missing 'while'"),
+    MISSING_GENERIC_END("Missing >"),
     
     
     RANGE_INTEGER("Integer literal out of range"),

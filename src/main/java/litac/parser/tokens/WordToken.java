@@ -22,7 +22,7 @@ public class WordToken extends Token {
         boolean isValid = Character.isLetterOrDigit(c);
         if ( !isValid ) {
             switch(c) {
-            case '$':
+            //case '$':
             case '_':
                 isValid = true;
                 break;
@@ -42,7 +42,7 @@ public class WordToken extends Token {
         boolean isValid = Character.isLetter(c);
         if ( !isValid ) {
             switch(c) {
-            case '$':
+            //case '$':
             case '_':
                 isValid = true;
                 break;

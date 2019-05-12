@@ -20,21 +20,21 @@ public enum TokenType {
     STRUCT, 
         VAR, CONST, FUNC, ENUM, FOR, WHILE, DO, IF, ELSE, BREAK, CONTINUE, RETURN, GOTO, DEFER,
         NULL, VOID, 
-        TRUE, FALSE, BOOL,
+        TRUE, FALSE, BOOL, CHAR,
         I8, U8,
         I16, U16,
         I32, U32,
         I64, U64,
         I128,U128,
         F32, F64, STRING, 
-        ARRAY, 
+        ///ARRAY, 
         MODULE, IMPORT, AS, TYPEDEF, SIZEOF, PUBLIC,
     UNION,
     // end Reserved words
 
     // Special symbols.
     PLUS("+"), 
-        MINUS("-"), STAR("*"), MOD("%"), SLASH("/"), 
+        MINUS("-"), STAR("*"), MOD("%"), SLASH("/"), DOLLAR("$"),
         DOT("."), VAR_ARGS("..."), AT("@"), QUESTION_MARK("?"), COMMA(","), SEMICOLON(";"), COLON(":"), COLON_COLON("::"),
         
         LESS_THAN("<"), LESS_EQUALS("<="),GREATER_EQUALS(">="), GREATER_THAN(">"),

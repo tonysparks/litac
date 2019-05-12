@@ -4,13 +4,20 @@ package litac.parser;
 import static litac.parser.tokens.TokenType.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import litac.Errors;
-import litac.ast.*;
+import litac.ast.Decl;
 import litac.ast.Decl.*;
+import litac.ast.Expr;
 import litac.ast.Expr.*;
+import litac.ast.Node;
+import litac.ast.Stmt;
 import litac.ast.Stmt.*;
+import litac.checker.Attributes;
+import litac.checker.GenericParam;
+import litac.checker.Note;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.parser.tokens.NumberToken;
@@ -26,7 +33,7 @@ import litac.parser.tokens.TokenType;
  */
 public class Parser {   
     private int anonStructId;
-    private int anonEnumId;
+    private int anonUnionId;
     private int loopLevel;
     
     private final Scanner scanner;
@@ -56,6 +63,7 @@ public class Parser {
     public ModuleStmt parseModule() {
                 
         List<ImportStmt> imports = new ArrayList<>();
+        List<NoteStmt> moduleNotes = new ArrayList<>();
         List<Decl> declarations = new ArrayList<>();
         
         String moduleName = ""; // default to global module
@@ -68,6 +76,7 @@ public class Parser {
                 imports.add(importDeclaration());
             }
             else {
+                List<NoteStmt> notes = notes();
                 boolean isPublic = match(PUBLIC);
                 
                 if(match(VAR))            declarations.add(varDeclaration());
@@ -77,14 +86,24 @@ public class Parser {
                 else if(match(UNION))     declarations.add(unionDeclaration());
                 else if(match(ENUM))      declarations.add(enumDeclaration());
                 else if(match(TYPEDEF))   declarations.add(typedefDeclaration());            
-                else if(match(SEMICOLON)) continue;
+                else if(match(SEMICOLON)) {
+                    if(notes != null) {
+                        for(NoteStmt note : notes) {
+                            moduleNotes.add(note);
+                        }
+                    }
+                    continue;
+                }
                 else throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
                 
-                declarations.get(declarations.size() - 1).isPublic = isPublic;
+                Attributes attrs = declarations.get(declarations.size() - 1).attributes; 
+                attrs.isPublic = isPublic;
+                attrs.isGlobal = true;
+                attrs.notes = notes;
             }
         }
         
-        return node(new ModuleStmt(moduleName, imports, declarations));
+        return node(new ModuleStmt(moduleName, imports, moduleNotes, declarations));
     }
     
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -170,22 +189,41 @@ public class Parser {
     private FuncDecl funcDeclaration() {
         source();
         
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);        
-        List<ParameterInfo> parameterInfos = parameterInfos();
+        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
+        }
         
-        consume(COLON, ErrorCode.MISSING_COLON);
+        ParametersStmt parameters = parametersStmt();
         
-        TypeInfo returnType = type();
-        TypeInfo type = new FuncTypeInfo(identifier.getText(), returnType, parameterInfos);
+        TypeInfo returnType = TypeInfo.VOID_TYPE;
+        if(match(COLON)) {
+            returnType = type();
+        }
         
-        Stmt body = statement();
-        return node(new FuncDecl(identifier.getText(), type, parameterInfos, body, returnType));
+        TypeInfo type = new FuncTypeInfo(identifier.getText(), 
+                                         returnType, 
+                                         parameters.params, 
+                                         parameters.isVararg,
+                                         genericParams);
+        
+        Stmt body;
+        if(match(SEMICOLON)) {
+            body = node(new EmptyStmt());
+        }
+        else {        
+            body = statement();
+        }
+        
+        return node(new FuncDecl(identifier.getText(), type, parameters, body, returnType));
     }
     
     private StructDecl structDeclaration() {
         source();
         
         Token start = peek();
+        boolean isAnon = false;
         
         String structName = null;
         if(check(IDENTIFIER)) {
@@ -194,28 +232,36 @@ public class Parser {
         }
         else {
             structName = String.format("<anonymous-struct-%d>", anonStructId++);
+            isAnon = true;
         }
         
-        consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
+        }
         
         List<FieldStmt> fields = new ArrayList<>();
         
-        do {
-            if(check(RIGHT_BRACE)) {
-                break;
+        if(!match(SEMICOLON)) {        
+            consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
+            
+            do {
+                if(check(RIGHT_BRACE)) {
+                    break;
+                }
+                
+                FieldStmt field = fieldStatement();
+                fields.add(field);
+                
+                eatSemicolon();
             }
-            
-            FieldStmt field = fieldStatement();
-            fields.add(field);
-            
-            eatSemicolon();
+            while(!isAtEnd());
+            consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         }
-        while(!isAtEnd());
         
         List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new StructTypeInfo(structName, typeFields);
+        TypeInfo type = new StructTypeInfo(structName, genericParams, typeFields, isAnon);
         
-        consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
         return node(new StructDecl(structName, type, fields));
     }
@@ -224,6 +270,7 @@ public class Parser {
         source();
         
         Token start = peek();
+        boolean isAnon = false;
         
         String unionName = null;
         if(check(IDENTIFIER)) {
@@ -231,7 +278,8 @@ public class Parser {
             unionName = identifier.getText();
         }
         else {
-            unionName = String.format("<anonymous-union-%d>", anonEnumId++);
+            unionName = String.format("<anonymous-union-%d>", anonUnionId++);
+            isAnon = true;
         }
         
         consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
@@ -251,7 +299,7 @@ public class Parser {
         while(!isAtEnd());
         
         List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new UnionTypeInfo(unionName, typeFields);
+        TypeInfo type = new UnionTypeInfo(unionName, typeFields, isAnon);
         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
@@ -294,6 +342,32 @@ public class Parser {
     }
     
 
+    private List<NoteStmt> notes() {
+        List<NoteStmt> notes = null;
+        if(check(AT)) {
+            notes = new ArrayList<>();
+            
+            while(match(AT)) {
+                Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+                List<String> attributes = new ArrayList<>();
+                if(match(LEFT_PAREN)) {                    
+                    do {
+                        if(match(STRING)) {                            
+                            attributes.add(previous().getValue().toString());
+                        }
+                    }
+                    while(match(COMMA));
+                    
+                    consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+                }     
+                
+                notes.add(node(new NoteStmt(new Note(identifier.getText(), attributes))));
+            }
+        }
+        
+        return notes;
+    }
+    
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      *                      Statement parsing
      *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -343,19 +417,19 @@ public class Parser {
                 consume(COLON, ErrorCode.MISSING_COLON);
                 TypeInfo type = type();
                 
-                return new VarFieldStmt(identifier.getText(), type);
+                return node(new VarFieldStmt(identifier.getText(), type));
             }                
             case STRUCT: {
                 advance();
                 
                 StructDecl struct = structDeclaration();
-                return new StructFieldStmt(struct);                
+                return node(new StructFieldStmt(struct));
             }
             case UNION: {
                 advance();
                 
                 UnionDecl union = unionDeclaration();
-                return new UnionFieldStmt(union);                
+                return node(new UnionFieldStmt(union));                
             }
             default:
                 throw error(peek(), ErrorCode.INVALID_FIELD);
@@ -502,40 +576,27 @@ public class Parser {
         return expr;
     }
     
+    private InitExpr aggregateInitExpr() {        
+        // TODO: Figure out how to infer which type this is
+        // based off of the parameter index
+        List<InitArgExpr> arguments = structArguments();
+        return node(new InitExpr(null, arguments));
+    }
+    
     private ArrayInitExpr arrayInitExpr() {
-        List<Expr> dimensions = arrayDimensions();
+        TypeInfo array = type();
+        if(!array.isKind(TypeKind.Array)) {
+            throw error(previous(), ErrorCode.MISSING_LEFT_BRACE);
+        }
         
-        TypeInfo arrayOf = type();
+        List<Expr> values = Collections.emptyList();
+        if(match(LEFT_BRACE)) {            
+            values = arrayArguments();            
+        }
         
-        consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
-        
-        List<Expr> values = structArguments();
-        
-        return node(new ArrayInitExpr(arrayOf, dimensions, values));
+        return node(new ArrayInitExpr(array, values));
     }
-    
-    private List<Expr> arrayDimensions() {
-        List<Expr> dimensions = new ArrayList<>();
         
-        do {
-            Expr sizeExpr = new NullExpr();
-            if(check(NUMBER)) {
-                sizeExpr = node(new NumberExpr((NumberToken)advance()));
-            }
-            
-            dimensions.add(sizeExpr);
-            
-            consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
-            
-            if(!match(LEFT_BRACKET)) {
-                break;
-            }
-        } 
-        while(!isAtEnd());
-        
-        return dimensions;
-    }
-    
     private Expr assignment() {
         Expr expr = or();
         
@@ -689,23 +750,59 @@ public class Parser {
             Expr right = unary();
             return node(new UnaryExpr(operator.getType(), right)); 
         }
+        else if(match(LEFT_PAREN)) {
+            return cast();
+        }
+        else if(match(SIZEOF)) {
+            return sizeof();
+        }
+        
         return functionCall();
+    }
+    
+    private Expr cast() {
+        TypeInfo castTo = type();
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        Expr expr = expression();
+        return node(new CastExpr(castTo, expr));
+    }
+    
+    private Expr sizeof() {
+        boolean hasParen = match(TokenType.LEFT_PAREN);
+        
+        Expr expr = null;
+        
+        Token t = peek();        
+        if(t.getType().isPrimitiveToken() || t.getType().equals(LEFT_BRACKET)) {            
+            TypeInfo type = type();
+            expr = new IdentifierExpr(type.getName(), type);
+        }
+        else {
+            expr = expression();
+        }
+                
+        if(hasParen) {
+            consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        }
+        
+        return node(new SizeOfExpr(expr));
     }
     
     private Expr functionCall() {
         Expr expr = primary();
         while(true) {
-            if(match(LEFT_PAREN)) {                
+            if(check(LESS_THAN) || match(LEFT_PAREN)) {                
                 expr = finishFunctionCall(expr);
             }
             else if(check(LEFT_BRACE)) {
                 if(!(expr instanceof IdentifierExpr)) {
-                    throw error(peek(), ErrorCode.INVALID_ASSIGNMENT);
+                    //throw error(peek(), ErrorCode.INVALID_ASSIGNMENT);
+                    return expr;
                 }
                 
                 advance(); // eat the {
                 IdentifierExpr idExpr = (IdentifierExpr)expr;
-                List<Expr> arguments = structArguments();
+                List<InitArgExpr> arguments = structArguments();
                 expr = node(new InitExpr(idExpr.type, arguments));
             }
             else if(match(LEFT_BRACKET)) {
@@ -713,9 +810,6 @@ public class Parser {
                 consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
                 
                 expr = node(new SubscriptGetExpr(expr, index));
-            }
-            else if(match(COLON_COLON)) {
-                
             }
             else if(match(DOT)) {
                 Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);                
@@ -740,23 +834,31 @@ public class Parser {
         if(match(STRING))  return node(new StringExpr(previous().getValue().toString()));
                 
         if(match(LEFT_PAREN))   return groupExpr();
-        if(match(LEFT_BRACKET)) return arrayInitExpr();
-                        
+        if(check(LEFT_BRACKET)) return arrayInitExpr();
+        if(match(LEFT_BRACE))   return aggregateInitExpr();                
+        
         if(check(IDENTIFIER)) {
             String identifier = identifier();
             return node(new IdentifierExpr(identifier, new IdentifierTypeInfo(identifier)));
         }
-        
+                
         throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
     }     
     
     private Expr finishFunctionCall(Expr callee) {
+        List<TypeInfo> genericArgs = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericArgs = genericArguments();
+            consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
+        }
+
         List<Expr> arguments = arguments();
         if(callee instanceof IdentifierExpr) {
             IdentifierExpr idExpr = (IdentifierExpr)callee;
             callee = node(new FuncIdentifierExpr(idExpr.variable, idExpr.type));
         }
-        return node(new FuncCallExpr(callee, arguments));
+        
+        return node(new FuncCallExpr(callee, arguments, genericArgs));
     }
     
     private Expr groupExpr() {
@@ -769,19 +871,47 @@ public class Parser {
         match(SEMICOLON);
     }
     
-    private TypeInfo ptrType(TypeInfo type) {
+    private TypeInfo chainableType(TypeInfo type) {
         do {
             advance();
         
             Token n = peek();
-            if(!n.getType().equals(STAR)) {
+            if(n.getType().equals(STAR)) {
+                type = new PtrTypeInfo(type);
+            }
+            else if(n.getType().equals(LEFT_BRACKET)) {
+                type = arrayType(type);
+            }
+            else {
                 break;
             }
-            
-            type = new PtrTypeInfo(type);                    
         } while(!isAtEnd());
         
         return type;
+    }
+        
+    private ArrayTypeInfo arrayType(TypeInfo type) {
+        TypeInfo arrayOf = type;
+        int length = -1;
+    
+        advance(); // eat [
+        
+        Expr lengthExpr = null;
+        if(!peek().getType().equals(RIGHT_BRACKET)) {
+            Expr expr = expression();
+            
+            if(expr instanceof NumberExpr) {
+                lengthExpr = expr;
+            }
+            else if(expr instanceof IdentifierExpr) {
+                lengthExpr = expr;
+            }
+            else {
+                throw error(peek(), ErrorCode.INVALID_ARRAY_DIMENSION_EXPR);
+            }            
+        }
+        
+        return new ArrayTypeInfo(arrayOf, length, lengthExpr);                    
     }
     
     private TypeInfo type() {
@@ -789,59 +919,63 @@ public class Parser {
         switch(t.getType()) {
             case BOOL: {
                 TypeInfo type = TypeInfo.BOOL_TYPE;
-                return ptrType(type);
+                return chainableType(type);
+            }
+            case CHAR: {
+                TypeInfo type = TypeInfo.CHAR_TYPE;
+                return chainableType(type);
             }
             case I8: {
                 TypeInfo type = TypeInfo.I8_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U8: {
                 TypeInfo type = TypeInfo.U8_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case I16: {
                 TypeInfo type = TypeInfo.I16_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U16: {
                 TypeInfo type = TypeInfo.U16_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case I32: {
                 TypeInfo type = TypeInfo.I32_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U32: {
                 TypeInfo type = TypeInfo.U32_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case I64: {
                 TypeInfo type = TypeInfo.I64_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U64: {
                 TypeInfo type = TypeInfo.U64_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case I128: {
                 TypeInfo type = TypeInfo.I128_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case U128: {
                 TypeInfo type = TypeInfo.U128_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case F32: {
                 TypeInfo type = TypeInfo.F32_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case F64: {
                 TypeInfo type = TypeInfo.F64_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case VOID: {
                 TypeInfo type = TypeInfo.VOID_TYPE;
-                return ptrType(type);
+                return chainableType(type);
             }
             case IDENTIFIER: {
                 String identifier = identifier();                
@@ -851,11 +985,18 @@ public class Parser {
                 // account for advance in ptr check
                 rewind();
                 
-                return ptrType(type);
+                return chainableType(type);
             }
             case STRING: {
                 TypeInfo type = new StrTypeInfo(t.getText());
-                return ptrType(type);
+                return chainableType(type);
+            }
+            case LEFT_BRACKET: {                
+                ArrayTypeInfo type = arrayType(null);
+                advance();
+                
+                type.arrayOf = type();
+                return type;
             }
             // case FUNC: TODO
             default:
@@ -877,7 +1018,7 @@ public class Parser {
     }
     
     /**
-     * Parses parameterInfos:
+     * Parses parameter declarations:
      * 
      * func test(x:i32,y:f32,z:bool) : void {
      * }
@@ -886,25 +1027,35 @@ public class Parser {
      * 
      * @return the parsed {@link ParameterList}
      */
-    private List<ParameterInfo> parameterInfos() {
+    private ParametersStmt parametersStmt() {
         consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         
-        List<ParameterInfo> parameterInfos = new ArrayList<>();        
+        List<ParameterDecl> parameterInfos = new ArrayList<>();
+        boolean isVarargs = false;
+        
         if(!check(RIGHT_PAREN)) {
             do {                
-                Token param = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-                String parameterName = param.getText();
-                
-                consume(COLON, ErrorCode.MISSING_COLON);
-                TypeInfo type = type();
-                
-                parameterInfos.add(new ParameterInfo(type, parameterName));
+                if(match(VAR_ARGS)) {
+                    isVarargs = true;
+                    if(!check(RIGHT_PAREN)) {
+                        throw error(peek(), ErrorCode.INVALID_VARARG_POSITION);
+                    }
+                }
+                else {
+                    Token param = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+                    String parameterName = param.getText();
+                    
+                    consume(COLON, ErrorCode.MISSING_COLON);
+                    TypeInfo type = type();
+                    
+                    parameterInfos.add(new ParameterDecl(type, parameterName));
+                }
             }
             while(match(COMMA));
         }
         
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        return parameterInfos;
+        return node(new ParametersStmt(parameterInfos, isVarargs));
     }
     
     /**
@@ -929,8 +1080,37 @@ public class Parser {
         
         return arguments;
     }
+    
+    private List<GenericParam> genericParameters() {
+        List<GenericParam> arguments = new ArrayList<>();
+        if(!check(GREATER_THAN)) {        
+            do {
+                String typeName = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER).getText();
+                arguments.add(new GenericParam(typeName));
+            } 
+            while(match(COMMA));            
+        }
+        
+        consume(GREATER_THAN, ErrorCode.MISSING_GENERIC_END);
+        
+        return arguments;
+    }
+    
+    private List<TypeInfo> genericArguments() {
+        List<TypeInfo> arguments = new ArrayList<>();
+        if(!check(GREATER_THAN)) {        
+            do {
+                arguments.add(type());
+            } 
+            while(match(COMMA));            
+        }
+        
+        consume(GREATER_THAN, ErrorCode.MISSING_GENERIC_END);
+        
+        return arguments;
+    }
 
-    private List<Expr> structArguments() {
+    private List<Expr> arrayArguments() {
         List<Expr> arguments = new ArrayList<>();
         if(!check(RIGHT_BRACE)) {        
             do {
@@ -938,6 +1118,32 @@ public class Parser {
             } 
             while(match(COMMA));            
         }
+        
+        consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
+        
+        return arguments;
+    }
+    
+    private List<InitArgExpr> structArguments() {
+        List<InitArgExpr> arguments = new ArrayList<>();
+        int argPosition = 0;
+        do {
+            if(check(RIGHT_BRACE)) {
+                break;
+            }
+            
+            String fieldName = null;
+            if(match(DOT)) {
+                fieldName = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER).getText();
+                consume(COLON, ErrorCode.MISSING_COLON);
+            }
+            
+            Expr value = expression();
+            InitArgExpr argExpr = new InitArgExpr(fieldName, argPosition++, value);
+            arguments.add(node(argExpr));
+             
+        }
+        while(match(COMMA));            
         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         

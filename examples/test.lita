@@ -1,0 +1,112 @@
+@include("stdio.h");
+@foreign public func printf(s:char*, ...) : void;
+
+//public var arr: []i32 = []i32 {0}
+//var i:i32 = 10
+//var ptrI:i32* = &i
+//var p: []i32** = []i32** { &ptrI } 
+
+
+//var a = i32[2][2]
+
+const size = 2
+
+var a:[size]i32 = [size]i32 {
+    14,15
+}
+
+func main(len:i32, args:char**): i32 {
+    printf("%d", a[0])
+}
+
+/*
+import "core" as std;
+
+const D:f64 = 10000.0342_f64
+public const YY:i32 = 0x20
+public const Z:f32 = 55.0_f32
+
+//public var arr: []i32 = {0}
+
+
+struct Vec2 {
+    x: f32    
+    y: f32    
+    
+    union {
+        z: f32
+        w: i32
+    }
+    
+    v: std::Vec3 
+}
+
+func Vec2Add(a: Vec2*, b: Vec2*, out: Vec2*) : Vec2* {
+    out.x = a.x + b.x
+    out.y = a.y + b.y
+            
+    return out
+}
+
+var rightVector = Vec2 { 1_f32, 0_f32, {55_f32}, {0_f32} }
+
+func main(len:i32, args:char**): i32 {
+    var a = Vec2 {        
+        6_f32, 
+        Z,
+        {
+            12_f32
+        }, {0_f32}
+    };
+    
+    var b = Vec2 {        
+        16_f32, 
+        0_f32,
+        {
+            54_f32
+        }, {0_f32}
+    };
+    
+    
+    var out = Vec2{0.0,0.0,
+        {
+            222.0
+        }, {0_f32}}
+    
+    
+    Vec2Add(&a, &b, &out)
+
+    var z = std::Vec3 { 0.1 }
+
+    defer len + 1
+    defer len + 2
+    
+    {
+        var i:i32 = 0
+        defer i + 1
+        
+        i = 2
+    }
+    
+    for(var i = 0; i < 10; i += 1) {
+        std::printf("Output: %d\n", i)
+    }
+    
+    
+    if(len > 1) {
+        len = 1;
+    }
+    else {
+        len = 2;
+        return len;
+    }
+
+    std::printf("Vec.x: %f\n", out.x)
+    std::printf("Vec.y: %f\n", out.y)
+    std::printf("Vec.z: %f\n", out.z)
+    std::printf("Vec.w: %d\n", out.w)
+    
+    std::printf("YY: %d\n", YY)
+    
+    return 0;
+}*/

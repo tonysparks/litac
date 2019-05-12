@@ -113,7 +113,7 @@ public class NumberToken extends Token {
             else if (value == RANGE_INTEGER) {                
                 long longValue = computeLongValue(wholeDigits);
                 
-                type = I64;
+                type = NUMBER;
                 value = longValue;
                 typeInfo = TypeInfo.I64_TYPE;
             }

@@ -6,24 +6,33 @@ package litac.checker;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import litac.ast.Decl;
 import litac.ast.Decl.*;
+import litac.checker.Scope.ScopeType;
 import litac.checker.TypeInfo.*;
+import litac.util.Names;
 import litac.ast.Stmt;
+import litac.ast.Stmt.ModuleStmt;
+import litac.ast.Stmt.NoteStmt;
 
 /**
+ * Keeps track of a modules defined types.
+ * 
  * @author Tony
  *
  */
 public class Module {
 
-    public String name;        
-    public Scope currentScope;
+    private String name;        
+    private Scope currentScope;
     
     private Map<String, Module> imports;
+    private ModuleStmt moduleStmt;
+    
     
     private Map<String, FuncTypeInfo> funcTypes;
     private Map<String, StructTypeInfo> structTypes;
@@ -36,11 +45,16 @@ public class Module {
     private Map<String, FuncTypeInfo> importedFuncTypes;
     private Map<String, TypeInfo> importedAggregateTypes;
     
-    private TypeCheckResult result;
+    private Map<String, TypeInfo> foreignTypes;
+    
+    private List<NoteStmt> notes;
+    
+    private PhaseResult result;
     
     
-    public Module(TypeCheckResult result, String name) {
+    public Module(PhaseResult result, ModuleStmt moduleStmt, String name) {
         this.result = result;
+        this.moduleStmt = moduleStmt;
         this.name = name;
         
         this.imports = new HashMap<>();         
@@ -52,10 +66,18 @@ public class Module {
         this.publicFuncTypes = new HashMap<>();
         this.publicTypes = new HashMap<>();
         
+        this.foreignTypes = new HashMap<>();
+        
         this.importedFuncTypes = new HashMap<>();
         this.importedAggregateTypes = new HashMap<>();
         
-        this.currentScope = new Scope(result);
+        this.notes = new ArrayList<>();
+        
+        this.currentScope = new Scope(result, ScopeType.MODULE);
+    }
+    
+    public ModuleStmt getModuleStmt() {
+        return moduleStmt;
     }
     
     public Collection<Module> getImports() {
@@ -71,8 +93,18 @@ public class Module {
         result.addAll(structTypes.values());
         result.addAll(unionTypes.values());
         result.addAll(enumTypes.values());
+        result.addAll(funcTypes.values());
         
         return result;
+    }
+    
+    public boolean isForeignType(String name) {
+        return this.foreignTypes.containsKey(name);
+    }
+    
+    public boolean isImported(String name) {
+        return this.importedAggregateTypes.containsKey(name) || 
+               this.importedFuncTypes.containsKey(name);
     }
     
     public void importModule(Stmt stmt, Module module, String alias) {
@@ -80,109 +112,150 @@ public class Module {
             this.result.addError(stmt, "unable to import module '%s' ", alias);
             return;
         }
-        
-        this.imports.put(alias, module);    
-        
+                
+        this.imports.put(alias, module);
+               
         for(Entry<String, FuncTypeInfo> funcType: module.publicFuncTypes.entrySet()) {
-            this.importedFuncTypes.put(String.format("%s::%s", alias, funcType.getKey()), funcType.getValue());
+            this.importedFuncTypes.put(Names.litaName(alias, funcType.getKey()), funcType.getValue());
         }
         
         for(Entry<String, TypeInfo> aggType: module.publicTypes.entrySet()) {
-            this.importedAggregateTypes.put(String.format("%s::%s", alias, aggType.getKey()), aggType.getValue());
+            this.importedAggregateTypes.put(Names.litaName(alias, aggType.getKey()), aggType.getValue());
         }
+        
+        
+        for(Entry<String, TypeInfo> typeEntry: module.foreignTypes.entrySet()) {
+            TypeInfo type = typeEntry.getValue();
+            if(type.isKind(TypeKind.Func)) {
+                this.importedFuncTypes.put(Names.litaName(alias, typeEntry.getKey()), type.as());
+            }
+            else {
+                this.importedAggregateTypes.put(Names.litaName(alias, typeEntry.getKey()), type);
+            }
+        }
+        
+        this.foreignTypes.putAll(module.foreignTypes);
+        this.notes.addAll(module.notes);
+    }
+    
+    public List<NoteStmt> getNotes() {
+        return notes;
     }
     
     public Module getModule(String name) {
         return this.imports.get(name);
     }
     
-    private void addPublicDecl(Decl decl, String name, TypeInfo type) {
-        if(decl.isPublic) {
-            if(type.isKind(TypeKind.Func)) {
+    private boolean isForeign(Decl decl) {
+        if(decl.attributes.notes != null) {
+            for(NoteStmt n : decl.attributes.notes) {
+                if(n.note.name.equalsIgnoreCase("foreign")) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    private Symbol addPublicDecl(Decl decl, String name, TypeInfo type) {
+        if(decl.attributes.isPublic) {
+            if(type.isKind(TypeKind.Func)) {                
                 FuncTypeInfo funcInfo = type.as();
                 this.publicFuncTypes.put(name, funcInfo);
             }
             else {
                 this.publicTypes.put(name, type);
             }
+            
+
+            if(isForeign(decl)) {
+                this.foreignTypes.put(name, type);
+            }
         }
+        
+        return this.currentScope.addSymbol(this, decl, name, type);
     }
     
-    public void declareFunc(FuncDecl stmt, String funcName, FuncTypeInfo type) {
+    public void declareNote(NoteStmt stmt) {
+        this.notes.add(stmt);
+    }
+    
+    public Symbol declareFunc(FuncDecl stmt, String funcName, FuncTypeInfo type) {
         if(this.funcTypes.containsKey(funcName)) {
             this.result.addError(stmt, "%s function is already defined", funcName);
-            return;
+            return this.funcTypes.get(funcName).sym;
         }
         
         this.funcTypes.put(funcName, type);
         
-        addPublicDecl(stmt, funcName, type);
+        return addPublicDecl(stmt, funcName, type);
     }
     
-    public void declareStruct(StructDecl stmt, String structName, StructTypeInfo type) {
+    public Symbol declareStruct(StructDecl stmt, String structName, StructTypeInfo type) {
         if(this.structTypes.containsKey(structName)) {
             this.result.addError(stmt, "%s struct is already defined", structName);
-            return;
+            return this.structTypes.get(structName).sym;
         }
         
         if(this.unionTypes.containsKey(structName)) {
             this.result.addError(stmt, "%s union is already defined with the same name", structName);
-            return;
+            return this.unionTypes.get(structName).sym;
         }
         
         if(this.enumTypes.containsKey(structName)) {
             this.result.addError(stmt, "%s enum is already defined with the same name", structName);
-            return;
+            return this.enumTypes.get(structName).sym;
         }
         
         
         this.structTypes.put(structName, type);
         
-        addPublicDecl(stmt, structName, type);
+        return addPublicDecl(stmt, structName, type);
     }
     
-    public void declareUnion(UnionDecl stmt, String unionName, UnionTypeInfo type) {
+    public Symbol declareUnion(UnionDecl stmt, String unionName, UnionTypeInfo type) {
         if(this.unionTypes.containsKey(unionName)) {
             this.result.addError(stmt, "%s union is already defined", unionName);
-            return;
+            return this.unionTypes.get(unionName).sym;
         }
         
         if(this.structTypes.containsKey(unionName)) {
             this.result.addError(stmt, "%s struct is already defined with the same name", unionName);
-            return;
+            return this.structTypes.get(unionName).sym;
         }
         
         
         if(this.enumTypes.containsKey(unionName)) {
             this.result.addError(stmt, "%s enum is already defined with the same name", unionName);
-            return;
+            return this.enumTypes.get(unionName).sym;
         }
         
         this.unionTypes.put(unionName, type);
         
-        addPublicDecl(stmt, unionName, type);
+        return addPublicDecl(stmt, unionName, type);
     }
     
-    public void declareEnum(EnumDecl stmt, String enumName, EnumTypeInfo type) {
+    public Symbol declareEnum(EnumDecl stmt, String enumName, EnumTypeInfo type) {
         if(this.enumTypes.containsKey(enumName)) {
             this.result.addError(stmt, "%s enum is already defined", enumName);
-            return;
+            return this.enumTypes.get(enumName).sym;
         }
         
         if(this.unionTypes.containsKey(enumName)) {
             this.result.addError(stmt, "%s union is already defined with the same name", enumName);
-            return;
+            return this.unionTypes.get(enumName).sym;
         }
         
         if(this.structTypes.containsKey(enumName)) {
             this.result.addError(stmt, "%s struct is already defined with the same name", enumName);
-            return;
+            return this.structTypes.get(enumName).sym;
         }
         
         
         this.enumTypes.put(enumName, type);
         
-        addPublicDecl(stmt, enumName, type);
+        return addPublicDecl(stmt, enumName, type);
     }
     
     public FuncTypeInfo getFuncType(String funcName) {
@@ -214,13 +287,21 @@ public class Module {
     }
             
     public Scope pushScope() {
-        this.currentScope = this.currentScope.pushScope();
+        this.currentScope = this.currentScope.pushLocalScope();
         return this.currentScope;
     }
     
     public Scope popScope() {
         this.currentScope = this.currentScope.getParent();
         return this.currentScope;
+    }
+    
+    public Scope currentScope() {
+        return this.currentScope;
+    }
+    
+    public String name() {
+        return this.name;
     }
 
     @Override

@@ -1,0 +1,2 @@
+clang -S -emit-llvm llvm.c
+clang a.ll -o test.exe

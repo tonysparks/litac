@@ -15,6 +15,7 @@ public interface NodeVisitor {
 
     void visit(ModuleStmt stmt);
     void visit(ImportStmt stmt);
+    void visit(NoteStmt stmt);
     void visit(VarFieldStmt stmt);
     void visit(StructFieldStmt stmt);
     void visit(UnionFieldStmt stmt);
@@ -27,6 +28,8 @@ public interface NodeVisitor {
     void visit(ReturnStmt stmt);
     void visit(BlockStmt stmt);
     void visit(DeferStmt stmt);
+    void visit(EmptyStmt stmt);
+    void visit(ParametersStmt stmt);
     
     void visit(ConstDecl d);
     void visit(EnumDecl d);
@@ -35,9 +38,13 @@ public interface NodeVisitor {
     void visit(TypedefDecl d);
     void visit(UnionDecl d);
     void visit(VarDecl d);
+    void visit(ParameterDecl d);
     
     
-    void visit(InitExpr expr);
+    void visit(CastExpr expr);
+    void visit(SizeOfExpr expr);
+    void visit(InitArgExpr expr);    
+    void visit(InitExpr expr);    
     void visit(NullExpr expr);
     void visit(BooleanExpr expr);
     void visit(NumberExpr expr);
@@ -63,6 +70,10 @@ public interface NodeVisitor {
 
         @Override
         public void visit(ImportStmt stmt) {
+        }
+        
+        @Override
+        public void visit(InitArgExpr expr) {
         }
         
         @Override
@@ -120,7 +131,19 @@ public interface NodeVisitor {
         @Override
         public void visit(DeferStmt stmt) {
         }
+        
+        @Override
+        public void visit(EmptyStmt stmt) {
+        }
+        
+        @Override
+        public void visit(ParametersStmt stmt) {
+        }
 
+        @Override
+        public void visit(NoteStmt stmt) {
+        }
+        
 
         @Override
         public void visit(ConstDecl d) {
@@ -153,7 +176,18 @@ public interface NodeVisitor {
         @Override
         public void visit(VarDecl d) {
         }
+        
+        @Override
+        public void visit(ParameterDecl d) {
+        }
 
+        @Override
+        public void visit(CastExpr expr) {
+        }
+        
+        @Override
+        public void visit(SizeOfExpr expr) {
+        }
 
         @Override
         public void visit(NullExpr expr) {

@@ -1,0 +1,46 @@
+import "io";
+
+func Max<T>(a: T, b: T) : T {
+    if(a.v > b.v) return a
+    return b
+}
+
+func Max2<T>(a: T, b: T) : T {
+    if(a > b) return a
+    return b
+}
+
+struct Vec {
+	v: i32
+}
+
+struct Vax {
+    v: i32
+}
+
+/*
+struct Vec2<T> {
+	x: T
+	y: T
+}
+*/
+func main(len:i32, args:char**):i32 {
+	
+
+    var m = Max2<i32>(32_i32, 42_i32)
+	var m2 = Max2<i32>(532_i32, 542_i32)
+	var f = Max2<f32>(3.2_f32, 4.2_f32)
+	
+	var v = Max<Vec>( Vec{.v:2}, Vec{1} )
+	var v2 = Max<Vax>( Vax{2}, Vax{1} )
+	
+	
+	var t = Max<io::Time>( io::Time{2_i64}, io::Time{1000_i64} )
+	//var v = Vec2<f32> { 3_f32, 4_f32 }
+    io::printf("%d\n", m)
+	io::printf("%d\n", m2)
+	io::printf("%f\n", f)
+	io::printf("%d\n", v.v)
+	io::printf("%d\n", v2.v)
+	io::printf("%lld\n", t.v)
+}

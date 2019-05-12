@@ -3,6 +3,7 @@
  */
 package litac.ast;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import litac.util.Tuple;
@@ -22,6 +23,19 @@ public abstract class Node {
     private String sourceFile;
         
     public abstract void visit(NodeVisitor v);
+    
+    protected abstract Node doCopy();
+    
+    @SuppressWarnings("unchecked")
+    public <T extends Node> T copy() {
+        Node node = doCopy();
+        node.setLineNumber(this.lineNumber);
+        node.setSourceLine(this.sourceLine);
+        node.setSourceFile(this.sourceFile);
+        return (T)node;
+    }
+    
+    
     
     /**
      * @return the sourceFile
@@ -105,4 +119,27 @@ public abstract class Node {
         }
         return nodes;
     }
+    
+    protected <T extends Node> List<T> copy(List<T> values) {
+        if(values == null) {
+            return null;
+        }
+        
+        List<T> clonedValues = new ArrayList<>(values.size());
+    
+        for(T v : values) {
+            clonedValues.add(v.copy());
+        }
+        
+        return clonedValues;
+    }
+    
+    protected <T extends Node> T copy(T node) {
+        if(node == null) {
+            return null;
+        }
+        
+        return node.copy();
+    }
+
 }
