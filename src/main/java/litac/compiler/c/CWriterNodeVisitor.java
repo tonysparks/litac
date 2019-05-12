@@ -31,6 +31,7 @@ import litac.checker.TypeInfo.ArrayTypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
 import litac.checker.TypeInfo.FuncTypeInfo;
 import litac.checker.TypeInfo.PtrTypeInfo;
+import litac.checker.TypeInfo.StructTypeInfo;
 import litac.checker.TypeInfo.TypeKind;
 import litac.compiler.Buf;
 import litac.compiler.CompilationUnit;
@@ -105,7 +106,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         switch(type.getKind()) {
             case Func: {
                 FuncTypeInfo funcInfo = type.as();     
-                if(!funcInfo.genericParams.isEmpty()) {
+                if(funcInfo.hasGenerics()) {
                     return;
                 }
                 
@@ -121,7 +122,12 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 buf.out(");\n");
                 break;
             }
-            case Struct: {                
+            case Struct: {
+                StructTypeInfo structInfo = type.as();
+                if(structInfo.hasGenerics()) {
+                    return;
+                }
+                
                 if(!type.isAnonymous()) {
                     buf.out("typedef struct %s %s;\n", typeName, typeName);
                 }
@@ -478,6 +484,11 @@ public class CWriterNodeVisitor implements NodeVisitor {
         String name = cName(d.sym);
         
         if(isForeign(d.type)) {
+            return;
+        }
+        
+        StructTypeInfo structInfo = d.type.as();
+        if(structInfo.hasGenerics()) {
             return;
         }
         

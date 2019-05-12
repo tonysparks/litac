@@ -235,6 +235,11 @@ public class Parser {
             isAnon = true;
         }
         
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
+        }
+        
         List<FieldStmt> fields = new ArrayList<>();
         
         if(!match(SEMICOLON)) {        
@@ -255,7 +260,7 @@ public class Parser {
         }
         
         List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new StructTypeInfo(structName, typeFields, isAnon);
+        TypeInfo type = new StructTypeInfo(structName, genericParams, typeFields, isAnon);
         
         
         return node(new StructDecl(structName, type, fields));

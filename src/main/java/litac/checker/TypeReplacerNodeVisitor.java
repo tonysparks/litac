@@ -1,4 +1,4 @@
-package litac.compiler.c;
+package litac.checker;
 
 import java.util.List;
 
@@ -50,10 +50,18 @@ import litac.ast.Stmt.StructFieldStmt;
 import litac.ast.Stmt.UnionFieldStmt;
 import litac.ast.Stmt.VarFieldStmt;
 import litac.ast.Stmt.WhileStmt;
-import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.TypeKind;
 import litac.util.Tuple;
 
+
+/**
+ * Replaces a type with a different type based on type name. This is used
+ * for generics - copying the AST tree of the function or aggregate and replacing
+ * the generic type with an actual type.
+ * 
+ * @author Tony
+ *
+ */
 public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     private List<Tuple<String, TypeInfo>> replacements;

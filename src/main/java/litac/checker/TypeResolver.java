@@ -254,18 +254,18 @@ public class TypeResolver {
             }
         }
         
-        private boolean isGenericType(TypeInfo type) {
-            if(this.currentGenericType != null && 
-               this.currentGenericType.genericParams.stream().anyMatch(p -> p.name.equals(type.getName()))) {
-                
-                IdentifierTypeInfo idType = type.as();
-                idType.resolve(new AnyTypeInfo(type.getName()));
-                
-                return true;
-            }
-                
-            return false;
-        }
+//        private boolean isGenericType(TypeInfo type) {
+//            if(this.currentGenericType != null && 
+//               this.currentGenericType.genericParams.stream().anyMatch(p -> p.name.equals(type.getName()))) {
+//                
+//                IdentifierTypeInfo idType = type.as();
+//                idType.resolve(new AnyTypeInfo(type.getName()));
+//                
+//                return true;
+//            }
+//                
+//            return false;
+//        }
         
         private TypeInfo getType(Stmt stmt, List<TypeInfo> genericArgs, List<GenericParam> genericParams, TypeInfo expectedType) {
 //            if(!expectedType.isKind(TypeKind.Identifier)) {
@@ -292,9 +292,9 @@ public class TypeResolver {
                 return;
             }
             
-            if(isGenericType(type)) {
-                return;
-            }
+//            if(isGenericType(type)) {
+//                return;
+//            }
             
             if(!type.isResolved()) {
                 TypeInfo resolvedType = module.getType(type.getName());
@@ -352,11 +352,10 @@ public class TypeResolver {
             if(type == null) {
                 return;
             }
-            
 
-            if(isGenericType(type)) {
-                return;
-            }
+//            if(isGenericType(type)) {
+//                return;
+//            }
             
             if(!type.isResolved()) {                
                 IdentifierTypeInfo idType = type.as();
@@ -571,6 +570,11 @@ public class TypeResolver {
 
         @Override
         public void visit(StructDecl d) {
+            StructTypeInfo structInfo = d.type.as();
+            if(structInfo.hasGenerics()) {
+                return;
+            }
+            
             resolveType(d, d.type);
             
             for(FieldStmt s : d.fields) {

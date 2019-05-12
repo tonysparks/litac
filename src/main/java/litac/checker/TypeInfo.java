@@ -372,7 +372,7 @@ public abstract class TypeInfo {
         }
     }
     
-    public static class StructTypeInfo extends TypeInfo {
+    public static class StructTypeInfo extends GenericTypeInfo {
         public List<FieldInfo> fieldInfos;
         public boolean isAnonymous;
 
@@ -380,8 +380,8 @@ public abstract class TypeInfo {
          * @param name
          * @param fieldInfos
          */
-        public StructTypeInfo(String name, List<FieldInfo> fieldInfos, boolean isAnon) {
-            super(TypeKind.Struct, name);
+        public StructTypeInfo(String name, List<GenericParam> genericParams, List<FieldInfo> fieldInfos, boolean isAnon) {
+            super(TypeKind.Struct, name, genericParams);
             this.fieldInfos = fieldInfos;
             this.isAnonymous = isAnon;
         }
@@ -398,7 +398,7 @@ public abstract class TypeInfo {
                 
         @Override
         public TypeInfo copy() {
-            return new StructTypeInfo(this.name, fieldInfos, isAnonymous);
+            return new StructTypeInfo(this.name, genericParams, fieldInfos, isAnonymous);
         }
         
         @Override
