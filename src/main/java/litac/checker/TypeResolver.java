@@ -51,7 +51,6 @@ import litac.ast.Stmt.StructFieldStmt;
 import litac.ast.Stmt.UnionFieldStmt;
 import litac.ast.Stmt.VarFieldStmt;
 import litac.ast.Stmt.WhileStmt;
-import litac.checker.Scope.Variable;
 import litac.checker.TypeInfo.AnyTypeInfo;
 import litac.checker.TypeInfo.ArrayTypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
@@ -168,7 +167,7 @@ public class TypeResolver {
         @Override
         public void visit(EnumDecl d) {            
             this.module.declareEnum(d, d.name, (EnumTypeInfo)d.type);    
-            this.module.currentScope().addVariable(d, d.name, d.type);
+            this.module.currentScope().addSymbol(this.module, d, d.name, d.type);
             
             for(EnumFieldInfo f : d.fields) {
                 if(!f.value.isResolved()) {
@@ -523,7 +522,7 @@ public class TypeResolver {
             
             resolveType(d, d.type);
             
-            peekScope().addVariable(d, d.name, d.type);            
+            peekScope().addSymbol(this.module, d, d.name, d.type);            
         }
         
   
@@ -538,7 +537,7 @@ public class TypeResolver {
             
             resolveType(d, d.type);
             
-            peekScope().addVariable(d, d.name, d.type);
+            peekScope().addSymbol(this.module, d, d.name, d.type);
         }
 
         @Override
@@ -559,7 +558,7 @@ public class TypeResolver {
                     resolveType(d, d.returnType);
                     for(ParameterDecl p : d.params.params) {
                         resolveType(p, p.type);
-                        peekScope().addVariable(p, p.name, p.type);
+                        peekScope().addSymbol(this.module, p, p.name, p.type);
                     }
                     
                     d.bodyStmt.visit(this);
@@ -728,16 +727,17 @@ public class TypeResolver {
         @Override
         public void visit(IdentifierExpr expr) {
             if(!expr.type.isResolved()) {
-                Variable resolvedType = peekScope().getVariable(expr.variable); 
+                Symbol sym = peekScope().getSymbol(expr.variable); 
                 
-                if(resolvedType == null) {
-                    this.result.addError(expr, "unknown variable '%s'", expr.type.getName());
+                if(sym == null) {
+                    this.result.addError(expr, "unknown variable '%s'", expr.variable);
                     return;
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(resolvedType.type);
-                expr.declType = resolvedType.decl;
+                type.resolve(sym.type);
+                expr.declType = sym.decl;
+                expr.sym = sym;
             }
         }
         
@@ -751,8 +751,15 @@ public class TypeResolver {
                     return;
                 }
                 
+//                IdentifierTypeInfo type = expr.type.as();
+//                type.resolve(resolvedType);
+                
                 IdentifierTypeInfo type = expr.type.as();
                 type.resolve(resolvedType);
+                if(resolvedType.sym != null) {
+                    expr.declType = resolvedType.sym.decl;
+                    expr.sym = resolvedType.sym;
+                }
             }
         }
         

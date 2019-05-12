@@ -26,11 +26,11 @@ import litac.ast.Stmt.ImportStmt;
 import litac.ast.Stmt.ModuleStmt;
 import litac.checker.GenericParam;
 import litac.checker.Module;
+import litac.checker.Symbol;
 import litac.checker.TypeInfo;
 import litac.checker.TypeResolver;
 import litac.checker.TypeInfo.FuncTypeInfo;
 import litac.compiler.CompilationUnit;
-import litac.compiler.c.Scope.ScopeType;
 import litac.util.Stack;
 import litac.util.Tuple;
 
@@ -54,7 +54,6 @@ public class GenericsNodeVisitor extends AbstractNodeVisitor {
    // private NameCache names;
     private CompilationUnit unit;
     private Set<String> visitedModules;
-    private Scope scope;    
     
     private Map<String, Map<String,GenericDecl>> genericDecls;
     private Stack<ModuleStmt> modules;
@@ -70,7 +69,6 @@ public class GenericsNodeVisitor extends AbstractNodeVisitor {
         
         //this.names = names;
         this.visitedModules = new HashSet<>();
-        this.scope = new Scope(null, "", ScopeType.MODULE);
         this.genericDecls = new HashMap<>();
         this.genericDecls.put("", new HashMap<>());
         
@@ -87,8 +85,6 @@ public class GenericsNodeVisitor extends AbstractNodeVisitor {
         this.visitedModules.add(stmt.name);
         this.modules.add(stmt);
         
-        this.scope = this.scope.pushScope(stmt.name, ScopeType.MODULE);
-                
         for(ImportStmt i : stmt.imports) {
             i.visit(this);
         }
@@ -101,7 +97,6 @@ public class GenericsNodeVisitor extends AbstractNodeVisitor {
         this.newDeclarations.clear();
         
         this.modules.pop();
-        this.scope = this.scope.popScope();
     }
     
     @Override
@@ -132,11 +127,9 @@ public class GenericsNodeVisitor extends AbstractNodeVisitor {
     
     @Override
     public void visit(BlockStmt stmt) {
-        this.scope = this.scope.pushLocalScope();
         for(Stmt s : stmt.stmts) {
             s.visit(this);
         }
-        this.scope = this.scope.popScope();
     }
     
     @Override
@@ -185,23 +178,12 @@ public class GenericsNodeVisitor extends AbstractNodeVisitor {
                     break;
                 }
             }
-            
-
-            // Don't create a duplicate if we've already creatd this function
-            //boolean isAlreadyDefined = this.names.hasBackendName(this.scope.getName(), newFuncName);
-            
                         
             FuncTypeInfo newFuncInfo = new FuncTypeInfo(newFuncName, 
                                                         newReturnType, 
                                                         newFuncParams, 
                                                         funcInfo.isVararg, 
                                                         Collections.emptyList());
-            
-            
-//            if(!isAlreadyDefined) {     
-//                // TODO get proper name coordinates
-//                this.names.add(new NameCoord("", "", ""), newFuncName, false, true, newFuncInfo);
-//            }
             
             expr.object.resolveTo(newFuncInfo);
             Node parent = expr.getParentNode();
@@ -212,11 +194,6 @@ public class GenericsNodeVisitor extends AbstractNodeVisitor {
             else if(parent instanceof Expr) {
                 Expr e = (Expr)parent;
                 e.resolveTo(newReturnType);
-            }
-            
-            if(expr.object instanceof FuncIdentifierExpr) {
-                FuncIdentifierExpr idExpr = (FuncIdentifierExpr)expr.object;
-                idExpr.variable = newFuncName;
             }
             
             // TODO: Get correct module
@@ -232,9 +209,20 @@ public class GenericsNodeVisitor extends AbstractNodeVisitor {
             
             this.resolver.resolveStmt(this.module, decl);
             
+            Symbol sym = null;
             if(!isAlreadyDefined) {
-                this.module.declareFunc(decl, newFuncName, newFuncInfo);
+                // funcInfo.sym.declared
+                sym = this.module.declareFunc(decl, newFuncName, newFuncInfo);
                 this.newDeclarations.add(decl);
+            }
+            else {
+                sym = this.module.getFuncType(newFuncName).sym;
+            }
+            
+            if(expr.object instanceof FuncIdentifierExpr) {
+                FuncIdentifierExpr idExpr = (FuncIdentifierExpr)expr.object;
+                idExpr.variable = newFuncName;
+                idExpr.sym = sym;
             }
         }                
     }

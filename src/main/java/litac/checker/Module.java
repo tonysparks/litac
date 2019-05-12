@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 
 import litac.ast.Decl;
 import litac.ast.Decl.*;
+import litac.checker.Scope.ScopeType;
 import litac.checker.TypeInfo.*;
 import litac.util.Names;
 import litac.ast.Stmt;
@@ -72,7 +73,7 @@ public class Module {
         
         this.notes = new ArrayList<>();
         
-        this.currentScope = new Scope(result);
+        this.currentScope = new Scope(result, ScopeType.MODULE);
     }
     
     public ModuleStmt getModuleStmt() {
@@ -92,6 +93,7 @@ public class Module {
         result.addAll(structTypes.values());
         result.addAll(unionTypes.values());
         result.addAll(enumTypes.values());
+        result.addAll(funcTypes.values());
         
         return result;
     }
@@ -156,7 +158,7 @@ public class Module {
         return false;
     }
     
-    private void addPublicDecl(Decl decl, String name, TypeInfo type) {
+    private Symbol addPublicDecl(Decl decl, String name, TypeInfo type) {
         if(decl.attributes.isPublic) {
             if(type.isKind(TypeKind.Func)) {                
                 FuncTypeInfo funcInfo = type.as();
@@ -172,88 +174,88 @@ public class Module {
             }
         }
         
-        
+        return this.currentScope.addSymbol(this, decl, name, type);
     }
     
     public void declareNote(NoteStmt stmt) {
         this.notes.add(stmt);
     }
     
-    public void declareFunc(FuncDecl stmt, String funcName, FuncTypeInfo type) {
+    public Symbol declareFunc(FuncDecl stmt, String funcName, FuncTypeInfo type) {
         if(this.funcTypes.containsKey(funcName)) {
             this.result.addError(stmt, "%s function is already defined", funcName);
-            return;
+            return this.funcTypes.get(funcName).sym;
         }
         
         this.funcTypes.put(funcName, type);
         
-        addPublicDecl(stmt, funcName, type);
+        return addPublicDecl(stmt, funcName, type);
     }
     
-    public void declareStruct(StructDecl stmt, String structName, StructTypeInfo type) {
+    public Symbol declareStruct(StructDecl stmt, String structName, StructTypeInfo type) {
         if(this.structTypes.containsKey(structName)) {
             this.result.addError(stmt, "%s struct is already defined", structName);
-            return;
+            return this.structTypes.get(structName).sym;
         }
         
         if(this.unionTypes.containsKey(structName)) {
             this.result.addError(stmt, "%s union is already defined with the same name", structName);
-            return;
+            return this.unionTypes.get(structName).sym;
         }
         
         if(this.enumTypes.containsKey(structName)) {
             this.result.addError(stmt, "%s enum is already defined with the same name", structName);
-            return;
+            return this.enumTypes.get(structName).sym;
         }
         
         
         this.structTypes.put(structName, type);
         
-        addPublicDecl(stmt, structName, type);
+        return addPublicDecl(stmt, structName, type);
     }
     
-    public void declareUnion(UnionDecl stmt, String unionName, UnionTypeInfo type) {
+    public Symbol declareUnion(UnionDecl stmt, String unionName, UnionTypeInfo type) {
         if(this.unionTypes.containsKey(unionName)) {
             this.result.addError(stmt, "%s union is already defined", unionName);
-            return;
+            return this.unionTypes.get(unionName).sym;
         }
         
         if(this.structTypes.containsKey(unionName)) {
             this.result.addError(stmt, "%s struct is already defined with the same name", unionName);
-            return;
+            return this.structTypes.get(unionName).sym;
         }
         
         
         if(this.enumTypes.containsKey(unionName)) {
             this.result.addError(stmt, "%s enum is already defined with the same name", unionName);
-            return;
+            return this.enumTypes.get(unionName).sym;
         }
         
         this.unionTypes.put(unionName, type);
         
-        addPublicDecl(stmt, unionName, type);
+        return addPublicDecl(stmt, unionName, type);
     }
     
-    public void declareEnum(EnumDecl stmt, String enumName, EnumTypeInfo type) {
+    public Symbol declareEnum(EnumDecl stmt, String enumName, EnumTypeInfo type) {
         if(this.enumTypes.containsKey(enumName)) {
             this.result.addError(stmt, "%s enum is already defined", enumName);
-            return;
+            return this.enumTypes.get(enumName).sym;
         }
         
         if(this.unionTypes.containsKey(enumName)) {
             this.result.addError(stmt, "%s union is already defined with the same name", enumName);
-            return;
+            return this.unionTypes.get(enumName).sym;
         }
         
         if(this.structTypes.containsKey(enumName)) {
             this.result.addError(stmt, "%s struct is already defined with the same name", enumName);
-            return;
+            return this.structTypes.get(enumName).sym;
         }
         
         
         this.enumTypes.put(enumName, type);
         
-        addPublicDecl(stmt, enumName, type);
+        return addPublicDecl(stmt, enumName, type);
     }
     
     public FuncTypeInfo getFuncType(String funcName) {
@@ -285,7 +287,7 @@ public class Module {
     }
             
     public Scope pushScope() {
-        this.currentScope = this.currentScope.pushScope();
+        this.currentScope = this.currentScope.pushLocalScope();
         return this.currentScope;
     }
     

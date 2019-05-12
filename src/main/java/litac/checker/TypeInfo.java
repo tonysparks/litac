@@ -220,6 +220,7 @@ public abstract class TypeInfo {
     
     protected TypeKind kind;
     public String name;
+    public Symbol sym;
     
     TypeInfo(TypeKind kind, String name) {
         this.kind = kind;
@@ -999,6 +1000,7 @@ public abstract class TypeInfo {
         
         public void resolve(TypeInfo resolvedTo) {
             this.resolvedType = resolvedTo;
+            //this.sym = resolvedTo.sym;
         }
         
         @Override

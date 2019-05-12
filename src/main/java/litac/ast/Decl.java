@@ -6,6 +6,7 @@ package litac.ast;
 import java.util.List;
 
 import litac.checker.Attributes;
+import litac.checker.Symbol;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
 
@@ -27,6 +28,7 @@ public abstract class Decl extends Stmt {
     }
 
     public TypeInfo type;
+    public Symbol sym;
     public DeclKind kind;
     public String name;
     public Attributes attributes;

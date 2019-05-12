@@ -39,14 +39,14 @@ public class Compiler {
         PhaseResult result = new PhaseResult();
         
         CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
-        typeCheck(options, result, unit);
+        Module main = typeCheck(options, result, unit);
         
         if(!result.hasErrors()) {
-            compile(options, result, unit);
+            compile(options, result, unit, main);
         }
     }
     
-    private void typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
+    private Module typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
         GenericsResolver generics = new GenericsResolver(unit);        
         TypeResolver resolver = new TypeResolver(result, unit);        
         TypeChecker checker = new TypeChecker(result);
@@ -64,13 +64,18 @@ public class Compiler {
             for(PhaseError error : result.getErrors()) {
                 Errors.typeCheckError(error.stmt, error.message);
             }            
-        }                
+        }         
+        
+        return main;
     }
     
-    private static void compile(BackendOptions options, PhaseResult checkerResult, CompilationUnit unit) throws Exception {
+    private static void compile(BackendOptions options, 
+                                PhaseResult checkerResult, 
+                                CompilationUnit unit,
+                                Module main) throws Exception {
         switch(options.backendType) {            
             case C: {
-                CTranspiler.transpile(checkerResult, unit, options);
+                CTranspiler.transpile(checkerResult, unit, main, options);
                 break;
             }
             default: {

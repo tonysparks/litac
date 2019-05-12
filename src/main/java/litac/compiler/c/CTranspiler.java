@@ -7,6 +7,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
+import litac.checker.Module;
 import litac.checker.PhaseResult;
 import litac.compiler.BackendOptions;
 import litac.compiler.Buf;
@@ -47,8 +48,12 @@ public class CTranspiler {
      * @param options
      * @throws Exception
      */
-    public static void transpile(PhaseResult checkerResult, CompilationUnit unit, BackendOptions options) throws Exception {        
-        Buf buf = toC(unit, options.cOptions);        
+    public static void transpile(PhaseResult checkerResult, 
+                                 CompilationUnit unit, 
+                                 Module main,
+                                 BackendOptions options) throws Exception {
+        
+        Buf buf = toC(unit, main, options.cOptions);        
         File cOutput = writeCFile(buf, options);
 
         // if there are any type checker errors, we want to fail at this point,
@@ -61,15 +66,10 @@ public class CTranspiler {
         runProgram(options);
     }
     
-    private static Buf toC(CompilationUnit unit, COptions options) throws Exception {
+    private static Buf toC(CompilationUnit unit, Module main, COptions options) throws Exception {
         Buf buf = new Buf(options.indentWidth, options.useTabs);        
         
-        NameCache names = NameCache.build(unit);
-        
-//        GenericsNodeVisitor generics = new GenericsNodeVisitor(unit, names);
-//        unit.getMain().visit(generics);
-        
-        CWriterNodeVisitor cWriter = new CWriterNodeVisitor(unit, names, options, buf);                
+        CWriterNodeVisitor cWriter = new CWriterNodeVisitor(unit, main, options, buf);                
         unit.getMain().visit(cWriter);
         
         return buf;

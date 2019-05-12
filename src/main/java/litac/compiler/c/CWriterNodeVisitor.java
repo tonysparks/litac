@@ -3,10 +3,13 @@
  */
 package litac.compiler.c;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -20,7 +23,9 @@ import litac.ast.Stmt;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
+import litac.checker.Module;
 import litac.checker.Note;
+import litac.checker.Symbol;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.ArrayTypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
@@ -30,11 +35,14 @@ import litac.checker.TypeInfo.TypeKind;
 import litac.compiler.Buf;
 import litac.compiler.CompilationUnit;
 import litac.compiler.c.CTranspiler.COptions;
-import litac.compiler.c.Scope.ScopeType;
 import litac.util.Names;
 import litac.util.Stack;
 
 /**
+ * Writes out the AST nodes into a single C file.  It will place all type
+ * forward declarations at the top, then traverse each module and print out
+ * the implementations, finishing up with the main module.
+ * 
  * @author Tony
  *
  */
@@ -43,22 +51,18 @@ public class CWriterNodeVisitor implements NodeVisitor {
     private COptions options;
     private Buf buf;
     
-    private NameCache names;
     private Set<String> writtenModules;
     private CompilationUnit unit;
+    private Module main;
         
     private Stack<Queue<DeferStmt>> defers;
     
-    private Scope scope;
-    
-    public CWriterNodeVisitor(CompilationUnit unit, NameCache names, COptions options, Buf buf) {
+    public CWriterNodeVisitor(CompilationUnit unit, Module main, COptions options, Buf buf) {
         this.unit = unit;
+        this.main = main;
         this.options = options;
         this.buf = buf;
         
-        this.scope = new Scope(null, "", ScopeType.MODULE);
-        
-        this.names = names;
         this.writtenModules = new HashSet<>();
         this.defers = new Stack<>();
         preface();
@@ -93,13 +97,11 @@ public class CWriterNodeVisitor implements NodeVisitor {
     
     private void writeForwardDecl(Buf buf, String backendName, TypeInfo type) {
         
-        if(isForeign(backendName)) {
+        if(isForeign(type)) {
             return;
         }
         
         String typeName = backendName;
-        String currentModule = Names.moduleFromBackendName(backendName);
-        
         switch(type.getKind()) {
             case Func: {
                 FuncTypeInfo funcInfo = type.as();     
@@ -107,12 +109,12 @@ public class CWriterNodeVisitor implements NodeVisitor {
                     return;
                 }
                 
-                buf.out("%s %s(", getTypeNameForC(funcInfo.returnType, currentModule), typeName);
+                buf.out("%s %s(", getTypeNameForC(funcInfo.returnType), typeName);
                 boolean isFirst = true;                
                 for(ParameterDecl p : funcInfo.parameterDecls) {
                     if(!isFirst) buf.out(",");
                     
-                    buf.out("%s", getTypeNameForC(p.type, currentModule));
+                    buf.out("%s", getTypeNameForC(p.type));
                     
                     isFirst = false;
                 }
@@ -166,26 +168,39 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }
     };
     
-    private void writeForwardDeclarations(Buf buf) {        
-        this.names.getTypes().entrySet()
-                  .stream()
-                  .sorted(comp)
-                  .forEach(type -> writeForwardDecl(buf, type.getKey(), type.getValue()));
+    private void writeForwardDeclarations(Buf buf) {    
+        Map<String, TypeInfo> types = new HashMap<>();
+        writeModuleForwardDecl(buf, this.main, new ArrayList<>(), types);
         
-//        Map<String, TypeInfo> types = this.names.getTypes();
-//        for(Map.Entry<String, TypeInfo> type : types.entrySet()) {
-//            writeForwardDecl(buf, type.getKey(), type.getValue());
-//        }
+        types.entrySet()
+             .stream()
+             .sorted(comp)
+             .forEach(type -> writeForwardDecl(buf, type.getKey(), type.getValue()));        
+    }
+    
+    private void writeModuleForwardDecl(Buf buf, Module module, List<Module> writtenModules, Map<String, TypeInfo> types) {
+        if(writtenModules.contains(module)) {
+            return;
+        }
+        
+        writtenModules.add(module);
+                
+        module.getImports()
+              .stream()
+              .forEach(m -> writeModuleForwardDecl(buf, m, writtenModules, types));
+        
+
+        module.getDeclaredTypes()
+              .forEach(type -> types.put(getTypeNameForC(type), type));
+        
     }
     
     private String typeDeclForC(TypeInfo type, String declName) {
-        String currentModule = this.scope.getName();
-        
         switch (type.getKind()) {
             case Ptr: {
                 PtrTypeInfo ptrInfo = type.as();
                 TypeInfo baseInfo = ptrInfo.getBaseType();
-                String baseName = getTypeNameForC(baseInfo, currentModule);
+                String baseName = getTypeNameForC(baseInfo);
                 
                 StringBuilder sb = new StringBuilder(baseName);
                 do {
@@ -202,7 +217,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();      
                 TypeInfo baseInfo = arrayInfo.getBaseType();
-                String baseName = getTypeNameForC(baseInfo, currentModule);
+                String baseName = getTypeNameForC(baseInfo);
                 
                 StringBuilder sb = new StringBuilder();
                 do {
@@ -223,27 +238,21 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 return String.format("%s %s%s", baseName, declName, sb.toString()); 
             }
             default: {                
-                String typeName = getTypeNameForC(type, currentModule);
+                String typeName = getTypeNameForC(type);
                 return String.format("%s %s", typeName, declName);
             }
         }
     }
     
-    
     private String getTypeNameForC(TypeInfo type) {
-        return getTypeNameForC(type, this.scope.getName());
-    }
-    
-    private String getTypeNameForC(TypeInfo type, String currentModule) {
-        String typeName = type.getName();
         switch (type.getKind()) {
             case Ptr: {
                 PtrTypeInfo ptrInfo = type.as();
-                return getTypeNameForC(ptrInfo.ptrOf, currentModule) + "*";
+                return getTypeNameForC(ptrInfo.ptrOf) + "*";
             }
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();                
-                String name = getTypeNameForC(arrayInfo.arrayOf, currentModule);
+                String name = getTypeNameForC(arrayInfo.arrayOf);
                 if(arrayInfo.length < 0) {
                     return String.format("%s[]", name);
                 }
@@ -251,31 +260,41 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 return String.format("%s[%d]", name, arrayInfo.length);
             }
             default: {
-                return getTypeNameForC(typeName, currentModule);
+                return cTypeName(type);
             }
         }
     }
     
-    private String getTypeNameForC(String typeName) {
-        return getTypeNameForC(typeName, this.scope.getName());
+    private boolean isForeign(TypeInfo type) {
+        if(type.sym == null) {
+            return false;
+        }
+        
+        return type.sym.isForeign();
+    }
+       
+    private String cTypeName(TypeInfo type) {
+        type = type.getResolvedType();
+        if(type.sym == null) {
+            return type.getName();
+        }
+        
+        Symbol sym = type.sym;
+        if(sym.isForeign()) {
+            return type.getName();
+        }
+        
+        return Names.backendName(sym.declared.name(), type.getName());
     }
     
-    private String getTypeNameForC(String typeName, String currentModule) {        
-        if(isForeign(typeName)) {
-            return typeName;
-        }
-                
-        String backendType = this.names.getBackendName(currentModule, typeName);
-        if(backendType != null) {
-            return backendType;
+    private String cName(Symbol sym) {
+        if(sym.isLocal() || sym.isForeign()) {
+            return sym.decl.name;
         }
         
-        return typeName;
+        return Names.backendName(sym.declared.name(), sym.decl.name);
     }
-        
-    private boolean isForeign(String typeName) {
-        return this.names.isForeign(this.scope.getName(), typeName);
-    }
+    
         
     @Override
     public void visit(ModuleStmt stmt) {
@@ -284,7 +303,6 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }
         
         this.writtenModules.add(stmt.name);
-        this.scope = this.scope.pushScope(stmt.name, ScopeType.MODULE);
         
         for(ImportStmt i : stmt.imports) {
             i.visit(this);
@@ -293,16 +311,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
         for(NoteStmt n : stmt.notes) {
             n.visit(this);
         }
-        
-//        for(NoteStmt n : this.module.getNotes()) {
-//            n.visit(this);
-//        }
-        
+                
         for(Decl d : stmt.declarations) {
             d.visit(this);
         }
-        
-        this.scope = this.scope.popScope();
     }
 
     @Override
@@ -382,18 +394,12 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.outln();
 
     }
-
-    private String createName(Decl d) {
-        String name = this.scope.isModuleScope() ? Names.backendName(this.scope.getName(), d.name) : d.name;
-        this.scope.add(d.name);
-        return name;
-    }
     
     @Override
     public void visit(ConstDecl d) {
-        String name = createName(d);
+        String name = cName(d.sym);
         
-        if(isForeign(name)) {
+        if(isForeign(d.type)) {
             return;
         }
         
@@ -404,9 +410,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(EnumDecl d) {
-        String name = createName(d);
+        String name = cName(d.sym);
         
-        if(isForeign(name)) {
+        if(isForeign(d.type)) {
             return;
         }
         
@@ -432,9 +438,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(FuncDecl d) {
-        String name = createName(d);
+        String name = cName(d.sym);
         
-        if(isForeign(name)) {
+        if(isForeign(d.type)) {
             return;
         }
         
@@ -469,9 +475,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(StructDecl d) {
-        String name = createName(d);
+        String name = cName(d.sym);
         
-        if(isForeign(name)) {
+        if(isForeign(d.type)) {
             return;
         }
         
@@ -486,9 +492,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(UnionDecl d) {
-        String name = createName(d);
+        String name = cName(d.sym);
         
-        if(isForeign(name)) {
+        if(isForeign(d.type)) {
             return;
         }
         
@@ -511,9 +517,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(VarDecl d) {
-        String name = createName(d);
+        String name = cName(d.sym);
         
-        if(isForeign(name)) {
+        if(isForeign(d.type)) {
             return;
         }
         
@@ -617,7 +623,6 @@ public class CWriterNodeVisitor implements NodeVisitor {
     @Override
     public void visit(BlockStmt stmt) {
         buf.out("{");
-        this.scope = this.scope.pushLocalScope();
         
         this.defers.add(new LinkedList<>());
         for(Stmt s : stmt.stmts) {
@@ -631,8 +636,6 @@ public class CWriterNodeVisitor implements NodeVisitor {
             outputDefer(this.defers.pop());
         }
         
-        
-        this.scope = this.scope.popScope();
         buf.out("}\n");
     }
 
@@ -770,45 +773,16 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out(")");
     }
 
-
     @Override
     public void visit(IdentifierExpr expr) {
-        ScopeType type = this.scope.lookup(expr.variable);
-        
-        String identifier;
-        if(type == ScopeType.LOCAL) {
-            identifier = expr.variable;
-        }
-        else {
-            identifier = getTypeNameForC(expr.variable);
-        }
-        
-        if(isForeign(identifier)) {
-            buf.out("%s", Names.identifierFrom(identifier));    
-        }
-        else {       
-            buf.out("%s", identifier);
-        }
+        Symbol sym = expr.sym;
+        buf.out("%s", cName(sym));
     }
 
     @Override
-    public void visit(FuncIdentifierExpr expr) {               
-        ScopeType type = this.scope.lookup(expr.variable);
-        
-        String identifier;
-        if(type == ScopeType.LOCAL) {
-            identifier = expr.variable;
-        }
-        else {
-            identifier = getTypeNameForC(expr.variable);
-        }
-        
-        if(isForeign(identifier)) {
-            buf.out("%s", Names.identifierFrom(identifier));    
-        }
-        else {       
-            buf.out("%s", identifier);
-        }
+    public void visit(FuncIdentifierExpr expr) {
+        Symbol sym = expr.sym;
+        buf.out("%s", cName(sym));
     }
 
     @Override
