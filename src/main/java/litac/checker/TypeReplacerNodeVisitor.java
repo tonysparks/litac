@@ -33,23 +33,7 @@ import litac.ast.Expr.SubscriptSetExpr;
 import litac.ast.Expr.UnaryExpr;
 import litac.ast.NodeVisitor;
 import litac.ast.Stmt;
-import litac.ast.Stmt.BlockStmt;
-import litac.ast.Stmt.BreakStmt;
-import litac.ast.Stmt.ContinueStmt;
-import litac.ast.Stmt.DeferStmt;
-import litac.ast.Stmt.DoWhileStmt;
-import litac.ast.Stmt.EmptyStmt;
-import litac.ast.Stmt.ForStmt;
-import litac.ast.Stmt.IfStmt;
-import litac.ast.Stmt.ImportStmt;
-import litac.ast.Stmt.ModuleStmt;
-import litac.ast.Stmt.NoteStmt;
-import litac.ast.Stmt.ParametersStmt;
-import litac.ast.Stmt.ReturnStmt;
-import litac.ast.Stmt.StructFieldStmt;
-import litac.ast.Stmt.UnionFieldStmt;
-import litac.ast.Stmt.VarFieldStmt;
-import litac.ast.Stmt.WhileStmt;
+import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.TypeKind;
 import litac.util.Tuple;
 
@@ -105,7 +89,8 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     }
     
     private TypeInfo replaceType(TypeInfo oldType) {
-        if(oldType.isKind(TypeKind.Any) && this.replacements.stream().anyMatch(t -> t.getFirst().equals(oldType.getName()))) {                 
+        if((oldType.isKind(TypeKind.Any) || oldType.isKind(TypeKind.Identifier)) && 
+            this.replacements.stream().anyMatch(t -> t.getFirst().equals(oldType.getName()))) {                 
             return this.replacements.stream().filter(t -> t.getFirst().equals(oldType.getName())).findFirst().get().getSecond();
         }
         
@@ -127,14 +112,13 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(VarFieldStmt stmt) {
-        // TODO Auto-generated method stub
-
+        stmt.type = replaceType(stmt.type);
     }
 
     @Override
     public void visit(StructFieldStmt stmt) {
-        // TODO Auto-generated method stub
-
+        stmt.decl.type = replaceType(stmt.decl.type);
+        stmt.decl.visit(this);
     }
 
     @Override
@@ -230,8 +214,9 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(StructDecl d) {
-        // TODO Auto-generated method stub
-
+        for(FieldStmt s : d.fields) {
+            s.visit(this);
+        }
     }
 
     @Override

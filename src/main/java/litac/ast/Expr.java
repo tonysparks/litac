@@ -7,8 +7,7 @@ import java.util.List;
 
 import litac.checker.Symbol;
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.StrTypeInfo;
-import litac.checker.TypeInfo.TypeKind;
+import litac.checker.TypeInfo.*;
 import litac.parser.ErrorCode;
 import litac.parser.ParseException;
 import litac.parser.tokens.NumberToken;
@@ -170,6 +169,7 @@ public abstract class Expr extends Stmt {
     public static class InitExpr extends Expr {
         public TypeInfo type;
         public List<InitArgExpr> arguments;
+        public List<TypeInfo> genericArgs;
         
         public InitExpr(TypeInfo type, List<InitArgExpr> arguments) {
             this.type = type;
@@ -182,6 +182,9 @@ public abstract class Expr extends Stmt {
         public void resolveTo(TypeInfo type) {        
             super.resolveTo(type);
             this.type = type;
+            if(type instanceof IdentifierTypeInfo) {
+                this.genericArgs = ((IdentifierTypeInfo)type).genericArgs;
+            }
         }
         
         @Override
@@ -191,7 +194,7 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new InitExpr(this.type.copy(), copy(this.arguments));
+            return new InitExpr(TypeInfo.copy(this.type), copy(this.arguments));
         }
     }
     

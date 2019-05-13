@@ -6,65 +6,13 @@ package litac.checker;
 
 import java.util.List;
 
-import litac.ast.Decl;
-import litac.ast.Decl.ConstDecl;
-import litac.ast.Decl.EnumDecl;
-import litac.ast.Decl.FuncDecl;
-import litac.ast.Decl.ParameterDecl;
-import litac.ast.Decl.StructDecl;
-import litac.ast.Decl.TypedefDecl;
-import litac.ast.Decl.UnionDecl;
-import litac.ast.Decl.VarDecl;
-import litac.ast.Expr;
-import litac.ast.Expr.ArrayInitExpr;
-import litac.ast.Expr.BinaryExpr;
-import litac.ast.Expr.CastExpr;
-import litac.ast.Expr.FuncCallExpr;
-import litac.ast.Expr.FuncIdentifierExpr;
-import litac.ast.Expr.GetExpr;
-import litac.ast.Expr.GroupExpr;
-import litac.ast.Expr.IdentifierExpr;
-import litac.ast.Expr.InitArgExpr;
-import litac.ast.Expr.InitExpr;
-import litac.ast.Expr.NumberExpr;
-import litac.ast.Expr.SetExpr;
-import litac.ast.Expr.SizeOfExpr;
-import litac.ast.Expr.SubscriptGetExpr;
-import litac.ast.Expr.SubscriptSetExpr;
-import litac.ast.Expr.UnaryExpr;
-import litac.ast.Node;
+import litac.ast.*;
+import litac.ast.Decl.*;
+import litac.ast.Expr.*;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
-import litac.ast.Stmt;
-import litac.ast.Stmt.BlockStmt;
-import litac.ast.Stmt.BreakStmt;
-import litac.ast.Stmt.ContinueStmt;
-import litac.ast.Stmt.DeferStmt;
-import litac.ast.Stmt.DoWhileStmt;
-import litac.ast.Stmt.EmptyStmt;
-import litac.ast.Stmt.FieldStmt;
-import litac.ast.Stmt.ForStmt;
-import litac.ast.Stmt.IfStmt;
-import litac.ast.Stmt.ImportStmt;
-import litac.ast.Stmt.ModuleStmt;
-import litac.ast.Stmt.ReturnStmt;
-import litac.ast.Stmt.StructFieldStmt;
-import litac.ast.Stmt.UnionFieldStmt;
-import litac.ast.Stmt.VarFieldStmt;
-import litac.ast.Stmt.WhileStmt;
-import litac.checker.TypeInfo.AnyTypeInfo;
-import litac.checker.TypeInfo.ArrayTypeInfo;
-import litac.checker.TypeInfo.EnumFieldInfo;
-import litac.checker.TypeInfo.EnumTypeInfo;
-import litac.checker.TypeInfo.FieldInfo;
-import litac.checker.TypeInfo.FuncTypeInfo;
-import litac.checker.TypeInfo.GenericTypeInfo;
-import litac.checker.TypeInfo.IdentifierTypeInfo;
-import litac.checker.TypeInfo.PtrTypeInfo;
-import litac.checker.TypeInfo.StructTypeInfo;
-import litac.checker.TypeInfo.TypeKind;
-import litac.checker.TypeInfo.UnionTypeInfo;
-import litac.compiler.CompilationUnit;
-import litac.compiler.CompileException;
+import litac.ast.Stmt.*;
+import litac.checker.TypeInfo.*;
+import litac.compiler.*;
 
 /**
  * Responsible for ensuring each Expr can be resolved down to a {@link TypeInfo}.
@@ -214,13 +162,9 @@ public class TypeResolver {
         private Module module;
         private PhaseResult result;
         
-        private GenericTypeInfo currentGenericType;
-        
         public TypeResolverNodeVisitor(PhaseResult result, Module module) {
             this.result = result;
             this.module = module;
-            
-            this.currentGenericType = null;
         }
         
         private void enterScope() {
@@ -253,20 +197,7 @@ public class TypeResolver {
                     this.result.addError(stmt, "'%s' invalid array length type", type.getName());
             }
         }
-        
-//        private boolean isGenericType(TypeInfo type) {
-//            if(this.currentGenericType != null && 
-//               this.currentGenericType.genericParams.stream().anyMatch(p -> p.name.equals(type.getName()))) {
-//                
-//                IdentifierTypeInfo idType = type.as();
-//                idType.resolve(new AnyTypeInfo(type.getName()));
-//                
-//                return true;
-//            }
-//                
-//            return false;
-//        }
-        
+                
         private TypeInfo getType(Stmt stmt, List<TypeInfo> genericArgs, List<GenericParam> genericParams, TypeInfo expectedType) {
 //            if(!expectedType.isKind(TypeKind.Identifier)) {
 //                return expectedType;
@@ -286,15 +217,22 @@ public class TypeResolver {
             
             return expectedType;
         }
+        
+//        private TypeInfo resolveGenericType(TypeInfo genericType, List<TypeInfo> genericArgs) {
+//            switch(genericType.getKind()) {
+//                case Struct: {
+//                    
+//                    break;
+//                }
+//                default:
+//                    throw new RuntimeException("Not implemented");
+//            }
+//        }
 
         private void resolveType(Stmt stmt, TypeInfo type) {
             if(type == null) {
                 return;
             }
-            
-//            if(isGenericType(type)) {
-//                return;
-//            }
             
             if(!type.isResolved()) {
                 TypeInfo resolvedType = module.getType(type.getName());
@@ -352,10 +290,6 @@ public class TypeResolver {
             if(type == null) {
                 return;
             }
-
-//            if(isGenericType(type)) {
-//                return;
-//            }
             
             if(!type.isResolved()) {                
                 IdentifierTypeInfo idType = type.as();
@@ -552,8 +486,6 @@ public class TypeResolver {
             {
                 FuncTypeInfo funcInfo = d.type.as();
                 if(!funcInfo.hasGenerics()) {                
-                    this.currentGenericType = funcInfo;
-                    
                     resolveType(d, d.returnType);
                     for(ParameterDecl p : d.params.params) {
                         resolveType(p, p.type);
@@ -561,7 +493,6 @@ public class TypeResolver {
                     }
                     
                     d.bodyStmt.visit(this);
-                    this.currentGenericType = null;
                 }
             }
             exitScope();
@@ -675,13 +606,15 @@ public class TypeResolver {
                 e.visit(this);
             }
             
-            TypeInfo type = getAggregateFieldTypeInfo(expr);          
-            if(type == null) {
-                this.result.addError(expr, "'%s' is an unknown type", expr.type);
-                return;
-            }
-            
             if(!expr.type.isResolved()) {
+                TypeInfo type = getAggregateFieldTypeInfo(expr);          
+                if(type == null) {
+                    this.result.addError(expr, "'%s' is an unknown type", expr.type);
+                    return;
+                }
+            
+                //type = GenericsResolver.createGenericTypeInfo(this.module, type, expr.genericArgs);
+                
                 IdentifierTypeInfo idInfo = expr.type.as();
                 idInfo.resolve(type);
             }
@@ -754,9 +687,6 @@ public class TypeResolver {
                     this.result.addError(expr, "unknown function '%s'", expr.variable);
                     return;
                 }
-                
-//                IdentifierTypeInfo type = expr.type.as();
-//                type.resolve(resolvedType);
                 
                 IdentifierTypeInfo type = expr.type.as();
                 type.resolve(resolvedType);

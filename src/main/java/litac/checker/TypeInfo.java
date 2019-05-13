@@ -311,15 +311,16 @@ public abstract class TypeInfo {
     public static class FieldInfo {
         public TypeInfo type;
         public String name;
-        
+        public String genericArg;
         
         /**
          * @param type
          * @param name
          */
-        public FieldInfo(TypeInfo type, String name) {
+        public FieldInfo(TypeInfo type, String name, String genericArg) {
             this.type = type;
             this.name = name;
+            this.genericArg = genericArg;
         }
     }
     
@@ -966,18 +967,20 @@ public abstract class TypeInfo {
     }
     
     public static class IdentifierTypeInfo extends TypeInfo {
+        public List<TypeInfo> genericArgs;
         public TypeInfo resolvedType;
         public String identifier;
         
-        public IdentifierTypeInfo(String identifier) {
+        public IdentifierTypeInfo(String identifier, List<TypeInfo> genericArgs) {
             super(TypeKind.Identifier, identifier);
+            this.genericArgs = genericArgs;
             this.identifier = identifier;
             this.resolvedType = null;
         }
         
         @Override
         public TypeInfo copy() {
-            return new IdentifierTypeInfo(this.identifier);
+            return new IdentifierTypeInfo(this.identifier, copy(this.genericArgs));
         }
         
         @Override
@@ -999,8 +1002,11 @@ public abstract class TypeInfo {
         }
         
         public void resolve(TypeInfo resolvedTo) {
-            this.resolvedType = resolvedTo;
-            //this.sym = resolvedTo.sym;
+            if(resolvedTo != null) {
+                resolvedTo = GenericsResolver.createGenericTypeInfo(resolvedTo, this.genericArgs);
+                this.resolvedType = resolvedTo;
+                //this.sym = resolvedTo.sym; overrides the correct sym for declarations
+            }
         }
         
         @Override
