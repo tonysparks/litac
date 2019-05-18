@@ -34,11 +34,9 @@ public class TypeResolver {
         return resolveModule(this.unit.getMain());
     }
     
-    public PhaseResult resolveStmt(Module module, Stmt stmt) {        
-        TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result, module);
+    public static void resolveStmt(Module module, Stmt stmt) {
+        TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(module.getPhaseResult(), module);
         stmt.visit(checker);
-        
-        return result;
     }
     
     
@@ -157,7 +155,7 @@ public class TypeResolver {
     }
     
     
-    private class TypeResolverNodeVisitor extends AbstractNodeVisitor {
+    private static class TypeResolverNodeVisitor extends AbstractNodeVisitor {
         
         private Module module;
         private PhaseResult result;
@@ -237,7 +235,7 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo idType = type.as();
-                idType.resolve(resolvedType);
+                idType.resolve(this.module, resolvedType);
             }
             else if(type.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = type.as();
@@ -292,6 +290,12 @@ public class TypeResolver {
             for(Decl d : stmt.declarations) {
                 d.visit(this);
             } 
+            
+            for(Decl d : this.module.getGenericTypes()) {
+                d.visit(this);
+            }
+            
+            stmt.declarations.addAll(0, this.module.getGenericTypes());
             
             exitScope();
         }
@@ -561,7 +565,7 @@ public class TypeResolver {
                 }
             
                 IdentifierTypeInfo idInfo = expr.type.as();
-                idInfo.resolve(type);
+                idInfo.resolve(this.module, type);
             }
         }
 
@@ -617,7 +621,7 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(sym.type);
+                type.resolve(this.module, sym.type);
                 expr.declType = sym.decl;
                 expr.sym = sym;
             }
@@ -634,10 +638,12 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(resolvedType);
-                if(resolvedType.sym != null) {
-                    expr.declType = resolvedType.sym.decl;
-                    expr.sym = resolvedType.sym;
+                type.resolve(this.module, resolvedType);
+
+                TypeInfo newType = type.getResolvedType();
+                if(newType.sym != null) {
+                    expr.declType = newType.sym.decl;
+                    expr.sym = newType.sym;
                 }
             }
         }

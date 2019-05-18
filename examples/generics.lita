@@ -1,6 +1,6 @@
 import "io";
 
-/*
+
 func <T>Max(a: T, b: T) : T {
     if(a.v > b.v) return a
     return b
@@ -18,8 +18,6 @@ struct Vec {
 struct Vax {
     v: i32
 }
-*/
-
 
 struct <T>Vec2 {
 	x: T
@@ -33,6 +31,9 @@ struct <T>Vec2 {
 }
 
 func main(len:i32, args:char**):i32 {
+	
+	var jorb : <i32>Vec2
+	var m2 = <<i32>Vec2>Max2(jorb, jorb)
 	
 	/*
     var m = <i32>Max2(32_i32, 42_i32)
@@ -48,7 +49,7 @@ func main(len:i32, args:char**):i32 {
 	*/
 	// typeResolver runs with the pending type, doesn't
 	// get updated using the correct resolved type
-	//var v : <i32>Vec2
+	//var jorb : <i32>Vec2
 	var vec : <f32>Vec2 = <f32>Vec2 { 3_f32, 4_f32 }
 	
 	/*

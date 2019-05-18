@@ -49,6 +49,8 @@ public class Module {
     
     private List<NoteStmt> notes;
     
+    private List<Decl> genericTypes;
+    
     private PhaseResult result;
     
     
@@ -71,9 +73,14 @@ public class Module {
         this.importedFuncTypes = new HashMap<>();
         this.importedAggregateTypes = new HashMap<>();
         
+        this.genericTypes = new ArrayList<>();
         this.notes = new ArrayList<>();
         
         this.currentScope = new Scope(result, ScopeType.MODULE);
+    }
+
+    public PhaseResult getPhaseResult() {
+        return result;
     }
     
     public ModuleStmt getModuleStmt() {
@@ -283,7 +290,19 @@ public class Module {
             return this.enumTypes.get(typeName);
         }
         
+        if(this.funcTypes.containsKey(typeName)) {
+            return this.funcTypes.get(typeName);
+        }
+        
         return null;
+    }
+    
+    public void addGenericType(Decl decl) {
+        this.genericTypes.add(decl);
+    }
+    
+    public List<Decl> getGenericTypes() {
+        return this.genericTypes;
     }
             
     public Scope pushScope() {

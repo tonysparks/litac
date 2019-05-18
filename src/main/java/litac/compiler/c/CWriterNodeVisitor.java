@@ -318,9 +318,34 @@ public class CWriterNodeVisitor implements NodeVisitor {
             n.visit(this);
         }
                 
-        for(Decl d : stmt.declarations) {
-            d.visit(this);
-        }
+        
+        //
+        // TODO: Do proper dependency ordering from all modules
+        //
+        stmt.declarations
+            .stream()            
+            .sorted((a,b) -> {
+                if(a.equals(b)) {
+                    return 0;
+                }
+                
+                TypeKind aKind = a.type.getKind();
+                TypeKind bKind = b.type.getKind();
+                
+                if(aKind == TypeKind.Func) {
+                    if(bKind == TypeKind.Func) {
+                        return 0;
+                    }
+                    return 1;
+                }
+                else {
+                    if(bKind == TypeKind.Func) {
+                        return -1;
+                    }
+                }
+                return 0;
+            })
+            .forEach(d -> d.visit(this));        
     }
 
     @Override

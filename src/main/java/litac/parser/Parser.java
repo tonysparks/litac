@@ -711,6 +711,7 @@ public class Parser {
     private Expr bitShift() {
         Expr expr = term();
         
+        // TODO: Disambiguiate << because of generics
         while(match(LSHIFT, RSHIFT)) {
             Token operator = previous();
             Expr right = term();

@@ -7,7 +7,6 @@ import java.io.File;
 
 import litac.Errors;
 import litac.ast.Stmt;
-import litac.checker.GenericsResolver;
 import litac.checker.Module;
 import litac.checker.PhaseResult;
 import litac.checker.PhaseResult.PhaseError;
@@ -47,15 +46,10 @@ public class Compiler {
     }
     
     private Module typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
-        GenericsResolver generics = new GenericsResolver(unit);        
         TypeResolver resolver = new TypeResolver(result, unit);        
         TypeChecker checker = new TypeChecker(result);
                 
         Module main = resolver.resolveTypes();
-        if(!result.hasErrors()) {
-            generics.applyGenerics(resolver, main);
-        }
-        
         if(!result.hasErrors()) {
             checker.typeCheck(main);
         }
