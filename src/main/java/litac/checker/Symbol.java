@@ -45,4 +45,11 @@ public class Symbol {
     public boolean isForeign() {
         return (this.flags & IS_FOREIGN) > 0;
     }
+    
+    /**
+     * @return true if this symbol was defined as a constant
+     */
+    public boolean isConstant() {
+        return (this.flags & IS_CONSTANT) > 0;
+    }
 }
