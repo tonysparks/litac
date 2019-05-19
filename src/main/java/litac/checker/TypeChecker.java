@@ -285,8 +285,6 @@ public class TypeChecker {
             }
         }
 
-        
-
         @Override
         public void visit(FuncDecl d) {
             FuncTypeInfo funcInfo = d.type.as();
@@ -565,6 +563,17 @@ public class TypeChecker {
             expr.expr.visit(this);
         }
 
+        private void checkConstant(Expr expr) {
+            if(expr instanceof IdentifierExpr) {
+                IdentifierExpr idExpr = (IdentifierExpr)expr;
+                if(idExpr.sym != null) {
+                    if(idExpr.sym.isConstant()) {
+                        this.result.addError(expr, "can't reassign constant variable '%s'", expr.getResolvedType().getName());
+                    }
+                }
+            }
+        }
+        
         @Override
         public void visit(BinaryExpr expr) {
             expr.left.visit(this);
@@ -578,19 +587,25 @@ public class TypeChecker {
             
             
             switch(expr.operator) {
+                case EQUALS: {                    
+                    checkConstant(expr.left);
+                    break;
+                }
             
-                case BAND:
                 case BAND_EQ:
-                case BNOT:
                 case BNOT_EQ:
-                case BOR:
                 case BOR_EQ:
-                case XOR:
                 case XOR_EQ:
-                case LSHIFT:
                 case LSHIFT_EQ:
-                case RSHIFT:
-                case RSHIFT_EQ: {
+                case RSHIFT_EQ: 
+                    checkConstant(expr.left);
+                    // fallthru
+                case BAND:
+                case BNOT:
+                case BOR:
+                case XOR:
+                case LSHIFT:
+                case RSHIFT: {
                     if(!TypeInfo.isInteger(leftType)) {
                         this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getResolvedType().getName());
                     }
@@ -623,16 +638,18 @@ public class TypeChecker {
                     
                     break;
                 
-                case MINUS:
                 case MINUS_EQ:
-                case PLUS:
                 case PLUS_EQ:
-                case MOD:
                 case MOD_EQ:
-                case STAR:
                 case MUL_EQ:
-                case SLASH:
                 case DIV_EQ:
+                    checkConstant(expr.left);
+                    // fallthru
+                case MINUS:
+                case PLUS:
+                case MOD:
+                case STAR:
+                case SLASH:
                     
                     if(!TypeInfo.isNumber(leftType) && !leftType.isKind(TypeKind.Ptr) && !leftType.isKind(TypeKind.Str)) {
                         this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getResolvedType().getName());

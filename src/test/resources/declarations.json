@@ -201,6 +201,22 @@
 				var y = TypeInfo.Float as i32
 				assert(x.TypeInfo == TypeInfo.Int)
 			'''
+		},
+		{
+			name: "Constant",					
+			code: '''
+				const x = 1024				
+				assert(x == 1024)
+			'''
+		},
+		{
+			name: "Constant reassign",					
+			code: '''
+				const x = 1024
+				x = 10
+				assert(x == 1024)
+			''',
+			error: "can't reassign constant variable 'x'"
 		}
 	]
 }
