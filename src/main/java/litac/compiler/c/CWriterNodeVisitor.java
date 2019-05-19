@@ -91,6 +91,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out("typedef uint64_t u64; \n");
         buf.out("typedef float    f32; \n");
         buf.out("typedef double   f64; \n");
+        buf.out("typedef int8_t   bool; \n");
         buf.out("#define true 1\n");
         buf.out("#define false 0\n");
         buf.outln();

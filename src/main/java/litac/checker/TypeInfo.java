@@ -94,6 +94,7 @@ public abstract class TypeInfo {
                 return isUnsignedInteger(idType.getResolvedType());
             }
             case Any:
+            case bool:
             case u128:
             case u16:
             case u32:
@@ -113,6 +114,7 @@ public abstract class TypeInfo {
                 return isSignedInteger(idType.getResolvedType());
             }
             case Any:
+            case bool:
             case Char:
             case Enum:
             case i128:
@@ -133,6 +135,7 @@ public abstract class TypeInfo {
                 return isInteger(idType.getResolvedType());
             }
             case Any:
+            case bool:
             case Char:
             case Enum:
             case i128:
@@ -159,6 +162,7 @@ public abstract class TypeInfo {
                 return isNumber(idType.getResolvedType());
             }
             case Any:
+            case bool:
             case Char:
             case Enum:
             case i128:

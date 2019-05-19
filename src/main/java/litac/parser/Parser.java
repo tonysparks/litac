@@ -711,7 +711,28 @@ public class Parser {
     private Expr bitShift() {
         Expr expr = term();
         
-        // TODO: Disambiguiate << because of generics
+        // Due to generics, we must see if we have a bit shift left operator
+        // if we are in an expression, there must be a space between a generic
+        // start and a less than operator, otherwise this will think its a bit shift
+        // left.
+        if(check(LESS_THAN)) {
+            Token prevToken = advance();
+            if(check(LESS_THAN)) {
+                Token nextToken = advance();
+                if(nextToken.getPosition() - prevToken.getPosition() == 1) {
+                    Expr right = term();
+                    return node(new BinaryExpr(expr, TokenType.LSHIFT, right));
+                }
+                else {
+                    rewind();
+                    rewind();
+                }
+            }
+            else {
+                rewind();
+            }
+        }
+        
         while(match(LSHIFT, RSHIFT)) {
             Token operator = previous();
             Expr right = term();

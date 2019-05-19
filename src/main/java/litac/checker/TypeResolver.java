@@ -295,7 +295,7 @@ public class TypeResolver {
                 d.visit(this);
             }
             
-            stmt.declarations.addAll(0, this.module.getGenericTypes());
+            stmt.declarations.addAll(this.module.getGenericTypes());
             
             exitScope();
         }
