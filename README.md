@@ -1,4 +1,4 @@
-# litac
+# LitaC
 LitaC (pronounced Lee-ta-see) is a C like language.  In fact, its main goal is to be C with some minor syntax sugar.  It compiles to ISO-C99 - so it's fairly 
 easy to use C libraries.
 
@@ -78,10 +78,10 @@ import "io"
 
 func main(len:i32, args:char**):i32 {
 	if (true) {
-		io:printf("Hi")
+		io::printf("Hi")
 	}
 	else {
-		io:printf("Bye")
+		io::printf("Bye")
 	}
 	
 	var i = 0
