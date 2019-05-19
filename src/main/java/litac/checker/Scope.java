@@ -45,6 +45,10 @@ public class Scope {
     }
     
     public Symbol addSymbol(Module module, Decl decl, String symbolName, TypeInfo type) {
+        return addSymbol(module, decl, symbolName, type, false);
+    }
+    
+    public Symbol addSymbol(Module module, Decl decl, String symbolName, TypeInfo type, boolean isConstant) {
         if(this.symbols.containsKey(symbolName)) {
             this.result.addError(decl, "symbol '%s' already defined", symbolName);
         }
@@ -56,6 +60,10 @@ public class Scope {
         
         if(isForeign(decl)) {
             flags |= Symbol.IS_FOREIGN;
+        }
+        
+        if(isConstant) {
+            flags |= Symbol.IS_CONSTANT;
         }
         
         Symbol sym = new Symbol(decl, type, module, flags);

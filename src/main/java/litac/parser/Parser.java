@@ -325,12 +325,9 @@ public class Parser {
     
     private EnumDecl enumDeclaration() {
         source();
-        
-        String enumName = null;
-        if(check(IDENTIFIER)) {
-            Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-            enumName = identifier.getText();
-        }
+
+        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        String enumName = identifier.getText();
         
         consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
         
@@ -447,6 +444,12 @@ public class Parser {
                 
                 UnionDecl union = unionDeclaration();
                 return node(new UnionFieldStmt(union));                
+            }
+            case ENUM: {
+                advance();
+                
+                EnumDecl enm = enumDeclaration();
+                return node(new EnumFieldStmt(enm));
             }
             default:
                 throw error(peek(), ErrorCode.INVALID_FIELD);

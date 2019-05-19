@@ -141,10 +141,6 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 }
                 break;
             }
-            case Enum: {
-                buf.out("typedef enum %s %s;\n", typeName, typeName);
-                break;
-            }
             default: {
                // throw new CompileException(String.format("Unsupported forward type declaration '%s'", type.getName()));
             }
@@ -247,6 +243,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }
             case Str: {
                 return String.format("char* %s", declName);
+            }
+            case Enum: {
+                String typeName = getTypeNameForC(type);
+                return String.format("enum %s %s", typeName, declName);
             }
             default: {                
                 String typeName = getTypeNameForC(type);
@@ -428,7 +428,26 @@ public class CWriterNodeVisitor implements NodeVisitor {
             buf.out("} %s;\n", stmt.decl.name);
         }
         buf.outln();
-
+    }
+    
+    @Override
+    public void visit(EnumFieldStmt stmt) {
+        buf.outln();
+        
+        buf.out("enum %s {", stmt.decl.type.getName());  
+        boolean isFirst = true;
+        for(EnumFieldInfo f : stmt.decl.fields) {
+            if(!isFirst) buf.out(",\n");
+            isFirst = false;
+            buf.out("%s", f.name);
+            if(f.value != null) {
+                buf.out(" = ");
+                f.value.visit(this);
+            }
+        }                    
+        buf.out("} %s;\n", stmt.decl.name);
+        
+        buf.outln();
     }
     
     @Override
@@ -456,15 +475,13 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out("enum %s {", name);
         boolean isFirst = true;
         for(EnumFieldInfo f : d.fields) {
-            if(!isFirst) buf.out(",");
+            if(!isFirst) buf.out(",\n");
             
             buf.out("%s", f.name);
             if(f.value != null) {
                 buf.out(" = ");
                 f.value.visit(this);
-            }
-            buf.out("\n");
-            
+            }                        
             isFirst = false;
         }            
         buf.out("};");
@@ -742,9 +759,8 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out(" {");
         boolean isFirst = true;
         for(Expr e : expr.arguments) {
-            if(!isFirst) buf.out(",");
-            e.visit(this);
-            buf.out("\n");
+            if(!isFirst) buf.out(",\n");
+            e.visit(this);            
             isFirst = false;
         }
         buf.out("}");
@@ -851,14 +867,17 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(GetExpr expr) {
-        expr.object.visit(this);
-        if(expr.object.getResolvedType().isKind(TypeKind.Ptr)) {
-            buf.out("->");
+        if(!expr.object.getResolvedType().isKind(TypeKind.Enum)) {
+            expr.object.visit(this);
+            if(expr.object.getResolvedType().isKind(TypeKind.Ptr)) {
+                buf.out("->");
+            }
+            else {
+                buf.out(".");
+            }
         }
-        else {
-            buf.out(".");
-        }
-        buf.out("%s", expr.field.name);
+        
+        buf.out("%s", expr.field.name);        
     }
     
     @Override

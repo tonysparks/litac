@@ -148,6 +148,59 @@
 				assert(x.X.v == 4)
 				assert(x.age == 56_i64)  
 			'''
+		},
+		{
+			name: "Enum",
+			definitions: '''				
+				enum TypeInfo {
+					Int = 0,
+					Float,
+					Double
+				}
+							
+			''',			
+			code: '''
+				var x: TypeInfo = TypeInfo.Int
+				assert(x == TypeInfo.Int)  
+			'''
+		},
+		{
+			name: "Enum different args",
+			definitions: '''				
+				enum TypeInfo {
+					Int = 12,
+					Float = 54,
+					Double = 166
+				}
+							
+			''',			
+			code: '''
+				var x = TypeInfo.Int
+				var y = TypeInfo.Float as i32
+				assert(x == TypeInfo.Int)  
+				assert(y == 54)
+				assert(TypeInfo.Int as i32 == 12)
+				assert(TypeInfo.Float as i32 == 54)
+				assert(TypeInfo.Double as i32 == 166)
+			'''
+		},
+		{
+			name: "Enum in struct",
+			definitions: '''	
+				struct Type {			
+					enum TypeInfo {
+						Int = 12,
+						Float = 54,
+						Double = 166
+					}
+				}
+							
+			''',			
+			code: '''
+				var x = Type{TypeInfo.Int}
+				var y = TypeInfo.Float as i32
+				assert(x.TypeInfo == TypeInfo.Int)
+			'''
 		}
 	]
 }
