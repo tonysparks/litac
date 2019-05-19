@@ -77,7 +77,7 @@ func main(len:i32, args:char**):i32 {
 import "io"
 
 func main(len:i32, args:char**):i32 {
-	if true {
+	if (true) {
 		io:printf("Hi")
 	}
 	else {
@@ -85,27 +85,27 @@ func main(len:i32, args:char**):i32 {
 	}
 	
 	var i = 0
-	while i < 10 {
+	while (i < 10) {
 		if i % 2 == 0 {
-			break;
+			break
 		}
 		else {
 			i += 1
-			continue;
+			continue
 		}
 	}
 	
 	i = 0
 	do {
 		if i % 2 == 0 {
-			break;
+			break
 		}
 		else {
 			i += 1
-			continue;
+			continue
 		}
 	}
-	while i < 10
+	while (i < 10)
 }
 ```
 

@@ -448,10 +448,10 @@ public class TypeResolver {
 
         @Override
         public void visit(StructDecl d) {
-//            StructTypeInfo structInfo = d.type.as();
-//            if(structInfo.hasGenerics()) {
-//                return;
-//            }
+            StructTypeInfo structInfo = d.type.as();
+            if(structInfo.hasGenerics()) {
+                return;
+            }
             
             resolveType(d, d.type);
             
@@ -467,10 +467,10 @@ public class TypeResolver {
 
         @Override
         public void visit(UnionDecl d) {
-//            UnionTypeInfo unionInfo = d.type.as();
-//            if(unionInfo.hasGenerics()) {
-//                return;
-//            }
+            UnionTypeInfo unionInfo = d.type.as();
+            if(unionInfo.hasGenerics()) {
+                return;
+            }
             
             resolveType(d, d.type);
             
@@ -738,10 +738,6 @@ public class TypeResolver {
                     }
                     break;
                 }
-                case Any: {
-                    expr.resolveTo(new AnyTypeInfo(field.getName()));
-                    break;
-                }
                 default: {
                     this.result.addError(expr, "'%s' is an invalid type for aggregate access", type.getName());
                 }
@@ -781,18 +777,22 @@ public class TypeResolver {
             
             switch(expr.operator) {
                 case STAR: {
-                    TypeInfo type = expr.expr.getResolvedType();
-                    if(!type.isKind(TypeKind.Ptr)) {
+                    TypeInfo type = expr.expr.getResolvedType().getResolvedType();
+                    if(type.isKind(TypeKind.Ptr)) {
+                        PtrTypeInfo ptrInfo = type.as();
+                        expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
+                    }
+                    else if(type.isKind(TypeKind.Str)) {
+                        expr.resolveTo(type);
+                    }
+                    else {
                         this.result.addError(expr, "'%s' is not a pointer type", type);
-                        return;
                     }
                     
-                    PtrTypeInfo ptrInfo = type.as();
-                    expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
                     break;
                 }
                 case BAND: {
-                    TypeInfo type = expr.expr.getResolvedType();
+                    TypeInfo type = expr.expr.getResolvedType().getResolvedType();
                     PtrTypeInfo ptrInfo = new PtrTypeInfo(type);
                     expr.resolveTo(ptrInfo);
                     break;

@@ -35,6 +35,7 @@ public class Parser {
     private int anonStructId;
     private int anonUnionId;
     private int loopLevel;
+    private int aggregateLevel;
     
     private final Scanner scanner;
     private final List<Token> tokens;
@@ -221,14 +222,17 @@ public class Parser {
     
     private StructDecl structDeclaration() {
         source();
-
+        
         List<GenericParam> genericParams = Collections.emptyList();
         if(match(LESS_THAN)) {
             genericParams = genericParameters();
         }
         
         Token start = peek();
-        boolean isAnon = false;
+        int flags = 0;
+        if(this.aggregateLevel > 0) {
+            flags |= AggregateTypeInfo.IS_EMBEDDED;
+        }
         
         String structName = null;
         if(check(IDENTIFIER)) {
@@ -237,10 +241,11 @@ public class Parser {
         }
         else {
             structName = String.format("<anonymous-struct-%d>", anonStructId++);
-            isAnon = true;
+            flags |= AggregateTypeInfo.IS_ANONYMOUS;
         }
                 
         List<FieldStmt> fields = new ArrayList<>();
+        this.aggregateLevel++;
         
         if(!match(SEMICOLON)) {        
             consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
@@ -258,10 +263,10 @@ public class Parser {
             while(!isAtEnd());
             consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         }
+        this.aggregateLevel--;
         
         List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new StructTypeInfo(structName, genericParams, typeFields, isAnon);
-        
+        TypeInfo type = new StructTypeInfo(structName, genericParams, typeFields, flags);
         
         return node(new StructDecl(structName, type, fields));
     }
@@ -275,7 +280,10 @@ public class Parser {
         }
         
         Token start = peek();
-        boolean isAnon = false;
+        int flags = 0;
+        if(this.aggregateLevel > 0) {
+            flags |= AggregateTypeInfo.IS_EMBEDDED;
+        }
         
         String unionName = null;
         if(check(IDENTIFIER)) {
@@ -284,10 +292,11 @@ public class Parser {
         }
         else {
             unionName = String.format("<anonymous-union-%d>", anonUnionId++);
-            isAnon = true;
+            flags |= AggregateTypeInfo.IS_ANONYMOUS;
         }
         
         List<FieldStmt> fields = new ArrayList<>();
+        this.aggregateLevel++;
         
         if(!match(SEMICOLON)) {        
             consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
@@ -305,9 +314,10 @@ public class Parser {
             while(!isAtEnd());
             consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         }
+        this.aggregateLevel--;
         
         List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new UnionTypeInfo(unionName, genericParams, typeFields, isAnon);
+        TypeInfo type = new UnionTypeInfo(unionName, genericParams, typeFields, flags);
         
         
         return node(new UnionDecl(unionName, type, fields));
@@ -454,8 +464,10 @@ public class Parser {
         return new EnumFieldInfo(identifier.getText(), expr);
     }
     
-    private IfStmt ifStmt() {        
+    private IfStmt ifStmt() {     
+        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         Stmt thenStmt = statement();
         Stmt elseStmt = null;
@@ -469,7 +481,9 @@ public class Parser {
     private WhileStmt whileStmt() {       
         this.loopLevel++;
         
+        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         Stmt bodyStmt = statement();
         this.loopLevel--;
@@ -482,7 +496,9 @@ public class Parser {
         Stmt bodyStmt = statement();
         
         consume(WHILE, ErrorCode.MISSING_COLON);
+        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         this.loopLevel--;
         
@@ -490,11 +506,13 @@ public class Parser {
     }
     
     private ForStmt forStmt() {        
+        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Stmt initStmt = statement();    
         consume(SEMICOLON, ErrorCode.MISSING_SEMICOLON);
         Expr condExpr = expression();
         consume(SEMICOLON, ErrorCode.MISSING_SEMICOLON);
         Stmt postStmt = statement();
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         this.loopLevel++;
         Stmt bodyStmt = statement();
@@ -769,9 +787,6 @@ public class Parser {
             Expr right = unary();
             return node(new UnaryExpr(operator.getType(), right)); 
         }
-        else if(match(LEFT_PAREN)) {
-            return cast();
-        }
         else if(match(SIZEOF)) {
             return sizeof();
         }
@@ -779,10 +794,8 @@ public class Parser {
         return functionCall();
     }
     
-    private Expr cast() {
-        TypeInfo castTo = type();
-        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        Expr expr = expression();
+    private Expr cast(Expr expr) {
+        TypeInfo castTo = type();        
         return node(new CastExpr(castTo, expr));
     }
     
@@ -834,6 +847,9 @@ public class Parser {
                 Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);                
                 expr = node(new GetExpr(expr, new IdentifierTypeInfo(name.getText(), Collections.emptyList())));
             }
+            else if(match(AS)) {
+                expr = cast(expr);
+            }
             else {
                 break;
             }
@@ -851,6 +867,7 @@ public class Parser {
         
         if(match(NUMBER))  return node(new NumberExpr((NumberToken)previous()));        
         if(match(STRING))  return node(new StringExpr(previous().getValue().toString()));
+        if(match(CHAR))    return node(new CharExpr(previous().getValue().toString()));
                 
         if(match(LEFT_PAREN))   return groupExpr();
         if(check(LEFT_BRACKET)) return arrayInitExpr();

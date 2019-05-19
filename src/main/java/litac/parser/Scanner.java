@@ -6,14 +6,7 @@ import static litac.parser.Source.EOL;
 import java.util.ArrayList;
 import java.util.List;
 
-import litac.parser.tokens.EofToken;
-import litac.parser.tokens.ErrorToken;
-import litac.parser.tokens.NumberToken;
-import litac.parser.tokens.SpecialSymbolToken;
-import litac.parser.tokens.StringToken;
-import litac.parser.tokens.Token;
-import litac.parser.tokens.TokenType;
-import litac.parser.tokens.WordToken;
+import litac.parser.tokens.*;
 
 
 /**
@@ -104,6 +97,9 @@ public class Scanner {
         }
         else if (currentChar == StringToken.STRING_CHAR) {
             token = new StringToken(source);
+        }
+        else if (currentChar == CharToken.CHARACTER_CHAR) {
+            token = new CharToken(source);
         }
         else if (TokenType.SPECIAL_SYMBOLS
                  .containsKey(Character.toString(currentChar))) {

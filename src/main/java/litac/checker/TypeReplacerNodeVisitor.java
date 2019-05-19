@@ -11,30 +11,12 @@ import litac.ast.Decl.StructDecl;
 import litac.ast.Decl.TypedefDecl;
 import litac.ast.Decl.UnionDecl;
 import litac.ast.Decl.VarDecl;
+import litac.ast.Expr.*;
 import litac.ast.Expr;
-import litac.ast.Expr.ArrayInitExpr;
-import litac.ast.Expr.BinaryExpr;
-import litac.ast.Expr.BooleanExpr;
-import litac.ast.Expr.CastExpr;
-import litac.ast.Expr.FuncCallExpr;
-import litac.ast.Expr.FuncIdentifierExpr;
-import litac.ast.Expr.GetExpr;
-import litac.ast.Expr.GroupExpr;
-import litac.ast.Expr.IdentifierExpr;
-import litac.ast.Expr.InitArgExpr;
-import litac.ast.Expr.InitExpr;
-import litac.ast.Expr.NullExpr;
-import litac.ast.Expr.NumberExpr;
-import litac.ast.Expr.SetExpr;
-import litac.ast.Expr.SizeOfExpr;
-import litac.ast.Expr.StringExpr;
-import litac.ast.Expr.SubscriptGetExpr;
-import litac.ast.Expr.SubscriptSetExpr;
-import litac.ast.Expr.UnaryExpr;
 import litac.ast.NodeVisitor;
 import litac.ast.Stmt;
 import litac.ast.Stmt.*;
-import litac.checker.TypeInfo.TypeKind;
+import litac.checker.TypeInfo.*;
 import litac.util.Tuple;
 
 
@@ -49,9 +31,10 @@ import litac.util.Tuple;
 public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     private List<Tuple<String, TypeInfo>> replacements;
+    private List<FieldInfo> fieldInfos;
     
-    
-    public TypeReplacerNodeVisitor(List<Tuple<String, TypeInfo>> replacements) {
+    public TypeReplacerNodeVisitor(List<FieldInfo> fieldInfos, List<Tuple<String, TypeInfo>> replacements) {
+        this.fieldInfos = fieldInfos;
         this.replacements = replacements;
     }
     
@@ -76,7 +59,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     private Expr replaceType(Expr expr) {
         TypeInfo oldType = expr.getResolvedType();
         if(oldType != null) {
-            if(oldType.isKind(TypeKind.Any) && this.replacements.stream().anyMatch(t -> t.getFirst().equals(oldType.getName()))) {                 
+            if(this.replacements.stream().anyMatch(t -> t.getFirst().equals(oldType.getName()))) {                 
                 expr.resolveTo(this.replacements.stream().filter(t -> t.getFirst().equals(oldType.getName())).findFirst().get().getSecond());
             }
         }
@@ -89,10 +72,20 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     }
     
     private TypeInfo replaceType(TypeInfo oldType) {
-        if((oldType.isKind(TypeKind.Any) || oldType.isKind(TypeKind.Identifier)) && 
+        if(oldType.isKind(TypeKind.Identifier) && 
             this.replacements.stream().anyMatch(t -> t.getFirst().equals(oldType.getName()))) {                 
             return this.replacements.stream().filter(t -> t.getFirst().equals(oldType.getName())).findFirst().get().getSecond();
         }
+//        else if(oldType.isKind(TypeKind.Union)) {
+//            UnionTypeInfo unionInfo = oldType.as();
+//            if(unionInfo.hasGenerics()) {
+//                for(FieldInfo f : unionInfo.fieldInfos) {
+//                    f.type = replaceType(f.type);
+//                }
+//                
+//                unionInfo.genericParams.clear();
+//            }
+//        }
         
         return oldType;
     }
@@ -117,14 +110,30 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(StructFieldStmt stmt) {
+        for(FieldInfo f : this.fieldInfos) {
+            if(f.name.equals(stmt.decl.name)) {
+                stmt.decl = (StructDecl)f.type.sym.decl;
+                stmt.decl.name = f.name;
+                return;
+            }
+        }
+        
         stmt.decl.type = replaceType(stmt.decl.type);
         stmt.decl.visit(this);
     }
 
     @Override
     public void visit(UnionFieldStmt stmt) {
-        // TODO Auto-generated method stub
-
+        for(FieldInfo f : this.fieldInfos) {
+            if(f.name.equals(stmt.decl.name)) {
+                stmt.decl = (UnionDecl)f.type.sym.decl;
+                stmt.decl.name = f.name;
+                return;
+            }
+        }
+        
+        stmt.decl.type = replaceType(stmt.decl.type);
+        stmt.decl.visit(this);
     }
 
     @Override
@@ -280,6 +289,10 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(StringExpr expr) {
+    }
+    
+    @Override
+    public void visit(CharExpr expr) {
     }
 
     @Override

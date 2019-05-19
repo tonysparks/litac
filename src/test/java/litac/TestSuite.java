@@ -28,6 +28,7 @@ public class TestSuite {
     public static class TestCase {
         public String name;
         public String code;
+        public String definitions = "";
         public String error;
     }
     
@@ -42,6 +43,11 @@ public class TestSuite {
         ObjectMapper mapper = new ObjectMapper();
         TestSuite suite = mapper.readValue(json, TestSuite.class);
         
+        
+        ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
+        PrintStream pStream = new PrintStream(errorStream, true, "UTF-8");
+        System.setErr(pStream);
+        
         File outputDir = new File(System.getProperty("user.dir") + "/output_tests");
         if(!outputDir.exists()) {
             assertTrue(outputDir.mkdirs());
@@ -50,7 +56,9 @@ public class TestSuite {
         System.out.println("Running suite: " + suite.description);
         for(TestCase test: suite.tests) {
             System.out.println("Running test: " + test.name);
-            String fullProgram = suite.program.replace("%test%", test.code);
+            String fullProgram = suite.program
+                                        .replace("%definitions%", test.definitions)
+                                        .replace("%test%", test.code);
             
             File tmp = new File(outputDir, test.name.replace(" ", "_") + ".lita");            
             Files.write(tmp.toPath(), fullProgram.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -68,11 +76,12 @@ public class TestSuite {
                 if(result.hasErrors()) {
                     assertNotNull(test.error);
                     
-                    for(PhaseError error : result.getErrors()) {
-                        Errors.typeCheckError(error.stmt, error.message);
+                    for(PhaseError error : result.getErrors()) {                        
                         assertTrue(error.message.contains(test.error));        
                     }            
                 } 
+                
+                assertTrue(errorStream.toString("UTF-8").isEmpty());
             }
             catch(Exception e) {
                 if(test.error == null) {

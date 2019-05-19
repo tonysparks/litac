@@ -541,8 +541,8 @@ public class TypeChecker {
             
             switch(expr.operator) {
                 case STAR: {
-                    TypeInfo type = expr.expr.getResolvedType();
-                    if(!type.isKind(TypeKind.Ptr)) {
+                    TypeInfo type = expr.expr.getResolvedType().getResolvedType();
+                    if(!type.isKind(TypeKind.Ptr) && !type.isKind(TypeKind.Str)) {
                         this.result.addError(expr, "'%s' is not a pointer type", type);
                         return;
                     }
@@ -627,11 +627,11 @@ public class TypeChecker {
                 case SLASH:
                 case DIV_EQ:
                     
-                    if(!TypeInfo.isNumber(leftType) && !leftType.isKind(TypeKind.Ptr)) {
+                    if(!TypeInfo.isNumber(leftType) && !leftType.isKind(TypeKind.Ptr) && !leftType.isKind(TypeKind.Str)) {
                         this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getResolvedType().getName());
                     }
                     
-                    if(!TypeInfo.isNumber(rightType) && !rightType.isKind(TypeKind.Ptr)) {
+                    if(!TypeInfo.isNumber(rightType) && !rightType.isKind(TypeKind.Ptr) && !rightType.isKind(TypeKind.Str)) {
                         this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getResolvedType().getName());
                     }
                     
