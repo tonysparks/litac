@@ -3,9 +3,9 @@
  */
 package litac.ast;
 
-import litac.ast.Stmt.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
+import litac.ast.Stmt.*;
 
 /**
  * @author Tony
@@ -19,6 +19,7 @@ public interface NodeVisitor {
     void visit(VarFieldStmt stmt);
     void visit(StructFieldStmt stmt);
     void visit(UnionFieldStmt stmt);
+    void visit(EnumFieldStmt stmt);
     void visit(IfStmt stmt);
     void visit(WhileStmt stmt);
     void visit(DoWhileStmt stmt);
@@ -87,6 +88,10 @@ public interface NodeVisitor {
         
         @Override
         public void visit(UnionFieldStmt stmt) {
+        }
+        
+        @Override
+        public void visit(EnumFieldStmt stmt) {
         }
         
         @Override

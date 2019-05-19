@@ -6,9 +6,7 @@ package litac.ast;
 import java.util.ArrayList;
 import java.util.List;
 
-import litac.ast.Decl.ParameterDecl;
-import litac.ast.Decl.StructDecl;
-import litac.ast.Decl.UnionDecl;
+import litac.ast.Decl.*;
 import litac.checker.Note;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.FieldInfo;
@@ -38,6 +36,10 @@ public abstract class Stmt extends Node {
             else if(s instanceof UnionFieldStmt) {
                 UnionFieldStmt union = (UnionFieldStmt)s;
                 fieldInfo = new FieldInfo(union.decl.type, union.decl.name, null);
+            }
+            else if(s instanceof EnumFieldStmt) {
+                EnumFieldStmt enm = (EnumFieldStmt)s;
+                fieldInfo = new FieldInfo(enm.decl.type, enm.decl.name, null);
             }
             else {
                 throw new ParseException(ErrorCode.INVALID_FIELD, token);
@@ -172,6 +174,25 @@ public abstract class Stmt extends Node {
         @Override
         protected Node doCopy() {            
             return new UnionFieldStmt(this.decl.copy());
+        }
+    }
+    
+    public static class EnumFieldStmt extends FieldStmt {
+        public EnumDecl decl;
+        
+        public EnumFieldStmt(EnumDecl decl) {
+            this.decl = becomeParentOf(decl);
+        }
+
+
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new EnumFieldStmt(this.decl.copy());
         }
     }
  

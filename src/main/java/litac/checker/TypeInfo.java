@@ -522,6 +522,10 @@ public abstract class TypeInfo {
                 return this.name.equals(target.name);
             }
             
+            if(TypeInfo.isInteger(target)) {
+                return true;
+            }
+            
             if(target.isKind(TypeKind.bool)) {
                 return true;
             }

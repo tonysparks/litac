@@ -276,10 +276,12 @@ public class TypeChecker {
         }
 
         @Override
-        public void visit(EnumDecl d) {            
+        public void visit(EnumDecl d) {
             for(EnumFieldInfo f : d.fields) {
-                f.value.visit(this);
-                addTypeCheck(f.value, TypeInfo.I32_TYPE);
+                if(f.value != null) {
+                    f.value.visit(this);
+                    addTypeCheck(f.value, TypeInfo.I32_TYPE);
+                }
             }
         }
 
@@ -528,6 +530,11 @@ public class TypeChecker {
         
         @Override
         public void visit(SetExpr expr) {
+            if(expr.object.getResolvedType().isKind(TypeKind.Enum)) {
+                this.result.addError(expr, "can't reassign enum '%s'", expr.object.getResolvedType());
+                return;
+            }
+            
             expr.object.visit(this);            
             expr.value.visit(this);
             

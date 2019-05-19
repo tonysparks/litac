@@ -135,6 +135,10 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         stmt.decl.type = replaceType(stmt.decl.type);
         stmt.decl.visit(this);
     }
+    
+    @Override
+    public void visit(EnumFieldStmt stmt) {
+    }
 
     @Override
     public void visit(IfStmt stmt) {

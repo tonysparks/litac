@@ -11,8 +11,9 @@ import litac.ast.Decl;
  */
 public class Symbol {
 
-    public static final int IS_LOCAL   = (1<<1);
-    public static final int IS_FOREIGN = (1<<2);
+    public static final int IS_LOCAL    = (1<<1);
+    public static final int IS_FOREIGN  = (1<<2);
+    public static final int IS_CONSTANT = (1<<3);
     
     public final Decl decl;
     public final TypeInfo type;

@@ -111,12 +111,22 @@ public class TypeResolver {
         }
         
         @Override
+        public void visit(EnumFieldStmt stmt) {
+            Node parent = stmt.getParentNode();
+            if(parent instanceof EnumDecl) {
+                EnumDecl decl = (EnumDecl)parent;
+                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
+            }
+            
+            stmt.decl.visit(this);
+        }
+        
+        @Override
         public void visit(EnumDecl d) {            
             this.module.declareEnum(d, d.name, (EnumTypeInfo)d.type);    
-            this.module.currentScope().addSymbol(this.module, d, d.name, d.type);
             
-            for(EnumFieldInfo f : d.fields) {
-                if(!f.value.isResolved()) {
+            for(EnumFieldInfo f : d.fields) {                
+                if(f.value != null && !f.value.isResolved()) {
                     f.value.resolveTo(TypeInfo.I32_TYPE);
                 }
             }
@@ -417,13 +427,15 @@ public class TypeResolver {
             
             resolveType(d, d.type);
             
-            peekScope().addSymbol(this.module, d, d.name, d.type);
+            peekScope().addSymbol(this.module, d, d.name, d.type, true);
         }
 
         @Override
-        public void visit(EnumDecl d) {            
+        public void visit(EnumDecl d) {    
             for(EnumFieldInfo f : d.fields) {
-                f.value.visit(this);
+                if(f.value != null) {
+                    f.value.visit(this);
+                }
             }
         }
 
@@ -728,11 +740,17 @@ public class TypeResolver {
                     else {
                         EnumTypeInfo enumInfo = type.as();
                         for(EnumFieldInfo fieldInfo : enumInfo.fields) {
-                            if(fieldInfo.name.equals(field.getName())) {                                
-                                //expr.resolveTo(fieldInfo.value.getResolvedType());
-                                expr.resolveTo(enumInfo);
-                                return true;
+                            if(!field.isResolved()) {
+                                if(fieldInfo.value != null) {
+                                    resolveType(expr, field, fieldInfo.value.getResolvedType());
+                                }
+                                else {
+                                    resolveType(expr, field, TypeInfo.I32_TYPE);
+                                }
                             }
+                            
+                            expr.resolveTo(enumInfo);
+                            return true;
                         }
                         this.result.addError(expr, "'%s' does not have field '%s'", enumInfo.name, field.name);
                     }
