@@ -269,6 +269,11 @@ public class Parser {
     private UnionDecl unionDeclaration() {
         source();
         
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
+        }
+        
         Token start = peek();
         boolean isAnon = false;
         
@@ -282,26 +287,28 @@ public class Parser {
             isAnon = true;
         }
         
-        consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
-        
         List<FieldStmt> fields = new ArrayList<>();
         
-        do {
-            if(check(RIGHT_BRACE)) {
-                break;
+        if(!match(SEMICOLON)) {        
+            consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
+            
+            do {
+                if(check(RIGHT_BRACE)) {
+                    break;
+                }
+                
+                FieldStmt field = fieldStatement();
+                fields.add(field);
+                
+                eatSemicolon();
             }
-            
-            FieldStmt field = fieldStatement();
-            fields.add(field);
-            
-            eatSemicolon();
+            while(!isAtEnd());
+            consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         }
-        while(!isAtEnd());
         
         List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new UnionTypeInfo(unionName, typeFields, isAnon);
+        TypeInfo type = new UnionTypeInfo(unionName, genericParams, typeFields, isAnon);
         
-        consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
         return node(new UnionDecl(unionName, type, fields));
     }

@@ -335,9 +335,13 @@ public class TypeChecker {
         }
                 
         private void checkAggregateInitFields(InitExpr expr, TypeInfo aggInfo, List<FieldInfo> fieldInfos, List<InitArgExpr> arguments) {
-            if(fieldInfos.size() != arguments.size()) {
+            if(fieldInfos.size() < arguments.size()) {
                 // TODO should this be allowed??
                 this.result.addError(expr, "incorrect number of arguments");
+            }
+            
+            if(aggInfo.isKind(TypeKind.Union) && arguments.size() > 1) {
+                this.result.addError(expr, "incorrect number of arguments for union");
             }
             
             
@@ -371,7 +375,6 @@ public class TypeChecker {
                     }
                 }
             }
-            
         }
         
         @Override
@@ -389,19 +392,9 @@ public class TypeChecker {
                     break;
                 }
                 case Union: {
-//                    UnionTypeInfo unionInfo = expr.type.as();
-                    // TODO, think about how these types are initialized
+                    UnionTypeInfo unionInfo = expr.type.as();
+                    checkAggregateInitFields(expr, unionInfo, unionInfo.fieldInfos, expr.arguments);
                     
-//                    if(unionInfo.fieldInfos.size() != expr.arguments.size()) {
-//                        // TODO should this be allowed??
-//                        this.result.addError(expr, "incorrect number of arguments");
-//                    }
-//                    
-//                    for(int i = 0; i < unionInfo.fieldInfos.size(); i++) {
-//                        if(i < expr.arguments.size()) {                       
-//                            addTypeCheck(expr.arguments.get(i), unionInfo.fieldInfos.get(i).type);
-//                        }
-//                    }
                     break;
                 }
                 default: {
@@ -486,7 +479,12 @@ public class TypeChecker {
                 case Union: {
                     UnionTypeInfo unionInfo = type.as();
                     for(FieldInfo fieldInfo : unionInfo.fieldInfos) {
-                        if(fieldInfo.name.equals(field.getName())) {
+                        if(fieldInfo.type.isAnonymous()) {
+                            if(typeCheckAggregate(fieldInfo.type, field, expr, value)) {
+                                return true;
+                            }
+                        }
+                        else if(fieldInfo.name.equals(field.getName())) {                            
                             if(value != null) {
                                 addTypeCheck(expr, value.getResolvedType(), fieldInfo.type);
                             }

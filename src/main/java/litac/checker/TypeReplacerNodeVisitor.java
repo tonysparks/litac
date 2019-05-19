@@ -227,8 +227,9 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(UnionDecl d) {
-        // TODO Auto-generated method stub
-
+        for(FieldStmt f : d.fields) {
+            f.visit(this);
+        }
     }
 
     @Override

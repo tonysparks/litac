@@ -24,7 +24,7 @@ public class Generics {
      * @return the new {@link TypeInfo}
      */
     public static TypeInfo createFromGenericTypeInfo(Module module, TypeInfo type, List<TypeInfo> genericArgs) {
-        if(genericArgs.isEmpty()) {
+        if(genericArgs.isEmpty() || type.isPrimitive()) {
             return type;
         }
         
@@ -43,6 +43,14 @@ public class Generics {
                 
                 return createStructTypeInfo(module, genericImplTypeName, structInfo, genericArgs);
             }
+            case Union: {
+                UnionTypeInfo unionInfo = type.as();
+                if(!unionInfo.hasGenerics()) {
+                    return type;
+                }
+                
+                return createUnionTypeInfo(module, genericImplTypeName, unionInfo, genericArgs);
+            }
             case Func: {
                 FuncTypeInfo funcInfo = type.as();
                 if(!funcInfo.hasGenerics()) {
@@ -50,9 +58,6 @@ public class Generics {
                 }
                 
                 return createFuncTypeInfo(module, genericImplTypeName, funcInfo, genericArgs);
-            }
-            case Union: {
-                throw new RuntimeException("Not implemented");
             }
             default:
                 return type;
@@ -91,10 +96,53 @@ public class Generics {
         return newStructInfo;
     }
     
+    private static TypeInfo createUnionTypeInfo(Module module, String newUnionName, UnionTypeInfo unionInfo, List<TypeInfo> genericArgs) {
+        
+        List<Tuple<String, TypeInfo>> replacements = new ArrayList<>();
+        List<FieldInfo> newFieldInfos = new ArrayList<>(unionInfo.fieldInfos.size());
+        for(FieldInfo field : unionInfo.fieldInfos) {
+            for(int i = 0; i < unionInfo.genericParams.size(); i++) {
+                GenericParam p = unionInfo.genericParams.get(i);
+                if(p.name.equals(field.type.getName())) {
+                    TypeInfo argInfo = createFromGenericTypeInfo(module, genericArgs.get(i), genericArgs);
+                    replacements.add(new Tuple<>(p.name, argInfo));
+                    field = new FieldInfo(argInfo, field.name, p.name);
+                    break;
+                }
+            }
+            
+            newFieldInfos.add(field);
+        }
+        
+        UnionTypeInfo newUnionInfo = new UnionTypeInfo(newUnionName,
+                                                       Collections.emptyList(),
+                                                       newFieldInfos, 
+                                                       unionInfo.isAnonymous);
+        
+        newUnionInfo.sym = unionInfo.sym;
+        
+        UnionDecl decl = createNewUnionDecl(module, newUnionInfo, replacements);
+        module.declareUnion(decl, newUnionName, newUnionInfo);
+        module.addGenericType(decl);
+        
+        return newUnionInfo;
+    }
+    
     private static StructDecl createNewStructDecl(Module module, StructTypeInfo structInfo, List<Tuple<String, TypeInfo>> replacements) {
         StructDecl decl = structInfo.sym.decl.copy();
         decl.name = structInfo.name;
         decl.type = structInfo;
+        
+        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(replacements);
+        decl.visit(replacer);
+        
+        return decl;
+    }
+    
+    private static UnionDecl createNewUnionDecl(Module module, UnionTypeInfo unionInfo, List<Tuple<String, TypeInfo>> replacements) {
+        UnionDecl decl = unionInfo.sym.decl.copy();
+        decl.name = unionInfo.name;
+        decl.type = unionInfo;
         
         TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(replacements);
         decl.visit(replacer);

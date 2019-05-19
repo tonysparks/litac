@@ -1,0 +1,23 @@
+{
+	description: "Tests Declarations",
+	program: '''				
+		@include("assert.h");
+		@foreign func assert(e:i32):void;
+		
+		func main(len:i32, args:char**):i32 {
+			%test%
+		}
+	'''
+	tests: [
+		{
+			name: "Primative",
+			code: '''
+				var i = 32
+				assert( i == 32 )
+				
+				var j = 64_i64
+				assert( j == 64_i64 )
+			'''
+		}
+	]
+}

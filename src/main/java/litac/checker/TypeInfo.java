@@ -444,7 +444,7 @@ public abstract class TypeInfo {
         }
     }
     
-    public static class UnionTypeInfo extends TypeInfo {
+    public static class UnionTypeInfo extends GenericTypeInfo {
         public List<FieldInfo> fieldInfos;
         public boolean isAnonymous;
         
@@ -452,8 +452,8 @@ public abstract class TypeInfo {
          * @param name
          * @param fieldInfos
          */
-        public UnionTypeInfo(String name, List<FieldInfo> fieldInfos, boolean isAnon) {
-            super(TypeKind.Union, name);
+        public UnionTypeInfo(String name, List<GenericParam> genericParams, List<FieldInfo> fieldInfos, boolean isAnon) {
+            super(TypeKind.Union, name, genericParams);
             this.fieldInfos = fieldInfos;
             this.isAnonymous = isAnon;
         }
@@ -470,7 +470,7 @@ public abstract class TypeInfo {
         
         @Override
         public TypeInfo copy() {
-            return new UnionTypeInfo(this.name, this.fieldInfos, this.isAnonymous);
+            return new UnionTypeInfo(this.name, this.genericParams, this.fieldInfos, this.isAnonymous);
         }
         
         @Override

@@ -5,13 +5,8 @@ package litac.compiler;
 
 import java.io.File;
 
-import litac.Errors;
 import litac.ast.Stmt;
-import litac.checker.Module;
-import litac.checker.PhaseResult;
-import litac.checker.PhaseResult.PhaseError;
-import litac.checker.TypeChecker;
-import litac.checker.TypeResolver;
+import litac.checker.*;
 import litac.compiler.c.CTranspiler;
 
 /**
@@ -34,7 +29,7 @@ public class Compiler {
                 String.format(" at line %d in '%s'", stmt.getLineNumber(), stmt.getSourceFile()));
     }
     
-    public void compile(File rootModule) throws Exception {
+    public PhaseResult compile(File rootModule) throws Exception {
         PhaseResult result = new PhaseResult();
         
         CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
@@ -43,6 +38,8 @@ public class Compiler {
         if(!result.hasErrors()) {
             compile(options, result, unit, main);
         }
+                
+        return result;
     }
     
     private Module typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
@@ -53,12 +50,6 @@ public class Compiler {
         if(!result.hasErrors()) {
             checker.typeCheck(main);
         }
-        
-        if(result.hasErrors()) {
-            for(PhaseError error : result.getErrors()) {
-                Errors.typeCheckError(error.stmt, error.message);
-            }            
-        }         
         
         return main;
     }
