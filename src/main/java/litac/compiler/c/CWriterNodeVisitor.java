@@ -91,6 +91,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out("typedef uint64_t u64; \n");
         buf.out("typedef float    f32; \n");
         buf.out("typedef double   f64; \n");
+        buf.out("typedef int8_t   bool; \n");
         buf.out("#define true 1\n");
         buf.out("#define false 0\n");
         buf.outln();
@@ -318,9 +319,34 @@ public class CWriterNodeVisitor implements NodeVisitor {
             n.visit(this);
         }
                 
-        for(Decl d : stmt.declarations) {
-            d.visit(this);
-        }
+        
+        //
+        // TODO: Do proper dependency ordering from all modules
+        //
+        stmt.declarations
+            .stream()            
+            .sorted((a,b) -> {
+                if(a.equals(b)) {
+                    return 0;
+                }
+                
+                TypeKind aKind = a.type.getKind();
+                TypeKind bKind = b.type.getKind();
+                
+                if(aKind == TypeKind.Func) {
+                    if(bKind == TypeKind.Func) {
+                        return 0;
+                    }
+                    return 1;
+                }
+                else {
+                    if(bKind == TypeKind.Func) {
+                        return -1;
+                    }
+                }
+                return 0;
+            })
+            .forEach(d -> d.visit(this));        
     }
 
     @Override

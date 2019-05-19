@@ -27,7 +27,7 @@ struct <T> Vec2 {
 
 func main(len:i32, args:char**):i32 {
 	var v = <f32>Vec2 {}
-	var m = <i32>Max2(32_i32, 42_i32)
+	var m = <i32>Max2(32_i32, 42_i32) < <i32>Max2(32_i32, 42_i32)
 /*
     var m = Max2<i32>(32_i32, 42_i32)
 	var m2 = Max2<i32>(532_i32, 542_i32)

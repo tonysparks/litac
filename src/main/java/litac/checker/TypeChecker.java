@@ -288,7 +288,7 @@ public class TypeChecker {
         @Override
         public void visit(FuncDecl d) {
             FuncTypeInfo funcInfo = d.type.as();
-            if(!funcInfo.hasGenerics()) {
+            if(!funcInfo.hasGenerics()) {                
                 d.bodyStmt.visit(this);
             }
         }
@@ -565,8 +565,8 @@ public class TypeChecker {
             expr.left.visit(this);
             expr.right.visit(this);
             
-            TypeInfo leftType = expr.left.getResolvedType();
-            TypeInfo rightType = expr.right.getResolvedType();
+            TypeInfo leftType = expr.left.getResolvedType().getResolvedType();
+            TypeInfo rightType = expr.right.getResolvedType().getResolvedType();
             
             addTypeCheck(expr.left, rightType);
             addTypeCheck(expr.right, leftType);
@@ -587,11 +587,11 @@ public class TypeChecker {
                 case RSHIFT:
                 case RSHIFT_EQ: {
                     if(!TypeInfo.isInteger(leftType)) {
-                        this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getName());
+                        this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getResolvedType().getName());
                     }
                     
                     if(!TypeInfo.isInteger(rightType)) {
-                        this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getName());
+                        this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getResolvedType().getName());
                     }
                     break;
                 }
@@ -609,11 +609,11 @@ public class TypeChecker {
                 case LESS_EQUALS:
                 case LESS_THAN:
                     if(!TypeInfo.isNumber(leftType)) {
-                        this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getName());
+                        this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getResolvedType().getName());
                     }
                     
                     if(!TypeInfo.isNumber(rightType)) {
-                        this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getName());
+                        this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getResolvedType().getName());
                     }
                     
                     break;
@@ -629,12 +629,12 @@ public class TypeChecker {
                 case SLASH:
                 case DIV_EQ:
                     
-                    if(!TypeInfo.isNumber(leftType) || !leftType.isKind(TypeKind.Ptr)) {
-                        this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getName());
+                    if(!TypeInfo.isNumber(leftType) && !leftType.isKind(TypeKind.Ptr)) {
+                        this.result.addError(expr.left, "illegal, left operand has type '%s'", leftType.getResolvedType().getName());
                     }
                     
-                    if(!TypeInfo.isNumber(rightType) || !rightType.isKind(TypeKind.Ptr)) {
-                        this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getName());
+                    if(!TypeInfo.isNumber(rightType) && !rightType.isKind(TypeKind.Ptr)) {
+                        this.result.addError(expr.right, "illegal, right operand has type '%s'", rightType.getResolvedType().getName());
                     }
                     
                     break;

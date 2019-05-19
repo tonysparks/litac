@@ -189,12 +189,12 @@ public class Parser {
     private FuncDecl funcDeclaration() {
         source();
         
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         List<GenericParam> genericParams = Collections.emptyList();
         if(match(LESS_THAN)) {
             genericParams = genericParameters();
         }
         
+        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         ParametersStmt parameters = parametersStmt();
         
         TypeInfo returnType = TypeInfo.VOID_TYPE;
@@ -221,6 +221,11 @@ public class Parser {
     
     private StructDecl structDeclaration() {
         source();
+
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
+        }
         
         Token start = peek();
         boolean isAnon = false;
@@ -234,12 +239,7 @@ public class Parser {
             structName = String.format("<anonymous-struct-%d>", anonStructId++);
             isAnon = true;
         }
-        
-        List<GenericParam> genericParams = Collections.emptyList();
-        if(match(LESS_THAN)) {
-            genericParams = genericParameters();
-        }
-        
+                
         List<FieldStmt> fields = new ArrayList<>();
         
         if(!match(SEMICOLON)) {        
@@ -448,10 +448,7 @@ public class Parser {
     }
     
     private IfStmt ifStmt() {        
-        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
-        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        
         
         Stmt thenStmt = statement();
         Stmt elseStmt = null;
@@ -465,10 +462,7 @@ public class Parser {
     private WhileStmt whileStmt() {       
         this.loopLevel++;
         
-        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
-        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        
         
         Stmt bodyStmt = statement();
         this.loopLevel--;
@@ -481,9 +475,7 @@ public class Parser {
         Stmt bodyStmt = statement();
         
         consume(WHILE, ErrorCode.MISSING_COLON);
-        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
-        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         this.loopLevel--;
         
@@ -491,13 +483,11 @@ public class Parser {
     }
     
     private ForStmt forStmt() {        
-        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Stmt initStmt = statement();    
         consume(SEMICOLON, ErrorCode.MISSING_SEMICOLON);
         Expr condExpr = expression();
         consume(SEMICOLON, ErrorCode.MISSING_SEMICOLON);
         Stmt postStmt = statement();
-        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         this.loopLevel++;
         Stmt bodyStmt = statement();
@@ -711,6 +701,28 @@ public class Parser {
     private Expr bitShift() {
         Expr expr = term();
         
+        // Due to generics, we must see if we have a bit shift left operator
+        // if we are in an expression, there must be a space between a generic
+        // start and a less than operator, otherwise this will think its a bit shift
+        // left.
+        if(check(LESS_THAN)) {
+            Token prevToken = advance();
+            if(check(LESS_THAN)) {
+                Token nextToken = advance();
+                if(nextToken.getPosition() - prevToken.getPosition() == 1) {
+                    Expr right = term();
+                    return node(new BinaryExpr(expr, TokenType.LSHIFT, right));
+                }
+                else {
+                    rewind();
+                    rewind();
+                }
+            }
+            else {
+                rewind();
+            }
+        }
+        
         while(match(LSHIFT, RSHIFT)) {
             Token operator = previous();
             Expr right = term();
@@ -791,16 +803,16 @@ public class Parser {
     private Expr functionCall() {
         Expr expr = primary();
         while(true) {
-            if(check(LESS_THAN) || match(LEFT_PAREN)) {                
+            if(match(LEFT_PAREN)) {                
                 expr = finishFunctionCall(expr);
             }
             else if(check(LEFT_BRACE)) {
                 if(!(expr instanceof IdentifierExpr)) {
-                    //throw error(peek(), ErrorCode.INVALID_ASSIGNMENT);
                     return expr;
                 }
                 
                 advance(); // eat the {
+                
                 IdentifierExpr idExpr = (IdentifierExpr)expr;
                 List<InitArgExpr> arguments = structArguments();
                 expr = node(new InitExpr(idExpr.type, arguments));
@@ -813,7 +825,7 @@ public class Parser {
             }
             else if(match(DOT)) {
                 Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);                
-                expr = node(new GetExpr(expr, new IdentifierTypeInfo(name.getText())));
+                expr = node(new GetExpr(expr, new IdentifierTypeInfo(name.getText(), Collections.emptyList())));
             }
             else {
                 break;
@@ -837,9 +849,11 @@ public class Parser {
         if(check(LEFT_BRACKET)) return arrayInitExpr();
         if(match(LEFT_BRACE))   return aggregateInitExpr();                
         
+        if(match(LESS_THAN))    return identifierWithGenerics();
+        
         if(check(IDENTIFIER)) {
             String identifier = identifier();
-            return node(new IdentifierExpr(identifier, new IdentifierTypeInfo(identifier)));
+            return node(new IdentifierExpr(identifier, new IdentifierTypeInfo(identifier, Collections.emptyList())));
         }
                 
         throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
@@ -847,14 +861,13 @@ public class Parser {
     
     private Expr finishFunctionCall(Expr callee) {
         List<TypeInfo> genericArgs = Collections.emptyList();
-        if(match(LESS_THAN)) {
-            genericArgs = genericArguments();
-            consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
-        }
-
+        
         List<Expr> arguments = arguments();
         if(callee instanceof IdentifierExpr) {
             IdentifierExpr idExpr = (IdentifierExpr)callee;
+            if(idExpr.type instanceof IdentifierTypeInfo) {
+                genericArgs = ((IdentifierTypeInfo)idExpr.type).genericArgs;
+            }
             callee = node(new FuncIdentifierExpr(idExpr.variable, idExpr.type));
         }
         
@@ -979,7 +992,7 @@ public class Parser {
             }
             case IDENTIFIER: {
                 String identifier = identifier();                
-                TypeInfo type = new IdentifierTypeInfo(identifier);
+                TypeInfo type = new IdentifierTypeInfo(identifier, Collections.emptyList());
                 
                 // identifier() consumes multiple tokens, 
                 // account for advance in ptr check
@@ -998,10 +1011,32 @@ public class Parser {
                 type.arrayOf = type();
                 return type;
             }
+            case LESS_THAN: {
+                advance();
+                List<TypeInfo> args = genericArguments();
+                
+                String identifier = identifier();                
+                TypeInfo type = new IdentifierTypeInfo(identifier, args);
+                
+                // identifier() consumes multiple tokens, 
+                // account for advance in ptr check
+                rewind();
+                
+                return chainableType(type);
+            }
             // case FUNC: TODO
             default:
                 throw error(t, ErrorCode.UNEXPECTED_TOKEN);
         }
+    }
+    
+    private Expr identifierWithGenerics() {
+        List<TypeInfo> arguments = genericArguments();
+        
+        String identifier = identifier();
+        IdentifierExpr idExpr = new IdentifierExpr(identifier, new IdentifierTypeInfo(identifier, arguments));
+        
+        return node(idExpr);
     }
     
     private String identifier() {

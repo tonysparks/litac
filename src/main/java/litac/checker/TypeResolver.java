@@ -6,65 +6,13 @@ package litac.checker;
 
 import java.util.List;
 
-import litac.ast.Decl;
-import litac.ast.Decl.ConstDecl;
-import litac.ast.Decl.EnumDecl;
-import litac.ast.Decl.FuncDecl;
-import litac.ast.Decl.ParameterDecl;
-import litac.ast.Decl.StructDecl;
-import litac.ast.Decl.TypedefDecl;
-import litac.ast.Decl.UnionDecl;
-import litac.ast.Decl.VarDecl;
-import litac.ast.Expr;
-import litac.ast.Expr.ArrayInitExpr;
-import litac.ast.Expr.BinaryExpr;
-import litac.ast.Expr.CastExpr;
-import litac.ast.Expr.FuncCallExpr;
-import litac.ast.Expr.FuncIdentifierExpr;
-import litac.ast.Expr.GetExpr;
-import litac.ast.Expr.GroupExpr;
-import litac.ast.Expr.IdentifierExpr;
-import litac.ast.Expr.InitArgExpr;
-import litac.ast.Expr.InitExpr;
-import litac.ast.Expr.NumberExpr;
-import litac.ast.Expr.SetExpr;
-import litac.ast.Expr.SizeOfExpr;
-import litac.ast.Expr.SubscriptGetExpr;
-import litac.ast.Expr.SubscriptSetExpr;
-import litac.ast.Expr.UnaryExpr;
-import litac.ast.Node;
+import litac.ast.*;
+import litac.ast.Decl.*;
+import litac.ast.Expr.*;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
-import litac.ast.Stmt;
-import litac.ast.Stmt.BlockStmt;
-import litac.ast.Stmt.BreakStmt;
-import litac.ast.Stmt.ContinueStmt;
-import litac.ast.Stmt.DeferStmt;
-import litac.ast.Stmt.DoWhileStmt;
-import litac.ast.Stmt.EmptyStmt;
-import litac.ast.Stmt.FieldStmt;
-import litac.ast.Stmt.ForStmt;
-import litac.ast.Stmt.IfStmt;
-import litac.ast.Stmt.ImportStmt;
-import litac.ast.Stmt.ModuleStmt;
-import litac.ast.Stmt.ReturnStmt;
-import litac.ast.Stmt.StructFieldStmt;
-import litac.ast.Stmt.UnionFieldStmt;
-import litac.ast.Stmt.VarFieldStmt;
-import litac.ast.Stmt.WhileStmt;
-import litac.checker.TypeInfo.AnyTypeInfo;
-import litac.checker.TypeInfo.ArrayTypeInfo;
-import litac.checker.TypeInfo.EnumFieldInfo;
-import litac.checker.TypeInfo.EnumTypeInfo;
-import litac.checker.TypeInfo.FieldInfo;
-import litac.checker.TypeInfo.FuncTypeInfo;
-import litac.checker.TypeInfo.GenericTypeInfo;
-import litac.checker.TypeInfo.IdentifierTypeInfo;
-import litac.checker.TypeInfo.PtrTypeInfo;
-import litac.checker.TypeInfo.StructTypeInfo;
-import litac.checker.TypeInfo.TypeKind;
-import litac.checker.TypeInfo.UnionTypeInfo;
-import litac.compiler.CompilationUnit;
-import litac.compiler.CompileException;
+import litac.ast.Stmt.*;
+import litac.checker.TypeInfo.*;
+import litac.compiler.*;
 
 /**
  * Responsible for ensuring each Expr can be resolved down to a {@link TypeInfo}.
@@ -86,11 +34,9 @@ public class TypeResolver {
         return resolveModule(this.unit.getMain());
     }
     
-    public PhaseResult resolveStmt(Module module, Stmt stmt) {        
-        TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result, module);
+    public static void resolveStmt(Module module, Stmt stmt) {
+        TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(module.getPhaseResult(), module);
         stmt.visit(checker);
-        
-        return result;
     }
     
     
@@ -209,18 +155,14 @@ public class TypeResolver {
     }
     
     
-    private class TypeResolverNodeVisitor extends AbstractNodeVisitor {
+    private static class TypeResolverNodeVisitor extends AbstractNodeVisitor {
         
         private Module module;
         private PhaseResult result;
         
-        private GenericTypeInfo currentGenericType;
-        
         public TypeResolverNodeVisitor(PhaseResult result, Module module) {
             this.result = result;
             this.module = module;
-            
-            this.currentGenericType = null;
         }
         
         private void enterScope() {
@@ -253,20 +195,7 @@ public class TypeResolver {
                     this.result.addError(stmt, "'%s' invalid array length type", type.getName());
             }
         }
-        
-//        private boolean isGenericType(TypeInfo type) {
-//            if(this.currentGenericType != null && 
-//               this.currentGenericType.genericParams.stream().anyMatch(p -> p.name.equals(type.getName()))) {
-//                
-//                IdentifierTypeInfo idType = type.as();
-//                idType.resolve(new AnyTypeInfo(type.getName()));
-//                
-//                return true;
-//            }
-//                
-//            return false;
-//        }
-        
+                
         private TypeInfo getType(Stmt stmt, List<TypeInfo> genericArgs, List<GenericParam> genericParams, TypeInfo expectedType) {
 //            if(!expectedType.isKind(TypeKind.Identifier)) {
 //                return expectedType;
@@ -286,116 +215,62 @@ public class TypeResolver {
             
             return expectedType;
         }
-
+        
         private void resolveType(Stmt stmt, TypeInfo type) {
-            if(type == null) {
-                return;
-            }
-            
-//            if(isGenericType(type)) {
-//                return;
-//            }
-            
-            if(!type.isResolved()) {
-                TypeInfo resolvedType = module.getType(type.getName());
-                if(resolvedType == null) {
-                    this.result.addError(stmt, "'%s' is an unknown type", type.getName());
-                }
-                else {
-                    IdentifierTypeInfo idType = type.as();
-                    idType.resolve(resolvedType);
-                }
-            }
-            else if(type.isKind(TypeKind.Ptr)) {
-                PtrTypeInfo ptrInfo = type.as();
-                resolveType(stmt, ptrInfo.ptrOf);
-            }
-            else if(type.isKind(TypeKind.Array)) {
-                ArrayTypeInfo arrayInfo = type.as();
-                resolveType(stmt, arrayInfo.arrayOf);
-                
-                if(arrayInfo.length < 0) {
-                    if(arrayInfo.lengthExpr == null) {
-                        this.result.addError(stmt, "'%s' has an unknown array length", type.getName());    
-                    }
-                    else {
-                        arrayInfo.lengthExpr.visit(this);
-                        
-                        if(arrayInfo.lengthExpr instanceof NumberExpr) {
-                              NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
-                              validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
-                              
-                              arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              
-                          }
-                          else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
-                              IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
-                              if(iExpr.declType instanceof ConstDecl) {
-                                  validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
-                                  
-                                  ConstDecl cExpr = (ConstDecl)iExpr.declType;
-                                  NumberExpr nExpr = (NumberExpr)cExpr.expr;
-                                  
-                                  arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              }
-                              else {
-                                  this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
-                              }
-                          }
-                    }
-                }
-                
-            }
+            resolveType(stmt, type, null);
         }
         
-        private void resolveType(TypeInfo type, TypeInfo resolvedType) {
+        private void resolveType(Stmt stmt, TypeInfo type, TypeInfo resolvedType) {
             if(type == null) {
                 return;
             }
-
-//            if(isGenericType(type)) {
-//                return;
-//            }
             
-            if(!type.isResolved()) {                
+            if(!type.isResolved()) {  
+                if(resolvedType == null) {
+                    resolvedType = module.getType(type.getName());
+                    if(resolvedType == null) {
+                        this.result.addError(stmt, "'%s' is an unknown type", type.getName());
+                        return;
+                    }
+                }
+                
                 IdentifierTypeInfo idType = type.as();
-                idType.resolve(resolvedType);
+                idType.resolve(this.module, resolvedType);
             }
             else if(type.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = type.as();
-                resolveType(ptrInfo.ptrOf, resolvedType);
+                resolveType(stmt, ptrInfo.ptrOf, resolvedType);
             }
             else if(type.isKind(TypeKind.Array)) {
                 ArrayTypeInfo arrayInfo = type.as();
-                resolveType(arrayInfo.arrayOf, resolvedType);
+                resolveType(stmt, arrayInfo.arrayOf, resolvedType);
                 
-                if(arrayInfo.length < 0) {
-                    if(arrayInfo.lengthExpr != null) {
-                        arrayInfo.lengthExpr.visit(this);
-                        
-                        if(arrayInfo.lengthExpr instanceof NumberExpr) {
-                              NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
-                              validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
+                if(arrayInfo.lengthExpr != null) {                    
+                    arrayInfo.lengthExpr.visit(this);
+                    
+                    if(arrayInfo.lengthExpr instanceof NumberExpr) {
+                          NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
+                          validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
+                          
+                          arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
+                          
+                      }
+                      else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
+                          IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
+                          if(iExpr.declType instanceof ConstDecl) {
+                              validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
+                              
+                              ConstDecl cExpr = (ConstDecl)iExpr.declType;
+                              NumberExpr nExpr = (NumberExpr)cExpr.expr;
                               
                               arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              
                           }
-                          else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
-                              IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
-                              if(iExpr.declType instanceof ConstDecl) {
-                                  validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
-                                  
-                                  ConstDecl cExpr = (ConstDecl)iExpr.declType;
-                                  NumberExpr nExpr = (NumberExpr)cExpr.expr;
-                                  
-                                  arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              }
-                              else {
-                                  this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
-                              }
+                          else {
+                              this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
                           }
-                    }
+                      }
                 }
+                
             }
         }
         
@@ -411,6 +286,12 @@ public class TypeResolver {
             for(Decl d : stmt.declarations) {
                 d.visit(this);
             } 
+            
+            for(Decl d : this.module.getGenericTypes()) {
+                d.visit(this);
+            }
+            
+            stmt.declarations.addAll(this.module.getGenericTypes());
             
             exitScope();
         }
@@ -552,8 +433,6 @@ public class TypeResolver {
             {
                 FuncTypeInfo funcInfo = d.type.as();
                 if(!funcInfo.hasGenerics()) {                
-                    this.currentGenericType = funcInfo;
-                    
                     resolveType(d, d.returnType);
                     for(ParameterDecl p : d.params.params) {
                         resolveType(p, p.type);
@@ -561,7 +440,6 @@ public class TypeResolver {
                     }
                     
                     d.bodyStmt.visit(this);
-                    this.currentGenericType = null;
                 }
             }
             exitScope();
@@ -675,15 +553,15 @@ public class TypeResolver {
                 e.visit(this);
             }
             
-            TypeInfo type = getAggregateFieldTypeInfo(expr);          
-            if(type == null) {
-                this.result.addError(expr, "'%s' is an unknown type", expr.type);
-                return;
-            }
-            
             if(!expr.type.isResolved()) {
+                TypeInfo type = getAggregateFieldTypeInfo(expr);          
+                if(type == null) {
+                    this.result.addError(expr, "'%s' is an unknown type", expr.type);
+                    return;
+                }
+            
                 IdentifierTypeInfo idInfo = expr.type.as();
-                idInfo.resolve(type);
+                idInfo.resolve(this.module, type);
             }
         }
 
@@ -739,7 +617,7 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(sym.type);
+                type.resolve(this.module, sym.type);
                 expr.declType = sym.decl;
                 expr.sym = sym;
             }
@@ -755,14 +633,13 @@ public class TypeResolver {
                     return;
                 }
                 
-//                IdentifierTypeInfo type = expr.type.as();
-//                type.resolve(resolvedType);
-                
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(resolvedType);
-                if(resolvedType.sym != null) {
-                    expr.declType = resolvedType.sym.decl;
-                    expr.sym = resolvedType.sym;
+                type.resolve(this.module, resolvedType);
+
+                TypeInfo newType = type.getResolvedType();
+                if(newType.sym != null) {
+                    expr.declType = newType.sym.decl;
+                    expr.sym = newType.sym;
                 }
             }
         }
@@ -783,7 +660,7 @@ public class TypeResolver {
                         }
                         else if(fieldInfo.name.equals(field.getName())) {
                             if(!field.isResolved()) {
-                                resolveType(field, fieldInfo.type);
+                                resolveType(expr, field, fieldInfo.type);
                             }
                             
                             expr.resolveTo(fieldInfo.type);                            
@@ -798,7 +675,7 @@ public class TypeResolver {
                     for(FieldInfo fieldInfo : unionInfo.fieldInfos) {
                         if(fieldInfo.name.equals(field.getName())) {
                             if(!field.isResolved()) {
-                                resolveType(field, fieldInfo.type);
+                                resolveType(expr, field, fieldInfo.type);
                             }
                             
                             expr.resolveTo(fieldInfo.type);                            
@@ -939,15 +816,21 @@ public class TypeResolver {
         @Override
         public void visit(ArrayInitExpr expr) {
             ArrayTypeInfo arrayInfo = expr.getResolvedType().as();
-            resolveType(expr, arrayInfo);
             
+            int n = expr.values.size();
             for(Expr v : expr.values) {
                 v.visit(this);
             }
             
             // TODO -- validate sizes?
             if(arrayInfo.length < 0) {
-                //if(expr.
+                arrayInfo.length = n;
+            }
+            
+            resolveType(expr, arrayInfo);
+            
+            if(arrayInfo.length < n) {
+                this.result.addError(expr, "defined array dimension '%d' is smaller than number of elements '%d'", arrayInfo.length, n);
             }
             
         }

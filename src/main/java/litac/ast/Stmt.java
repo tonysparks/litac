@@ -29,15 +29,15 @@ public abstract class Stmt extends Node {
             FieldInfo fieldInfo = null;
             if(s instanceof VarFieldStmt) {
                 VarFieldStmt var = (VarFieldStmt)s;
-                fieldInfo = new FieldInfo(var.type, var.name);
+                fieldInfo = new FieldInfo(var.type, var.name, null);
             }
             else if(s instanceof StructFieldStmt) {
                 StructFieldStmt struct = (StructFieldStmt)s;
-                fieldInfo = new FieldInfo(struct.decl.type, struct.decl.name);
+                fieldInfo = new FieldInfo(struct.decl.type, struct.decl.name, null);
             }
             else if(s instanceof UnionFieldStmt) {
                 UnionFieldStmt union = (UnionFieldStmt)s;
-                fieldInfo = new FieldInfo(union.decl.type, union.decl.name);
+                fieldInfo = new FieldInfo(union.decl.type, union.decl.name, null);
             }
             else {
                 throw new ParseException(ErrorCode.INVALID_FIELD, token);
