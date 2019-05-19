@@ -245,36 +245,32 @@ public class TypeResolver {
                 ArrayTypeInfo arrayInfo = type.as();
                 resolveType(stmt, arrayInfo.arrayOf, resolvedType);
                 
-                if(arrayInfo.length < 0) {
-                    if(arrayInfo.lengthExpr == null) {
-                        this.result.addError(stmt, "'%s' has an unknown array length", type.getName());    
-                    }
-                    else {
-                        arrayInfo.lengthExpr.visit(this);
-                        
-                        if(arrayInfo.lengthExpr instanceof NumberExpr) {
-                              NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
-                              validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
+                if(arrayInfo.lengthExpr != null) {                    
+                    arrayInfo.lengthExpr.visit(this);
+                    
+                    if(arrayInfo.lengthExpr instanceof NumberExpr) {
+                          NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
+                          validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
+                          
+                          arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
+                          
+                      }
+                      else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
+                          IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
+                          if(iExpr.declType instanceof ConstDecl) {
+                              validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
+                              
+                              ConstDecl cExpr = (ConstDecl)iExpr.declType;
+                              NumberExpr nExpr = (NumberExpr)cExpr.expr;
                               
                               arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              
                           }
-                          else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
-                              IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
-                              if(iExpr.declType instanceof ConstDecl) {
-                                  validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
-                                  
-                                  ConstDecl cExpr = (ConstDecl)iExpr.declType;
-                                  NumberExpr nExpr = (NumberExpr)cExpr.expr;
-                                  
-                                  arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
-                              }
-                              else {
-                                  this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
-                              }
+                          else {
+                              this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
                           }
-                    }
+                      }
                 }
+                
             }
         }
         
@@ -820,15 +816,21 @@ public class TypeResolver {
         @Override
         public void visit(ArrayInitExpr expr) {
             ArrayTypeInfo arrayInfo = expr.getResolvedType().as();
-            resolveType(expr, arrayInfo);
             
+            int n = expr.values.size();
             for(Expr v : expr.values) {
                 v.visit(this);
             }
             
             // TODO -- validate sizes?
             if(arrayInfo.length < 0) {
-                //if(expr.
+                arrayInfo.length = n;
+            }
+            
+            resolveType(expr, arrayInfo);
+            
+            if(arrayInfo.length < n) {
+                this.result.addError(expr, "defined array dimension '%d' is smaller than number of elements '%d'", arrayInfo.length, n);
             }
             
         }

@@ -448,10 +448,7 @@ public class Parser {
     }
     
     private IfStmt ifStmt() {        
-        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
-        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        
         
         Stmt thenStmt = statement();
         Stmt elseStmt = null;
@@ -465,10 +462,7 @@ public class Parser {
     private WhileStmt whileStmt() {       
         this.loopLevel++;
         
-        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
-        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        
         
         Stmt bodyStmt = statement();
         this.loopLevel--;
@@ -481,9 +475,7 @@ public class Parser {
         Stmt bodyStmt = statement();
         
         consume(WHILE, ErrorCode.MISSING_COLON);
-        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
-        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         this.loopLevel--;
         
@@ -491,13 +483,11 @@ public class Parser {
     }
     
     private ForStmt forStmt() {        
-        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Stmt initStmt = statement();    
         consume(SEMICOLON, ErrorCode.MISSING_SEMICOLON);
         Expr condExpr = expression();
         consume(SEMICOLON, ErrorCode.MISSING_SEMICOLON);
         Stmt postStmt = statement();
-        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         this.loopLevel++;
         Stmt bodyStmt = statement();
