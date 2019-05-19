@@ -5,6 +5,8 @@ package litac;
 
 import java.io.File;
 
+import litac.checker.PhaseResult;
+import litac.checker.PhaseResult.PhaseError;
 import litac.compiler.BackendOptions;
 import litac.compiler.BackendOptions.BackendType;
 import litac.compiler.Compiler;
@@ -28,14 +30,22 @@ public class LitaC {
         }
         
         File moduleFile = new File(args[0]);
+        PhaseResult result = compile(moduleFile);
         
+        if(result.hasErrors()) {
+            for(PhaseError error : result.getErrors()) {
+                Errors.typeCheckError(error.stmt, error.message);
+            }            
+        }  
+    }
+
+    public static PhaseResult compile(File moduleFile) throws Exception {
         BackendOptions options = new BackendOptions(BackendType.C);
         options.srcDir = moduleFile.getParentFile();
         options.cOptions.run = true;
         
         Compiler compiler = new Compiler(options);
-        compiler.compile(moduleFile);
+        return compiler.compile(moduleFile);        
     }
-
     
 }

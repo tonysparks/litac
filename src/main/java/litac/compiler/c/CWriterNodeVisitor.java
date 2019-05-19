@@ -27,12 +27,7 @@ import litac.checker.Module;
 import litac.checker.Note;
 import litac.checker.Symbol;
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.ArrayTypeInfo;
-import litac.checker.TypeInfo.EnumFieldInfo;
-import litac.checker.TypeInfo.FuncTypeInfo;
-import litac.checker.TypeInfo.PtrTypeInfo;
-import litac.checker.TypeInfo.StructTypeInfo;
-import litac.checker.TypeInfo.TypeKind;
+import litac.checker.TypeInfo.*;
 import litac.compiler.Buf;
 import litac.compiler.CompilationUnit;
 import litac.compiler.c.CTranspiler.COptions;
@@ -57,6 +52,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     private Module main;
         
     private Stack<Queue<DeferStmt>> defers;
+    private int aggregateLevel;
     
     public CWriterNodeVisitor(CompilationUnit unit, Module main, COptions options, Buf buf) {
         this.unit = unit;
@@ -129,13 +125,18 @@ public class CWriterNodeVisitor implements NodeVisitor {
                     return;
                 }
                 
-                if(!type.isAnonymous()) {
+                if(!type.isAnonymous() /*&& !structInfo.isEmbedded()*/) {
                     buf.out("typedef struct %s %s;\n", typeName, typeName);
                 }
                 break;
             }
             case Union: {
-                if(!type.isAnonymous()) {
+                UnionTypeInfo unionInfo = type.as();
+                if(unionInfo.hasGenerics()) {
+                    return;
+                }
+                
+                if(!type.isAnonymous() /*&& !unionInfo.isEmbedded()*/) {
                     buf.out("typedef union %s %s;\n", typeName, typeName);
                 }
                 break;
@@ -243,6 +244,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 while(arrayInfo != null);
                 
                 return String.format("%s %s%s", baseName, declName, sb.toString()); 
+            }
+            case Str: {
+                return String.format("char* %s", declName);
             }
             default: {                
                 String typeName = getTypeNameForC(type);
@@ -397,7 +401,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             buf.out("};\n");
         }
         else {
-            buf.out("struct %s {", stmt.decl.name);
+            buf.out("struct %s {", stmt.decl.type.getName());
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
             }
@@ -417,7 +421,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             buf.out("};\n");
         }
         else {
-            buf.out("union %s {", stmt.decl.name);            
+            buf.out("union %s {", stmt.decl.type.getName());            
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
             }            
@@ -518,6 +522,11 @@ public class CWriterNodeVisitor implements NodeVisitor {
             return;
         }
         
+        if(structInfo.isEmbedded() && aggregateLevel < 1) {
+            return;
+        }
+        
+        aggregateLevel++;
         buf.outln();
         buf.out("struct %s {", name);
         for(FieldStmt f : d.fields) {
@@ -525,6 +534,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }
         buf.out("};\n");
         buf.outln();
+        aggregateLevel--;
     }
 
     @Override
@@ -535,6 +545,16 @@ public class CWriterNodeVisitor implements NodeVisitor {
             return;
         }
         
+        UnionTypeInfo unionInfo = d.type.as();
+        if(unionInfo.hasGenerics()) {
+            return;
+        }
+        
+        if(unionInfo.isEmbedded() && aggregateLevel < 1) {
+            return;
+        }
+        
+        aggregateLevel++;
         buf.outln();
         buf.out("union %s {", name);
         for(FieldStmt f : d.fields) {
@@ -542,7 +562,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }
         buf.out("};\n");
         buf.outln();
-        
+        aggregateLevel--;
     }
 
     @Override
@@ -787,6 +807,13 @@ public class CWriterNodeVisitor implements NodeVisitor {
         // TODO: escape all special chars
         String str = expr.string.replaceAll("(\\r|\\n|\\r\\n)+", "\\\\n");
         buf.appendRaw("\"").appendRaw(str).appendRaw("\"");
+    }
+    
+    @Override
+    public void visit(CharExpr expr) {
+        // TODO: escape all special chars
+        String str = expr.character.replaceAll("(\\r|\\n|\\r\\n)+", "\\\\n");
+        buf.appendRaw("\'").appendRaw(str).appendRaw("\'");
     }
 
 

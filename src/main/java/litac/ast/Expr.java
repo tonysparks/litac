@@ -469,6 +469,32 @@ public abstract class Expr extends Stmt {
         }
     }
     
+    public static class CharExpr extends ConstExpr {
+        public String character;
+        
+        public CharExpr(String character) {
+            super(TypeInfo.CHAR_TYPE);
+            this.character = character;
+            
+            resolveTo(this.type);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        public String toString() {
+            return this.character;
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new CharExpr(this.character);
+        }
+    }
+    
     public static class UnaryExpr extends Expr {
         public TokenType operator;
         public Expr expr;

@@ -1,0 +1,153 @@
+{
+	description: "Tests Declarations",
+	program: '''				
+		@include("assert.h");
+		@foreign func assert(e:bool):void;
+		
+		%definitions%
+		
+		func main(len:i32, args:char**):i32 {
+			%test%
+		}
+	'''
+	tests: [
+		{
+			name: "Primatives",
+			code: '''
+				var i = 32
+				assert( i == 32 )
+				
+				var j = 64_i64
+				assert( j == 64_i64 )
+				
+				var b = false
+				assert( !b )
+				b = true
+				assert(b)
+				
+				var f = 45.756
+				assert(f == 45.756)
+				
+				var d = 245.756_f64
+				assert(d == 245.756_f64)
+				
+				var p = "hello"				
+				assert(p)
+				assert(p[0] == 'h')
+				
+				var index = p
+				var k = 0
+				while (*index) {
+					assert(p[k] == *index)
+					index += 1
+					k += 1
+				}
+				  
+			'''
+		},
+		{
+			name: "Casts",
+			definitions: '''
+				struct T {
+					v: i32
+				}
+				
+				struct <T>X {
+					v: T
+				}
+							
+			''',			
+			code: '''
+				var i : i64 = 32 as i64 + 45_i64
+				assert( i == 77_i64 )
+				
+				
+				i = 2_i64*32 as i64 + 45_i64
+				assert( i == 109_i64 )
+
+				
+				var t = T { 4}
+				var x = <i32>X {44} as <i32>X
+				  
+			'''
+		},
+		{
+			name: "Invalid struct Casts",
+			definitions: '''				
+				struct <T>X {
+					v: T
+				}
+							
+			''',			
+			code: '''
+				var x = <i32>X {44} as <f32>X
+				  
+			''',
+			error: "'struct Xf32' can't be casted to 'struct Xi32'"
+		},
+		{
+			name: "Invalid union Casts",
+			definitions: '''				
+				union <T>X {
+					v: T
+				}
+							
+			''',			
+			code: '''
+				var x = <i32>X {44} as <f32>X
+				  
+			''',
+			error: "'union Xf32' can't be casted to 'union Xi32'"
+		},
+		{
+			name: "Generics struct with union",
+			definitions: '''				
+				struct <T>Person {
+					union <T>X {
+						v: T
+					}
+				}
+							
+			''',			
+			code: '''
+				var x = <i32>Person { .X: <i32>X{4} }				
+				assert(x.X.v == 4)
+				  
+			'''
+		},
+		{
+			name: "Generics struct within union and generic field",
+			definitions: '''				
+				struct <T>Person {
+					union <T>X {
+						v: T
+					}
+					age: T
+				}
+							
+			''',			
+			code: '''
+				var x = <i32>Person { .X: <i32>X{4}, .age:56 }				
+				assert(x.X.v == 4)
+				assert(x.age == 56)  
+			'''
+		},
+		{
+			name: "Generics struct within union and field",
+			definitions: '''				
+				struct <T>Person {
+					union <T>X {
+						v: T
+					}
+					age: i64
+				}
+							
+			''',			
+			code: '''
+				var x = <i32>Person { .X: <i32>X{4}, .age:56_i64 }				
+				assert(x.X.v == 4)
+				assert(x.age == 56_i64)  
+			'''
+		}
+	]
+}

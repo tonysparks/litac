@@ -49,6 +49,7 @@ public interface NodeVisitor {
     void visit(BooleanExpr expr);
     void visit(NumberExpr expr);
     void visit(StringExpr expr);
+    void visit(CharExpr expr);
     void visit(GroupExpr expr);
     void visit(FuncCallExpr expr);
     void visit(IdentifierExpr expr);
@@ -205,6 +206,10 @@ public interface NodeVisitor {
 
         @Override
         public void visit(StringExpr expr) {
+        }
+        
+        @Override
+        public void visit(CharExpr expr) {
         }
 
 

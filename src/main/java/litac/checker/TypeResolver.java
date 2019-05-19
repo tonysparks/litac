@@ -467,6 +467,11 @@ public class TypeResolver {
 
         @Override
         public void visit(UnionDecl d) {
+            UnionTypeInfo unionInfo = d.type.as();
+            if(unionInfo.hasGenerics()) {
+                return;
+            }
+            
             resolveType(d, d.type);
             
             for(FieldStmt s : d.fields) {
@@ -520,8 +525,15 @@ public class TypeResolver {
                         }
                     }
                     else if(aggInfo.isKind(TypeKind.Union)) {
-                        // TODO:
-                        throw new CompileException("Not implemented yet");
+                        UnionTypeInfo unionInfo = aggInfo.as();
+                        if(index >= unionInfo.fieldInfos.size()) {
+                            this.result.addError(expr, "invalid union initialize index");
+                        }
+                        else {
+                            FieldInfo field = unionInfo.fieldInfos.get(index);
+                            type = field.type;
+                            expr.resolveTo(type);
+                        }
                     }
                     
                 }
@@ -551,6 +563,25 @@ public class TypeResolver {
         public void visit(InitExpr expr) {
             for(InitArgExpr e : expr.arguments) {
                 e.visit(this);
+            }
+            
+            // TODO: no type was specified, must infer from
+            // parent node
+            if(expr.type == null) {
+                Node parent = expr.getParentNode();
+                if(!(parent instanceof Expr)) {
+                    this.result.addError(expr, "'%s' is an unknown type", expr.type);
+                    return;
+                }
+                
+                Expr parentExpr = (Expr)parent;
+                if(parentExpr instanceof InitArgExpr) {
+                  InitArgExpr arg = (InitArgExpr)parentExpr;
+                  
+                }
+                //else if(parentExpr instanceof Pa)
+                
+                expr.type = parentExpr.getResolvedType();
             }
             
             if(!expr.type.isResolved()) {
@@ -673,7 +704,12 @@ public class TypeResolver {
                 case Union: {
                     UnionTypeInfo unionInfo = type.as();
                     for(FieldInfo fieldInfo : unionInfo.fieldInfos) {
-                        if(fieldInfo.name.equals(field.getName())) {
+                        if(fieldInfo.type.isAnonymous()) {
+                            if(resolveAggregate(fieldInfo.type, field, expr, value)) {
+                                return true;
+                            }
+                        }
+                        else if(fieldInfo.name.equals(field.getName())) {
                             if(!field.isResolved()) {
                                 resolveType(expr, field, fieldInfo.type);
                             }
@@ -700,10 +736,6 @@ public class TypeResolver {
                         }
                         this.result.addError(expr, "'%s' does not have field '%s'", enumInfo.name, field.name);
                     }
-                    break;
-                }
-                case Any: {
-                    expr.resolveTo(new AnyTypeInfo(field.getName()));
                     break;
                 }
                 default: {
@@ -745,18 +777,22 @@ public class TypeResolver {
             
             switch(expr.operator) {
                 case STAR: {
-                    TypeInfo type = expr.expr.getResolvedType();
-                    if(!type.isKind(TypeKind.Ptr)) {
+                    TypeInfo type = expr.expr.getResolvedType().getResolvedType();
+                    if(type.isKind(TypeKind.Ptr)) {
+                        PtrTypeInfo ptrInfo = type.as();
+                        expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
+                    }
+                    else if(type.isKind(TypeKind.Str)) {
+                        expr.resolveTo(type);
+                    }
+                    else {
                         this.result.addError(expr, "'%s' is not a pointer type", type);
-                        return;
                     }
                     
-                    PtrTypeInfo ptrInfo = type.as();
-                    expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
                     break;
                 }
                 case BAND: {
-                    TypeInfo type = expr.expr.getResolvedType();
+                    TypeInfo type = expr.expr.getResolvedType().getResolvedType();
                     PtrTypeInfo ptrInfo = new PtrTypeInfo(type);
                     expr.resolveTo(ptrInfo);
                     break;
