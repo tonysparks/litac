@@ -1,0 +1,10 @@
+
+struct <T>Array {
+	size: i32
+	capacity: i32
+	elements: T*
+}
+
+func <T>ArrayInit(a:<T>Array**, initialSize: i32) {
+	
+}

@@ -11,7 +11,7 @@
 		}
 	'''
 	tests: [
-		{
+		/*{
 			name: "Primatives",
 			code: '''
 				var i = 32
@@ -217,6 +217,32 @@
 				assert(x == 1024)
 			''',
 			error: "can't reassign constant variable 'x'"
-		}
+		}*/
+		{
+			name: "Generics struct and function",
+			definitions: '''
+				@include("stdlib.h");
+
+				@foreign func malloc(size: u64) : void*;
+								
+				struct <T>Array {
+					size: i32
+					capacity: i32
+					elements: T*
+				}
+				
+				func <T>ArrayInit(a:<T>Array**, initialSize: i32) {
+					//*a = malloc(sizeof(<T>Array) + sizeof(T) * initialSize)
+					//*a.size = 0
+					//*a.capacity = initialSize						
+				}
+							
+			''',			
+			code: '''
+				var a : <i32>Array* = null;
+				<i32>ArrayInit(a, 23)
+				  
+			'''
+		},
 	]
 }

@@ -64,30 +64,52 @@ public class Generics {
         }        
     }
     
-    private static TypeInfo createStructTypeInfo(Module module, String newStructName, StructTypeInfo structInfo, List<TypeInfo> genericArgs) {
-        
-        List<FieldInfo> newFieldInfos = new ArrayList<>(structInfo.fieldInfos.size());
-        for(FieldInfo field : structInfo.fieldInfos) {
+    private static List<FieldInfo> createNewFieldInfos(Module module, AggregateTypeInfo aggInfo, List<TypeInfo> genericArgs) {
+        List<FieldInfo> newFieldInfos = new ArrayList<>(aggInfo.fieldInfos.size());
+        for(FieldInfo field : aggInfo.fieldInfos) {
+            
+            TypeInfo rawType = null;
             switch(field.type.getKind()) {
                 case Struct:
                 case Union: {
                     field.type = createFromGenericTypeInfo(module, field.type, genericArgs);
                     break;
+                }                
+                case Ptr: {
+                    PtrTypeInfo ptrInfo = field.type.as();
+                    rawType = ptrInfo.getBaseType();
+                    break;
+                }
+                case Array: {
+                    ArrayTypeInfo arrayInfo = field.type.as();
+                    rawType = arrayInfo.getBaseType();
+                    break;
                 }
                 default: {
-                    for(int i = 0; i < structInfo.genericParams.size(); i++) {
-                        GenericParam p = structInfo.genericParams.get(i);
-                        if(p.name.equals(field.type.getName())) {
-                            TypeInfo argInfo = createFromGenericTypeInfo(module, genericArgs.get(i), genericArgs);
-                            field = new FieldInfo(argInfo, field.name, p.name);
-                            break;
-                        }
+                    rawType = field.type;
+                }
+            }
+            
+            if(rawType != null) {
+                for(int i = 0; i < aggInfo.genericParams.size(); i++) {
+                    GenericParam p = aggInfo.genericParams.get(i);
+                    if(p.name.equals(rawType.getName())) {
+                        TypeInfo argInfo = createFromGenericTypeInfo(module, genericArgs.get(i), genericArgs);
+                        field = new FieldInfo(argInfo, field.name, p.name);
+                        break;
                     }
                 }
             }
+            
             newFieldInfos.add(field);
         }
         
+        return newFieldInfos;
+    }
+    
+    private static TypeInfo createStructTypeInfo(Module module, String newStructName, StructTypeInfo structInfo, List<TypeInfo> genericArgs) {
+        
+        List<FieldInfo> newFieldInfos = createNewFieldInfos(module, structInfo, genericArgs);        
         StructTypeInfo newStructInfo = new StructTypeInfo(newStructName,
                                                           Collections.emptyList(),
                                                           newFieldInfos, 
@@ -105,28 +127,8 @@ public class Generics {
     }
     
     private static TypeInfo createUnionTypeInfo(Module module, String newUnionName, UnionTypeInfo unionInfo, List<TypeInfo> genericArgs) {        
-        List<FieldInfo> newFieldInfos = new ArrayList<>(unionInfo.fieldInfos.size());
-        for(FieldInfo field : unionInfo.fieldInfos) {
-            switch(field.type.getKind()) {
-                case Struct:
-                case Union: {
-                    field.type = createFromGenericTypeInfo(module, field.type, genericArgs);
-                    break;
-                }
-                default: {
-                    for(int i = 0; i < unionInfo.genericParams.size(); i++) {
-                        GenericParam p = unionInfo.genericParams.get(i);
-                        if(p.name.equals(field.type.getName())) {
-                            TypeInfo argInfo = createFromGenericTypeInfo(module, genericArgs.get(i), genericArgs);
-                            field = new FieldInfo(argInfo, field.name, p.name);
-                            break;
-                        }
-                    } 
-                }
-            }
-            newFieldInfos.add(field);
-        }
         
+        List<FieldInfo> newFieldInfos = createNewFieldInfos(module, unionInfo, genericArgs);        
         UnionTypeInfo newUnionInfo = new UnionTypeInfo(newUnionName,
                                                        Collections.emptyList(),
                                                        newFieldInfos, 
