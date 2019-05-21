@@ -7,9 +7,15 @@ import java.util.*;
 
 import litac.ast.Decl.*;
 import litac.checker.TypeInfo.*;
-import litac.util.Tuple;
 
 /**
+ * Handles creating new {@link TypeInfo}s based on generic types with generic arguments.
+ * As an example:
+ * 
+ *   Array<T> is represented by IdentityTypeInfo with genericParam 'T', when used
+ *   in an expression, such as Array<i32>, the IdentityTypeInfo gets converted to a 
+ *   StructTypeInfo named Arrayi32 with i32 type replaced where T was.
+ * 
  * @author Tony
  *
  */
@@ -64,30 +70,73 @@ public class Generics {
         }        
     }
     
-    private static TypeInfo createStructTypeInfo(Module module, String newStructName, StructTypeInfo structInfo, List<TypeInfo> genericArgs) {
+    public static TypeInfo createGenericTypeInfo(Module module, TypeInfo type, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
         
-        List<FieldInfo> newFieldInfos = new ArrayList<>(structInfo.fieldInfos.size());
-        for(FieldInfo field : structInfo.fieldInfos) {
-            switch(field.type.getKind()) {
-                case Struct:
-                case Union: {
-                    field.type = createFromGenericTypeInfo(module, field.type, genericArgs);
+        switch(type.getKind()) {
+            case Struct:
+            case Union: {
+                return createFromGenericTypeInfo(module, type, genericArgs);                
+            }                
+            case Ptr: {
+                PtrTypeInfo ptrInfo = type.as();
+                ptrInfo.ptrOf = createGenericTypeInfo(module, ptrInfo.ptrOf, genericParams, genericArgs);
+                return ptrInfo;                
+            }
+            case Array: {
+                ArrayTypeInfo arrayInfo = type.as();
+                arrayInfo.arrayOf = createGenericTypeInfo(module, arrayInfo.arrayOf, genericParams, genericArgs);
+                return arrayInfo;
+            }
+            case Identifier: {
+                IdentifierTypeInfo idTypeInfo = type.as();
+                
+                // Check and see if the identifier is another generic type with generic arguments,
+                // if it has them, swap them out with the corresponding generics on the parent type
+                if(!idTypeInfo.isResolved() && !idTypeInfo.genericArgs.isEmpty()) {
+                    
+                    for(int index = 0; index < idTypeInfo.genericArgs.size(); index++)  {
+                        TypeInfo genericArg = idTypeInfo.genericArgs.get(index);
+                        for(int i = 0; i < genericParams.size(); i++) {
+                            GenericParam p = genericParams.get(i);
+                            if(p.name.equals(genericArg.getName())) {
+                                TypeInfo newArg = createGenericTypeInfo(module, genericArgs.get(i), genericParams, genericArgs);
+                                idTypeInfo.genericArgs.set(index, newArg);
+                            }
+                        }
+                    }
+                    
+                    TypeInfo resolvedType = module.getType(idTypeInfo.getName());
+                    idTypeInfo.resolve(module, resolvedType, true);
                     break;
                 }
-                default: {
-                    for(int i = 0; i < structInfo.genericParams.size(); i++) {
-                        GenericParam p = structInfo.genericParams.get(i);
-                        if(p.name.equals(field.type.getName())) {
-                            TypeInfo argInfo = createFromGenericTypeInfo(module, genericArgs.get(i), genericArgs);
-                            field = new FieldInfo(argInfo, field.name, p.name);
-                            break;
-                        }
+            }
+            default: {
+                for(int i = 0; i < genericParams.size(); i++) {
+                    GenericParam p = genericParams.get(i);
+                    if(p.name.equals(type.getName())) {
+                        return createGenericTypeInfo(module, genericArgs.get(i), genericParams, genericArgs);
                     }
                 }
             }
-            newFieldInfos.add(field);
         }
         
+        return type;
+    }
+    
+    private static List<FieldInfo> createNewFieldInfos(Module module, AggregateTypeInfo aggInfo, List<TypeInfo> genericArgs) {
+        List<FieldInfo> newFieldInfos = new ArrayList<>(aggInfo.fieldInfos.size());
+        for(FieldInfo field : aggInfo.fieldInfos) {            
+            TypeInfo newType = createGenericTypeInfo(module, field.type, aggInfo.genericParams, genericArgs);
+            FieldInfo newField = new FieldInfo(newType, field.name, field.genericArg);            
+            newFieldInfos.add(newField);
+        }
+        
+        return newFieldInfos;
+    }
+    
+    private static TypeInfo createStructTypeInfo(Module module, String newStructName, StructTypeInfo structInfo, List<TypeInfo> genericArgs) {
+        
+        List<FieldInfo> newFieldInfos = createNewFieldInfos(module, structInfo, genericArgs);        
         StructTypeInfo newStructInfo = new StructTypeInfo(newStructName,
                                                           Collections.emptyList(),
                                                           newFieldInfos, 
@@ -96,8 +145,10 @@ public class Generics {
         newStructInfo.sym = structInfo.sym;
         
         StructDecl decl = createNewStructDecl(module, 
-                                              newStructInfo, 
-                                              buildReplacements(module, structInfo, genericArgs));
+                                              newStructInfo,
+                                              structInfo.genericParams,
+                                              genericArgs);
+
         module.declareStruct(decl, newStructName, newStructInfo);
         module.addGenericType(decl);
         
@@ -105,28 +156,8 @@ public class Generics {
     }
     
     private static TypeInfo createUnionTypeInfo(Module module, String newUnionName, UnionTypeInfo unionInfo, List<TypeInfo> genericArgs) {        
-        List<FieldInfo> newFieldInfos = new ArrayList<>(unionInfo.fieldInfos.size());
-        for(FieldInfo field : unionInfo.fieldInfos) {
-            switch(field.type.getKind()) {
-                case Struct:
-                case Union: {
-                    field.type = createFromGenericTypeInfo(module, field.type, genericArgs);
-                    break;
-                }
-                default: {
-                    for(int i = 0; i < unionInfo.genericParams.size(); i++) {
-                        GenericParam p = unionInfo.genericParams.get(i);
-                        if(p.name.equals(field.type.getName())) {
-                            TypeInfo argInfo = createFromGenericTypeInfo(module, genericArgs.get(i), genericArgs);
-                            field = new FieldInfo(argInfo, field.name, p.name);
-                            break;
-                        }
-                    } 
-                }
-            }
-            newFieldInfos.add(field);
-        }
         
+        List<FieldInfo> newFieldInfos = createNewFieldInfos(module, unionInfo, genericArgs);        
         UnionTypeInfo newUnionInfo = new UnionTypeInfo(newUnionName,
                                                        Collections.emptyList(),
                                                        newFieldInfos, 
@@ -135,44 +166,46 @@ public class Generics {
         newUnionInfo.sym = unionInfo.sym;
         
         UnionDecl decl = createNewUnionDecl(module, 
-                                            newUnionInfo, 
-                                            buildReplacements(module, unionInfo, genericArgs));
+                                            newUnionInfo,
+                                            unionInfo.genericParams,
+                                            genericArgs);
+
         module.declareUnion(decl, newUnionName, newUnionInfo);
         module.addGenericType(decl);
         
         return newUnionInfo;
     }
     
-    private static StructDecl createNewStructDecl(Module module, StructTypeInfo structInfo, List<Tuple<String, TypeInfo>> replacements) {
+    private static StructDecl createNewStructDecl(Module module, StructTypeInfo structInfo, List<GenericParam> genericParams, List<TypeInfo> genericArgs) { 
         StructDecl decl = structInfo.sym.decl.copy();
         decl.name = structInfo.name;
         decl.type = structInfo;
         
-        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(structInfo.fieldInfos, replacements);
+        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(structInfo.fieldInfos, module, genericParams, genericArgs);
         decl.visit(replacer);
         
         return decl;
     }
     
-    private static UnionDecl createNewUnionDecl(Module module, UnionTypeInfo unionInfo, List<Tuple<String, TypeInfo>> replacements) {
+    private static UnionDecl createNewUnionDecl(Module module, UnionTypeInfo unionInfo, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
         UnionDecl decl = unionInfo.sym.decl.copy();
         decl.name = unionInfo.name;
         decl.type = unionInfo;
         
-        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(unionInfo.fieldInfos, replacements);
+        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(unionInfo.fieldInfos, module, genericParams, genericArgs);
         decl.visit(replacer);
         
         return decl;
     }
     
-    private static FuncDecl createNewFuncDecl(Module module, FuncTypeInfo funcInfo, List<Tuple<String, TypeInfo>> replacements) {
+    private static FuncDecl createNewFuncDecl(Module module, FuncTypeInfo funcInfo, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
         FuncDecl decl = funcInfo.sym.decl.copy();
         decl.name = funcInfo.name;
         decl.type = funcInfo;
         decl.returnType = funcInfo.returnType;
         decl.params.params = funcInfo.parameterDecls;
         
-        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(Collections.emptyList(), replacements);
+        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(Collections.emptyList(), module, genericParams, genericArgs);
         decl.visit(replacer);
         
         return decl;
@@ -182,31 +215,14 @@ public class Generics {
         
         List<ParameterDecl> newFuncParams = new ArrayList<>();
         
-        for(ParameterDecl paramDecl : funcInfo.parameterDecls) {
-            for(int i = 0; i < funcInfo.genericParams.size(); i++) {
-                GenericParam p = funcInfo.genericParams.get(i);
-                if(p.name.equals(paramDecl.type.getName())) {
-                    // TODO: verify correct number of generic args/params
-                    TypeInfo argInfo = genericArgs.get(i);
-                    paramDecl = new ParameterDecl(argInfo, paramDecl.name);
-                    break;
-                }
-            }    
+        for(ParameterDecl paramDecl : funcInfo.parameterDecls) {            
+            TypeInfo argInfo = createGenericTypeInfo(module, paramDecl.type, funcInfo.genericParams, genericArgs);
+            paramDecl = new ParameterDecl(argInfo, paramDecl.name);
             
             newFuncParams.add(paramDecl);
         }
-        
-        TypeInfo newReturnType = funcInfo.returnType;
-        for(int i = 0; i < funcInfo.genericParams.size(); i++) {
-            GenericParam p = funcInfo.genericParams.get(i);
-            if(p.name.equals(funcInfo.returnType.getName())) {
-                // TODO: verify correct number of generic args/params
-                TypeInfo argInfo = genericArgs.get(i);
-                newReturnType = argInfo;
-                break;
-            }
-        }
          
+        TypeInfo newReturnType = createGenericTypeInfo(module, funcInfo.returnType, funcInfo.genericParams, genericArgs);
         FuncTypeInfo newFuncInfo = new FuncTypeInfo(newFuncName, 
                                                     newReturnType, 
                                                     newFuncParams, 
@@ -214,8 +230,10 @@ public class Generics {
                                                     Collections.emptyList());
         newFuncInfo.sym = funcInfo.sym;
         FuncDecl decl = createNewFuncDecl(module, 
-                                          newFuncInfo, 
-                                          buildReplacements(module, funcInfo, genericArgs));
+                                          newFuncInfo,
+                                          funcInfo.genericParams,
+                                          genericArgs);
+
         module.declareFunc(decl, newFuncName, newFuncInfo);
         module.addGenericType(decl);
         
@@ -233,13 +251,4 @@ public class Generics {
         return newName.toString();
     }
     
-    private static List<Tuple<String, TypeInfo>> buildReplacements(Module module, GenericTypeInfo type, List<TypeInfo> genericArgs) {
-        List<Tuple<String, TypeInfo>> replacements = new ArrayList<>();
-        for(int i = 0; i < genericArgs.size(); i++) {
-            TypeInfo argInfo = createFromGenericTypeInfo(module, genericArgs.get(i), genericArgs);
-            replacements.add(new Tuple<>(type.genericParams.get(i).name, argInfo));
-        }
-        
-        return replacements;
-    }
 }

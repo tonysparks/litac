@@ -12,7 +12,7 @@ import litac.ast.Expr.*;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.*;
-import litac.compiler.*;
+import litac.compiler.CompilationUnit;
 
 /**
  * Responsible for ensuring each Expr can be resolved down to a {@link TypeInfo}.
@@ -169,10 +169,16 @@ public class TypeResolver {
         
         private Module module;
         private PhaseResult result;
+        private FuncTypeInfo currentFuncInfo;
         
         public TypeResolverNodeVisitor(PhaseResult result, Module module) {
             this.result = result;
             this.module = module;
+        }
+        
+        private boolean includeGenerics() {
+            return this.currentFuncInfo == null ||
+                  !this.currentFuncInfo.hasGenerics();
         }
         
         private void enterScope() {
@@ -238,14 +244,14 @@ public class TypeResolver {
             if(!type.isResolved()) {  
                 if(resolvedType == null) {
                     resolvedType = module.getType(type.getName());
-                    if(resolvedType == null) {
+                    if(resolvedType == null && includeGenerics()) {
                         this.result.addError(stmt, "'%s' is an unknown type", type.getName());
                         return;
                     }
                 }
                 
                 IdentifierTypeInfo idType = type.as();
-                idType.resolve(this.module, resolvedType);
+                idType.resolve(this.module, resolvedType, includeGenerics());
             }
             else if(type.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = type.as();
@@ -267,10 +273,10 @@ public class TypeResolver {
                       }
                       else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
                           IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
-                          if(iExpr.declType instanceof ConstDecl) {
-                              validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
+                          if(iExpr.sym.decl instanceof ConstDecl) {
+                              validateArrayDimension(arrayInfo.lengthExpr, iExpr.sym.decl.type);
                               
-                              ConstDecl cExpr = (ConstDecl)iExpr.declType;
+                              ConstDecl cExpr = (ConstDecl)iExpr.sym.decl;
                               NumberExpr nExpr = (NumberExpr)cExpr.expr;
                               
                               arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
@@ -444,15 +450,19 @@ public class TypeResolver {
             enterScope();
             {
                 FuncTypeInfo funcInfo = d.type.as();
-                if(!funcInfo.hasGenerics()) {                
-                    resolveType(d, d.returnType);
-                    for(ParameterDecl p : d.params.params) {
-                        resolveType(p, p.type);
-                        peekScope().addSymbol(this.module, p, p.name, p.type);
-                    }
-                    
-                    d.bodyStmt.visit(this);
+                // must resolve types, even for generic functions
+                // otherwise the Generic.replacer will not work
+                this.currentFuncInfo = funcInfo;
+                
+                resolveType(d, d.returnType);
+                for(ParameterDecl p : d.params.params) {
+                    resolveType(p, p.type);
+                    peekScope().addSymbol(this.module, p, p.name, p.type);
                 }
+                
+                d.bodyStmt.visit(this);
+                
+                this.currentFuncInfo = null;
             }
             exitScope();
         }
@@ -604,7 +614,7 @@ public class TypeResolver {
                 }
             
                 IdentifierTypeInfo idInfo = expr.type.as();
-                idInfo.resolve(this.module, type);
+                idInfo.resolve(this.module, type, includeGenerics());
             }
         }
 
@@ -660,9 +670,9 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, sym.type);
-                expr.declType = sym.decl;
+                type.resolve(this.module, sym.type, includeGenerics());
                 expr.sym = sym;
+                expr.resolveTo(expr.type); // TODO: remove type from IdExpr
             }
         }
         
@@ -677,13 +687,13 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, resolvedType);
+                type.resolve(this.module, resolvedType, includeGenerics());
 
                 TypeInfo newType = type.getResolvedType();
                 if(newType.sym != null) {
-                    expr.declType = newType.sym.decl;
                     expr.sym = newType.sym;
                 }
+                expr.resolveTo(expr.type); // TODO: remove type from IdExpr
             }
         }
         

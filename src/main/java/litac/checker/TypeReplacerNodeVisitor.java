@@ -2,22 +2,11 @@ package litac.checker;
 
 import java.util.List;
 
-import litac.ast.Decl;
-import litac.ast.Decl.ConstDecl;
-import litac.ast.Decl.EnumDecl;
-import litac.ast.Decl.FuncDecl;
-import litac.ast.Decl.ParameterDecl;
-import litac.ast.Decl.StructDecl;
-import litac.ast.Decl.TypedefDecl;
-import litac.ast.Decl.UnionDecl;
-import litac.ast.Decl.VarDecl;
+import litac.ast.*;
+import litac.ast.Decl.*;
 import litac.ast.Expr.*;
-import litac.ast.Expr;
-import litac.ast.NodeVisitor;
-import litac.ast.Stmt;
 import litac.ast.Stmt.*;
-import litac.checker.TypeInfo.*;
-import litac.util.Tuple;
+import litac.checker.TypeInfo.FieldInfo;
 
 
 /**
@@ -30,12 +19,20 @@ import litac.util.Tuple;
  */
 public class TypeReplacerNodeVisitor implements NodeVisitor {
 
-    private List<Tuple<String, TypeInfo>> replacements;
     private List<FieldInfo> fieldInfos;
     
-    public TypeReplacerNodeVisitor(List<FieldInfo> fieldInfos, List<Tuple<String, TypeInfo>> replacements) {
+    private Module module;
+    private List<GenericParam> genericParams; 
+    private List<TypeInfo> genericArgs;
+    
+    public TypeReplacerNodeVisitor(List<FieldInfo> fieldInfos, 
+                                   Module module,                       
+                                   List<GenericParam> genericParams, 
+                                   List<TypeInfo> genericArgs) {
         this.fieldInfos = fieldInfos;
-        this.replacements = replacements;
+        this.module = module;
+        this.genericParams = genericParams;
+        this.genericArgs = genericArgs;
     }
     
     private Stmt replaceType(Stmt stmt) {
@@ -52,16 +49,14 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     private void replaceType(List<Expr> exprs) {
         for(Expr expr : exprs) {
-            replaceType(expr);
+            replaceType(expr).visit(this);
         }
     }
     
     private Expr replaceType(Expr expr) {
         TypeInfo oldType = expr.getResolvedType();
-        if(oldType != null) {
-            if(this.replacements.stream().anyMatch(t -> t.getFirst().equals(oldType.getName()))) {                 
-                expr.resolveTo(this.replacements.stream().filter(t -> t.getFirst().equals(oldType.getName())).findFirst().get().getSecond());
-            }
+        if(oldType != null) {            
+            expr.resolveTo(replaceType(oldType));
         }
         
         return expr;
@@ -72,22 +67,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     }
     
     private TypeInfo replaceType(TypeInfo oldType) {
-        if(oldType.isKind(TypeKind.Identifier) && 
-            this.replacements.stream().anyMatch(t -> t.getFirst().equals(oldType.getName()))) {                 
-            return this.replacements.stream().filter(t -> t.getFirst().equals(oldType.getName())).findFirst().get().getSecond();
-        }
-//        else if(oldType.isKind(TypeKind.Union)) {
-//            UnionTypeInfo unionInfo = oldType.as();
-//            if(unionInfo.hasGenerics()) {
-//                for(FieldInfo f : unionInfo.fieldInfos) {
-//                    f.type = replaceType(f.type);
-//                }
-//                
-//                unionInfo.genericParams.clear();
-//            }
-//        }
-        
-        return oldType;
+        return Generics.createGenericTypeInfo(module, oldType, genericParams, genericArgs);
     }
     
 
@@ -202,14 +182,15 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(ParametersStmt stmt) {
-        for(ParameterDecl d : stmt.params) {
-            replaceType(d);
+        for(ParameterDecl d : stmt.params) {            
+            d.visit(this);
         }
     }
 
     @Override
     public void visit(ConstDecl d) {
-        replaceType(d.expr);
+        replaceType(d);
+        replaceType(d.expr).visit(this);
     }
 
     @Override
@@ -247,31 +228,33 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(VarDecl d) {
-        // TODO Auto-generated method stub
-
+        replaceType(d);
+        if(d.expr != null) {
+            replaceType(d.expr).visit(this);
+        }
     }
 
     @Override
     public void visit(ParameterDecl d) {
-        // TODO Auto-generated method stub
-
+        replaceType(d);
     }
 
     @Override
     public void visit(CastExpr expr) {
-        replaceType(expr.expr);
+        expr.castTo = replaceType(expr.castTo);
+        replaceType(expr.expr).visit(this);
         replaceType(expr);
     }
 
     @Override
     public void visit(SizeOfExpr expr) {
-        replaceType(expr.expr);
+        replaceType(expr.expr).visit(this);
     }
 
     @Override
     public void visit(InitArgExpr expr) {
         replaceType(expr);
-        replaceType(expr.value);
+        replaceType(expr.value).visit(this);
     }
 
     @Override
@@ -301,51 +284,69 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(GroupExpr expr) {
-        replaceType(expr.expr);
+        replaceType(expr.expr).visit(this);
         replaceType(expr);
     }
 
     @Override
     public void visit(FuncCallExpr expr) {
         replaceType(expr);
-        replaceType(expr.object);
+        replaceType(expr.object).visit(this);
         replaceType(expr.arguments);
     }
 
     @Override
     public void visit(IdentifierExpr expr) {
-        replaceType(expr);        
+        replaceType(expr);
+        expr.type = replaceType(expr.type);
+
+        // TODO: Fix me, this shouldn't be here!
+        if(expr.type != null) {
+            TypeInfo type = expr.type.getResolvedType();
+            if(type != null) {        
+                expr.sym = type.sym;
+            }
+        }
     }
 
     @Override
     public void visit(FuncIdentifierExpr expr) {
         replaceType(expr);
+        expr.type = replaceType(expr.type);
+        
+        // TODO: Fix me, this shouldn't be here!
+        if(expr.type != null) {
+            TypeInfo type = expr.type.getResolvedType();
+            if(type != null) {        
+                expr.sym = type.sym;
+            }
+        }
     }
 
     @Override
     public void visit(GetExpr expr) {
         replaceType(expr);
-        replaceType(expr.object);        
+        replaceType(expr.object).visit(this);        
     }
 
     @Override
     public void visit(SetExpr expr) {
         replaceType(expr);
-        replaceType(expr.object);
-        replaceType(expr.value);
+        replaceType(expr.object).visit(this);
+        replaceType(expr.value).visit(this);
     }
 
     @Override
     public void visit(UnaryExpr expr) {
         replaceType(expr);
-        replaceType(expr.expr);
+        replaceType(expr.expr).visit(this);
     }
 
     @Override
     public void visit(BinaryExpr expr) {
         replaceType(expr);
-        replaceType(expr.left);
-        replaceType(expr.right);
+        replaceType(expr.left).visit(this);
+        replaceType(expr.right).visit(this);
     }
 
     @Override
@@ -357,17 +358,17 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     @Override
     public void visit(SubscriptGetExpr expr) {
         replaceType(expr);
-        replaceType(expr.index);
-        replaceType(expr.object);
+        replaceType(expr.index).visit(this);
+        replaceType(expr.object).visit(this);
 
     }
 
     @Override
     public void visit(SubscriptSetExpr expr) {
         replaceType(expr);
-        replaceType(expr.index);
-        replaceType(expr.object);
-        replaceType(expr.value);
+        replaceType(expr.index).visit(this);
+        replaceType(expr.object).visit(this);
+        replaceType(expr.value).visit(this);
     }
 
 }

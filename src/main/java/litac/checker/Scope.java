@@ -7,8 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import litac.ast.Decl;
-import litac.ast.Decl.ConstDecl;
-import litac.ast.Decl.VarDecl;
+import litac.ast.Decl.*;
 import litac.ast.Stmt.NoteStmt;
 
 /**
@@ -70,7 +69,8 @@ public class Scope {
         decl.sym = sym;
         
         if(!(decl instanceof VarDecl) && 
-           !(decl instanceof ConstDecl)) {
+           !(decl instanceof ConstDecl) &&
+           !(decl instanceof ParameterDecl)) {
             type.sym = sym;
         }
         
@@ -105,27 +105,6 @@ public class Scope {
         
         return null;
     }
-    
-    
-    /**
-     * Updates an already defined variable, ensures the type match.
-     * 
-     * @param stmt
-     * @param varName
-     * @param type
-     */
-//    public void updateVariable(Stmt stmt, String varName, TypeInfo type) {
-//        Symbol definedType = getSymbol(varName);
-//        if(definedType == null) {
-//            this.result.addError(stmt, "'%s' has not been declared", varName);
-//            return;
-//        }
-//        
-//        if(!definedType.type.canCastTo(type)) {
-//            this.result.addError(stmt, "'%s' of type '%s' can't be assigned to type '%s'", varName, definedType, type);
-//            return;
-//        }
-//    }
         
     public Scope pushLocalScope() {
         return new Scope(this.result, ScopeType.LOCAL, this);

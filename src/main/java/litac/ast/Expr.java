@@ -87,7 +87,7 @@ public abstract class Expr extends Stmt {
     @Override
     public <T extends Node> T copy() {
         Expr expr = super.copy();
-        //expr.resolvedTo = TypeInfo.copy(expr.resolvedTo);
+        expr.resolvedTo = this.resolvedTo; 
         return (T)expr;
     }
     
@@ -518,7 +518,6 @@ public abstract class Expr extends Stmt {
     public static class IdentifierExpr extends Expr {
         public String variable;
         public TypeInfo type;
-        public Decl declType;
         public Symbol sym;
         
         public IdentifierExpr(String variable, TypeInfo type) {
@@ -535,10 +534,6 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             IdentifierExpr idExpr = new IdentifierExpr(this.variable, this.type.copy());
-            if(this.declType != null) {
-                idExpr.declType = this.declType.copy();
-            }
-            
             return idExpr;
         }
     }
@@ -557,9 +552,9 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             FuncIdentifierExpr idExpr = new FuncIdentifierExpr(this.variable, this.type.copy());
-            if(this.declType != null) {
-                idExpr.declType = this.declType.copy();
-            }
+//            if(this.declType != null) {
+//                idExpr.declType = this.declType.copy();
+//            }
             
             return idExpr;
         }

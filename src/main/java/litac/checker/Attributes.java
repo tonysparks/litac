@@ -23,10 +23,6 @@ public class Attributes {
      */
     public boolean isGlobal;
     
-    /**
-     * If the declaration has generic types
-     */
-    public boolean hasGenerics;
     
     /**
      * Any notes about a declaration

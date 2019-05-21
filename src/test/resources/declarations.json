@@ -11,6 +11,7 @@
 		}
 	'''
 	tests: [
+		
 		{
 			name: "Primatives",
 			code: '''
@@ -44,7 +45,7 @@
 				}
 				  
 			'''
-		},
+		}, 
 		{
 			name: "Casts",
 			definitions: '''
@@ -52,7 +53,7 @@
 					v: i32
 				}
 				
-				struct <T>X {
+				struct X<T> {
 					v: T
 				}
 							
@@ -67,20 +68,20 @@
 
 				
 				var t = T { 4}
-				var x = <i32>X {44} as <i32>X
+				var x = X<i32> {44} as X<i32>
 				  
 			'''
-		},
+		}, 
 		{
 			name: "Invalid struct Casts",
 			definitions: '''				
-				struct <T>X {
+				struct X<T> {
 					v: T
 				}
 							
 			''',			
 			code: '''
-				var x = <i32>X {44} as <f32>X
+				var x = X<i32> {44} as X<f32>
 				  
 			''',
 			error: "'struct Xf32' can't be casted to 'struct Xi32'"
@@ -88,13 +89,13 @@
 		{
 			name: "Invalid union Casts",
 			definitions: '''				
-				union <T>X {
+				union X<T> {
 					v: T
 				}
 							
 			''',			
 			code: '''
-				var x = <i32>X {44} as <f32>X
+				var x = X<i32> {44} as X<f32>
 				  
 			''',
 			error: "'union Xf32' can't be casted to 'union Xi32'"
@@ -102,15 +103,15 @@
 		{
 			name: "Generics struct with union",
 			definitions: '''				
-				struct <T>Person {
-					union <T>X {
+				struct Person<T> {
+					union X<T> {
 						v: T
 					}
 				}
 							
 			''',			
 			code: '''
-				var x = <i32>Person { .X: <i32>X{4} }				
+				var x = Person<i32> { .X: X<i32>{4} }				
 				assert(x.X.v == 4)
 				  
 			'''
@@ -118,8 +119,8 @@
 		{
 			name: "Generics struct within union and generic field",
 			definitions: '''				
-				struct <T>Person {
-					union <T>X {
+				struct Person<T> {
+					union X<T> {
 						v: T
 					}
 					age: T
@@ -127,7 +128,7 @@
 							
 			''',			
 			code: '''
-				var x = <i32>Person { .X: <i32>X{4}, .age:56 }				
+				var x = Person<i32> { .X: X<i32>{4}, .age:56 }				
 				assert(x.X.v == 4)
 				assert(x.age == 56)  
 			'''
@@ -135,8 +136,8 @@
 		{
 			name: "Generics struct within union and field",
 			definitions: '''				
-				struct <T>Person {
-					union <T>X {
+				struct Person<T> {
+					union X<T> {
 						v: T
 					}
 					age: i64
@@ -144,7 +145,7 @@
 							
 			''',			
 			code: '''
-				var x = <i32>Person { .X: <i32>X{4}, .age:56_i64 }				
+				var x = Person<i32> { .X: X<i32>{4}, .age:56_i64 }				
 				assert(x.X.v == 4)
 				assert(x.age == 56_i64)  
 			'''
@@ -210,13 +211,86 @@
 			'''
 		},
 		{
-			name: "Constant reassign",					
+			name: "Invalid Constant reassign",					
 			code: '''
 				const x = 1024
 				x = 10
 				assert(x == 1024)
 			''',
 			error: "can't reassign constant variable 'x'"
-		}
+		},
+		{
+			name: "Generics struct and function",
+			definitions: '''
+				@include("stdlib.h");
+
+				@foreign func malloc(size: u64) : void*;
+								
+				struct Array<T> {
+					size: i32
+					capacity: i32
+					elements: T*
+				}
+				
+				func ArrayInit<T>(a: Array<T>**, initialSize: i32) {
+				    var size = sizeof(Array<T>) + (sizeof(T) * initialSize as u64);
+					*a = malloc(size) as Array<T>*;
+					(*a).size = 0;
+					(*a).capacity = initialSize;	
+					(*a).elements =	(*a + sizeof(Array<T>)) as T*				
+				}
+				
+				func ArrayAdd<T>(a: Array<T>*, element: T) {
+				    if(a.size + 1 > a.capacity) {
+				        // grow
+				    }
+				    a.elements[a.size] = element;
+				    a.size += 1
+				}
+							
+			''',			
+			code: '''
+				var a : Array<i32>* = null;
+				ArrayInit<i32>(&a, 23);
+				
+				assert(a);
+				assert(a.capacity == 23)
+				assert(a.size == 0);
+				
+				ArrayAdd<i32>(a, 4)
+				assert(a.elements[0] == 4)
+				  
+			'''
+		},
+		{
+            name: "Generics with greaterthan sign",
+            definitions: '''                
+                func test<T>(a: T) : T {
+                    return a
+                }
+                            
+            ''',            
+            code: '''
+                var x = test<i32> (4) < 5;
+                assert(x)
+            '''
+        },
+        {
+            name: "Generics with greaterthan sign cast",
+            definitions: '''                
+                struct Test<T> {
+                    u: T
+                }
+                            
+            ''',            
+            code: '''
+                var a: Test<i32>{}
+                var b: Test<f32>{}
+                var x = a as Test<f32> > 0
+                assert(x)
+            ''',
+            error: "illegal, left operand has type 'Testf32'"
+        },
+		 
 	]
 }
