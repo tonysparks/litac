@@ -11,7 +11,7 @@
 		}
 	'''
 	tests: [
-		// /*
+		
 		{
 			name: "Primatives",
 			code: '''
@@ -45,7 +45,7 @@
 				}
 				  
 			'''
-		}, // */
+		}, 
 		{
 			name: "Casts",
 			definitions: '''
@@ -71,7 +71,7 @@
 				var x = X<i32> {44} as X<i32>
 				  
 			'''
-		}, // /*
+		}, 
 		{
 			name: "Invalid struct Casts",
 			definitions: '''				
@@ -291,6 +291,6 @@
             ''',
             error: "illegal, left operand has type 'Testf32'"
         },
-		// */
+		 
 	]
 }

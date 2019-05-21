@@ -90,6 +90,9 @@ public class TypeChecker {
         
         private void addTypeCheck(Stmt stmt, TypeInfo type, TypeInfo otherType, boolean isCasted) {
             this.pendingChecks.add(new TypeCheck(stmt, type, otherType, isCasted));
+//            if(!result.hasErrors()) {
+//                checkType(new TypeCheck(stmt, type, otherType, isCasted));
+//            }
         }
         
         private void checkType(Stmt stmt, TypeInfo a, TypeInfo b, boolean isCasted) {
@@ -107,6 +110,47 @@ public class TypeChecker {
             }
         }
         
+        private void checkType(TypeCheck check) {
+            if(check.type == null) {
+                result.addError(check.stmt,
+                        "unresolved type expression");
+                return;
+            }
+            
+            if(check.otherType != null) {
+                if(!check.type.isResolved()) {
+                    result.addError(check.stmt,
+                            "unresolved type expression", check.type);
+                    return;
+                }
+                
+                if(!check.otherType.isResolved()) {
+                    result.addError(check.stmt,
+                            "unresolved type expression", check.otherType);
+                    return;
+                }
+                
+                checkType(check.stmt, check.type.getResolvedType(), check.otherType.getResolvedType(), check.isCasted);                    
+            }
+            else {
+                Expr expr = (Expr)check.stmt;
+                
+                if(!expr.isResolved()) {
+                    result.addError(check.stmt,
+                            "unresolved type expression", check.stmt);
+                    return;
+                }
+                
+                if(!check.type.isResolved()) {
+                    result.addError(check.stmt,
+                            "unresolved type expression", check.stmt);
+                    return;
+                }
+                
+                checkType(check.stmt, check.type.getResolvedType(), expr.getResolvedType().getResolvedType(), check.isCasted);                                        
+            }
+        }
+        
         /**
          * Does type checks for the full module, type checks are delayed to the end of walking the AST tree as certain
          * types may not have been resolved at time of processing the AST node.  
@@ -117,45 +161,10 @@ public class TypeChecker {
             }
             
             for(TypeCheck check : this.pendingChecks) {
-                if(check.type == null) {
-                    result.addError(check.stmt,
-                            "unresolved type expression");
-                    return;
-                }
-                
-                if(check.otherType != null) {
-                    if(!check.type.isResolved()) {
-                        result.addError(check.stmt,
-                                "unresolved type expression", check.type);
-                        return;
-                    }
-                    
-                    if(!check.otherType.isResolved()) {
-                        result.addError(check.stmt,
-                                "unresolved type expression", check.otherType);
-                        return;
-                    }
-                    
-                    checkType(check.stmt, check.type.getResolvedType(), check.otherType.getResolvedType(), check.isCasted);                    
-                }
-                else {
-                    Expr expr = (Expr)check.stmt;
-                    
-                    if(!expr.isResolved()) {
-                        result.addError(check.stmt,
-                                "unresolved type expression", check.stmt);
-                        return;
-                    }
-                    
-                    if(!check.type.isResolved()) {
-                        result.addError(check.stmt,
-                                "unresolved type expression", check.stmt);
-                        return;
-                    }
-                    
-                    checkType(check.stmt, check.type.getResolvedType(), expr.getResolvedType().getResolvedType(), check.isCasted);                                        
-                }
+                checkType(check);
             }
+            
+            this.pendingChecks.clear();
         }    
         
         @Override

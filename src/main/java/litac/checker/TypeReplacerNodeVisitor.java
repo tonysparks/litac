@@ -303,9 +303,8 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         // TODO: Fix me, this shouldn't be here!
         if(expr.type != null) {
             TypeInfo type = expr.type.getResolvedType();
-            if(type != null && type.sym != null) {        
+            if(type != null) {        
                 expr.sym = type.sym;
-                expr.declType = expr.sym.decl;
             }
         }
     }
@@ -315,13 +314,11 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         replaceType(expr);
         expr.type = replaceType(expr.type);
         
-        
         // TODO: Fix me, this shouldn't be here!
         if(expr.type != null) {
             TypeInfo type = expr.type.getResolvedType();
-            if(type != null && type.sym != null) {        
+            if(type != null) {        
                 expr.sym = type.sym;
-                expr.declType = expr.sym.decl;
             }
         }
     }

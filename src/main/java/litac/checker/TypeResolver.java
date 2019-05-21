@@ -273,10 +273,10 @@ public class TypeResolver {
                       }
                       else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
                           IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
-                          if(iExpr.declType instanceof ConstDecl) {
-                              validateArrayDimension(arrayInfo.lengthExpr, iExpr.declType.type);
+                          if(iExpr.sym.decl instanceof ConstDecl) {
+                              validateArrayDimension(arrayInfo.lengthExpr, iExpr.sym.decl.type);
                               
-                              ConstDecl cExpr = (ConstDecl)iExpr.declType;
+                              ConstDecl cExpr = (ConstDecl)iExpr.sym.decl;
                               NumberExpr nExpr = (NumberExpr)cExpr.expr;
                               
                               arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
@@ -671,7 +671,6 @@ public class TypeResolver {
                 
                 IdentifierTypeInfo type = expr.type.as();
                 type.resolve(this.module, sym.type, includeGenerics());
-                expr.declType = sym.decl;
                 expr.sym = sym;
                 expr.resolveTo(expr.type); // TODO: remove type from IdExpr
             }
@@ -692,7 +691,6 @@ public class TypeResolver {
 
                 TypeInfo newType = type.getResolvedType();
                 if(newType.sym != null) {
-                    expr.declType = newType.sym.decl;
                     expr.sym = newType.sym;
                 }
                 expr.resolveTo(expr.type); // TODO: remove type from IdExpr
