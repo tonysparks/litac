@@ -162,21 +162,22 @@ public class SpecialSymbolToken extends Token {
             // < or <= or << or <<=
             case '<': {
                 currentChar = nextChar();  // consume '<';
-
+                
                 if (currentChar == '=') {
                     text += currentChar;
                     nextChar();  // consume '='
                 }
                 else if (currentChar == '<') {
-                    char nextChar = peekChar();
-                    if(nextChar == '=') {
-                        text += currentChar;
-                        currentChar = nextChar();  // consume '<'
-                        text += currentChar;
-                        currentChar = nextChar();  // consume '='
+                    text += currentChar;
+                    nextChar();  // consume '<'
+
+                    char peekChar = currentChar();
+                    if ( peekChar == '=' ) {
+                        text += peekChar;
+                        nextChar(); // consume '='
                     }
                 }
-
+                
                 break;
             }
 
@@ -189,13 +190,12 @@ public class SpecialSymbolToken extends Token {
                     nextChar();  // consume '='
                 }
                 else if (currentChar == '>') {
-                    text += currentChar;
-                    nextChar();  // consume '>'
-
-                    char peekChar = currentChar();
-                    if ( peekChar == '=' ) {
-                        text += peekChar;
-                        nextChar(); // consume '='
+                    char nextChar = peekChar();
+                    if(nextChar == '=') {
+                        text += currentChar;
+                        currentChar = nextChar();  // consume '>'
+                        text += currentChar;
+                        currentChar = nextChar();  // consume '='
                     }
                 }
 

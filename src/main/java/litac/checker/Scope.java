@@ -105,27 +105,6 @@ public class Scope {
         
         return null;
     }
-    
-    
-    /**
-     * Updates an already defined variable, ensures the type match.
-     * 
-     * @param stmt
-     * @param varName
-     * @param type
-     */
-//    public void updateVariable(Stmt stmt, String varName, TypeInfo type) {
-//        Symbol definedType = getSymbol(varName);
-//        if(definedType == null) {
-//            this.result.addError(stmt, "'%s' has not been declared", varName);
-//            return;
-//        }
-//        
-//        if(!definedType.type.canCastTo(type)) {
-//            this.result.addError(stmt, "'%s' of type '%s' can't be assigned to type '%s'", varName, definedType, type);
-//            return;
-//        }
-//    }
         
     public Scope pushLocalScope() {
         return new Scope(this.result, ScopeType.LOCAL, this);

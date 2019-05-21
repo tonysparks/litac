@@ -189,13 +189,13 @@ public class Parser {
     
     private FuncDecl funcDeclaration() {
         source();
-        
+
+        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         List<GenericParam> genericParams = Collections.emptyList();
         if(match(LESS_THAN)) {
             genericParams = genericParameters();
         }
         
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         ParametersStmt parameters = parametersStmt();
         
         TypeInfo returnType = TypeInfo.VOID_TYPE;
@@ -223,11 +223,6 @@ public class Parser {
     private StructDecl structDeclaration() {
         source();
         
-        List<GenericParam> genericParams = Collections.emptyList();
-        if(match(LESS_THAN)) {
-            genericParams = genericParameters();
-        }
-        
         Token start = peek();
         int flags = 0;
         if(this.aggregateLevel > 0) {
@@ -243,7 +238,12 @@ public class Parser {
             structName = String.format("<anonymous-struct-%d>", anonStructId++);
             flags |= AggregateTypeInfo.IS_ANONYMOUS;
         }
-                
+
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
+        }
+        
         List<FieldStmt> fields = new ArrayList<>();
         this.aggregateLevel++;
         
@@ -274,11 +274,6 @@ public class Parser {
     private UnionDecl unionDeclaration() {
         source();
         
-        List<GenericParam> genericParams = Collections.emptyList();
-        if(match(LESS_THAN)) {
-            genericParams = genericParameters();
-        }
-        
         Token start = peek();
         int flags = 0;
         if(this.aggregateLevel > 0) {
@@ -293,6 +288,11 @@ public class Parser {
         else {
             unionName = String.format("<anonymous-union-%d>", anonUnionId++);
             flags |= AggregateTypeInfo.IS_ANONYMOUS;
+        }
+
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
         }
         
         List<FieldStmt> fields = new ArrayList<>();
@@ -729,26 +729,9 @@ public class Parser {
     private Expr bitShift() {
         Expr expr = term();
         
-        // Due to generics, we must see if we have a bit shift left operator
-        // if we are in an expression, there must be a space between a generic
-        // start and a less than operator, otherwise this will think its a bit shift
-        // left.
-        if(check(LESS_THAN)) {
-            Token prevToken = advance();
-            if(check(LESS_THAN)) {
-                Token nextToken = advance();
-                if(nextToken.getPosition() - prevToken.getPosition() == 1) {
-                    Expr right = term();
-                    return node(new BinaryExpr(expr, TokenType.LSHIFT, right));
-                }
-                else {
-                    rewind();
-                    rewind();
-                }
-            }
-            else {
-                rewind();
-            }
+        Expr bitExpr = tryBitShiftRight(expr);
+        if(bitExpr != null) {
+            return bitExpr;
         }
         
         while(match(LSHIFT, RSHIFT)) {
@@ -785,7 +768,7 @@ public class Parser {
     }
     
     private Expr unary() {
-        if(match(NOT, MINUS, PLUS, STAR, BAND, BNOT /*sizeof, cast*/)) {
+        if(match(NOT, MINUS, PLUS, STAR, BAND, BNOT)) {
             Token operator = previous();
             Expr right = unary();
             return node(new UnaryExpr(operator.getType(), right)); 
@@ -876,11 +859,9 @@ public class Parser {
         if(check(LEFT_BRACKET)) return arrayInitExpr();
         if(match(LEFT_BRACE))   return aggregateInitExpr();                
         
-        if(match(LESS_THAN))    return identifierWithGenerics();
-        
         if(check(IDENTIFIER)) {
-            String identifier = identifier();
-            return node(new IdentifierExpr(identifier, new IdentifierTypeInfo(identifier, Collections.emptyList())));
+            IdentifierTypeInfo identifier = identifierType();
+            return node(new IdentifierExpr(identifier.identifier, identifier));
         }
                 
         throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
@@ -909,6 +890,49 @@ public class Parser {
     
     private void eatSemicolon() {
         match(SEMICOLON);
+    }
+    
+    private List<TypeInfo> tryGenericArguments() {
+        int backtrack = this.current;
+        
+        advance(); // eat <
+        
+        List<TypeInfo> arguments = null;
+        try {
+            arguments = genericArguments();            
+        }
+        catch(ParseException e) {
+            this.current = backtrack;
+        }
+        
+        return arguments;
+    }
+    
+    private Expr tryBitShiftRight(Expr expr) {
+        
+        // Due to generics, we must see if we have a bit shift right operator
+        // if we are in an expression, there must be a space between a generic
+        // start and a greater than operator, otherwise this will think its a bit shift
+        // right.
+        if(check(GREATER_THAN)) {
+            Token prevToken = advance();
+            if(check(GREATER_THAN)) {
+                Token nextToken = advance();
+                if(nextToken.getPosition() - prevToken.getPosition() == 1) {
+                    Expr right = term();
+                    return node(new BinaryExpr(expr, TokenType.RSHIFT, right));
+                }
+                else {
+                    rewind();
+                    rewind();
+                }
+            }
+            else {
+                rewind();
+            }
+        }
+        
+        return null;
     }
     
     private TypeInfo chainableType(TypeInfo type) {
@@ -1018,13 +1042,11 @@ public class Parser {
                 return chainableType(type);
             }
             case IDENTIFIER: {
-                String identifier = identifier();                
-                TypeInfo type = new IdentifierTypeInfo(identifier, Collections.emptyList());
-                
+                TypeInfo type = identifierType();
+
                 // identifier() consumes multiple tokens, 
                 // account for advance in ptr check
                 rewind();
-                
                 return chainableType(type);
             }
             case STRING: {
@@ -1037,36 +1059,14 @@ public class Parser {
                 
                 type.arrayOf = type();
                 return type;
-            }
-            case LESS_THAN: {
-                advance();
-                List<TypeInfo> args = genericArguments();
-                
-                String identifier = identifier();                
-                TypeInfo type = new IdentifierTypeInfo(identifier, args);
-                
-                // identifier() consumes multiple tokens, 
-                // account for advance in ptr check
-                rewind();
-                
-                return chainableType(type);
-            }
+            }            
             // case FUNC: TODO
             default:
                 throw error(t, ErrorCode.UNEXPECTED_TOKEN);
         }
     }
     
-    private Expr identifierWithGenerics() {
-        List<TypeInfo> arguments = genericArguments();
-        
-        String identifier = identifier();
-        IdentifierExpr idExpr = new IdentifierExpr(identifier, new IdentifierTypeInfo(identifier, arguments));
-        
-        return node(idExpr);
-    }
-    
-    private String identifier() {
+    private IdentifierTypeInfo identifierType() {
         Token token = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         String identifier = token.getText();
         
@@ -1076,7 +1076,12 @@ public class Parser {
             identifier = String.format("%s::%s", identifier, name.getText());
         }
         
-        return identifier;
+        List<TypeInfo> arguments = Collections.emptyList();
+        if(check(LESS_THAN)) {
+            arguments = tryGenericArguments();
+        }
+        
+        return new IdentifierTypeInfo(identifier, arguments);
     }
     
     /**
