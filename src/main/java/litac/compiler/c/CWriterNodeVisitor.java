@@ -856,13 +856,23 @@ public class CWriterNodeVisitor implements NodeVisitor {
     @Override
     public void visit(IdentifierExpr expr) {
         Symbol sym = expr.sym;
-        buf.out("%s", cName(sym));
+        if(sym != null) {
+            buf.out("%s", cName(sym));
+        }
+        else {
+            buf.out("%s", expr.type.getName());
+        }
     }
 
     @Override
     public void visit(FuncIdentifierExpr expr) {
         Symbol sym = expr.sym;
-        buf.out("%s", cName(sym));
+        if(sym != null) {
+            buf.out("%s", cName(sym));
+        }
+        else {
+            buf.out("%s", expr.type.getName());
+        }
     }
 
     @Override

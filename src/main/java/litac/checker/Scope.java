@@ -7,8 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import litac.ast.Decl;
-import litac.ast.Decl.ConstDecl;
-import litac.ast.Decl.VarDecl;
+import litac.ast.Decl.*;
 import litac.ast.Stmt.NoteStmt;
 
 /**
@@ -70,7 +69,8 @@ public class Scope {
         decl.sym = sym;
         
         if(!(decl instanceof VarDecl) && 
-           !(decl instanceof ConstDecl)) {
+           !(decl instanceof ConstDecl) &&
+           !(decl instanceof ParameterDecl)) {
             type.sym = sym;
         }
         

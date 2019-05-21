@@ -11,7 +11,7 @@
 		}
 	'''
 	tests: [
-		/*{
+		{
 			name: "Primatives",
 			code: '''
 				var i = 32
@@ -210,14 +210,14 @@
 			'''
 		},
 		{
-			name: "Constant reassign",					
+			name: "Invalid Constant reassign",					
 			code: '''
 				const x = 1024
 				x = 10
 				assert(x == 1024)
 			''',
 			error: "can't reassign constant variable 'x'"
-		}*/
+		},
 		{
 			name: "Generics struct and function",
 			definitions: '''
@@ -231,16 +231,33 @@
 					elements: T*
 				}
 				
-				func <T>ArrayInit(a:<T>Array**, initialSize: i32) {
-					//*a = malloc(sizeof(<T>Array) + sizeof(T) * initialSize)
-					//*a.size = 0
-					//*a.capacity = initialSize						
+				func <T>ArrayInit(a: <T>Array**, initialSize: i32) {
+				    var size = sizeof(<T>Array) + (sizeof(T) * initialSize as u64);
+					*a = malloc(size) as <T>Array*;
+					(*a).size = 0;
+					(*a).capacity = initialSize;	
+					(*a).elements =	(*a + sizeof(<T>Array)) as T*				
+				}
+				
+				func <T>ArrayAdd(a: <T>Array*, element: T) {
+				    if(a.size + 1 > a.capacity) {
+				        // grow
+				    }
+				    a.elements[a.size] = element;
+				    a.size += 1
 				}
 							
 			''',			
 			code: '''
 				var a : <i32>Array* = null;
-				<i32>ArrayInit(a, 23)
+				<i32>ArrayInit(&a, 23);
+				
+				assert(a);
+				assert(a.capacity == 23)
+				assert(a.size == 0);
+				
+				<i32>ArrayAdd(a, 4)
+				assert(a.elements[0] == 4)
 				  
 			'''
 		},

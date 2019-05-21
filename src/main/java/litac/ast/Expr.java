@@ -87,7 +87,7 @@ public abstract class Expr extends Stmt {
     @Override
     public <T extends Node> T copy() {
         Expr expr = super.copy();
-        //expr.resolvedTo = TypeInfo.copy(expr.resolvedTo);
+        expr.resolvedTo = this.resolvedTo; 
         return (T)expr;
     }
     

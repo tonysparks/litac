@@ -999,9 +999,11 @@ public abstract class TypeInfo {
             return resolvedType;
         }
         
-        public void resolve(Module module, TypeInfo resolvedTo) {
+        public void resolve(Module module, TypeInfo resolvedTo, boolean resolveGenerics) {
             if(resolvedTo != null) {
-                resolvedTo = Generics.createFromGenericTypeInfo(module, resolvedTo, this.genericArgs);
+                if(resolveGenerics) {
+                    resolvedTo = Generics.createFromGenericTypeInfo(module, resolvedTo, this.genericArgs);
+                }
                 this.resolvedType = resolvedTo;
                 //this.sym = resolvedTo.sym; overrides the correct sym for declarations
             }

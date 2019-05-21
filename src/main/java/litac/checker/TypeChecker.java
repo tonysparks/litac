@@ -568,7 +568,7 @@ public class TypeChecker {
                 IdentifierExpr idExpr = (IdentifierExpr)expr;
                 if(idExpr.sym != null) {
                     if(idExpr.sym.isConstant()) {
-                        this.result.addError(expr, "can't reassign constant variable '%s'", expr.getResolvedType().getName());
+                        this.result.addError(expr, "can't reassign constant variable '%s'", idExpr.variable);
                     }
                 }
             }
