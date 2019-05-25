@@ -5,7 +5,7 @@ easy to use C libraries.
 The syntax:
 
 ```C
-import "io"
+import "io" as io
 
 func main(len:i32, args:char**):i32 {
 	io:printf("Hello World")
@@ -16,7 +16,9 @@ func main(len:i32, args:char**):i32 {
 
 
 ```C
-import "io"
+// imports a module, namespace it with adding "as io", otherwise the public attributes
+// will be placed in this modules scope
+import "io" as io
 
 
 // Defines a structure
@@ -30,6 +32,14 @@ func Vec2Add(a:Vec2, b:Vec2, out:Vec2) : Vec2 {
 	out.x = a.x + b.x
 	out.y = a.y + b.y
 	return out
+}
+
+// structure with union
+struct X {
+    union V {
+        x: i32
+        f: f32
+    }
 }
 
 func main(len:i32, args:char**):i32 {
@@ -65,6 +75,14 @@ func main(len:i32, args:char**):i32 {
 	
 	// call a function
 	Vec2Add(pos, vel, pos)
+	
+	// function pointer
+	var f : func(Vec2, Vec2, Vec2) : Vec2 = &Vec2Add;
+	// or simply:
+	var myAdd = &Vec2Add;
+	
+	// initialize the structure with union
+	var x = X { V { 34 } }
 }
 ```
 
@@ -74,14 +92,14 @@ func main(len:i32, args:char**):i32 {
 
 
 ```C
-import "io"
+import "io" // place io public types in this scope
 
 func main(len:i32, args:char**):i32 {
 	if (true) {
-		io::printf("Hi")
+		printf("Hi")
 	}
 	else {
-		io::printf("Bye")
+		printf("Bye")
 	}
 	
 	var i = 0
@@ -106,8 +124,42 @@ func main(len:i32, args:char**):i32 {
 		}
 	}
 	while (i < 10)
+	
+	for(var j = 0; j < 10; j+=1) {
+	   printf("%d\n", j)
+	}
 }
 ```
 
 
+# Generics
 
+```C
+
+// Defines a generic structure
+struct Vec2<T> {
+    x: T
+    y: T
+}
+
+// Defines a generic function
+func Vec2Add<T>(a: Vec2<T>, b: Vec2<T>, out: Vec2<T>) : Vec2<T> {
+    out.x = a.x + b.x
+    out.y = a.y + b.y
+    return out
+}
+
+// You alias this type
+typedef Vec2<i32> as Vec2i
+
+
+func main(len:i32, args:char**):i32 {
+    // 
+    var origin = Vec2<f32> { 0.0, 0.0 }  // using generics syntax
+    var vel    = Vec2i { 0,0 }           // using the alias
+    
+    Vec2Add<i32>(vel, vel, vel)
+    Vec2Add<f32>(origin, origin, origin)
+}
+
+```

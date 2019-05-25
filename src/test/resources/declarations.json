@@ -477,5 +477,36 @@
                 assert(t.a(1) == 1)
             '''                      
         },
+        {
+            name: "ReadME Generics",
+            definitions: '''
+                
+                // Defines a generic structure
+                struct Vec2<T> {
+                    x: T
+                    y: T
+                }
+                
+                // Defines a generic function
+                func Vec2Add<T>(a: Vec2<T>, b: Vec2<T>, out: Vec2<T>) : Vec2<T> {
+                    out.x = a.x + b.x
+                    out.y = a.y + b.y
+                    return out
+                }
+                
+                // You alias this type
+                typedef Vec2<i32> as Vec2i
+                            
+            ''',                       
+            code: '''                
+                
+                var origin = Vec2<f32> { 0.0, 0.0 }  // using generics syntax
+                var vel    = Vec2i { 0,0 }           // using the alias
+                
+                Vec2Add<i32>(vel, vel, vel)
+                Vec2Add<f32>(origin, origin, origin)
+
+            '''                      
+        },
 	]
 }
