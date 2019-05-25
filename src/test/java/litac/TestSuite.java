@@ -68,6 +68,7 @@ public class TestSuite {
             try {                
                 BackendOptions options = new BackendOptions();
                 options.buildFile = tmp;
+                options.cOptions.symbolPrefix = "";
                 
                 PhaseResult result = LitaC.compile(options);
                 

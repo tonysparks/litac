@@ -5,6 +5,7 @@ package litac.checker;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import litac.ast.Decl.ParameterDecl;
 import litac.ast.Expr;
@@ -194,6 +195,7 @@ public abstract class TypeInfo {
         Array,
         Ptr,
         Null,
+        FuncPtr,
         
         Struct,
         Func,
@@ -552,6 +554,11 @@ public abstract class TypeInfo {
             this.isVararg = isVararg;
         }
         
+        public FuncPtrTypeInfo asPtr() {
+            List<TypeInfo> params = this.parameterDecls.stream().map(p -> p.type).collect(Collectors.toList());
+            return new FuncPtrTypeInfo(this.returnType, params, this.isVararg, this.genericParams);
+        }
+        
         @Override
         public TypeInfo copy() {
             return new FuncTypeInfo(this.name, this.returnType.copy(), this.parameterDecls, this.isVararg, this.genericParams);
@@ -629,6 +636,121 @@ public abstract class TypeInfo {
             }
             
             return String.format("func %s%s(%s) : %s", this.name, genParams, params, this.returnType);
+        }
+    }
+    
+    public static class FuncPtrTypeInfo extends GenericTypeInfo {
+        public TypeInfo returnType;
+        public List<TypeInfo> params;
+        public boolean isVararg;
+        
+        public FuncPtrTypeInfo(TypeInfo returnType, 
+                            List<TypeInfo> params, 
+                            boolean isVararg,
+                            List<GenericParam> genericParams) {
+            super(TypeKind.FuncPtr, "_", genericParams);
+            this.returnType = returnType;
+            this.params = params;
+            this.isVararg = isVararg;
+        }
+        
+        @Override
+        public TypeInfo copy() {
+            return new FuncPtrTypeInfo(this.returnType.copy(), copy(this.params), this.isVararg, this.genericParams);
+        }
+        
+        @Override
+        public boolean canCastTo(TypeInfo target) {
+            if(target == this) {
+                return true;
+            }
+            
+            if(target.kind == TypeKind.Identifier) {
+                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
+                if(idInfo.isResolved()) {
+                    return canCastTo(idInfo.resolvedType);
+                }
+            }
+            
+            if(target.isKind(TypeKind.Func)) {
+                FuncTypeInfo funcType = target.as();
+                if(this.params.size() != funcType.parameterDecls.size()) {
+                    return false;
+                }
+                
+                if(this.isVararg != funcType.isVararg) {
+                    return false;
+                }
+                
+                for(int i = 0; i < this.params.size(); i++) {
+                    if(!this.params.get(i).strictEquals(funcType.parameterDecls.get(i).type)) {
+                        return false;
+                    }
+                }
+                
+                return this.returnType.strictEquals(funcType.returnType);
+                       
+            }
+            
+            if(target.isKind(TypeKind.FuncPtr)) {
+                FuncPtrTypeInfo funcType = target.as();
+                if(this.params.size() != funcType.params.size()) {
+                    return false;
+                }
+                
+                if(this.isVararg != funcType.isVararg) {
+                    return false;
+                }
+                
+                for(int i = 0; i < this.params.size(); i++) {
+                    if(!this.params.get(i).strictEquals(funcType.params.get(i))) {
+                        return false;
+                    }
+                }
+                
+                return this.returnType.strictEquals(funcType.returnType);
+                       
+            }
+            
+            if(target.isKind(TypeKind.bool)) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        @Override
+        public String toString() {    
+            StringBuilder genParams = new StringBuilder();
+            
+            boolean isFirst = true;
+            if(!this.genericParams.isEmpty()) {
+                genParams.append("<");
+                for(GenericParam p: this.genericParams) {
+                    if(!isFirst) genParams.append(", ");
+                    genParams.append(p.name);
+                    isFirst = false;
+                }
+                genParams.append(">");
+            }
+            
+            
+            isFirst = true;
+            StringBuilder params = new StringBuilder();
+            for(TypeInfo p : this.params) {
+                if(!isFirst) params.append(", ");
+                params.append(p);
+                isFirst = false;
+            }
+            
+            if(this.isVararg) {
+                if(!isFirst) {
+                    params.append(",");
+                }
+                params.append("...");
+            }
+            
+            return String.format("func%s(%s) : %s", genParams, params, this.returnType);
         }
     }
     

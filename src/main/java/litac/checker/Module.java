@@ -337,7 +337,19 @@ public class Module {
             return this.importedFuncTypes.get(funcName);
         }
         
-        return this.funcTypes.get(funcName);
+        if(this.funcTypes.containsKey(funcName)) {
+            return this.funcTypes.get(funcName);
+        }
+        
+        if(this.typedefTypes.containsKey(funcName)) {
+            TypeInfo type = this.typedefTypes.get(funcName);
+            if(type.isKind(TypeKind.Func)) {
+                return type.as();
+            }
+        }
+        
+        return null;
+        
     }
     
     public TypeInfo getType(String typeName) {

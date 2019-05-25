@@ -90,7 +90,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out("typedef float     %s;  \n", prefix("f32"));
         buf.out("typedef double    %s;  \n", prefix("f64"));
         buf.out("typedef int8_t    %s;  \n", prefix("bool"));
-        buf.out("typedef char      %s;  \n", prefix("char"));
+        if(!prefix("char").equals("char")) {
+            buf.out("typedef char      %s;  \n", prefix("char"));
+        }
         buf.out("#define true 1\n");
         buf.out("#define false 0\n");
         buf.out("#define %s void\n", prefix("void"));
@@ -111,7 +113,13 @@ public class CWriterNodeVisitor implements NodeVisitor {
                     return;
                 }
                 
-                buf.out("%s %s(", getTypeNameForC(funcInfo.returnType), typeName);
+                if(funcInfo.returnType.isKind(TypeKind.FuncPtr)) {
+                    FuncPtrTypeInfo funcPtr = funcInfo.returnType.as();
+                    buf.out("%s (*%s(", getTypeNameForC(funcPtr.returnType), typeName);
+                }
+                else {
+                    buf.out("%s %s(", getTypeNameForC(funcInfo.returnType), typeName);
+                }
                 boolean isFirst = true;                
                 for(ParameterDecl p : funcInfo.parameterDecls) {
                     if(!isFirst) buf.out(",");
@@ -120,7 +128,30 @@ public class CWriterNodeVisitor implements NodeVisitor {
                     
                     isFirst = false;
                 }
-                buf.out(");\n");
+                buf.out(")");
+                
+                if(funcInfo.returnType.isKind(TypeKind.FuncPtr)) {
+                    buf.out(") (");
+                    FuncPtrTypeInfo funcPtr = funcInfo.returnType.as();
+                    
+                    isFirst = true;
+                    for(TypeInfo p : funcPtr.params) {
+                        if(!isFirst) {
+                            buf.out(",");
+                        }
+                        
+                        buf.out("%s", getTypeNameForC(p));
+                        
+                        isFirst = false;
+                    }
+                    
+                    // TODO: Varargs
+                    
+                    buf.out(")");
+                }
+                
+                buf.out(";\n");
+                
                 break;
             }
             case Struct: {
@@ -252,6 +283,18 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 String typeName = getTypeNameForC(type);
                 return String.format("enum %s %s", typeName, declName);
             }
+            case FuncPtr: {
+                FuncPtrTypeInfo funcInfo = type.as();
+                StringBuilder params = new StringBuilder();
+                boolean isFirst = true;
+                for(TypeInfo p : funcInfo.params) {
+                    if(!isFirst) params.append(",");
+                    params.append(getTypeNameForC(p));
+                    isFirst = false;
+                }
+                
+                return String.format("%s (*%s)(%s)", getTypeNameForC(funcInfo.returnType), declName, params);
+            }
             default: {                
                 String typeName = getTypeNameForC(type);
                 return String.format("%s %s", typeName, declName);
@@ -273,6 +316,18 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 }
                 
                 return String.format("%s[%d]", name, arrayInfo.length);
+            }
+            case FuncPtr: {
+                FuncPtrTypeInfo funcInfo = type.as();
+                StringBuilder params = new StringBuilder();
+                boolean isFirst = true;
+                for(TypeInfo p : funcInfo.params) {
+                    if(!isFirst) params.append(",");
+                    params.append(getTypeNameForC(p));
+                    isFirst = false;
+                }
+                
+                return String.format("%s (*%s)(%s)", getTypeNameForC(funcInfo.returnType), prefix(funcInfo.name), params);
             }
             default: {
                 return cTypeName(type);
@@ -520,21 +575,57 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }
         
         buf.outln();
-        buf.out("%s %s(", getTypeNameForC(d.returnType), name);
+        
+        if(d.returnType.isKind(TypeKind.FuncPtr)) {
+            FuncPtrTypeInfo funcPtr = d.returnType.as();
+            buf.out("%s (*%s(", getTypeNameForC(funcPtr.returnType), name);
+        }
+        else {
+            buf.out("%s %s(", getTypeNameForC(d.returnType), name);
+        }
+        
         boolean isFirst = true;
         for(ParameterDecl p : d.params.params) {
             if(!isFirst) {
                 buf.out(",");
             }
             
-            buf.out("%s %s", getTypeNameForC(p.type), prefix(p.name));
+            if(p.type.isKind(TypeKind.FuncPtr)) {
+                buf.out("%s", getTypeNameForC(p.type));
+            }
+            else {
+                buf.out("%s %s", getTypeNameForC(p.type), prefix(p.name));
+            }
             
             isFirst = false;
         }
         
         // TODO: Varargs
         
-        buf.out(") ");
+        buf.out(")");
+        
+        if(d.returnType.isKind(TypeKind.FuncPtr)) {
+            buf.out(") (");
+            FuncPtrTypeInfo funcPtr = d.returnType.as();
+            
+            isFirst = true;
+            for(TypeInfo p : funcPtr.params) {
+                if(!isFirst) {
+                    buf.out(",");
+                }
+                
+                buf.out("%s", getTypeNameForC(p));
+                
+                isFirst = false;
+            }
+            
+            // TODO: Varargs
+            
+            buf.out(")");
+        }
+        
+        buf.out(" ");
+        
         boolean isBlock = (d.bodyStmt instanceof BlockStmt);
         if(!isBlock) buf.out("{");
         d.bodyStmt.visit(this);
@@ -601,7 +692,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(TypedefDecl d) {
-        buf.out("typedef %s %s;\n", cTypeName(d.type), prefix(d.alias));
+        // No need to typedef in C, as the Type alias is resolved to the real
+        // type in the Lita compiler
+        //buf.out("typedef %s %s;\n", cTypeName(d.type), prefix(d.alias));
     }
 
 

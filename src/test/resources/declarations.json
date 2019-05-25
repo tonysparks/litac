@@ -11,7 +11,7 @@
 		}
 	'''
 	tests: [		
-		/*{
+		{
 			name: "Primatives",
 			code: '''
 				var i = 32
@@ -328,7 +328,7 @@
                 var c = sizeof(Test < b > 0)                                               
             ''',
             error: "illegal, left operand has type 'Test'"                      
-        },*/
+        },
         {
             name: "Typedef primitives",
             definitions: '''                
@@ -365,6 +365,81 @@
             code: '''                
                 var y  = Y{1}
                 assert(y.a == 1)
+            '''                      
+        },
+        {
+            name: "Typedef func",
+            definitions: '''
+                func test(i:i32) : i32 {
+                    return i;
+                }
+                
+                typedef test as test2;    
+                            
+            ''',                       
+            code: '''                
+                assert(test2(1) == 1)
+            '''                      
+        },
+        {
+            name: "Typedef func generics",
+            definitions: '''
+                func test<T>(i:T) : T {
+                    return i;
+                }
+                
+                typedef test<i32> as test2;    
+                            
+            ''',                       
+            code: '''                
+                assert(test2(1) == 1)
+            '''                      
+        },
+        {
+            name: "Func type",
+            definitions: '''
+                func test(i:i32) : i32 {
+                    return i;
+                }
+                            
+            ''',                       
+            code: '''                
+                var t : func(i32) : i32 = &test;
+                assert(t(1) == 1)
+            '''                      
+        },
+        {
+            name: "Func type as return type",
+            definitions: '''
+                func test(i:i32) : i32 {
+                    return i;
+                }
+                    
+                func x() : func(i32) : i32 {
+                    return &test
+                }
+                            
+            ''',                       
+            code: '''                
+                var t : func(i32) : i32 = x();
+                assert(t(1) == 1)
+            '''                      
+        },
+        {
+            name: "Func type as argument and return type",
+            definitions: '''
+                func test(i:i32) : i32 {
+                    return i;
+                }
+                    
+                func x(f : func(i32):i32) : func(i32) : i32 {
+                    return f
+                }
+                            
+            ''',                       
+            code: '''                
+                var t : func(i32) : i32 = x(&test);
+                assert(t(1) == 1)
             '''                      
         },
 	]
