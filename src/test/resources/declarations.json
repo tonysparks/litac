@@ -442,5 +442,40 @@
                 assert(t(1) == 1)
             '''                      
         },
+        {
+            name: "Func type in struct",
+            definitions: '''
+                func test(i:i32) : i32 {
+                    return i;
+                }
+                    
+                struct Test {
+                    a: func(i32) : i32
+                }
+                            
+            ''',                       
+            code: '''                
+                var t = Test { &test }
+                assert(t.a(1) == 1)
+            '''                      
+        },
+        {
+            name: "Func type in union",
+            definitions: '''
+                func test(i:i32) : i32 {
+                    return i;
+                }
+                    
+                union Test {
+                    a: func(i32) : i32
+                    b: void*
+                }
+                            
+            ''',                       
+            code: '''                
+                var t = Test { .a: &test }
+                assert(t.a(1) == 1)
+            '''                      
+        },
 	]
 }

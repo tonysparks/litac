@@ -451,7 +451,12 @@ public class CWriterNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(VarFieldStmt stmt) {
-        buf.out("%s %s;\n", getTypeNameForC(stmt.type), stmt.name);
+        if(stmt.type.isKind(TypeKind.FuncPtr)) {
+            buf.out("%s;\n", typeDeclForC(stmt.type, stmt.name));
+        }
+        else {
+            buf.out("%s %s;\n", getTypeNameForC(stmt.type), stmt.name);
+        }
     }
 
     @Override
