@@ -514,6 +514,10 @@ public class TypeResolver {
         @Override
         public void visit(VarFieldStmt stmt) {
             resolveType(stmt, stmt.type);
+            if(stmt.type.isKind(TypeKind.FuncPtr)) {
+                FuncPtrTypeInfo funcPtr = stmt.type.as();
+                funcPtr.name = stmt.name;
+            }
         }
 
         @Override
