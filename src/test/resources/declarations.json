@@ -508,5 +508,62 @@
 
             '''                      
         },
+        {
+            name: "Generic Func Ptr in Struct",
+            definitions: '''
+                
+                // Defines a generic structure
+                struct Test<T> {
+                    y: func<T>(T):T
+                }
+
+                func test(a:i32) : i32 {
+                    return a;
+                }                
+                            
+            ''',                       
+            code: '''                
+                
+                var t = Test<i32> { &test }
+                assert(t.y(1) == 1)
+            '''                      
+        },
+        {
+            name: "Generic Func Ptr in Func",
+            definitions: '''
+                func test(a:i32) : i32 {
+                    return a;
+                }                
+                
+                func gen<T>(a: func<T>(T):T, b: T) : T {
+                    return a<T>(b);
+                }
+                            
+            ''',                       
+            code: '''                
+                
+                var t = gen<i32>(&test, 24)
+                assert(t == 24)
+            '''                      
+        },
+        {
+            name: "Invalid Generic Func Ptr in Func",
+            definitions: '''
+                func test(a:f32) : f32 {
+                    return a;
+                }                
+                
+                func gen<T>(a: func<T>(T):T, b: T) : T {
+                    return a<T>(b);
+                }
+                            
+            ''',                       
+            code: '''                
+                
+                var t = gen<i32>(&test, 24)
+                assert(t == 24)
+            ''',
+            error: "'func<T>(i32) : i32' is not of type 'func(f32) : f32'"                      
+        },
 	]
 }

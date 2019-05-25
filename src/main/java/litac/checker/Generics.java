@@ -91,6 +91,15 @@ public class Generics {
                 arrayInfo.arrayOf = createGenericTypeInfo(module, arrayInfo.arrayOf, genericParams, genericArgs);
                 return arrayInfo;
             }
+            case FuncPtr: {
+                FuncPtrTypeInfo funcPtr = type.as();
+                funcPtr.returnType = createGenericTypeInfo(module, funcPtr.returnType, genericParams, genericArgs);
+                for(int i = 0; i < funcPtr.params.size(); i++) {
+                    TypeInfo p = funcPtr.params.get(i);
+                    funcPtr.params.set(i, createGenericTypeInfo(module, p, genericParams, genericArgs));
+                }
+                return funcPtr;
+            }
             case Identifier: {
                 IdentifierTypeInfo idTypeInfo = type.as();
                 

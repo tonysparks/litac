@@ -1111,7 +1111,7 @@ public abstract class TypeInfo {
         
         @Override
         public boolean isResolved() {
-            return this.resolvedType != null;
+            return this.resolvedType != null && this.resolvedType.isResolved();
         }
         
         @Override
