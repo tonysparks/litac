@@ -55,6 +55,7 @@ public interface NodeVisitor {
     void visit(FuncCallExpr expr);
     void visit(IdentifierExpr expr);
     void visit(FuncIdentifierExpr expr);
+    void visit(SizeOfIdentifierExpr expr);
     void visit(GetExpr expr);
     void visit(SetExpr expr);
     void visit(UnaryExpr expr);
@@ -233,6 +234,10 @@ public interface NodeVisitor {
 
         @Override
         public void visit(FuncIdentifierExpr expr) {
+        }
+        
+        @Override
+        public void visit(SizeOfIdentifierExpr expr) {
         }
 
         @Override

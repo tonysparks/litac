@@ -24,20 +24,31 @@ public class CTranspiler {
         public boolean useTabs;
         public int indentWidth;
         public String compileCmd;
-        public boolean run;
-        String binaryFileOutput;
+        public String symbolPrefix;        
+        private BackendOptions options;
         
         
-        public COptions(BackendOptions options) {            
+        public COptions(BackendOptions options) {
+            this.options = options;
             this.useTabs = false;
             this.indentWidth = 4;
-            this.run = false;
+            this.symbolPrefix = "litaC__";
             
-            this.binaryFileOutput = String.format("%s/%s%s", options.outputDir.getAbsolutePath(), 
-                                                             options.outputFileName, 
-                                                             options.targetOS.getExecutableExt());
             
-            this.compileCmd = String.format("clang.exe -o \"%s\" ", this.binaryFileOutput);
+            
+            this.compileCmd = "clang.exe -o \"%output%\" \"%input%\"";
+        }
+        
+        public String getBinaryOutputFile() {
+            return String.format("%s/%s%s", options.outputDir.getAbsolutePath(), 
+                                            options.outputFileName, 
+                                            options.targetOS.getExecutableExt());
+        }
+        
+        public String getCompileCmd(File cOutput) {
+            String binaryFileOutput = getBinaryOutputFile();            
+            return this.compileCmd.replace("%output%", binaryFileOutput)
+                                  .replace("%input%", cOutput.getAbsolutePath());
         }
     }
 
@@ -85,7 +96,7 @@ public class CTranspiler {
     }
     
     private static void compileC(File cOutput, BackendOptions options) throws Exception {
-        String compileCmd = options.cOptions.compileCmd + "\"" + cOutput.getAbsolutePath() + "\"";
+        String compileCmd = options.cOptions.getCompileCmd(cOutput);
         int status = Exec.run(options.outputDir, compileCmd);
         if(status != 0) {
             System.exit(status);
@@ -93,8 +104,8 @@ public class CTranspiler {
     }
     
     private static void runProgram(BackendOptions options) throws Exception {
-        if(options.cOptions.run) {
-            int status = Exec.run(options.outputDir, options.cOptions.binaryFileOutput);
+        if(options.run) {
+            int status = Exec.run(options.outputDir, options.cOptions.getBinaryOutputFile());
             if(status != 0) {
                 System.exit(status);
             }

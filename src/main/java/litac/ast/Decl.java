@@ -195,13 +195,11 @@ public abstract class Decl extends Stmt {
         }
     }
     
-    public static class TypedefDecl extends Decl {
-        public String typeToAlias;
+    public static class TypedefDecl extends Decl {        
         public String alias;
         
-        public TypedefDecl(String name, TypeInfo type, String typeToAlias, String alias) {
-            super(DeclKind.TYPEDEF, type, name);
-            this.typeToAlias = typeToAlias;
+        public TypedefDecl(String name, TypeInfo type, String alias) {
+            super(DeclKind.TYPEDEF, type, name);            
             this.alias = alias;
         }
         
@@ -212,7 +210,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new TypedefDecl(this.name, this.type.copy(), this.typeToAlias, this.alias);
+            return new TypedefDecl(this.name, this.type.copy(), this.alias);
         }
     }
 }

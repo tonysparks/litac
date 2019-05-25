@@ -1,10 +1,51 @@
+module array;
+import "mem" as mem;
 
-struct <T>Array {
-	size: i32
-	capacity: i32
-	elements: T*
+public const MAX_SIZE:i32 = 1024
+
+public struct Array<T> {
+    size: i32
+    capacity: i32
+    elements: T*
 }
 
-func <T>ArrayInit(a:<T>Array**, initialSize: i32) {
+public func ArrayInit<T>(a: Array<T>**, initialSize: i32) {
+    var size = sizeof(Array<T>) + (sizeof(T) * initialSize as (u64));
+    *a = mem::malloc(size) as (Array<T>*);
+    (*a).size = 0;
+    (*a).capacity = initialSize;    
+    (*a).elements = (*a + sizeof(Array<T>)) as (T*)
+}
+
+public func ArrayFree<T>(a: Array<T>*) {
+	if(a) {
+		mem::free(a as (void*))
+	}
+}
+
+public func ArrayAdd<T>(a: Array<T>*, element: T) {
+    if(a.size + 1 > a.capacity) {
+        ArrayGrow<T>(&a, 1)
+    }
+    a.elements[a.size] = element;
+    a.size += 1
+}
+
+public func ArrayGet<T>(a: Array<T>*, index: i32) : T {
+	return a.elements[index]
+}
+
+func ArrayGrow<T>(a: Array<T>**, increment: i32) {
+	var doubleCurrent = (*a).capacity * 2
+	var minReq = (*a).size + increment
+	var n = minReq
 	
+	if(doubleCurrent > minReq) {
+		n = doubleCurrent
+	}
+	
+	var size = sizeof(Array<T>) + (sizeof(T) * n as (u64));		
+	*a = mem::realloc((*a) as (void*), size) as (Array<T>*);
+	(*a).capacity = n;    
+    (*a).elements = (*a + sizeof(Array<T>)) as (T*)
 }

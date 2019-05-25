@@ -3,9 +3,7 @@ package litac.parser;
 
 import static litac.parser.tokens.TokenType.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import litac.Errors;
 import litac.ast.Decl;
@@ -26,7 +24,7 @@ import litac.parser.tokens.TokenType;
 
 
 /**
- * A {@link Parser} for the JSLT programming language.
+ * A {@link Parser} for the LitaC programming language.
  * 
  * @author Tony
  *
@@ -42,6 +40,28 @@ public class Parser {
     private int current;
         
     private Token startToken;
+    
+    private final static Set<TokenType> GENERICS_AMBIGUITY = new HashSet<>();
+    static {
+        // ( ) ] { } : ; , . ? == != | ^ *
+        GENERICS_AMBIGUITY.add(TokenType.LEFT_PAREN);   // (
+        GENERICS_AMBIGUITY.add(TokenType.RIGHT_PAREN);  // )
+       // GENERICS_AMBIGUITY.add(TokenType.LEFT_BRACKET); // [
+        GENERICS_AMBIGUITY.add(TokenType.RIGHT_BRACKET);// ]
+        GENERICS_AMBIGUITY.add(TokenType.LEFT_BRACE);   // }
+        GENERICS_AMBIGUITY.add(TokenType.RIGHT_BRACE);  // }
+        GENERICS_AMBIGUITY.add(TokenType.COLON);        // :
+        GENERICS_AMBIGUITY.add(TokenType.SEMICOLON);    // ;
+        GENERICS_AMBIGUITY.add(TokenType.COMMA);        // ,
+        GENERICS_AMBIGUITY.add(TokenType.DOT);          // .
+        GENERICS_AMBIGUITY.add(TokenType.QUESTION_MARK);// ?
+        GENERICS_AMBIGUITY.add(TokenType.EQUALS_EQUALS);// ==
+        GENERICS_AMBIGUITY.add(TokenType.NOT_EQUALS);   // !=
+        GENERICS_AMBIGUITY.add(TokenType.OR);           // |
+        //GENERICS_AMBIGUITY.add(TokenType.AND);        // &
+        GENERICS_AMBIGUITY.add(TokenType.XOR);          // ^
+        GENERICS_AMBIGUITY.add(TokenType.STAR);         // *
+    }
     
     /**
      * @param scanner
@@ -145,7 +165,7 @@ public class Parser {
         
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         if(match(COLON)) {
-            type = type();
+            type = type(false);
             
             // Equals is optional if the type is defined
             if(match(EQUALS)) {
@@ -173,15 +193,12 @@ public class Parser {
         
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         if(match(COLON)) {
-            type = type();
+            type = type(false);
         }
         
         consume(TokenType.EQUALS, ErrorCode.MISSING_EQUALS);
         
-        
         Expr expr = constExpression();            
-        
-                
         return node(new ConstDecl(identifier.getText(), type, expr));
     }
     
@@ -200,7 +217,7 @@ public class Parser {
         
         TypeInfo returnType = TypeInfo.VOID_TYPE;
         if(match(COLON)) {
-            returnType = type();
+            returnType = type(false);
         }
         
         TypeInfo type = new FuncTypeInfo(identifier.getText(), 
@@ -352,7 +369,13 @@ public class Parser {
 
     private TypedefDecl typedefDeclaration() {
         source();
-        return null;
+        
+        TypeInfo aliasedType = type(false);        
+        match(AS);
+        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        String name = identifier.getText();
+        
+        return node(new TypedefDecl(name, aliasedType, name));
     }
     
 
@@ -429,7 +452,7 @@ public class Parser {
             case IDENTIFIER: {
                 Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
                 consume(COLON, ErrorCode.MISSING_COLON);
-                TypeInfo type = type();
+                TypeInfo type = type(false);
                 
                 return node(new VarFieldStmt(identifier.getText(), type));
             }                
@@ -602,7 +625,7 @@ public class Parser {
     }
     
     private ArrayInitExpr arrayInitExpr() {
-        TypeInfo array = type();
+        TypeInfo array = type(false);
         if(!array.isKind(TypeKind.Array)) {
             throw error(previous(), ErrorCode.MISSING_LEFT_BRACE);
         }
@@ -781,7 +804,9 @@ public class Parser {
     }
     
     private Expr cast(Expr expr) {
-        TypeInfo castTo = type();        
+        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
+        TypeInfo castTo = type(false);
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         return node(new CastExpr(castTo, expr));
     }
     
@@ -860,7 +885,7 @@ public class Parser {
         if(match(LEFT_BRACE))   return aggregateInitExpr();                
         
         if(check(IDENTIFIER)) {
-            IdentifierTypeInfo identifier = identifierType();
+            IdentifierTypeInfo identifier = identifierType(true);
             return node(new IdentifierExpr(identifier.identifier, identifier));
         }
                 
@@ -892,14 +917,22 @@ public class Parser {
         match(SEMICOLON);
     }
     
-    private List<TypeInfo> tryGenericArguments() {
+    private List<TypeInfo> tryGenericArguments(boolean disambiguiate) {
         int backtrack = this.current;
         
         advance(); // eat <
         
         List<TypeInfo> arguments = null;
         try {
-            arguments = genericArguments();            
+            arguments = genericArguments();
+            
+            if(disambiguiate) {
+                Token token = peek();
+                if(!GENERICS_AMBIGUITY.contains(token.getType())) {
+                    arguments = null;
+                    this.current = backtrack;
+                }
+            }
         }
         catch(ParseException e) {
             this.current = backtrack;
@@ -979,6 +1012,10 @@ public class Parser {
     }
     
     private TypeInfo type() {
+        return type(true);
+    }
+    
+    private TypeInfo type(boolean disambiguiate) {
         Token t = peek();
         switch(t.getType()) {
             case BOOL: {
@@ -1042,7 +1079,7 @@ public class Parser {
                 return chainableType(type);
             }
             case IDENTIFIER: {
-                TypeInfo type = identifierType();
+                TypeInfo type = identifierType(disambiguiate);
 
                 // identifier() consumes multiple tokens, 
                 // account for advance in ptr check
@@ -1057,7 +1094,7 @@ public class Parser {
                 ArrayTypeInfo type = arrayType(null);
                 advance();
                 
-                type.arrayOf = type();
+                type.arrayOf = type(disambiguiate);
                 return type;
             }            
             // case FUNC: TODO
@@ -1066,7 +1103,7 @@ public class Parser {
         }
     }
     
-    private IdentifierTypeInfo identifierType() {
+    private IdentifierTypeInfo identifierType(boolean disambiguate) {
         Token token = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         String identifier = token.getText();
         
@@ -1076,9 +1113,13 @@ public class Parser {
             identifier = String.format("%s::%s", identifier, name.getText());
         }
         
-        List<TypeInfo> arguments = Collections.emptyList();
+        List<TypeInfo> arguments = null;
         if(check(LESS_THAN)) {
-            arguments = tryGenericArguments();
+            arguments = tryGenericArguments(disambiguate);
+        }
+        
+        if(arguments == null) {
+            arguments = Collections.emptyList();
         }
         
         return new IdentifierTypeInfo(identifier, arguments);
@@ -1113,7 +1154,7 @@ public class Parser {
                     String parameterName = param.getText();
                     
                     consume(COLON, ErrorCode.MISSING_COLON);
-                    TypeInfo type = type();
+                    TypeInfo type = type(false);
                     
                     parameterInfos.add(new ParameterDecl(type, parameterName));
                 }

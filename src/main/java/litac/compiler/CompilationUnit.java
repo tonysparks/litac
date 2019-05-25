@@ -91,21 +91,29 @@ public class CompilationUnit {
         @Override
         public void visit(ModuleStmt stmt) {
             for(ImportStmt imp : stmt.imports) {
-                loadModule(imp);
+                ModuleStmt module = loadModule(imp);
+                if(module != null) {
+                    module.visit(this);
+                }
             }
         }
         
-        private void loadModule(ImportStmt stmt) {
+        private ModuleStmt loadModule(ImportStmt stmt) {
             String moduleName = stmt.moduleName;
             
             if(this.unit.imports.containsKey(moduleName)) {
-                return;                
+                return null;                
             }
             
             File importFile = new File(this.options.srcDir.getAbsolutePath(), moduleName + ".lita");
+            if(!importFile.exists()) {
+                importFile = new File(this.options.libDir, moduleName + ".lita");
+            }
+            
             try {
                 ModuleStmt module = readModule(importFile);
                 this.unit.imports.put(moduleName, module);
+                return module;
             }
             catch (FileNotFoundException e) {
                 throw Compiler.error(stmt, "could not find module '%s' at '%s'", moduleName, importFile.getAbsolutePath());

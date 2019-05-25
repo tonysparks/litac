@@ -10,9 +10,8 @@
 			%test%
 		}
 	'''
-	tests: [
-		
-		{
+	tests: [		
+		/*{
 			name: "Primatives",
 			code: '''
 				var i = 32
@@ -59,16 +58,16 @@
 							
 			''',			
 			code: '''
-				var i : i64 = 32 as i64 + 45_i64
+				var i : i64 = 32 as (i64) + 45_i64
 				assert( i == 77_i64 )
 				
 				
-				i = 2_i64*32 as i64 + 45_i64
+				i = 2_i64*32 as (i64) + 45_i64
 				assert( i == 109_i64 )
 
 				
 				var t = T { 4}
-				var x = X<i32> {44} as X<i32>
+				var x = X<i32> {44} as (X<i32>)
 				  
 			'''
 		}, 
@@ -81,7 +80,7 @@
 							
 			''',			
 			code: '''
-				var x = X<i32> {44} as X<f32>
+				var x = X<i32> {44} as (X<f32>)
 				  
 			''',
 			error: "'struct Xf32' can't be casted to 'struct Xi32'"
@@ -95,7 +94,7 @@
 							
 			''',			
 			code: '''
-				var x = X<i32> {44} as X<f32>
+				var x = X<i32> {44} as (X<f32>)
 				  
 			''',
 			error: "'union Xf32' can't be casted to 'union Xi32'"
@@ -177,12 +176,12 @@
 			''',			
 			code: '''
 				var x = TypeInfo.Int
-				var y = TypeInfo.Float as i32
+				var y = TypeInfo.Float as (i32)
 				assert(x == TypeInfo.Int)  
 				assert(y == 54)
-				assert(TypeInfo.Int as i32 == 12)
-				assert(TypeInfo.Float as i32 == 54)
-				assert(TypeInfo.Double as i32 == 166)
+				assert(TypeInfo.Int as (i32) == 12)
+				assert(TypeInfo.Float as (i32) == 54)
+				assert(TypeInfo.Double as (i32) == 166)
 			'''
 		},
 		{
@@ -199,7 +198,7 @@
 			''',			
 			code: '''
 				var x = Type{TypeInfo.Int}
-				var y = TypeInfo.Float as i32
+				var y = TypeInfo.Float as (i32)
 				assert(x.TypeInfo == TypeInfo.Int)
 			'''
 		},
@@ -233,11 +232,11 @@
 				}
 				
 				func ArrayInit<T>(a: Array<T>**, initialSize: i32) {
-				    var size = sizeof(Array<T>) + (sizeof(T) * initialSize as u64);
-					*a = malloc(size) as Array<T>*;
+				    var size = sizeof(Array<T>) + (sizeof(T) * initialSize as (u64));
+					*a = malloc(size) as (Array<T>*);
 					(*a).size = 0;
 					(*a).capacity = initialSize;	
-					(*a).elements =	(*a + sizeof(Array<T>)) as T*				
+					(*a).elements =	(*a + sizeof(Array<T>)) as (T*)				
 				}
 				
 				func ArrayAdd<T>(a: Array<T>*, element: T) {
@@ -286,11 +285,87 @@
             code: '''
                 var a: Test<i32>{}
                 var b: Test<f32>{}
-                var x = a as Test<f32> > 0
+                var x = a as (Test<f32>) > 0
                 assert(x)
             ''',
             error: "illegal, left operand has type 'Testf32'"
         },
-		 
+		{
+            name: "Break Generics via Expression",                       
+            code: '''
+                var a = 1
+                var b = 2
+                var c = a < b > 2
+                assert(!c)
+            ''',           
+        },
+        {
+            name: "Break Generics via Cast",
+            definitions: '''                
+                struct Test {
+                    u: i32
+                }
+                            
+            ''',                       
+            code: '''
+                var a = Test {}
+                var b = 2
+                var c = a as (Test) < b > 2
+                assert(!c)                                
+            ''',
+            error: "illegal, left operand has type 'Test'"                      
+        },
+        {
+            name: "Break Generics via Sizeof",
+            definitions: '''                
+                struct Test {
+                    u: i32
+                }
+                            
+            ''',                       
+            code: '''                
+                var b = 1
+                var c = sizeof(Test < b > 0)                                               
+            ''',
+            error: "illegal, left operand has type 'Test'"                      
+        },*/
+        {
+            name: "Typedef primitives",
+            definitions: '''                
+                typedef i32 as int;
+                            
+            ''',                       
+            code: '''                
+                var b : int = 1
+                assert(b == 1)                                               
+            '''                      
+        },
+        {
+            name: "Typedef struct",
+            definitions: '''
+                typedef i32 as int;
+                struct X {a:int}
+                typedef X as Y;    
+                            
+            ''',                       
+            code: '''                
+                var y  = Y{1}
+                var x  = X{2}
+                assert(y.a == 1)
+                assert(x.a == 2)                                               
+            '''                      
+        },
+        {
+            name: "Typedef struct generics",
+            definitions: '''
+                struct X<T> {a:T}
+                typedef X<i32> as Y;    
+                            
+            ''',                       
+            code: '''                
+                var y  = Y{1}
+                assert(y.a == 1)
+            '''                      
+        },
 	]
 }

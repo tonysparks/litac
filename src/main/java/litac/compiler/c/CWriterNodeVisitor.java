@@ -77,19 +77,23 @@ public class CWriterNodeVisitor implements NodeVisitor {
     private void writeHeader(Buf buf) {
         buf.out("// Compiled by LitaC on %s with version: %s \n", new Date(), LitaC.VERSION);
         buf.out("#include <stdint.h>   \n");
-        buf.out("typedef int8_t   i8;  \n");
-        buf.out("typedef int16_t  i16; \n");
-        buf.out("typedef int32_t  i32; \n");
-        buf.out("typedef int64_t  i64; \n");
-        buf.out("typedef uint8_t  u8;  \n");
-        buf.out("typedef uint16_t u16; \n");
-        buf.out("typedef uint32_t u32; \n");
-        buf.out("typedef uint64_t u64; \n");
-        buf.out("typedef float    f32; \n");
-        buf.out("typedef double   f64; \n");
-        buf.out("typedef int8_t   bool; \n");
+        buf.out("typedef int8_t    %s;  \n", prefix("i8"));
+        buf.out("typedef int16_t   %s;  \n", prefix("i16"));
+        buf.out("typedef int32_t   %s;  \n", prefix("i32"));
+        buf.out("typedef int64_t   %s;  \n", prefix("i64"));
+        //buf.out("typedef int128_t  %s;  \n", prefix("i128"));        
+        buf.out("typedef uint8_t   %s;  \n", prefix("u8"));
+        buf.out("typedef uint16_t  %s;  \n", prefix("u16"));
+        buf.out("typedef uint32_t  %s;  \n", prefix("u32"));
+        buf.out("typedef uint64_t  %s;  \n", prefix("u64"));
+        //buf.out("typedef uint128_t %s;  \n", prefix("u128"));
+        buf.out("typedef float     %s;  \n", prefix("f32"));
+        buf.out("typedef double    %s;  \n", prefix("f64"));
+        buf.out("typedef int8_t    %s;  \n", prefix("bool"));
+        buf.out("typedef char      %s;  \n", prefix("char"));
         buf.out("#define true 1\n");
         buf.out("#define false 0\n");
+        buf.out("#define %s void\n", prefix("void"));
         buf.outln();
     }
     
@@ -283,11 +287,15 @@ public class CWriterNodeVisitor implements NodeVisitor {
         
         return type.sym.isForeign();
     }
-       
+    
+    private String prefix(String name) {
+        return String.format("%s%s", this.options.symbolPrefix, name);
+    }
+    
     private String cTypeName(TypeInfo type) {
         type = type.getResolvedType();
         if(type.sym == null) {
-            return type.getName();
+            return prefix(type.getName());
         }
         
         Symbol sym = type.sym;
@@ -295,15 +303,24 @@ public class CWriterNodeVisitor implements NodeVisitor {
             return type.getName();
         }
         
-        return Names.backendName(sym.declared.name(), type.getName());
+        return prefix(Names.backendName(sym.declared.name(), type.getName()));
     }
     
     private String cName(Symbol sym) {
-        if(sym.isLocal() || sym.isForeign()) {
+        if(sym.isLocal()) {
+            return prefix(sym.decl.name);
+        }
+        
+        if(sym.isForeign()) {
             return sym.decl.name;
         }
         
-        return Names.backendName(sym.declared.name(), sym.decl.name);
+        if(sym.decl.kind == DeclKind.FUNC && 
+           sym.decl.name.equals("main")) {
+            return sym.decl.name;
+        }
+        
+        return prefix(Names.backendName(sym.declared.name(), sym.decl.name));
     }
     
         
@@ -401,7 +418,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             buf.out("};\n");
         }
         else {
-            buf.out("struct %s {", stmt.decl.type.getName());
+            buf.out("struct %s {", prefix(stmt.decl.type.getName()));
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
             }
@@ -421,7 +438,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             buf.out("};\n");
         }
         else {
-            buf.out("union %s {", stmt.decl.type.getName());            
+            buf.out("union %s {", prefix(stmt.decl.type.getName()));            
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
             }            
@@ -434,7 +451,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     public void visit(EnumFieldStmt stmt) {
         buf.outln();
         
-        buf.out("enum %s {", stmt.decl.type.getName());  
+        buf.out("enum %s {", prefix(stmt.decl.type.getName()));  
         boolean isFirst = true;
         for(EnumFieldInfo f : stmt.decl.fields) {
             if(!isFirst) buf.out(",\n");
@@ -510,7 +527,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 buf.out(",");
             }
             
-            buf.out("%s %s", getTypeNameForC(p.type), p.name);
+            buf.out("%s %s", getTypeNameForC(p.type), prefix(p.name));
             
             isFirst = false;
         }
@@ -584,7 +601,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(TypedefDecl d) {
-        // TODO Auto-generated method stub
+        buf.out("typedef %s %s;\n", cTypeName(d.type), prefix(d.alias));
     }
 
 
@@ -860,21 +877,20 @@ public class CWriterNodeVisitor implements NodeVisitor {
             buf.out("%s", cName(sym));
         }
         else {
-            buf.out("%s", expr.type.getName());
+            buf.out("%s", prefix(expr.type.getName()));
         }
     }
 
     @Override
     public void visit(FuncIdentifierExpr expr) {
-        Symbol sym = expr.sym;
-        if(sym != null) {
-            buf.out("%s", cName(sym));
-        }
-        else {
-            buf.out("%s", expr.type.getName());
-        }
+        visit((IdentifierExpr)expr);
     }
 
+    @Override
+    public void visit(SizeOfIdentifierExpr expr) {
+        visit((IdentifierExpr)expr);
+    }
+    
     @Override
     public void visit(GetExpr expr) {
         if(!expr.object.getResolvedType().isKind(TypeKind.Enum)) {

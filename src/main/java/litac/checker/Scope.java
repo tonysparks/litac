@@ -3,8 +3,7 @@
  */
 package litac.checker;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import litac.ast.Decl;
 import litac.ast.Decl.*;
@@ -65,11 +64,12 @@ public class Scope {
             flags |= Symbol.IS_CONSTANT;
         }
         
-        Symbol sym = new Symbol(decl, type, module, flags);
+        Symbol sym = new Symbol(decl, symbolName, type, module, flags);
         decl.sym = sym;
         
         if(!(decl instanceof VarDecl) && 
            !(decl instanceof ConstDecl) &&
+           !(decl instanceof TypedefDecl) &&
            !(decl instanceof ParameterDecl)) {
             type.sym = sym;
         }
@@ -104,6 +104,20 @@ public class Scope {
         }
         
         return null;
+    }
+    
+    public void addSymbol(Symbol sym) {
+        String symbolName = sym.name;
+        if(this.symbols.containsKey(symbolName)) {
+            this.result.addError(sym.decl, "symbol '%s' already defined", symbolName);
+            return;            
+        }
+        
+        this.symbols.put(sym.name, sym);
+    }
+    
+    public Collection<Symbol> getSymbols() {
+        return this.symbols.values();
     }
         
     public Scope pushLocalScope() {

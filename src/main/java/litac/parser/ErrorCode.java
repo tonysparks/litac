@@ -32,6 +32,7 @@ public enum ErrorCode {
     MISSING_ARRAY_BRACKETS("Missing []"),
     MISSING_COLON("Missing :"),
     MISSING_WHILE("Missing 'while'"),
+    MISSING_AS("Missing 'as'"),
     MISSING_GENERIC_END("Missing >"),
     
     

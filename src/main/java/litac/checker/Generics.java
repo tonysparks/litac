@@ -34,6 +34,8 @@ public class Generics {
             return type;
         }
         
+        module = module.getRoot();
+        
         String genericImplTypeName = newDeclGenericName(type, genericArgs);
         TypeInfo resultType = module.getType(genericImplTypeName);
         if(resultType != null) {
@@ -71,6 +73,8 @@ public class Generics {
     }
     
     public static TypeInfo createGenericTypeInfo(Module module, TypeInfo type, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
+        
+        module = module.getRoot();
         
         switch(type.getKind()) {
             case Struct:
@@ -149,8 +153,9 @@ public class Generics {
                                               structInfo.genericParams,
                                               genericArgs);
 
+        Module declared = structInfo.sym.declared;
         module.declareStruct(decl, newStructName, newStructInfo);
-        module.addGenericType(decl);
+        module.addGenericType(declared, decl);
         
         return newStructInfo;
     }
@@ -170,8 +175,9 @@ public class Generics {
                                             unionInfo.genericParams,
                                             genericArgs);
 
+        Module declared = unionInfo.sym.declared;
         module.declareUnion(decl, newUnionName, newUnionInfo);
-        module.addGenericType(decl);
+        module.addGenericType(declared, decl);
         
         return newUnionInfo;
     }
@@ -234,8 +240,9 @@ public class Generics {
                                           funcInfo.genericParams,
                                           genericArgs);
 
+        Module declared = funcInfo.sym.declared;
         module.declareFunc(decl, newFuncName, newFuncInfo);
-        module.addGenericType(decl);
+        module.addGenericType(declared, decl);
         
         return newFuncInfo;
     }

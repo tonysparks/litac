@@ -415,6 +415,8 @@ public abstract class TypeInfo {
                         return false;
                     }
                 }
+                
+                return true;
             }
             
             if(target.isKind(TypeKind.bool)) {

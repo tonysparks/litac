@@ -129,6 +129,14 @@ public abstract class Expr extends Stmt {
         public Expr expr;
         
         public SizeOfExpr(Expr expr) {
+            if(expr instanceof IdentifierExpr) {
+                IdentifierExpr idExpr = (IdentifierExpr)expr;
+                expr = new SizeOfIdentifierExpr(idExpr.variable, idExpr.type);
+                expr.setLineNumber(idExpr.getLineNumber());
+                expr.setSourceLine(idExpr.getSourceLine());
+                expr.setSourceFile(idExpr.getSourceFile());
+            }
+            
             this.expr = becomeParentOf(expr);
             resolveTo(TypeInfo.U64_TYPE);
         }
@@ -552,13 +560,26 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             FuncIdentifierExpr idExpr = new FuncIdentifierExpr(this.variable, this.type.copy());
-//            if(this.declType != null) {
-//                idExpr.declType = this.declType.copy();
-//            }
-            
             return idExpr;
         }
     }
     
+    public static class SizeOfIdentifierExpr extends IdentifierExpr {
+        
+        public SizeOfIdentifierExpr(String variable, TypeInfo type) {
+            super(variable, type);
+        }
+
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+
+        @Override
+        protected Node doCopy() {            
+            SizeOfIdentifierExpr idExpr = new SizeOfIdentifierExpr(this.variable, this.type.copy());
+            return idExpr;
+        }
+    }
 
 }

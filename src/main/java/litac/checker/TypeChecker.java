@@ -335,7 +335,7 @@ public class TypeChecker {
         @Override
         public void visit(SizeOfExpr expr) {
             // TODO: Verify it's a type??
-            //expr.expr.visit(this);
+            expr.expr.visit(this);
         }
         
         @Override
@@ -458,6 +458,10 @@ public class TypeChecker {
         
         @Override
         public void visit(FuncIdentifierExpr expr) {            
+        }
+        
+        @Override
+        public void visit(SizeOfIdentifierExpr expr) {
         }
         
         private boolean typeCheckAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {            

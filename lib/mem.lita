@@ -1,9 +1,9 @@
 @include("stdlib.h");
 
-@foreign func malloc(size: u64) : void*;
-@foreign func realloc(ptr:void*, size: u64) : void*;
-@foreign func calloc(num: u64, size: u64) : void*;
-@foreign func free(ptr:void*) : void;
+@foreign public func malloc(size: u64) : void*;
+@foreign public func realloc(ptr:void*, size: u64) : void*;
+@foreign public func calloc(num: u64, size: u64) : void*;
+@foreign public func free(ptr:void*) : void;
 
 struct Allocator {
 }

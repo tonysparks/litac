@@ -70,6 +70,12 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         return Generics.createGenericTypeInfo(module, oldType, genericParams, genericArgs);
     }
     
+    private void replaceGenericArgs(List<TypeInfo> genericArgs) {
+        for(int i = 0; i < genericArgs.size(); i++) {
+            genericArgs.set(i, replaceType(genericArgs.get(i)));
+        }
+    }
+    
 
     @Override
     public void visit(ModuleStmt stmt) {
@@ -259,6 +265,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(InitExpr expr) {
+        replaceGenericArgs(expr.genericArgs);
         replaceType(expr);        
     }
 
@@ -290,6 +297,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(FuncCallExpr expr) {
+        replaceGenericArgs(expr.genericArgs);
         replaceType(expr);
         replaceType(expr.object).visit(this);
         replaceType(expr.arguments);
@@ -311,16 +319,12 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(FuncIdentifierExpr expr) {
-        replaceType(expr);
-        expr.type = replaceType(expr.type);
-        
-        // TODO: Fix me, this shouldn't be here!
-        if(expr.type != null) {
-            TypeInfo type = expr.type.getResolvedType();
-            if(type != null) {        
-                expr.sym = type.sym;
-            }
-        }
+        visit((IdentifierExpr)expr);
+    }
+    
+    @Override
+    public void visit(SizeOfIdentifierExpr expr) {
+        visit((IdentifierExpr)expr);
     }
 
     @Override

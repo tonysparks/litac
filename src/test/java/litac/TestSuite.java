@@ -16,6 +16,7 @@ import static org.junit.Assert.*;
 
 import litac.checker.PhaseResult;
 import litac.checker.PhaseResult.PhaseError;
+import litac.compiler.BackendOptions;
 
 /**
  * Runs a set of tests
@@ -65,7 +66,10 @@ public class TestSuite {
             tmp.deleteOnExit();
             
             try {                
-                PhaseResult result = LitaC.compile(tmp);
+                BackendOptions options = new BackendOptions();
+                options.buildFile = tmp;
+                
+                PhaseResult result = LitaC.compile(options);
                 
                 if(result.hasErrors()) {
                     for(PhaseError error : result.getErrors()) {

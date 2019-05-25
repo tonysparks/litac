@@ -15,6 +15,7 @@ import litac.ast.Decl.*;
 import litac.checker.Scope.ScopeType;
 import litac.checker.TypeInfo.*;
 import litac.util.Names;
+import litac.util.Tuple;
 import litac.ast.Stmt;
 import litac.ast.Stmt.ModuleStmt;
 import litac.ast.Stmt.NoteStmt;
@@ -27,6 +28,7 @@ import litac.ast.Stmt.NoteStmt;
  */
 public class Module {
 
+    private Module root;
     private String name;        
     private Scope currentScope;
     
@@ -38,6 +40,7 @@ public class Module {
     private Map<String, StructTypeInfo> structTypes;
     private Map<String, UnionTypeInfo> unionTypes;
     private Map<String, EnumTypeInfo> enumTypes;
+    private Map<String, TypeInfo> typedefTypes;
     
     private Map<String, FuncTypeInfo> publicFuncTypes;
     private Map<String, TypeInfo> publicTypes;
@@ -49,12 +52,17 @@ public class Module {
     
     private List<NoteStmt> notes;
     
-    private List<Decl> genericTypes;
+    private Map<String, Tuple<Module,Decl>> genericTypes;
     
     private PhaseResult result;
     
     
-    public Module(PhaseResult result, ModuleStmt moduleStmt, String name) {
+    public Module(Module root,
+                  Map<String, Tuple<Module,Decl>> genericTypes,
+                  PhaseResult result, 
+                  ModuleStmt moduleStmt, 
+                  String name) {
+        this.root = root;
         this.result = result;
         this.moduleStmt = moduleStmt;
         this.name = name;
@@ -64,6 +72,7 @@ public class Module {
         this.structTypes = new HashMap<>();
         this.unionTypes = new HashMap<>();
         this.enumTypes = new HashMap<>();
+        this.typedefTypes = new HashMap<>();
         
         this.publicFuncTypes = new HashMap<>();
         this.publicTypes = new HashMap<>();
@@ -73,12 +82,16 @@ public class Module {
         this.importedFuncTypes = new HashMap<>();
         this.importedAggregateTypes = new HashMap<>();
         
-        this.genericTypes = new ArrayList<>();
+        this.genericTypes = genericTypes;
         this.notes = new ArrayList<>();
         
         this.currentScope = new Scope(result, ScopeType.MODULE);
     }
 
+    public Module getRoot() {
+        return root != null ? root : this;
+    }
+    
     public PhaseResult getPhaseResult() {
         return result;
     }
@@ -120,24 +133,66 @@ public class Module {
             return;
         }
                 
-        this.imports.put(alias, module);
-               
-        for(Entry<String, FuncTypeInfo> funcType: module.publicFuncTypes.entrySet()) {
-            this.importedFuncTypes.put(Names.litaName(alias, funcType.getKey()), funcType.getValue());
-        }
-        
-        for(Entry<String, TypeInfo> aggType: module.publicTypes.entrySet()) {
-            this.importedAggregateTypes.put(Names.litaName(alias, aggType.getKey()), aggType.getValue());
-        }
-        
-        
-        for(Entry<String, TypeInfo> typeEntry: module.foreignTypes.entrySet()) {
-            TypeInfo type = typeEntry.getValue();
-            if(type.isKind(TypeKind.Func)) {
-                this.importedFuncTypes.put(Names.litaName(alias, typeEntry.getKey()), type.as());
+        if(alias != null) {
+            this.imports.put(alias, module);
+                   
+            for(Entry<String, FuncTypeInfo> funcType: module.publicFuncTypes.entrySet()) {
+                this.importedFuncTypes.put(Names.litaName(alias, funcType.getKey()), funcType.getValue());
             }
-            else {
-                this.importedAggregateTypes.put(Names.litaName(alias, typeEntry.getKey()), type);
+            
+            for(Entry<String, TypeInfo> aggType: module.publicTypes.entrySet()) {
+                this.importedAggregateTypes.put(Names.litaName(alias, aggType.getKey()), aggType.getValue());
+            }
+            
+            
+            for(Entry<String, TypeInfo> typeEntry: module.foreignTypes.entrySet()) {
+                TypeInfo type = typeEntry.getValue();
+                if(type.isKind(TypeKind.Func)) {
+                    this.importedFuncTypes.put(Names.litaName(alias, typeEntry.getKey()), type.as());
+                }
+                else {
+                    this.importedAggregateTypes.put(Names.litaName(alias, typeEntry.getKey()), type);
+                }
+            }
+        }
+        else {
+            for(Entry<String, FuncTypeInfo> funcType: module.publicFuncTypes.entrySet()) {
+                this.funcTypes.put(funcType.getKey(), funcType.getValue());
+            }
+            
+            for(Entry<String, TypeInfo> aggType: module.publicTypes.entrySet()) {
+                TypeInfo type = aggType.getValue();
+                switch(type.getKind()) {
+                    case Union: {
+                        this.unionTypes.put(aggType.getKey(), type.as());
+                        break;
+                    }
+                    case Struct: {
+                        this.structTypes.put(aggType.getKey(), type.as());
+                        break;
+                    }
+                    case Enum: {
+                        this.enumTypes.put(aggType.getKey(), type.as());
+                        break;
+                    }                    
+                    default: {
+                    }
+                }                
+            }
+            
+            module.currentScope().getSymbols()
+                                 .stream()
+                                 .filter(s -> s.decl.attributes.isPublic && (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR))
+                                 .forEach(s -> currentScope().addSymbol(s));
+            
+            for(Entry<String, TypeInfo> typeEntry: module.foreignTypes.entrySet()) {
+                TypeInfo type = typeEntry.getValue();
+                if(type.isKind(TypeKind.Func)) {
+                    this.importedFuncTypes.put(Names.litaName(alias, typeEntry.getKey()), type.as());
+                }
+                else {
+                    this.importedAggregateTypes.put(Names.litaName(alias, typeEntry.getKey()), type);
+                }
             }
         }
         
@@ -265,6 +320,18 @@ public class Module {
         return addPublicDecl(stmt, enumName, type);
     }
     
+    public Symbol declareTypedef(TypedefDecl stmt, String alias, TypeInfo aliasedType) {
+        TypeInfo previousType = getType(alias);
+        if(previousType != null) {
+            this.result.addError(stmt, "%s is already defined", alias);
+            return previousType.sym;
+        }
+
+        this.typedefTypes.put(alias, aliasedType);
+        
+        return addPublicDecl(stmt, alias, aliasedType);
+    }
+    
     public FuncTypeInfo getFuncType(String funcName) {
         if(funcName.contains("::")) {
             return this.importedFuncTypes.get(funcName);
@@ -294,15 +361,15 @@ public class Module {
             return this.funcTypes.get(typeName);
         }
         
-        return null;
+        return this.typedefTypes.get(typeName);
     }
     
-    public void addGenericType(Decl decl) {
-        this.genericTypes.add(decl);
+    public void addGenericType(Module root, Decl decl) {
+        this.genericTypes.put(decl.name, new Tuple<>(root, decl));
     }
     
-    public List<Decl> getGenericTypes() {
-        return this.genericTypes;
+    public List<Tuple<Module, Decl>> getGenericTypes() {
+        return new ArrayList<>(this.genericTypes.values());
     }
             
     public Scope pushScope() {
