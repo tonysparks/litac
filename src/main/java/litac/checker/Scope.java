@@ -8,6 +8,7 @@ import java.util.*;
 import litac.ast.Decl;
 import litac.ast.Decl.*;
 import litac.ast.Stmt.NoteStmt;
+import litac.checker.TypeInfo.TypeKind;
 
 /**
  * @author Tony
@@ -72,6 +73,10 @@ public class Scope {
            !(decl instanceof TypedefDecl) &&
            !(decl instanceof ParameterDecl)) {
             type.sym = sym;
+        }
+        
+        if(decl instanceof ParameterDecl && type.isKind(TypeKind.FuncPtr)) {
+            type.name = symbolName;
         }
         
         this.symbols.put(symbolName, sym);

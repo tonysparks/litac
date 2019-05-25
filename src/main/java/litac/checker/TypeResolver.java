@@ -659,37 +659,44 @@ public class TypeResolver {
             expr.object.visit(this);            
             
             TypeInfo type = expr.object.getResolvedType();
-            if(!type.isKind(TypeKind.Func)) {
+            if(!type.isKind(TypeKind.Func) && !type.isKind(TypeKind.FuncPtr)) {
                 this.result.addError(expr, "'%s' is not a function", type.getName());
                 return;
             }
             
-            FuncTypeInfo funcInfo = type.as();
-            expr.resolveTo(getType(expr, expr.genericArgs, funcInfo.genericParams, funcInfo.returnType));
-                        
+            FuncPtrTypeInfo funcPtr = null;
+            if(type.isKind(TypeKind.Func)) {
+                FuncTypeInfo funcInfo = type.as();
+                funcPtr = funcInfo.asPtr();
+            }
+            else {
+                funcPtr = type.as();
+            }
+            
+            expr.resolveTo(getType(expr, expr.genericArgs, funcPtr.genericParams, funcPtr.returnType));
+            
             int i = 0;
-            for(; i < funcInfo.parameterDecls.size(); i++) {
-                TypeInfo paramInfo = funcInfo.parameterDecls.get(i).type;
-                resolveType(expr, getType(expr, expr.genericArgs, funcInfo.genericParams, paramInfo));
+            for(; i < funcPtr.params.size(); i++) {
+                TypeInfo paramInfo = funcPtr.params.get(i);
+                resolveType(expr, getType(expr, expr.genericArgs, funcPtr.genericParams, paramInfo));
                 
                 if(i < expr.arguments.size()) {
                     Expr arg = expr.arguments.get(i);
                     arg.visit(this);
                     
-                    resolveType(arg, getType(expr, expr.genericArgs, funcInfo.genericParams, arg.getResolvedType()));
+                    resolveType(arg, getType(expr, expr.genericArgs, funcPtr.genericParams, arg.getResolvedType()));
                 }
             }
             
-            if(funcInfo.isVararg) {
+            if(funcPtr.isVararg) {
                 for(; i < expr.arguments.size(); i++) {
                     Expr arg = expr.arguments.get(i);
                     arg.visit(this);
                     
-                    resolveType(arg, getType(expr, expr.genericArgs, funcInfo.genericParams, arg.getResolvedType()));
+                    resolveType(arg, getType(expr, expr.genericArgs, funcPtr.genericParams, arg.getResolvedType()));
                 }                
             }
         }
-
 
         @Override
         public void visit(IdentifierExpr expr) {
@@ -719,8 +726,14 @@ public class TypeResolver {
                 TypeInfo resolvedType = this.module.getFuncType(expr.variable); 
                 
                 if(resolvedType == null) {
-                    this.result.addError(expr, "unknown function '%s'", expr.variable);
-                    return;
+                    Symbol sym = peekScope().getSymbol(expr.variable); 
+                    
+                    if(sym == null || !sym.type.isKind(TypeKind.FuncPtr)) {
+                        this.result.addError(expr, "unknown function '%s'", expr.variable);
+                        return;
+                    }
+                    
+                    resolvedType = sym.type;
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
@@ -880,8 +893,14 @@ public class TypeResolver {
                 }
                 case BAND: {
                     TypeInfo type = expr.expr.getResolvedType().getResolvedType();
-                    PtrTypeInfo ptrInfo = new PtrTypeInfo(type);
-                    expr.resolveTo(ptrInfo);
+                    if(type.isKind(TypeKind.Func)) {
+                        FuncTypeInfo funcType = type.as();
+                        expr.resolveTo(funcType.asPtr());
+                    }
+                    else {
+                        PtrTypeInfo ptrInfo = new PtrTypeInfo(type);
+                        expr.resolveTo(ptrInfo);
+                    }
                     break;
                 }
                 case NOT: {

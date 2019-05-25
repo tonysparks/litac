@@ -419,21 +419,29 @@ public class TypeChecker {
             
             
             TypeInfo type = expr.object.getResolvedType();
-            if(!type.isKind(TypeKind.Func)) {
+            if(!type.isKind(TypeKind.Func) && !type.isKind(TypeKind.FuncPtr)) {
                 this.result.addError(expr, "'%s' is not a function", type.getName());
                 return;
             }
             
-            FuncTypeInfo funcInfo = type.as();
-            if(funcInfo.parameterDecls.size() != expr.arguments.size()) {
-                if(funcInfo.parameterDecls.size() > expr.arguments.size() || !funcInfo.isVararg) {                    
+            FuncPtrTypeInfo funcInfo = null;
+            if(type.isKind(TypeKind.Func)) {
+                FuncTypeInfo func = type.as();
+                funcInfo = func.asPtr();
+            }
+            else {
+                funcInfo = type.as();
+            }
+            
+            if(funcInfo.params.size() != expr.arguments.size()) {
+                if(funcInfo.params.size() > expr.arguments.size() || !funcInfo.isVararg) {                    
                     this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
                 }
             }
             
             int i = 0;
-            for(; i < funcInfo.parameterDecls.size(); i++) {
-                TypeInfo paramInfo = funcInfo.parameterDecls.get(i).type;
+            for(; i < funcInfo.params.size(); i++) {
+                TypeInfo paramInfo = funcInfo.params.get(i);
                 
                 if(i < expr.arguments.size()) {
                     Expr arg = expr.arguments.get(i);
