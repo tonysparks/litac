@@ -79,6 +79,7 @@ public class CharToken extends Token {
             case 'f':
             case '\'':
             case '\"':
+            case '0':
             case '\\':
                 isEscape = true;
                 break;
@@ -119,6 +120,9 @@ public class CharToken extends Token {
                 break;
             case '\"':
                 result = "\"".charAt(0);
+                break;
+            case '0':
+                result = '\0';
                 break;
             case '\\':
                 result = "\\".charAt(0);

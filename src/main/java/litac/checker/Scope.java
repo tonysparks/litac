@@ -9,6 +9,7 @@ import litac.ast.Decl;
 import litac.ast.Decl.*;
 import litac.ast.Stmt.NoteStmt;
 import litac.checker.TypeInfo.TypeKind;
+import litac.util.Names;
 
 /**
  * @author Tony
@@ -51,10 +52,17 @@ public class Scope {
         if(this.symbols.containsKey(symbolName)) {
             this.result.addError(decl, "symbol '%s' already defined", symbolName);
         }
-                
+        
+        boolean isNewType = !(decl instanceof VarDecl) && 
+                            !(decl instanceof ConstDecl) &&
+                            !(decl instanceof TypedefDecl) &&
+                            !(decl instanceof ParameterDecl); 
+        
         int flags = 0;
         if(this.type.equals(ScopeType.LOCAL)) {
-            flags |= Symbol.IS_LOCAL;
+            if(!isNewType) {
+                flags |= Symbol.IS_LOCAL;
+            }
         }
         
         if(isForeign(decl)) {
@@ -68,10 +76,7 @@ public class Scope {
         Symbol sym = new Symbol(decl, symbolName, type, module, flags);
         decl.sym = sym;
         
-        if(!(decl instanceof VarDecl) && 
-           !(decl instanceof ConstDecl) &&
-           !(decl instanceof TypedefDecl) &&
-           !(decl instanceof ParameterDecl)) {
+        if(isNewType) {
             type.sym = sym;
         }
         
@@ -109,6 +114,16 @@ public class Scope {
         }
         
         return null;
+    }
+    
+    public void addSymbol(String moduleAlias, Symbol sym) {
+        String symbolName = Names.litaName(moduleAlias, sym.name);
+        if(this.symbols.containsKey(symbolName)) {
+            this.result.addError(sym.decl, "symbol '%s' already defined", symbolName);
+            return;            
+        }
+        
+        this.symbols.put(symbolName, sym);
     }
     
     public void addSymbol(Symbol sym) {

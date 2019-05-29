@@ -5,5 +5,14 @@
 @foreign public func calloc(num: u64, size: u64) : void*;
 @foreign public func free(ptr:void*) : void;
 
-struct Allocator {
+public struct Allocator {
+    alloc: func(u64): void*
+    realloc: func(void*, u64) : void*
+    free: func(void*) : void
 }
+
+public const cAllocator = Allocator {
+    .alloc: &malloc,
+    .realloc: &realloc,
+    .free: &free
+};

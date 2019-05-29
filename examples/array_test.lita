@@ -1,28 +1,37 @@
 import "array"
 import "io" as io
+import "mem"
 
 
 func main(len:i32, args:char**):i32 {
 
-	io::printf("Max %d\n", MAX_SIZE)
-	
-	var inline = 128
-	var array: Array<i32>*;
-	/*array::init<i32>(..)
-	array::arrayInit<i32>(..)
-	array_init<i32>(..)*/
-	
-	ArrayInit<i32>(&array, 2);
-	ArrayAdd<i32>(array, 4);
-	ArrayAdd<i32>(array, 8);
-	ArrayAdd<i32>(array, 16);
-	ArrayAdd<i32>(array, 32);
-	ArrayAdd<i32>(array, 64);
-	ArrayAdd<i32>(array, 128);
-	
-	for(var i = 0; i < array.size; i += 1) {
-		io::printf("Index: %d value: %d\n", i, ArrayGet<i32>(array, i))
-	}
-	
-	ArrayFree<i32>(array)
+    io::printf("Max %d\n", MAX_SIZE)
+    
+    var inline = 128
+    var array: Array<i32>*;
+    
+    ArrayInit<i32>(&array, null, 2);
+    ArrayAdd<i32>(array, 4);
+    ArrayAdd<i32>(array, 8);
+    ArrayAdd<i32>(array, 16);
+    ArrayAdd<i32>(array, 32);
+    ArrayAdd<i32>(array, 64);
+    ArrayAdd<i32>(array, 128);
+    
+    for(var i = 0; i < array.size; i += 1) {
+        io::printf("Index: %d value: %d\n", i, ArrayGet<i32>(array, i))
+    }
+    
+    ArrayFree<i32>(array)
+    
+    const fileName = "../examples/io2.lita";
+    var data : char*;
+    
+    const status = io::readFile(fileName, &data, &cAllocator);
+    if(status) {
+        io::printf("Could not open file: '%s' - %d\n", fileName, status)
+        return 1;
+    }
+    
+    io::printf("File data: \n%s", data)
 }

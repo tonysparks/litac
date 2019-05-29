@@ -773,7 +773,12 @@ public class TypeResolver {
             }
         }
         
-        private boolean resolveAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {            
+        private boolean resolveAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) { 
+            if(type == null) {
+                this.result.addError(expr, "unknown type");
+                return false;
+            }
+            
             switch(type.getKind()) {
                 case Ptr: {
                     PtrTypeInfo ptrInfo = type.as();

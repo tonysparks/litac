@@ -93,8 +93,8 @@ public class CWriterNodeVisitor implements NodeVisitor {
         if(!prefix("char").equals("char")) {
             buf.out("typedef char      %s;  \n", prefix("char"));
         }
-        buf.out("#define true 1\n");
-        buf.out("#define false 0\n");
+        buf.out("#define %s 1\n", prefix("true"));
+        buf.out("#define %s 0\n", prefix("false"));
         buf.out("#define %s void\n", prefix("void"));
         buf.outln();
     }
@@ -176,6 +176,12 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 }
                 break;
             }
+            case Enum: {
+                // enums can't be forward declared, an thus the full
+                // definition must be defined
+                type.sym.decl.visit(this);
+                break;
+            }
             default: {
                // throw new CompileException(String.format("Unsupported forward type declaration '%s'", type.getName()));
             }
@@ -192,29 +198,57 @@ public class CWriterNodeVisitor implements NodeVisitor {
             TypeKind aKind = a.getValue().getKind();
             TypeKind bKind = b.getValue().getKind();
             
-            if(aKind == TypeKind.Func) {
+            if(aKind == TypeKind.Enum){
+                if(bKind == TypeKind.Enum) {
+                    return 0;
+                }
+                
+                return -1;
+            }
+            else if(aKind == TypeKind.Func) {
                 if(bKind == TypeKind.Func) {
                     return 0;
                 }
+                if(bKind == TypeKind.Enum) {
+                    return 1;
+                }
                 return 1;
             }
-            else {
-                if(bKind == TypeKind.Func) {
-                    return -1;
-                }
+            else if(bKind == TypeKind.Enum) {
+                return 1;
             }
+            else if(bKind == TypeKind.Func) {
+                return -1;
+            }
+            
             return 0;
+            
+//            if(aKind == TypeKind.Func) {
+//                if(bKind == TypeKind.Func) {
+//                    return 0;
+//                }
+//                return 1;
+//            }
+//            else {
+//                if(bKind == TypeKind.Func) {
+//                    return -1;
+//                }
+//            }
+//            return 0;
         }
     };
     
-    private void writeForwardDeclarations(Buf buf) {    
+    private void writeForwardDeclarations(Buf buf) {
+        buf.out("// forward declarations\n");
         Map<String, TypeInfo> types = new HashMap<>();
         writeModuleForwardDecl(buf, this.main, new ArrayList<>(), types);
         
         types.entrySet()
              .stream()
              .sorted(comp)
-             .forEach(type -> writeForwardDecl(buf, type.getKey(), type.getValue()));        
+             .forEach(type -> writeForwardDecl(buf, type.getKey(), type.getValue()));
+        
+        buf.out("// end forward declarations\n\n");
     }
     
     private void writeModuleForwardDecl(Buf buf, Module module, List<Module> writtenModules, Map<String, TypeInfo> types) {
@@ -343,6 +377,14 @@ public class CWriterNodeVisitor implements NodeVisitor {
         return type.sym.isForeign();
     }
     
+    private boolean isForeign(Decl d) {
+        if(d.sym == null) {
+            return false;
+        }
+        
+        return d.sym.isForeign();
+    }
+    
     private String prefix(String name) {
         return String.format("%s%s", this.options.symbolPrefix, name);
     }
@@ -400,7 +442,8 @@ public class CWriterNodeVisitor implements NodeVisitor {
         // TODO: Do proper dependency ordering from all modules
         //
         stmt.declarations
-            .stream()            
+            .stream()    
+            .filter(d -> d.kind != DeclKind.ENUM)
             .sorted((a,b) -> {
                 if(a.equals(b)) {
                     return 0;
@@ -478,7 +521,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             buf.out("};\n");
         }
         else {
-            buf.out("struct %s {", prefix(stmt.decl.type.getName()));
+            buf.out("struct %s {", cTypeName(stmt.decl.type));
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
             }
@@ -498,7 +541,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             buf.out("};\n");
         }
         else {
-            buf.out("union %s {", prefix(stmt.decl.type.getName()));            
+            buf.out("union %s {", cTypeName(stmt.decl.type));            
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
             }            
@@ -511,19 +554,19 @@ public class CWriterNodeVisitor implements NodeVisitor {
     public void visit(EnumFieldStmt stmt) {
         buf.outln();
         
-        buf.out("enum %s {", prefix(stmt.decl.type.getName()));  
-        boolean isFirst = true;
-        for(EnumFieldInfo f : stmt.decl.fields) {
-            if(!isFirst) buf.out(",\n");
-            isFirst = false;
-            buf.out("%s", f.name);
-            if(f.value != null) {
-                buf.out(" = ");
-                f.value.visit(this);
-            }
-        }                    
-        buf.out("} %s;\n", stmt.decl.name);
-        
+//        buf.out("enum %s {", cTypeName(stmt.decl.type));  
+//        boolean isFirst = true;
+//        for(EnumFieldInfo f : stmt.decl.fields) {
+//            if(!isFirst) buf.out(",\n");
+//            isFirst = false;
+//            buf.out("%s", f.name);
+//            if(f.value != null) {
+//                buf.out(" = ");
+//                f.value.visit(this);
+//            }
+//        }                    
+//        buf.out("} %s;\n", stmt.decl.name);
+        buf.out("enum %s %s;\n", cTypeName(stmt.decl.type), stmt.decl.name);
         buf.outln();
     }
     
@@ -531,11 +574,11 @@ public class CWriterNodeVisitor implements NodeVisitor {
     public void visit(ConstDecl d) {
         String name = cName(d.sym);
         
-        if(isForeign(d.type)) {
+        if(isForeign(d)) {
             return;
         }
         
-        buf.out("const %s = ", this.typeDeclForC(d.type, name));
+        buf.out("const %s = ", typeDeclForC(d.type, name));
         d.expr.visit(this);
         buf.out(";\n");
     }
@@ -549,7 +592,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }
         
         buf.outln();
-        buf.out("enum %s {", name);
+        buf.out("typedef enum %s {", name);
         boolean isFirst = true;
         for(EnumFieldInfo f : d.fields) {
             if(!isFirst) buf.out(",\n");
@@ -561,7 +604,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }                        
             isFirst = false;
         }            
-        buf.out("};");
+        buf.out("} %s;", name);
         buf.outln();
     }
 
@@ -708,7 +751,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     public void visit(VarDecl d) {
         String name = cName(d.sym);
         
-        if(isForeign(d.type)) {
+        if(isForeign(d)) {
             return;
         }
         
@@ -821,9 +864,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }
         }
         
-        if(!stmt.stmts.isEmpty() && !(stmt.stmts.get(stmt.stmts.size() - 1) instanceof ReturnStmt)) {
-            outputDefer(this.defers.pop());
-        }
+//        if(!stmt.stmts.isEmpty() && !(stmt.stmts.get(stmt.stmts.size() - 1) instanceof ReturnStmt)) {
+//            outputDefer(this.defers.pop());
+//        }
+        outputDefer(this.defers.pop());
         
         buf.out("}\n");
     }
@@ -891,10 +935,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
     @Override
     public void visit(BooleanExpr expr) {
         if(expr.bool) {
-            buf.out("true");
+            buf.out(prefix("true"));
         }
         else {
-            buf.out("false");
+            buf.out(prefix("false"));
         }
     }
 
@@ -932,19 +976,52 @@ public class CWriterNodeVisitor implements NodeVisitor {
         
     }
 
+    private static final Map<Character, String> escapeChars = new HashMap<>();
+    static {
+        //escapeChars.put('\a', "\\a");
+        escapeChars.put('\b', "\\b");
+        //escapeChars.put('\e', "\\e");
+        escapeChars.put('\f', "\\f");
+        escapeChars.put('\n', "\\n");
+        escapeChars.put('\r', "\\r");
+        escapeChars.put('\t', "\\t");
+        //escapeChars.put('\v', "\\v");
+        escapeChars.put('\\', "\\\\");
+        //escapeChars.put('\'', "\\'");
+        escapeChars.put('\"', "\\\"");
+        //escapeChars.put('\?', "\\?");
+        escapeChars.put('\0', "\\0");
+    }
+            
 
     @Override
     public void visit(StringExpr expr) {
-        // TODO: escape all special chars
-        String str = expr.string.replaceAll("(\\r|\\n|\\r\\n)+", "\\\\n");
-        buf.appendRaw("\"").appendRaw(str).appendRaw("\"");
+        buf.appendRaw("\"");
+        for(int i = 0; i < expr.string.length(); i++) {
+            char c = expr.string.charAt(i);
+            if(escapeChars.containsKey(c)) {
+                buf.appendRaw(escapeChars.get(c));
+            }
+            else {
+                buf.appendRaw(c);
+            }
+        }
+        buf.appendRaw("\"");
     }
     
     @Override
     public void visit(CharExpr expr) {
-        // TODO: escape all special chars
-        String str = expr.character.replaceAll("(\\r|\\n|\\r\\n)+", "\\\\n");
-        buf.appendRaw("\'").appendRaw(str).appendRaw("\'");
+        buf.appendRaw("'");
+        for(int i = 0; i < expr.character.length(); i++) {
+            char c = expr.character.charAt(i);
+            if(escapeChars.containsKey(c)) {
+                buf.appendRaw(escapeChars.get(c));
+            }
+            else {
+                buf.appendRaw(c);
+            }
+        }
+        buf.appendRaw("'");
     }
 
 

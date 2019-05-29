@@ -565,5 +565,18 @@
             ''',
             error: "'func<T>(i32) : i32' is not of type 'func(f32) : f32'"                      
         },
+        {
+            name: "Fix sizeof and as bug",
+            definitions: '''
+                func t(i:i64) : i64 {
+                    return i
+                }
+            ''',                       
+            code: '''                
+                var ln = 2_i64;
+                const n = t(sizeof(char) as (i64) * (ln + 1_i64)) as (i32);
+                assert(n);
+            ''',
+        },
 	]
 }

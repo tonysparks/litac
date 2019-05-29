@@ -154,8 +154,18 @@ public class Module {
                     this.importedAggregateTypes.put(Names.litaName(alias, typeEntry.getKey()), type);
                 }
             }
+            
+
+            module.currentScope().getSymbols()
+                                 .stream()
+                                 .filter(s -> s.decl.attributes.isPublic &&
+                                              s.declared == module &&
+                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR))
+                                 .forEach(s -> currentScope().addSymbol(alias, s));
         }
         else {
+            this.imports.put(module.name(), module);
+            
             for(Entry<String, FuncTypeInfo> funcType: module.publicFuncTypes.entrySet()) {
                 this.funcTypes.put(funcType.getKey(), funcType.getValue());
             }
@@ -174,7 +184,7 @@ public class Module {
                     case Enum: {
                         this.enumTypes.put(aggType.getKey(), type.as());
                         break;
-                    }                    
+                    }         
                     default: {
                     }
                 }                
@@ -182,7 +192,9 @@ public class Module {
             
             module.currentScope().getSymbols()
                                  .stream()
-                                 .filter(s -> s.decl.attributes.isPublic && (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR))
+                                 .filter(s -> s.decl.attributes.isPublic &&
+                                              s.declared == module &&
+                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR))
                                  .forEach(s -> currentScope().addSymbol(s));
             
             for(Entry<String, TypeInfo> typeEntry: module.foreignTypes.entrySet()) {

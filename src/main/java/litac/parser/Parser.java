@@ -21,6 +21,7 @@ import litac.checker.TypeInfo.*;
 import litac.parser.tokens.NumberToken;
 import litac.parser.tokens.Token;
 import litac.parser.tokens.TokenType;
+import litac.util.Names;
 
 
 /**
@@ -90,6 +91,9 @@ public class Parser {
         String moduleName = ""; // default to global module
         if(match(MODULE))  {
             moduleName = moduleDeclaration();
+        }
+        else {
+            moduleName = Names.getModuleName(this.scanner.getSourceFile());
         }
         
         while(!isAtEnd()) {
@@ -198,7 +202,11 @@ public class Parser {
         
         consume(TokenType.EQUALS, ErrorCode.MISSING_EQUALS);
         
-        Expr expr = constExpression();            
+        // TODO: Create module initializer functions, so
+        // that module level variables can be initialized via functions
+        // and NOT just constExpressions
+        Expr expr = // constExpression(); 
+                expression();
         return node(new ConstDecl(identifier.getText(), type, expr));
     }
     
@@ -796,9 +804,6 @@ public class Parser {
             Expr right = unary();
             return node(new UnaryExpr(operator.getType(), right)); 
         }
-        else if(match(SIZEOF)) {
-            return sizeof();
-        }
         
         return functionCall();
     }
@@ -810,7 +815,7 @@ public class Parser {
         return node(new CastExpr(castTo, expr));
     }
     
-    private Expr sizeof() {
+    private Expr sizeofExpr() {
         boolean hasParen = match(TokenType.LEFT_PAREN);
         
         Expr expr = null;
@@ -882,7 +887,8 @@ public class Parser {
                 
         if(match(LEFT_PAREN))   return groupExpr();
         if(check(LEFT_BRACKET)) return arrayInitExpr();
-        if(match(LEFT_BRACE))   return aggregateInitExpr();                
+        if(match(LEFT_BRACE))   return aggregateInitExpr();  
+        if(match(SIZEOF))       return sizeofExpr();
         
         if(check(IDENTIFIER)) {
             IdentifierTypeInfo identifier = identifierType(true);
@@ -910,7 +916,7 @@ public class Parser {
     private Expr groupExpr() {
         Expr expr = expression();
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        return new GroupExpr(expr);
+        return node(new GroupExpr(expr));
     }
     
     private void eatSemicolon() {

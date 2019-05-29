@@ -36,6 +36,10 @@ public class Buf {
         this.sb.append(str);
         return this;
     }
+    public Buf appendRaw(char c) {
+        this.sb.append(c);
+        return this;
+    }
     
     public Buf outln() {
         this.sb.append("\n");

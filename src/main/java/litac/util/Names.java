@@ -9,6 +9,21 @@ package litac.util;
  */
 public class Names {
 
+    public static String getModuleName(String fileName) {
+        int startIndex = fileName.lastIndexOf("/");
+        int endIndex = fileName.lastIndexOf(".");
+        
+        if(startIndex < 0) {
+            startIndex = 0;
+        }
+        
+        if(endIndex < 0) {
+            endIndex = fileName.length();
+        }
+        
+        return fileName.substring(startIndex, endIndex);
+    }
+    
     public static final String identifierFrom(String name) {
         if(name.contains(":")) {
             return name.substring(name.lastIndexOf(":") + 1);
