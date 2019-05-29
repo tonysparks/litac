@@ -6,13 +6,22 @@
 @foreign public func free(ptr:void*) : void;
 
 public struct Allocator {
-    alloc: func(u64): void*
+    alloc:   func(u64): void*
     realloc: func(void*, u64) : void*
-    free: func(void*) : void
+    free:    func(void*) : void
 }
 
 public const cAllocator = Allocator {
-    .alloc: &malloc,
+    .alloc:   &malloc,
     .realloc: &realloc,
-    .free: &free
+    .free:    &free
 };
+
+/*
+public func new<T>(a: Allocator* = null) : T* {
+    if(!a) {
+        a = &cAllocator
+    }
+    
+    return cAllocator.alloc(sizeof(T)) as (T*)
+}*/

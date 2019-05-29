@@ -886,6 +886,12 @@ public abstract class TypeInfo {
                 return true;
             }
             
+            if(target.isKind(TypeKind.Str)) {
+                if(this.ptrOf.isKind(TypeKind.Char)) {
+                    return true;
+                }
+            }
+            
             return false;
         }
     }

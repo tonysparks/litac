@@ -486,6 +486,10 @@ public class TypeResolver {
                 resolveType(d, d.returnType);
                 for(ParameterDecl p : d.params.params) {
                     resolveType(p, p.type);
+                    if(p.defaultValue != null) {
+                        p.defaultValue.visit(this);
+                    }
+                    
                     peekScope().addSymbol(this.module, p, p.name, p.type);
                 }
                 

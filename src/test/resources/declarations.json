@@ -578,5 +578,58 @@
                 assert(n);
             ''',
         },
+        {
+            name: "Function Default Arguments",
+            definitions: '''
+                func t(i:i32 = 2) : i32 {
+                    return i
+                }
+            ''',                       
+            code: '''                
+                assert(t(4) == 4);
+                assert(t()  == 2);
+            ''',
+        },
+        {
+            name: "Invalid Function Default Arguments",
+            definitions: '''
+                func t(i:i32 = 2, j:i32) : i32 {
+                    return i
+                }
+            ''',                       
+            code: '''                
+                assert(false);
+            ''',
+            error: "'t' must have default arguments defined last"
+        },
+        {
+            name: "Function Default Arguments null",
+            definitions: '''
+                func t(i:i32* = null) : i32 {
+                    if(!i) return 2;
+                    return *i
+                }
+            ''',                       
+            code: '''                
+                var n = 4;
+                assert(t(&n) == 4);
+                assert(t()  == 2);
+            ''',
+        },
+        {
+            name: "Function Default Arguments string",
+            definitions: '''
+                @include("string.h");
+                @foreign func strcmp(a:char*, b:char*) : i32;
+                
+                func t(i:char* = "bye") : char* {
+                    return i
+                }
+            ''',                       
+            code: '''                
+                assert(strcmp(t("hi"), "hi") == 0);
+                assert(strcmp(t(), "bye") == 0);
+            ''',
+        },
 	]
 }

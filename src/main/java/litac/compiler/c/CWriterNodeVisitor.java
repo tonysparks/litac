@@ -1035,13 +1035,39 @@ public class CWriterNodeVisitor implements NodeVisitor {
     @Override
     public void visit(FuncCallExpr expr) {
         expr.object.visit(this);
+        
+        List<ParameterDecl> params = null;
+        if(expr.object.getResolvedType().isKind(TypeKind.Func)) {
+            FuncTypeInfo funcInfo = expr.object.getResolvedType().as();
+            params = funcInfo.parameterDecls;
+        }
+        
         buf.out("(");
         boolean isFirst = true;
-        for(Expr e : expr.arguments) {
+        
+        int i = 0;
+        for(; i < expr.arguments.size(); i++) {
+            Expr e = expr.arguments.get(i);
             if(!isFirst) buf.out(",");
             e.visit(this);                
             isFirst = false;
         }
+        
+        // check and see if we should apply default
+        // parameters
+        if(params != null) {
+            if(i < params.size()) {
+                for(; i < params.size(); i++) {
+                    ParameterDecl p = params.get(i);
+                    if(p.defaultValue != null) {
+                        if(!isFirst) buf.out(",");
+                        p.defaultValue.visit(this);
+                        isFirst = false;
+                    }
+                }
+            }
+        }
+        
         buf.out(")");
     }
 

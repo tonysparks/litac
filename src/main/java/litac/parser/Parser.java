@@ -1196,7 +1196,12 @@ public class Parser {
                     consume(COLON, ErrorCode.MISSING_COLON);
                     TypeInfo type = type(false);
                     
-                    parameterInfos.add(new ParameterDecl(type, parameterName));
+                    Expr defaultValue = null;
+                    if(match(EQUALS)) {
+                        defaultValue = constExpression();
+                    }
+                    
+                    parameterInfos.add(new ParameterDecl(type, parameterName, defaultValue));
                 }
             }
             while(match(COMMA));

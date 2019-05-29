@@ -61,13 +61,11 @@ public abstract class Decl extends Stmt {
     }
     
     public static class ParameterDecl extends Decl {
-        
-        /**
-         * @param type
-         * @param name
-         */
-        public ParameterDecl(TypeInfo type, String name) {
+        public Expr defaultValue;
+
+        public ParameterDecl(TypeInfo type, String name, Expr defaultValue) {
             super(DeclKind.PARAM, type, name);
+            this.defaultValue = becomeParentOf(defaultValue);
         }
         
         @Override
@@ -82,7 +80,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new ParameterDecl(this.type.copy(), this.name);
+            return new ParameterDecl(this.type.copy(), this.name, copy(this.defaultValue));
         }
     }
         

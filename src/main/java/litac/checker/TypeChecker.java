@@ -300,6 +300,18 @@ public class TypeChecker {
             if(!funcInfo.hasGenerics()) {                
                 d.bodyStmt.visit(this);
             }
+            
+            boolean hasDefault = false;
+            for(ParameterDecl p : funcInfo.parameterDecls) {
+                if(p.defaultValue != null) {
+                    p.defaultValue.visit(this);
+                    addTypeCheck(p.defaultValue, p.type);
+                    hasDefault = true;
+                }
+                else if(hasDefault) {
+                    this.result.addError(d, "'%s' must have default arguments defined last", d.name);
+                }
+            }
         }
 
 
@@ -428,16 +440,35 @@ public class TypeChecker {
             if(type.isKind(TypeKind.Func)) {
                 FuncTypeInfo func = type.as();
                 funcInfo = func.asPtr();
+                
+                int numberOfDefaultArgs = 0;
+                for(ParameterDecl p : func.parameterDecls) {
+                    if(p.defaultValue != null) {
+                        numberOfDefaultArgs++;
+                    }
+                }
+                
+                if(funcInfo.params.size() != expr.arguments.size()) {
+                    int numberOfSupplied = expr.arguments.size() + numberOfDefaultArgs;
+                    boolean correctArgs = funcInfo.params.size() == numberOfSupplied; 
+                    if(!correctArgs) {
+                        if(funcInfo.params.size() > numberOfSupplied || !funcInfo.isVararg) {                    
+                            this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
+                        }
+                    }
+                }
             }
             else {
                 funcInfo = type.as();
-            }
-            
-            if(funcInfo.params.size() != expr.arguments.size()) {
-                if(funcInfo.params.size() > expr.arguments.size() || !funcInfo.isVararg) {                    
-                    this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
+                
+                if(funcInfo.params.size() != expr.arguments.size()) {
+                    if(funcInfo.params.size() > expr.arguments.size() || !funcInfo.isVararg) {                    
+                        this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
+                    }
                 }
             }
+            
+            
             
             int i = 0;
             for(; i < funcInfo.params.size(); i++) {

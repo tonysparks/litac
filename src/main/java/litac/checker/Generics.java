@@ -232,7 +232,7 @@ public class Generics {
         
         for(ParameterDecl paramDecl : funcInfo.parameterDecls) {            
             TypeInfo argInfo = createGenericTypeInfo(module, paramDecl.type, funcInfo.genericParams, genericArgs);
-            paramDecl = new ParameterDecl(argInfo, paramDecl.name);
+            paramDecl = new ParameterDecl(argInfo, paramDecl.name, paramDecl.defaultValue);
             
             newFuncParams.add(paramDecl);
         }
