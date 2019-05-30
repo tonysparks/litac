@@ -684,5 +684,96 @@
                 assert(t != null)             
             ''',
         },
+        {
+            name: "Array Designator",
+            definitions: '''
+            
+            ''',                       
+            code: '''   
+                var t = [256]i32 {
+                    [0] = 2,
+                    [128] = 1
+                }
+                assert(t[0] == 2);
+                assert(t[128] == 1);
+                
+                for(var i = 0; i < 256; i +=1) {
+                    if(i == 0 || i == 128) {
+                        continue;
+                    }
+                    assert(t[i] == 0)
+                }             
+            ''',
+        },
+        {
+            name: "Array Designator with constant",
+            definitions: '''
+            
+            ''',                       
+            code: '''   
+                const I = 0;
+                const Y = 128;
+                var t = [256]i32 {
+                    [I] = 2,
+                    [Y] = 1
+                }
+                assert(t[0] == 2);
+                assert(t[128] == 1);
+                
+                for(var i = 0; i < 256; i +=1) {
+                    if(i == 0 || i == 128) {
+                        continue;
+                    }
+                    assert(t[i] == 0)
+                }             
+            ''',
+        },
+        {
+            name: "Array Designator with enum",
+            definitions: '''
+                enum Index {
+                    I = 2,
+                    Y = 1
+                }
+            ''',                       
+            code: '''   
+                var t = [256]i32 {
+                    [Index.I] = 2,
+                    [Index.Y] = 1
+                }
+                assert(t[0] == 2);
+                assert(t[128] == 1);
+                
+                for(var i = 0; i < 256; i +=1) {
+                    if(i == 0 || i == 128) {
+                        continue;
+                    }
+                    assert(t[i] == 0)
+                }             
+            ''',
+        },
+        {
+            name: "Array Designator with variable",
+            definitions: '''
+                var index = 0
+                var index2 = 128
+            ''',                       
+            code: '''   
+                var t = [256]i32 {
+                    [index] = 2,
+                    [index2] = 1
+                }
+                assert(t[0] == 2);
+                assert(t[128] == 1);
+                
+                for(var i = 0; i < 256; i +=1) {
+                    if(i == 0 || i == 128) {
+                        continue;
+                    }
+                    assert(t[i] == 0)
+                }             
+            ''',
+            error: "must be a constant"
+        },
 	]
 }

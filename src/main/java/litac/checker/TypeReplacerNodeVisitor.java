@@ -358,6 +358,13 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         replaceType(expr);
         replaceType(expr.values);
     }
+    
+    @Override
+    public void visit(ArrayDesignationExpr expr) {
+        replaceType(expr);
+        replaceType(expr.index).visit(this);
+        replaceType(expr.value).visit(this);
+    }
 
     @Override
     public void visit(SubscriptGetExpr expr) {

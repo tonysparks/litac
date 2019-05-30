@@ -6,21 +6,13 @@ import static litac.parser.tokens.TokenType.*;
 import java.util.*;
 
 import litac.Errors;
-import litac.ast.Decl;
+import litac.ast.*;
 import litac.ast.Decl.*;
-import litac.ast.Expr;
 import litac.ast.Expr.*;
-import litac.ast.Node;
-import litac.ast.Stmt;
 import litac.ast.Stmt.*;
-import litac.checker.Attributes;
-import litac.checker.GenericParam;
-import litac.checker.Note;
-import litac.checker.TypeInfo;
+import litac.checker.*;
 import litac.checker.TypeInfo.*;
-import litac.parser.tokens.NumberToken;
-import litac.parser.tokens.Token;
-import litac.parser.tokens.TokenType;
+import litac.parser.tokens.*;
 import litac.util.Names;
 
 
@@ -1271,7 +1263,16 @@ public class Parser {
         List<Expr> arguments = new ArrayList<>();
         if(!check(RIGHT_BRACE)) {        
             do {
-                arguments.add(expression());
+                if(match(LEFT_BRACKET)) {
+                    Expr index = expression();
+                    consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
+                    consume(EQUALS, ErrorCode.MISSING_EQUALS);
+                    Expr value = expression();
+                    arguments.add(node(new ArrayDesignationExpr(index, value)));
+                }
+                else {
+                    arguments.add(expression());
+                }
             } 
             while(match(COMMA));            
         }

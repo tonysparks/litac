@@ -252,6 +252,26 @@ public abstract class Expr extends Stmt {
         }
     }
     
+    public static class ArrayDesignationExpr extends Expr {
+        public Expr index;
+        public Expr value;
+        
+        public ArrayDesignationExpr(Expr index, Expr value) {
+            this.index = becomeParentOf(index);
+            this.value = becomeParentOf(value);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new ArrayDesignationExpr(this.index.copy(), this.value.copy());
+        }
+    }
+    
     public static class SubscriptGetExpr extends Expr {
         public Expr object;
         public Expr index;

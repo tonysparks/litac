@@ -991,6 +991,13 @@ public class TypeResolver {
         }
         
         @Override
+        public void visit(ArrayDesignationExpr expr) {
+            expr.index.visit(this);
+            expr.value.visit(this);
+            expr.resolveTo(expr.value.getResolvedType());
+        }
+        
+        @Override
         public void visit(SubscriptGetExpr expr) {
             expr.object.visit(this);
             expr.index.visit(this);

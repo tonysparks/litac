@@ -1009,7 +1009,9 @@ public abstract class TypeInfo {
             }
 
             if(isInteger(this)) {
-                if(target.isKind(TypeKind.Str) || target.isKind(TypeKind.Ptr)) {
+                if(target.isKind(TypeKind.Str)  ||
+                   target.isKind(TypeKind.Enum) ||
+                   target.isKind(TypeKind.Ptr)) {
                     return true;
                 }
             }

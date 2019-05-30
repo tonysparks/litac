@@ -61,6 +61,7 @@ public interface NodeVisitor {
     void visit(UnaryExpr expr);
     void visit(BinaryExpr expr);
     void visit(ArrayInitExpr expr);
+    void visit(ArrayDesignationExpr expr);
     void visit(SubscriptGetExpr expr);
     void visit(SubscriptSetExpr expr);
     
@@ -256,6 +257,10 @@ public interface NodeVisitor {
 
         @Override
         public void visit(ArrayInitExpr expr) {
+        }
+        
+        @Override
+        public void visit(ArrayDesignationExpr expr) {
         }
         
         @Override

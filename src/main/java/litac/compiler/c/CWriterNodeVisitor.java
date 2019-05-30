@@ -1191,6 +1191,14 @@ public class CWriterNodeVisitor implements NodeVisitor {
     }
     
     @Override
+    public void visit(ArrayDesignationExpr expr) {
+        buf.out("[");
+        expr.index.visit(this);
+        buf.out("] = ");
+        expr.value.visit(this);
+    }
+    
+    @Override
     public void visit(SubscriptGetExpr expr) {
         expr.object.visit(this);
         buf.out("[");

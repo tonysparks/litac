@@ -732,6 +732,21 @@ public class TypeChecker {
         }
         
         @Override
+        public void visit(ArrayDesignationExpr expr) {
+            expr.index.visit(this);
+            if(expr.index instanceof IdentifierExpr) {
+                IdentifierExpr idExpr = (IdentifierExpr)expr.index;
+                Symbol sym = idExpr.sym;
+                if(!sym.isConstant()) {
+                    this.result.addError(expr.index, "'%s' must be a constant", idExpr.variable);
+                }
+            }
+            addTypeCheck(expr.index, TypeInfo.I32_TYPE);
+            
+            expr.value.visit(this);
+        }
+        
+        @Override
         public void visit(SubscriptGetExpr expr) {
             expr.object.visit(this);
             expr.index.visit(this);
