@@ -631,5 +631,58 @@
                 assert(strcmp(t(), "bye") == 0);
             ''',
         },
+        {
+            name: "Function Default Arguments constant",
+            definitions: '''
+                const X = 2
+                func t(i:i32 = X) : i32 {
+                    return i
+                }
+            ''',                       
+            code: '''                
+                assert(t(4) == 4);
+                assert(t()  == 2);
+            ''',
+        },
+        {
+            name: "Foreign Alias function",
+            definitions: '''
+                @include("<string.h>");
+                
+                @foreign("strcmp") 
+                func stringCompare(a:char*, b:char*) : i32;
+            ''',                       
+            code: '''                
+                assert(stringCompare("hi", "bye") != 0);
+                assert(stringCompare("hi", "hi") == 0);
+            ''',
+        },
+        {
+            name: "Foreign Alias Const",
+            definitions: '''
+                @include("<stdio.h>");
+                
+                @foreign("SEEK_END") 
+                var END : i32; 
+            ''',                       
+            code: '''   
+                assert(END == 2)             
+            ''',
+        },
+        {
+            name: "Foreign Alias Struct",
+            definitions: '''
+                @include("<stdio.h>");
+                
+                @foreign("FILE") 
+                struct File; 
+                
+                @foreign public func fopen(fileName:char*, openType:char*) : File*;
+            ''',                       
+            code: '''   
+                var t: File* = fopen("./examples/unions.lita", "r")
+                assert(t != null)             
+            ''',
+        },
 	]
 }

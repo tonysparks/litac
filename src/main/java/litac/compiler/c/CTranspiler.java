@@ -34,9 +34,7 @@ public class CTranspiler {
             this.indentWidth = 4;
             this.symbolPrefix = "litaC__";
             
-            
-            
-            this.compileCmd = "clang.exe -o \"%output%\" \"%input%\"";
+            this.compileCmd = "clang.exe -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
         }
         
         public String getBinaryOutputFile() {

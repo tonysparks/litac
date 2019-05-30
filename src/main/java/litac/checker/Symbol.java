@@ -19,7 +19,6 @@ public class Symbol {
     public final String name;
     public final TypeInfo type;
     public final Module declared;
-    //public final boolean isLocal;
     private final int flags;
     
     public Symbol(Decl decl, 

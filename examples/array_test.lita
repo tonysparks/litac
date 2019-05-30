@@ -6,7 +6,7 @@ import "mem"
 func main(len:i32, args:char**):i32 {
 
     io::printf("Max %d\n", MAX_SIZE)
-    
+    io::printf("SEEK: %d\n", io::SEEK_END)
     var inline = 128
     var array: Array<i32>*;
     

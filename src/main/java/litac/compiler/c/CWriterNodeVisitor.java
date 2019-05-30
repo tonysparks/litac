@@ -385,6 +385,28 @@ public class CWriterNodeVisitor implements NodeVisitor {
         return d.sym.isForeign();
     }
     
+    private String getForeignName(Decl d, String defaultName) {
+        if(d == null) {
+            return defaultName;
+        }
+        
+        List<NoteStmt> notes = d.attributes.notes;
+        if(notes == null) {
+            return defaultName;
+        }
+        
+        for(NoteStmt n : notes) {
+            if(n.note.name.equals("foreign")) {
+                if(n.note.attributes != null && !n.note.attributes.isEmpty()) {
+                    return n.note.attributes.get(0);
+                }
+            }
+        }
+        
+        return defaultName;
+    }
+    
+    
     private String prefix(String name) {
         return String.format("%s%s", this.options.symbolPrefix, name);
     }
@@ -396,8 +418,8 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }
         
         Symbol sym = type.sym;
-        if(sym.isForeign()) {
-            return type.getName();
+        if(sym.isForeign()) {            
+            return getForeignName(sym.decl, type.getName());
         }
         
         return prefix(Names.backendName(sym.declared.name(), type.getName()));
@@ -409,7 +431,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }
         
         if(sym.isForeign()) {
-            return sym.decl.name;
+            return getForeignName(sym.decl, sym.decl.name);
         }
         
         if(sym.decl.kind == DeclKind.FUNC && 
@@ -481,12 +503,25 @@ public class CWriterNodeVisitor implements NodeVisitor {
             case "include": {
                 if(note.attributes != null) {
                     for(String header : note.attributes) {
-                        buf.out("#include \"%s\"\n", header);
+                        if(header.startsWith("<")) {
+                            buf.out("#include %s\n", header);
+                        }
+                        else {
+                            buf.out("#include \"%s\"\n", header);
+                        }
                     }
                 }
                 break;
             }
             case "foreign": {
+                break;
+            }
+            case "raw": {
+                if(note.attributes != null) {
+                    for(String line : note.attributes) {
+                        buf.appendRaw(line);
+                    }
+                }
                 break;
             }
         }
@@ -1018,6 +1053,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 buf.appendRaw(escapeChars.get(c));
             }
             else {
+                // Character.isISOControl(ch)
                 buf.appendRaw(c);
             }
         }
