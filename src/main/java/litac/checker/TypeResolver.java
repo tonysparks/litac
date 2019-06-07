@@ -186,6 +186,8 @@ public class TypeResolver {
         private FuncTypeInfo currentFuncInfo;
         private Set<String> resolvedGenericTypes;
         
+        // The type the generic module is defined in        
+        private Module genericModule;
         
         public TypeResolverNodeVisitor(PhaseResult result, 
                                        Set<String> resolvedGenericTypes,
@@ -193,6 +195,15 @@ public class TypeResolver {
             this.result = result;
             this.module = module;
             this.resolvedGenericTypes = resolvedGenericTypes;
+        }
+        
+        private TypeInfo getType(String typeName) {
+            TypeInfo type = this.module.getType(typeName);
+            if(type == null && this.genericModule != null) {
+                return this.genericModule.getType(typeName);
+            }
+            
+            return type;
         }
         
         private boolean includeGenerics() {
@@ -258,11 +269,14 @@ public class TypeResolver {
             
             if(!type.isResolved()) {  
                 if(resolvedType == null) {
-                    resolvedType = module.getType(type.getName());
+                    resolvedType = getType(type.getName());
                     if(resolvedType == null && includeGenerics()) {
                         this.result.addError(stmt, "'%s' is an unknown type", type.getName());
                         return;
                     }
+                }
+                else if(!resolvedType.isResolved()) {
+                    resolveType(stmt, resolvedType);
                 }
                 
                 IdentifierTypeInfo idType = type.as();
@@ -332,13 +346,16 @@ public class TypeResolver {
                     
                     resolvedGenericTypes.add(decl.name);
                     
+                    this.genericModule = current;
                     this.module = d.getFirst();
+                    
                     decl.visit(this);
                 }
             }
             while(!newTypes.isEmpty());
             
             this.module = current;
+            this.genericModule = null;
         }
         
         
@@ -386,9 +403,18 @@ public class TypeResolver {
         @Override
         public void visit(ForStmt stmt) {
             enterScope();
-            stmt.initStmt.visit(this);
-            stmt.condExpr.visit(this);
-            stmt.postStmt.visit(this);
+            if(stmt.initStmt != null) {
+                stmt.initStmt.visit(this);
+            }
+            
+            if(stmt.condExpr != null) {
+                stmt.condExpr.visit(this);
+            }
+            
+            if(stmt.postStmt != null) {
+                stmt.postStmt.visit(this);
+            }
+            
             stmt.bodyStmt.visit(this);
             exitScope();
         }
@@ -453,11 +479,13 @@ public class TypeResolver {
   
         @Override
         public void visit(ConstDecl d) {
-            d.expr.visit(this);
-
-            // infer the type from the expression
-            if(d.type == null) {
-                d.type = d.expr.getResolvedType();
+            if(d.expr != null) {
+                d.expr.visit(this);
+    
+                // infer the type from the expression
+                if(d.type == null) {
+                    d.type = d.expr.getResolvedType();
+                }
             }
             
             resolveType(d, d.type);
@@ -474,6 +502,26 @@ public class TypeResolver {
             }
         }
 
+        private void addTypeToScope(Decl p, Scope scope, TypeInfo currentType) {
+            if(!currentType.isResolved()) {
+                resolveType(p, currentType);
+            }
+            
+            AggregateTypeInfo aggInfo = (currentType.isKind(TypeKind.Ptr)) 
+                                            ? ((PtrTypeInfo)currentType).ptrOf.as()
+                                            : currentType.as();
+                                            
+            for(FieldInfo field : aggInfo.fieldInfos) {
+                scope.addSymbol(this.module, p, field.name, field.type, Symbol.IS_USING);
+            }
+            
+            if(aggInfo.hasUsingFields()) {
+                for(FieldInfo field : aggInfo.usingInfos) {
+                    addTypeToScope(p, scope, field.type);
+                }
+            }
+        }
+        
         @Override
         public void visit(FuncDecl d) {
             enterScope();
@@ -490,7 +538,18 @@ public class TypeResolver {
                         p.defaultValue.visit(this);
                     }
                     
-                    peekScope().addSymbol(this.module, p, p.name, p.type);
+                    Scope scope = peekScope();
+                    scope.addSymbol(this.module, p, p.name, p.type);
+                    
+                    if((p.attributes.modifiers & Attributes.USING_MODIFIER) > 0) {
+                        if(!TypeInfo.isAggregate(p.type) &&
+                           !TypeInfo.isPtrAggregate(p.type)) {
+                            this.result.addError(d, "'%s' is not an aggregate type (or pointer to an aggregate), can't use 'using'", p.name);
+                        }
+                        else {
+                            addTypeToScope(p, scope, p.type);
+                        }
+                    }
                 }
                 
                 d.bodyStmt.visit(this);
@@ -523,6 +582,16 @@ public class TypeResolver {
                 funcPtr.name = stmt.name;
             }
         }
+        
+        @Override
+        public void visit(UnionFieldStmt stmt) {
+            stmt.decl.visit(this);
+        }
+        
+        @Override
+        public void visit(StructFieldStmt stmt) {
+            stmt.decl.visit(this);
+        }
 
         @Override
         public void visit(UnionDecl d) {
@@ -548,7 +617,7 @@ public class TypeResolver {
         private TypeInfo getAggregateFieldTypeInfo(InitExpr expr) {
             TypeInfo type = null;
             if(expr.type != null) {
-                type = this.module.getType(expr.type.getName());               
+                type = getType(expr.type.getName());               
             }
             // anonymous aggregate
             else {
@@ -805,7 +874,19 @@ public class TypeResolver {
                             return true;
                         }
                     }
-                    this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);
+                    
+                    FieldPath path = structInfo.getFieldPath(field.getName());
+                    if(path.hasPath()) {
+                        TypeInfo usingField = path.getTargetField().type; 
+                        if(!field.isResolved()) {
+                            resolveType(expr, field, usingField);
+                        }
+                        
+                        expr.resolveTo(usingField);
+                        return true;
+                    }
+
+                    this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);                    
                     break;
                 }                
                 case Union: {
@@ -850,6 +931,13 @@ public class TypeResolver {
                         this.result.addError(expr, "'%s' does not have field '%s'", enumInfo.name, field.name);
                     }
                     break;
+                }
+                case Identifier: {
+                    // if we are parsing a Generic structure, ignore that we
+                    // can't fully resolve this type (will get resolved when defined with concrete type)
+                    if(!includeGenerics()) {
+                        break;
+                    }
                 }
                 default: {
                     this.result.addError(expr, "'%s' is an invalid type for aggregate access", type.getName());
@@ -1015,6 +1103,10 @@ public class TypeResolver {
                     PtrTypeInfo ptrInfo = expr.object.getResolvedType().as();
                     expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
                     break;
+                case Enum: {
+                    expr.resolveTo(TypeInfo.I32_TYPE);
+                    break;
+                }
                 default: {
                     this.result.addError(expr, "invalid index into '%s'", objectKind.name());
                     return;

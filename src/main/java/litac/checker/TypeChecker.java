@@ -4,10 +4,10 @@
 package litac.checker;
 
 
-import java.util.ArrayList;
-import java.util.List;
-
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
+
+import java.util.*;
+
 import litac.ast.Decl;
 import litac.ast.Expr;
 import litac.ast.Stmt;
@@ -16,6 +16,7 @@ import litac.ast.Expr.*;
 import litac.ast.Node;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.*;
+import litac.util.Tuple;
 
 /**
  * Responsible to ensuring that the expected defined {@link TypeInfo}s are used, i.e., type checking of the program. 
@@ -211,9 +212,18 @@ public class TypeChecker {
  
         @Override
         public void visit(ForStmt stmt) {
-            stmt.initStmt.visit(this);
-            stmt.condExpr.visit(this);
-            stmt.postStmt.visit(this);
+            if(stmt.initStmt != null) {
+                stmt.initStmt.visit(this);
+            }
+            
+            if(stmt.condExpr != null) {
+                stmt.condExpr.visit(this);
+            }
+            
+            if(stmt.postStmt != null) {
+                stmt.postStmt.visit(this);
+            }
+            
             stmt.bodyStmt.visit(this);
         }
 
@@ -279,18 +289,32 @@ public class TypeChecker {
   
         @Override
         public void visit(ConstDecl d) {
-            d.expr.visit(this);
+            if(!d.attributes.isForeign() && d.expr == null) {
+                this.result.addError(d, "const declaration must have an assignment (unless it is 'foreign')");
+                return;
+            }
             
-            addTypeCheck(d.expr, d.type);
+            if(d.expr != null) {
+                d.expr.visit(this);
+                
+                addTypeCheck(d.expr, d.type);
+            }
         }
 
         @Override
         public void visit(EnumDecl d) {
+            Map<String, EnumFieldInfo> definedFields = new HashMap<>();
             for(EnumFieldInfo f : d.fields) {
                 if(f.value != null) {
                     f.value.visit(this);
                     addTypeCheck(f.value, TypeInfo.I32_TYPE);
                 }
+                
+                if(definedFields.containsKey(f.name)) {
+                    this.result.addError(d, "duplicate member '%s'", f.name);
+                }
+                
+                definedFields.put(f.name, f);
             }
         }
 
@@ -314,12 +338,41 @@ public class TypeChecker {
             }
         }
 
-
+        private void checkDuplicateFields(Stmt stmt, AggregateTypeInfo aggInfo, Map<String, Tuple<AggregateTypeInfo, FieldInfo>> definedFields) {
+            for(FieldInfo field : aggInfo.fieldInfos) {
+                if(definedFields.containsKey(field.name)) {
+                    Tuple<AggregateTypeInfo, FieldInfo> tuple = definedFields.get(field.name);
+                    this.result.addError(stmt, "duplicate member '%s' from '%s' and '%s'", 
+                            field.name, aggInfo.name, tuple.getFirst().name);
+                }
+                definedFields.put(field.name, new Tuple<>(aggInfo, field));
+                
+                if((field.modifiers & Attributes.USING_MODIFIER) > 0) {
+                    if(field.type.isKind(TypeKind.Struct) || field.type.isKind(TypeKind.Union)) {
+                        checkDuplicateFields(stmt, field.type.as(), definedFields);
+                    }                
+                }
+            }
+        }
+        
         @Override
         public void visit(StructDecl d) {
             for(FieldStmt s : d.fields) {
                 s.visit(this);
             }
+            
+            Map<String, Tuple<AggregateTypeInfo, FieldInfo>> definedFields = new HashMap<>();
+            AggregateTypeInfo aggInfo = d.type.as();
+            
+            // TODO, check cyclic cycle:
+            //
+            /*
+                struct Entity {
+                    pos: using Entity
+                    type: i32
+                }
+             */
+            checkDuplicateFields(d, aggInfo, definedFields);
         }
         
         @Override
@@ -330,6 +383,16 @@ public class TypeChecker {
         public void visit(UnionDecl d) {
             for(FieldStmt s : d.fields) {
                 s.visit(this);
+            }
+            
+            Map<String, FieldInfo> definedFields = new HashMap<>();
+            AggregateTypeInfo aggInfo = d.type.as();
+            for(FieldInfo field : aggInfo.fieldInfos) {
+                if(definedFields.containsKey(field.name)) {
+                    this.result.addError(d, "duplicate member '%s'", field.name);
+                }
+                
+                definedFields.put(field.name, field);
             }
         }
         
@@ -364,7 +427,6 @@ public class TypeChecker {
             if(aggInfo.isKind(TypeKind.Union) && arguments.size() > 1) {
                 this.result.addError(expr, "incorrect number of arguments for union");
             }
-            
             
             // Validate Named fields
             for(int index = 0; index < arguments.size(); index++) {
@@ -405,6 +467,8 @@ public class TypeChecker {
             }
             
             TypeInfo type = expr.getResolvedType();                        
+            checkGenericArgs(expr, expr.genericArgs, type);
+            
             switch(type.getKind()) {
                 case Struct: {
                     StructTypeInfo structInfo = expr.type.as();
@@ -424,6 +488,18 @@ public class TypeChecker {
             }
             
         }
+        
+        private void checkGenericArgs(Stmt stmt, List<TypeInfo> genericArgs, TypeInfo type) {
+            if(type.getResolvedType() instanceof GenericTypeInfo) {
+                GenericTypeInfo genInfo = type.as();
+                if(genInfo.hasGenerics()) {
+                    if(genInfo.genericParams.size() != genericArgs.size()) {
+                        this.result.addError(stmt, 
+                                "incorrect number of generic argument types, requires %d and has %d", genInfo.genericParams.size(), genericArgs.size());;        
+                    }
+                }
+            }
+        }
 
         @Override
         public void visit(FuncCallExpr expr) {
@@ -435,6 +511,8 @@ public class TypeChecker {
                 this.result.addError(expr, "'%s' is not a function", type.getName());
                 return;
             }
+            
+            checkGenericArgs(expr, expr.genericArgs, type);
             
             FuncPtrTypeInfo funcInfo = null;
             if(type.isKind(TypeKind.Func)) {
@@ -525,6 +603,16 @@ public class TypeChecker {
                             return true;
                         }
                     }
+                    
+                    FieldPath path = structInfo.getFieldPath(field.getName());
+                    if(path.hasPath()) {
+                        TypeInfo usingField = path.getTargetField().type;    
+                        if(value != null) {
+                            addTypeCheck(expr, value.getResolvedType(), usingField);
+                        }
+                        return true;
+                    }
+                    
                     this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);
                     break;
                 }                
@@ -588,7 +676,7 @@ public class TypeChecker {
             expr.object.visit(this);            
             expr.value.visit(this);
             
-            TypeInfo type = expr.object.getResolvedType();
+            TypeInfo type = expr.object.getResolvedType();            
             typeCheckAggregate(type, expr.field, expr, expr.value);
         }
 
@@ -776,6 +864,7 @@ public class TypeChecker {
                 case u64:
                 case i128:
                 case u128:
+                case Enum:
                     break;
                 default: {
                     this.result.addError(expr, "'%s' invalid index value", indexKind.name());
@@ -793,10 +882,20 @@ public class TypeChecker {
             TypeInfo objectInfo = expr.object.getResolvedType();
             TypeKind objectKind = objectInfo.getKind();
             switch(objectKind) {
-                case Str:
-                case Array:
-                case Ptr:
+                case Array: {
+                    ArrayTypeInfo arrayInfo = objectInfo.as();
+                    objectInfo = arrayInfo.arrayOf.getResolvedType();
                     break;
+                }
+                case Str: {
+                    objectInfo = TypeInfo.CHAR_TYPE;
+                    break;
+                }
+                case Ptr: {
+                    PtrTypeInfo ptrInfo = objectInfo.as();
+                    objectInfo = ptrInfo.ptrOf.getResolvedType();
+                    break;
+                }
                 default: {
                     this.result.addError(expr, "invalid index into '%s'", objectKind.name());
                     return;
@@ -815,6 +914,7 @@ public class TypeChecker {
                 case u64:
                 case i128:
                 case u128:
+                case Enum:
                     break;
                 default: {
                     this.result.addError(expr, "'%s' invalid index value", indexKind.name());

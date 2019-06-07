@@ -5,10 +5,10 @@ easy to use C libraries.
 The syntax:
 
 ```C
-import "io" as io
+import "io"
 
 func main(len:i32, args:char**):i32 {
-	io:printf("Hello World")
+	printf("Hello World")
 }
 ```
 

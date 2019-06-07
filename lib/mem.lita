@@ -1,4 +1,4 @@
-@include("stdlib.h");
+@include("<stdlib.h>");
 
 @foreign public func malloc(size: u64) : void*;
 @foreign public func realloc(ptr:void*, size: u64) : void*;
@@ -17,11 +17,11 @@ public const cAllocator = Allocator {
     .free:    &free
 };
 
-/*
-public func new<T>(a: Allocator* = null) : T* {
+
+public func new<T>(a: const Allocator* = null) : T* {
     if(!a) {
         a = &cAllocator
     }
     
     return cAllocator.alloc(sizeof(T)) as (T*)
-}*/
+}

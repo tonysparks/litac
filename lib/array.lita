@@ -7,10 +7,10 @@ public struct Array<T> {
     size: i32
     capacity: i32
     elements: T*
-    alloc: mem::Allocator*
+    alloc: const mem::Allocator*
 }
 
-public func ArrayInit<T>(a: Array<T>**, alloc: mem::Allocator*, initialSize: i32) {
+public func ArrayInit<T>(a: Array<T>**, initialSize: i32 = 16, alloc: const mem::Allocator* = null) {
     if(!alloc) {
         alloc = &mem::cAllocator
     }

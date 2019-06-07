@@ -1,8 +1,8 @@
 module io;
 import "mem";
 
-@include("stdio.h");
-@include("stdlib.h");
+@include("<stdio.h>");
+@include("<stdlib.h>");
 
 @foreign public struct FILE;
 @foreign public func printf(s:char*, ...) : void;

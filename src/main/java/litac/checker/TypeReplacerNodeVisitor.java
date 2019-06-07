@@ -196,7 +196,9 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     @Override
     public void visit(ConstDecl d) {
         replaceType(d);
-        replaceType(d.expr).visit(this);
+        if(d.expr != null) {
+            replaceType(d.expr).visit(this);
+        }
     }
 
     @Override
@@ -245,6 +247,20 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         replaceType(d);
     }
 
+    @Override
+    public void visit(VarDeclsStmt stmt) {
+        for(Decl d : stmt.vars) {
+            d.visit(this);
+        }
+    }
+    
+    @Override
+    public void visit(ConstDeclsStmt stmt) {
+        for(Decl d : stmt.consts) {
+            d.visit(this);
+        }
+    }
+    
     @Override
     public void visit(CastExpr expr) {
         expr.castTo = replaceType(expr.castTo);

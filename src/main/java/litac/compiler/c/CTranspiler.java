@@ -79,7 +79,8 @@ public class CTranspiler {
         Buf buf = new Buf(options.indentWidth, options.useTabs);        
         
         CWriterNodeVisitor cWriter = new CWriterNodeVisitor(unit, main, options, buf);                
-        unit.getMain().visit(cWriter);
+        //unit.getMain().visit(cWriter);
+        cWriter.write();
         
         return buf;
     }

@@ -140,7 +140,7 @@ public class Generics {
         List<FieldInfo> newFieldInfos = new ArrayList<>(aggInfo.fieldInfos.size());
         for(FieldInfo field : aggInfo.fieldInfos) {            
             TypeInfo newType = createGenericTypeInfo(module, field.type, aggInfo.genericParams, genericArgs);
-            FieldInfo newField = new FieldInfo(newType, field.name, field.genericArg);            
+            FieldInfo newField = new FieldInfo(newType, field.name, field.modifiers, field.genericArg);            
             newFieldInfos.add(newField);
         }
         
@@ -232,7 +232,7 @@ public class Generics {
         
         for(ParameterDecl paramDecl : funcInfo.parameterDecls) {            
             TypeInfo argInfo = createGenericTypeInfo(module, paramDecl.type, funcInfo.genericParams, genericArgs);
-            paramDecl = new ParameterDecl(argInfo, paramDecl.name, paramDecl.defaultValue);
+            paramDecl = new ParameterDecl(argInfo, paramDecl.name, paramDecl.defaultValue, paramDecl.attributes.modifiers);
             
             newFuncParams.add(paramDecl);
         }

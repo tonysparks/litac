@@ -11,7 +11,7 @@
 		}
 	'''
 	tests: [		
-		{
+		/*{
 			name: "Primatives",
 			code: '''
 				var i = 32
@@ -566,6 +566,26 @@
             error: "'func<T>(i32) : i32' is not of type 'func(f32) : f32'"                      
         },
         {
+            name: "Generic of Generic",
+            definitions: '''
+                struct B<T> {
+                    y : T
+                }
+                
+                struct A<T> {
+                    x : T*
+                }
+            ''',                       
+            code: '''     
+                var b = B<i32> {4};           
+                var a = A<B<i32>> {
+                    .x: &b
+                }
+                
+                assert(a.x.y == 4)
+            ''',                      
+        },        
+        {
             name: "Fix sizeof and as bug",
             definitions: '''
                 func t(i:i64) : i64 {
@@ -680,7 +700,7 @@
                 @foreign public func fopen(fileName:char*, openType:char*) : File*;
             ''',                       
             code: '''   
-                var t: File* = fopen("./examples/unions.lita", "r")
+                var t: File* = fopen("../examples/unions.lita", "r")
                 assert(t != null)             
             ''',
         },
@@ -741,11 +761,11 @@
                     [Index.I] = 2,
                     [Index.Y] = 1
                 }
-                assert(t[0] == 2);
-                assert(t[128] == 1);
+                assert(t[Index.I] == 2);
+                assert(t[Index.Y] == 1);
                 
                 for(var i = 0; i < 256; i +=1) {
-                    if(i == 0 || i == 128) {
+                    if(i == Index.I || i == Index.Y) {
                         continue;
                     }
                     assert(t[i] == 0)
@@ -774,6 +794,586 @@
                 }             
             ''',
             error: "must be a constant"
+        },
+        {
+            name: "Array NonDesignator",
+            definitions: '''
+                
+            ''',                       
+            code: '''   
+                var t = [1][2]i32 {
+                    [2]i32 { 1, 2 }
+                }
+                assert(t[0][0] == 1);
+                assert(t[0][1] == 2);             
+            ''',
+        },
+        {
+            name: "For loops",
+            definitions: '''
+                
+            ''',                       
+            code: '''   
+                var t = [1]i32 {
+                    0
+                }
+                
+                var iterations = 0;
+                for(var i = 0; i < 1; i+=1) {
+                    iterations += 1
+                }
+                
+                assert(iterations == 1);
+                
+                iterations = 0;
+                var i =0;
+                for(; i < 1; i+=1) {
+                    iterations += 1
+                }
+                
+                assert(iterations == 1);
+                
+                iterations = 0;
+                i = 0;
+                for(;; i+=1) {
+                    if(i >= 2) break;
+                    iterations += 1
+                }             
+                
+                assert(iterations == 2);
+                
+                iterations = 0;
+                i = 0;
+                for(;;) {
+                    if(i >= 2) break;
+                    i += 1;
+                    iterations += 1
+                }             
+                
+                assert(iterations == 2);
+            ''',
+        },
+        {
+            name: "Struct DuplicateFieldNames",
+            definitions: '''
+                struct X {
+                    x: i32
+                    x: f32
+                }
+            ''',                       
+            code: '''   
+                             
+            ''',
+            error: "duplicate member 'x'"
+        },
+        {
+            name: "Enum DuplicateFieldNames",
+            definitions: '''
+                enum X {
+                    x,
+                    x
+                }
+            ''',                       
+            code: '''   
+                             
+            ''',
+            error: "duplicate member 'x'"
+        },
+        {
+            name: "Union DuplicateFieldNames",
+            definitions: '''
+                union X {
+                    x: i32
+                    x: f32
+                }
+            ''',                       
+            code: '''   
+                             
+            ''',
+            error: "duplicate member 'x'"
+        },
+        {
+            name: "UsingStruct",
+            definitions: '''
+                struct Vec {
+                    x: f32
+                    y: f32
+                }
+                struct Entity {
+                    pos: using Vec
+                    type: i32
+                }
+            ''',                       
+            code: '''   
+                var e = Entity{.pos: Vec{1.0,2.0}, .type: 1};
+                assert(e.x == 1.0);
+                assert(e.y == 2.0);
+                
+                e.x = 3.0;
+                e.y = 4.0;
+                
+                assert(e.x == 3.0);
+                assert(e.y == 4.0);
+            ''',            
+        },
+        {
+            name: "UsingStruct with conflict",
+            definitions: '''
+                struct Vec {
+                    x: f32
+                    y: f32
+                }
+                struct Entity {
+                    pos: using Vec
+                    x: i32
+                }
+            ''',                       
+            code: '''   
+                assert(false);
+            ''', 
+            error: "duplicate member 'x' from 'Entity' and 'Vec'"           
+        },
+        {
+            name: "UsingStructDeep",
+            definitions: '''
+                struct X {
+                    x:f32
+                }
+                
+                struct Vec {
+                    e: using X
+                    y: f32
+                }
+                struct Entity {
+                    type: i32
+                    pos: using Vec
+                }
+            ''',                       
+            code: '''   
+                var e = Entity{.pos: Vec{ .e: X{1.0} ,2.0}, .type: 1};
+                assert(e.x == 1.0);
+                assert(e.y == 2.0);
+                
+                e.x = 3.0;
+                e.y = 4.0;
+                
+                assert(e.x == 3.0);
+                assert(e.y == 4.0);
+            ''',            
+        },
+        {
+            name: "UsingStructDeepPointer",
+            definitions: '''
+                struct X {
+                    x:f32
+                }
+                
+                struct Vec {
+                    e: using X*
+                    y: f32
+                }
+                struct Entity {
+                    type: i32
+                    pos: using Vec
+                }
+            ''',                       
+            code: '''   
+                var xx = X{1.0};
+                var e = Entity{.pos: Vec{ .e: &xx ,2.0}, .type: 1};
+                assert(e.x == 1.0);
+                assert(e.y == 2.0);
+                
+                e.x = 3.0;
+                e.y = 4.0;
+                
+                assert(e.x == 3.0);
+                assert(e.y == 4.0);
+            ''',            
+        },
+        { 
+            name: "Struct Independent declaration",
+            definitions: '''
+                struct A {
+                    x : B
+                }
+                struct B {
+                    y : i32
+                }
+            ''',                       
+            code: '''                           
+                var a = A {
+                    .x: B {4}
+                }
+                
+                assert(a.x.y == 4)
+            ''',                      
+        },
+        { 
+            name: "Struct Independent declaration Pointer",
+            definitions: '''
+                struct A {
+                    x : B*
+                }
+                struct B {
+                    y : i32
+                }
+            ''',                       
+            code: '''                           
+                var a = A {
+                    .x: &B {4}
+                }
+                
+                assert(a.x.y == 4)
+            ''',                      
+        },
+        { 
+            name: "Var Independent declaration",
+            definitions: '''                
+                var b = B{14}
+                var a = A {
+                    .x: B {4}
+                }
+                
+                struct A {
+                    x : B
+                }
+                struct B {
+                    y : i32
+                }
+            ''',                       
+            code: '''                           
+                assert(a.x.y == 4)
+                assert(b.y == 14)
+            ''',                      
+        },
+        { 
+            name: "Var Independent declaration pointer",
+            definitions: '''                
+                var b = B{14}
+                var a = A {
+                    .x: &B {4}
+                }
+                
+                struct A {
+                    x : B*
+                }
+                struct B {
+                    y : i32
+                }
+            ''',                       
+            code: '''                           
+                assert(a.x.y == 4)
+                assert(b.y == 14)
+            ''',                      
+        },
+        { 
+            name: "Func Independent declaration pointer",
+            definitions: '''
+                func test(a: A) : i32 {
+                    return a.x.y;
+                }                
+                                
+                struct A {
+                    x : B*
+                }
+                struct B {
+                    y : i32
+                }
+            ''',                       
+            code: '''            
+                var a = A {
+                    .x: &B {4}
+                }                           
+                assert(test(a) == 4)                                
+            ''',                      
+        },
+        { 
+            name: "Func Independent declaration",
+            definitions: '''
+                func test(a: A) : i32 {
+                    return a.x.y;
+                }                
+                                
+                struct A {
+                    x : B
+                }
+                struct B {
+                    y : i32
+                }
+            ''',                       
+            code: '''            
+                var a = A {
+                    .x: B {4}
+                }                           
+                assert(test(a) == 4)                                
+            ''',                      
+        },
+        { 
+            name: "Func Independent declaration Generics",
+            definitions: '''
+                func test<T>(a: T) : i32 {
+                    return a.x.y;
+                }                
+                                
+                struct A {
+                    x : B
+                }
+                struct B {
+                    y : i32
+                }
+            ''',                       
+            code: '''            
+                var a = A {
+                    .x: B {4}
+                }                           
+                assert(test<A>(a) == 4)                                
+            ''',                      
+        },
+        { 
+            name: "Var Independent declaration Generics",
+            definitions: '''                
+                var b = B<i32>{14}
+                var a = A<B<i32>> {
+                    .x: B<i32> {4}
+                }
+                
+                struct A<T> {
+                    x : T
+                }
+                struct B<T> {
+                    y : T
+                }
+            ''',                       
+            code: '''                           
+                assert(a.x.y == 4)
+                assert(b.y == 14)
+            ''',                      
+        },
+        { 
+            name: "Func arg using",
+            definitions: '''                
+                func test(a : using A) : i32 {
+                    return x
+                }
+                struct A {
+                    x : i32
+                }
+                
+            ''',                       
+            code: '''                           
+                assert(test( A{.x: 4}) == 4)
+            ''',                      
+        },
+        { 
+            name: "Func arg pointer using",
+            definitions: '''                
+                func test(a : using A*) : i32 {
+                    return x
+                }
+                struct A {
+                    x : i32
+                }
+                
+            ''',                       
+            code: '''                           
+                assert(test( &A{.x: 4}) == 4)
+            ''',                      
+        },
+        { 
+            name: "Invalid Func arg using",
+            definitions: '''                
+                func test(a : using A**) : i32 {
+                    return 1
+                }
+                struct A {
+                    x : i32
+                }
+                
+            ''',                       
+            code: '''                           
+
+            ''', 
+            error: "'a' is not an aggregate type (or pointer to an aggregate), can't use 'using'"                     
+        },
+        { 
+            name: "Func arg scoped shadow using",
+            definitions: '''   
+                func test(a : using A*) : i32 {
+                    var x = 43
+                    return x
+                }
+                struct A {
+                    x : i32
+                }
+                
+            ''',                       
+            code: '''      
+                var x = test(&A{.x: 4});
+                assert(x == 43)
+            ''', 
+        },
+        { 
+            name: "Func arg scoped shadow scoping using",
+            definitions: '''                
+                func test(a : using A*) : i32 {
+                    {var x = 43}
+                    return x
+                }
+                struct A {
+                    x : i32
+                }
+                
+            ''',                       
+            code: '''                           
+                assert(test( &A{.x: 4}) == 4)
+            ''', 
+        },
+        { 
+            name: "Func arg scoped shadow scoping using with embedded using",
+            definitions: '''                
+                func test(a : using A) : i32 {
+                    return y
+                }
+                struct A {
+                    x : using B
+                }
+                struct B {
+                    y : i32
+                }
+                
+            ''',                       
+            code: '''  
+                assert(test(A{.x: B{.y: 4}}) == 4)
+            ''', 
+        },
+        { 
+            name: "Func arg scoped shadow scoping using with embedded using use fullpath",
+            definitions: '''                
+                func test(a : using A) : i32 {
+                    return a.x.y
+                }
+                struct A {
+                    x : using B
+                }
+                struct B {
+                    y : i32
+                }
+                
+            ''',                       
+            code: '''  
+                assert(test(A{.x: B{.y: 4}}) == 4)
+            ''', 
+        },
+        { 
+            name: "Const Ptr",
+            definitions: '''                
+                
+            ''',                       
+            code: '''  
+                var t : const char* = "Hello";
+                assert(t)
+            ''', 
+        },
+        { 
+            name: "Func Const Ptr Param",
+            definitions: '''         
+                // TODO Return param       
+                func test(a: const char*) : char* {
+                    return a
+                }
+            ''',                       
+            code: '''  
+                var t = test("Hello")
+                assert(t)
+            ''', 
+        },
+        { 
+            name: "Array Ptr assign",
+            definitions: '''         
+                @include("<stdlib.h>");
+                @foreign public func malloc(size: u64) : void*;
+            ''',                       
+            code: '''  
+                var t = malloc( sizeof(char) * 3_u64) as (char*);
+                t[0] = 'h';
+                t[1] = 'i';
+                t[2] = '\0';
+                
+                assert(t[0] == 'h');
+                assert(t[1] == 'i');
+                assert(t[2] == '\0');
+            ''', 
+        },*/
+        { 
+            name: "Generics Struct with No GenArgs",
+            definitions: '''         
+                struct X<T> {
+                    y: T
+                }
+            ''',                       
+            code: '''  
+                var t = X{}
+            ''',
+            error: "incorrect number of generic argument types, requires 1 and has 0" 
+        },
+        { 
+            name: "Generics Union with No GenArgs",
+            definitions: '''         
+                union X<T> {
+                    y: T
+                }
+            ''',                       
+            code: '''  
+                var t = X{}
+            ''',
+            error: "incorrect number of generic argument types, requires 1 and has 0" 
+        },
+        { 
+            name: "Generics Func with No GenArgs",
+            definitions: '''         
+                func test<T>() {
+                }
+            ''',                       
+            code: '''  
+                test()
+            ''',
+            error: "incorrect number of generic argument types, requires 1 and has 0" 
+        },
+        { 
+            name: "Generics Var mismatch Types",
+            definitions: '''         
+                struct X<T> {
+                    y : T
+                }
+            ''',                       
+            code: '''  
+                var x : X<i32> = X<f32>{}
+            ''',
+            error: "'struct Xf32' is not of type 'struct Xi32'" 
+        },
+        { 
+            name: "Generics Var mismatch Types no GenArgs",
+            definitions: '''         
+                struct X<T> {
+                    y : T
+                }
+            ''',                       
+            code: '''  
+                var x : X = X<f32>{}
+            ''',
+            error: "'struct Xf32' is not of type 'struct X'" 
+        },
+        { 
+            name: "Generics Var mismatch Types no GenArgs Init",
+            definitions: '''         
+                struct X<T> {
+                    y : T
+                }
+            ''',                       
+            code: '''  
+                var x : X<f32> = X{}
+            ''',
+            error: "incorrect number of generic argument types, requires 1 and has 0" 
         },
 	]
 }

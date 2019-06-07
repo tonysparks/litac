@@ -158,9 +158,11 @@ public class Parser {
         
         TypeInfo type = null;
         Expr expr = null;
+        int modifiers = 0;
         
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         if(match(COLON)) {
+            modifiers = modifiers();
             type = type(false);
             
             // Equals is optional if the type is defined
@@ -176,30 +178,32 @@ public class Parser {
             
             type = null;
         }
-        
-        
                 
-        return node(new VarDecl(identifier.getText(), type, expr));
+        return node(new VarDecl(identifier.getText(), type, expr, modifiers));
     }
     
     private ConstDecl constDeclaration() {
         source();
         
         TypeInfo type = null;
+        int modifiers = 0;
         
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         if(match(COLON)) {
+            modifiers = modifiers();
             type = type(false);
         }
         
-        consume(TokenType.EQUALS, ErrorCode.MISSING_EQUALS);
-        
+        Expr expr = null;
+        if(match(EQUALS)) {
         // TODO: Create module initializer functions, so
         // that module level variables can be initialized via functions
         // and NOT just constExpressions
-        Expr expr = // constExpression(); 
+            expr = // constExpression(); 
                 expression();
-        return node(new ConstDecl(identifier.getText(), type, expr));
+        }
+        
+        return node(new ConstDecl(identifier.getText(), type, expr, modifiers));
     }
     
     
@@ -228,7 +232,7 @@ public class Parser {
         
         Stmt body;
         if(match(SEMICOLON)) {
-            body = node(new EmptyStmt());
+            body = emptyStmt();
         }
         else {        
             body = statement();
@@ -423,8 +427,13 @@ public class Parser {
         if(match(CONTINUE))     return continueStmt();
         if(match(RETURN))       return returnStmt();
         if(match(DEFER))        return deferStmt();
-                        
+        //if(match(SEMICOLON))    return emptyStmt(); 
+        
         return expression();
+    }
+    
+    private EmptyStmt emptyStmt() {
+        return node(new EmptyStmt());
     }
     
     private BlockStmt blockStatement() {
@@ -452,9 +461,10 @@ public class Parser {
             case IDENTIFIER: {
                 Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
                 consume(COLON, ErrorCode.MISSING_COLON);
+                int modifiers = modifiers();
                 TypeInfo type = type(false);
                 
-                return node(new VarFieldStmt(identifier.getText(), type));
+                return node(new VarFieldStmt(identifier.getText(), type, modifiers));
             }                
             case STRUCT: {
                 advance();
@@ -532,12 +542,12 @@ public class Parser {
     }
     
     private ForStmt forStmt() {        
-        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
-        Stmt initStmt = statement();    
+        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);        
+        Stmt initStmt = !check(SEMICOLON) ? statement() : null;    
         consume(SEMICOLON, ErrorCode.MISSING_SEMICOLON);
-        Expr condExpr = expression();
+        Expr condExpr = !check(SEMICOLON) ? expression() : null;
         consume(SEMICOLON, ErrorCode.MISSING_SEMICOLON);
-        Stmt postStmt = statement();
+        Stmt postStmt = !check(RIGHT_PAREN) ? statement() : null;
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
         this.loopLevel++;
@@ -1013,6 +1023,24 @@ public class Parser {
         return new ArrayTypeInfo(arrayOf, length, lengthExpr);                    
     }
     
+    private int modifiers() {
+        int modifiers = 0;
+        do {
+            if(match(USING)) {
+                modifiers |= Attributes.USING_MODIFIER;
+            }
+            else if(match(CONST)) {
+                modifiers |= Attributes.CONST_MODIFIER;
+            }
+            else {
+                break;
+            }
+        }
+        while(isAtEnd());
+        
+        return modifiers;
+    }
+    
     private TypeInfo type() {
         return type(true);
     }
@@ -1190,6 +1218,7 @@ public class Parser {
                     String parameterName = param.getText();
                     
                     consume(COLON, ErrorCode.MISSING_COLON);
+                    int modifiers = modifiers();
                     TypeInfo type = type(false);
                     
                     Expr defaultValue = null;
@@ -1197,7 +1226,7 @@ public class Parser {
                         defaultValue = constExpression();
                     }
                     
-                    parameterInfos.add(new ParameterDecl(type, parameterName, defaultValue));
+                    parameterInfos.add(node(new ParameterDecl(type, parameterName, defaultValue, modifiers)));
                 }
             }
             while(match(COMMA));
@@ -1249,7 +1278,7 @@ public class Parser {
         List<TypeInfo> arguments = new ArrayList<>();
         if(!check(GREATER_THAN)) {        
             do {
-                arguments.add(type());
+                arguments.add(type(false));
             } 
             while(match(COMMA));            
         }
@@ -1263,16 +1292,15 @@ public class Parser {
         List<Expr> arguments = new ArrayList<>();
         if(!check(RIGHT_BRACE)) {        
             do {
-                if(match(LEFT_BRACKET)) {
-                    Expr index = expression();
-                    consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
-                    consume(EQUALS, ErrorCode.MISSING_EQUALS);
-                    Expr value = expression();
-                    arguments.add(node(new ArrayDesignationExpr(index, value)));
+                Expr expr = null;
+                if(check(LEFT_BRACKET)) {
+                    expr = tryArrayDesignationExpr();
                 }
-                else {
-                    arguments.add(expression());
+                
+                if(expr == null) {
+                    expr = expression();
                 }
+                arguments.add(expr);
             } 
             while(match(COMMA));            
         }
@@ -1280,6 +1308,27 @@ public class Parser {
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
         return arguments;
+    }
+    
+    private Expr tryArrayDesignationExpr() {
+        int backtrack = this.current;
+        
+        Expr designator = null;
+        try {
+            if(match(LEFT_BRACKET)) {
+                Expr index = expression();
+                consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
+                consume(EQUALS, ErrorCode.MISSING_EQUALS);
+                Expr value = expression();
+                designator = node(new ArrayDesignationExpr(index, value));
+            }
+            
+        }
+        catch(ParseException e) {
+            this.current = backtrack;
+        }
+        
+        return designator;
     }
     
     private List<InitArgExpr> structArguments() {

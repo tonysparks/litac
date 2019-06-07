@@ -1,0 +1,30 @@
+import "mem";
+import "io";
+import "array";
+
+
+struct Vec2 {
+    x: i32
+    y: i32
+}
+
+func main(len: i32, args: char**) : i32 {
+    var array : Array<Vec2>*;
+    
+    ArrayInit<Vec2>(&array)
+    
+    var origin = Vec2{2,4}
+    ArrayAdd<Vec2>(array, origin)
+    ArrayAdd<Vec2>(array, Vec2{4,7})
+    
+    for(var i = 0; i < array.size; i+=1) {
+        var v = ArrayGet<Vec2>(array, i)
+        printf("v: (%d, %d)\n", v.x, v.y)
+    }
+    
+    var x = new<Vec2>()
+    x.x = 24
+    x.y = 32
+    
+    printf("\nAllocated X: (%d, %d)\n", x.x, x.y)
+}

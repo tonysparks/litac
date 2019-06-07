@@ -31,6 +31,8 @@ public interface NodeVisitor {
     void visit(DeferStmt stmt);
     void visit(EmptyStmt stmt);
     void visit(ParametersStmt stmt);
+    void visit(VarDeclsStmt stmt);
+    void visit(ConstDeclsStmt stmt);
     
     void visit(ConstDecl d);
     void visit(EnumDecl d);
@@ -150,6 +152,14 @@ public interface NodeVisitor {
 
         @Override
         public void visit(NoteStmt stmt) {
+        }
+        
+        @Override
+        public void visit(VarDeclsStmt stmt) {
+        }
+        
+        @Override
+        public void visit(ConstDeclsStmt stmt) {
         }
         
 

@@ -3,8 +3,8 @@
  */
 package litac.checker;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import litac.ast.Decl.ParameterDecl;
@@ -16,8 +16,9 @@ import litac.ast.Expr;
  *
  */
 public abstract class TypeInfo {
+    private static final AtomicLong typeIdGen = new AtomicLong(1L);
     
-    public static final TypeInfo BOOL_TYPE = new PrimitiveTypeInfo("bool", TypeKind.bool);
+    public static final TypeInfo BOOL_TYPE = new PrimitiveTypeInfo("bool", TypeKind.Bool);
     public static final TypeInfo CHAR_TYPE = new PrimitiveTypeInfo("char", TypeKind.Char);
     public static final TypeInfo I8_TYPE   = new PrimitiveTypeInfo("i8", TypeKind.i8);
     public static final TypeInfo U8_TYPE   = new PrimitiveTypeInfo("u8", TypeKind.u8);
@@ -93,7 +94,7 @@ public abstract class TypeInfo {
                 IdentifierTypeInfo idType = type.as();
                 return isUnsignedInteger(idType.getResolvedType());
             }
-            case bool:
+            case Bool:
             case u128:
             case u16:
             case u32:
@@ -112,7 +113,7 @@ public abstract class TypeInfo {
                 IdentifierTypeInfo idType = type.as();
                 return isSignedInteger(idType.getResolvedType());
             }
-            case bool:
+            case Bool:
             case Char:
             case Enum:
             case i128:
@@ -132,7 +133,7 @@ public abstract class TypeInfo {
                 IdentifierTypeInfo idType = type.as();
                 return isInteger(idType.getResolvedType());
             }
-            case bool:
+            case Bool:
             case Char:
             case Enum:
             case i128:
@@ -158,7 +159,7 @@ public abstract class TypeInfo {
                 IdentifierTypeInfo idType = type.as();
                 return isNumber(idType.getResolvedType());
             }
-            case bool:
+            case Bool:
             case Char:
             case Enum:
             case i128:
@@ -181,8 +182,22 @@ public abstract class TypeInfo {
         }
     }
     
+    public static boolean isAggregate(TypeInfo type) {
+        type = type.isResolved() ? type.getResolvedType() : type;
+        return type.isKind(TypeKind.Struct) || type.isKind(TypeKind.Union);
+    }
+    
+    public static boolean isPtrAggregate(TypeInfo type) {
+        type = type.getResolvedType();
+        if(type.isKind(TypeKind.Ptr)) {
+            PtrTypeInfo ptrInfo = type.as();
+            return isAggregate(ptrInfo.ptrOf);
+        }
+        return false;
+    }
+    
     public static enum TypeKind {
-        bool,
+        Bool,
         Char,
         i8,  u8,
         i16, u16,
@@ -218,13 +233,19 @@ public abstract class TypeInfo {
         }
     }
     
+    protected long typeId;
     protected TypeKind kind;
     public String name;
     public Symbol sym;
     
     TypeInfo(TypeKind kind, String name) {
+        this.typeId = typeIdGen.incrementAndGet();
         this.kind = kind;
         this.name = name;
+    }
+    
+    public long getTypeId() {
+        return this.typeId;
     }
     
     @Override
@@ -312,14 +333,12 @@ public abstract class TypeInfo {
         public TypeInfo type;
         public String name;
         public String genericArg;
+        public int modifiers;
         
-        /**
-         * @param type
-         * @param name
-         */
-        public FieldInfo(TypeInfo type, String name, String genericArg) {
+        public FieldInfo(TypeInfo type, String name, int modifiers, String genericArg) {
             this.type = type;
             this.name = name;
+            this.modifiers = modifiers;
             this.genericArg = genericArg;
         }
     }
@@ -356,12 +375,35 @@ public abstract class TypeInfo {
         public static final int IS_EMBEDDED  = (1<<1);
         
         public List<FieldInfo> fieldInfos;
+        public List<FieldInfo> usingInfos;
         public int flags;
         
-        AggregateTypeInfo(TypeKind kind, String name, List<GenericParam> genericParams, List<FieldInfo> fieldInfos, int flags) {
+        private Map<String, FieldPath> pathCache;
+        
+        AggregateTypeInfo(TypeKind kind, 
+                          String name, 
+                          List<GenericParam> genericParams, 
+                          List<FieldInfo> fieldInfos, 
+                          int flags) {
             super(kind, name, genericParams);
+            
             this.fieldInfos = fieldInfos;
             this.flags = flags;
+            this.pathCache = new HashMap<>();
+            
+            for(FieldInfo field : fieldInfos) {
+                if((field.modifiers & Attributes.USING_MODIFIER) > 0) {
+                    if(this.usingInfos == null) {
+                        this.usingInfos = new ArrayList<>();
+                    }
+                    
+                    this.usingInfos.add(field);
+                }
+            }
+        }
+        
+        public boolean hasUsingFields() {
+            return this.usingInfos != null && !this.usingInfos.isEmpty();
         }
         
         @Override
@@ -372,10 +414,22 @@ public abstract class TypeInfo {
         public boolean isEmbedded() {
             return (this.flags & IS_EMBEDDED) > 0;
         }
+            
+        public FieldPath getFieldPath(String field) {
+            if(!this.pathCache.containsKey(field)) {
+                this.pathCache.put(field, new FieldPath(this, field));
+            }
+            
+            return this.pathCache.get(field);            
+        }
     }
     public static class StructTypeInfo extends AggregateTypeInfo {
 
-        public StructTypeInfo(String name, List<GenericParam> genericParams, List<FieldInfo> fieldInfos, int flags) {
+        public StructTypeInfo(String name, 
+                              List<GenericParam> genericParams, 
+                              List<FieldInfo> fieldInfos, 
+                              int flags) {
+            
             super(TypeKind.Struct, name, genericParams, fieldInfos, flags);
         }
         
@@ -421,7 +475,7 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            if(target.isKind(TypeKind.bool)) {
+            if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
             
@@ -479,7 +533,7 @@ public abstract class TypeInfo {
                 }
             }
             
-            if(target.isKind(TypeKind.bool)) {
+            if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
             
@@ -530,7 +584,7 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            if(target.isKind(TypeKind.bool)) {
+            if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
             
@@ -597,7 +651,7 @@ public abstract class TypeInfo {
                        
             }
             
-            if(target.isKind(TypeKind.bool)) {
+            if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
             
@@ -712,7 +766,7 @@ public abstract class TypeInfo {
                        
             }
             
-            if(target.isKind(TypeKind.bool)) {
+            if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
             
@@ -799,7 +853,7 @@ public abstract class TypeInfo {
                 }
             }
             
-            if(target.isKind(TypeKind.bool)) {
+            if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
             
@@ -878,7 +932,7 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            if(target.isKind(TypeKind.bool)) {
+            if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
             
@@ -967,7 +1021,7 @@ public abstract class TypeInfo {
                 return this.arrayOf.canCastTo(ptrInfo.ptrOf.getResolvedType());
             }
             
-            if(target.isKind(TypeKind.bool)) {
+            if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
             
@@ -1004,7 +1058,7 @@ public abstract class TypeInfo {
                 }
             }
             
-            if(target.isKind(TypeKind.bool)) {
+            if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
 
@@ -1102,6 +1156,15 @@ public abstract class TypeInfo {
             this.genericArgs = genericArgs;
             this.identifier = identifier;
             this.resolvedType = null;
+        }
+
+        @Override
+        public long getTypeId() {
+            if(isResolved()) {
+                return this.resolvedType.getTypeId();
+            }
+            
+            return 0; /* Undefined typeId */
         }
         
         @Override

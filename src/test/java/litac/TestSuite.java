@@ -69,9 +69,9 @@ public class TestSuite {
                 BackendOptions options = new BackendOptions();
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = "";
+                options.run = true;
                 
                 PhaseResult result = LitaC.compile(options);
-                
                 if(result.hasErrors()) {
                     for(PhaseError error : result.getErrors()) {
                         Errors.typeCheckError(error.stmt, error.message);
