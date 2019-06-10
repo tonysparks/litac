@@ -450,13 +450,21 @@ public abstract class Expr extends Stmt {
     }
     
     public static class NumberExpr extends ConstExpr {
-        public NumberToken number;
+        public String number;
         
-        public NumberExpr(NumberToken number) {
-            super(number.getTypeInfo());
+        public NumberExpr(NumberToken token) {
+            this(token.getTypeInfo(), token.getText());
+        }
+        
+        public NumberExpr(TypeInfo type, String number) {
+            super(type);
             this.number = number;
             
             resolveTo(this.type);
+        }
+        
+        public int asInt() {
+            return Integer.parseInt(this.number);
         }
         
 
@@ -467,7 +475,7 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new NumberExpr(this.number);
+            return new NumberExpr(type.copy(), this.number);
         }
     }
 

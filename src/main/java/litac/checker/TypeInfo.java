@@ -422,6 +422,15 @@ public abstract class TypeInfo {
             
             return this.pathCache.get(field);            
         }
+        
+        public FieldInfo getField(String field) {
+            for(FieldInfo f : this.fieldInfos) {
+                if(f.name.equals(field)) {
+                    return f;
+                }
+            }
+            return null;
+        }
     }
     public static class StructTypeInfo extends AggregateTypeInfo {
 

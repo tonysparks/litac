@@ -1022,7 +1022,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(NumberExpr expr) {
-        String n = expr.number.getText(); 
+        String n = expr.number; 
         buf.out(n);
         
         switch(expr.type.getKind()) {

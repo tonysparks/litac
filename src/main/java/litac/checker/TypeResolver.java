@@ -297,7 +297,7 @@ public class TypeResolver {
                           NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
                           validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
                           
-                          arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
+                          arrayInfo.length = nExpr.asInt();
                           
                       }
                       else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
@@ -308,7 +308,7 @@ public class TypeResolver {
                               ConstDecl cExpr = (ConstDecl)iExpr.sym.decl;
                               NumberExpr nExpr = (NumberExpr)cExpr.expr;
                               
-                              arrayInfo.length = ((Number)nExpr.number.getValue()).intValue();
+                              arrayInfo.length = nExpr.asInt();
                           }
                           else {
                               this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
