@@ -218,6 +218,7 @@ public abstract class TypeInfo {
         Union,
         
         Void,
+        Const,
         
         Identifier,
         ;
@@ -239,7 +240,14 @@ public abstract class TypeInfo {
     public Symbol sym;
     
     TypeInfo(TypeKind kind, String name) {
-        this.typeId = typeIdGen.incrementAndGet();
+        switch(kind) {
+            case Func:
+            case Struct:
+            case Union:        
+            case Enum:
+                this.typeId = typeIdGen.incrementAndGet();
+            default: 
+        }
         this.kind = kind;
         this.name = name;
     }
@@ -959,12 +967,49 @@ public abstract class TypeInfo {
         }
     }
     
+    public static class ConstTypeInfo extends TypeInfo {
+        public TypeInfo constOf;
+
+        public ConstTypeInfo(TypeInfo constOf) {
+            super(TypeKind.Const, "const");
+            this.constOf = constOf;
+        }
+                
+        @Override
+        public TypeInfo copy() {
+            return new ConstTypeInfo(this.constOf.copy());
+        }
+                
+        @Override
+        public String getName() {
+            return "const " + this.constOf.getName();
+        }
+        
+        @Override
+        public String toString() {    
+            return getName();
+        }
+                
+        @Override
+        public boolean canCastTo(TypeInfo target) {
+            if(target == this) {
+                return true;
+            }
+            
+            if(this.constOf.canCastTo(target)) {
+                return true;
+            }
+            
+            return false;
+        }
+    }
+    
     public static class ArrayTypeInfo extends TypeInfo {
         public TypeInfo arrayOf;
-        public int length;
+        public long length;
         public Expr lengthExpr;
 
-        public ArrayTypeInfo(TypeInfo arrayOf, int length, Expr lengthExpr) {
+        public ArrayTypeInfo(TypeInfo arrayOf, long length, Expr lengthExpr) {
             super(TypeKind.Array, "Array");
             this.arrayOf = arrayOf;
             this.length = length;

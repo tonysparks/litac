@@ -73,7 +73,9 @@ public class CompilationUnit {
         
         CompilationUnit unit = new CompilationUnit(builtin, main);
         
-        new CompilationUnitNodeVisitor(options, unit).visit(main);
+        CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(options, unit);
+        visitor.visit(main);
+        visitor.visit(builtin);
         
         return unit;
     }

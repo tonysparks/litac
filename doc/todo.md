@@ -1,6 +1,11 @@
 TODO
 ==
 
+Issues:
+* foreign consts declared after use are not visible
+* typeid is NOT accurate
+* use Symbols vs List<Decl>; doesn't show full picture of definitions!
+
 * @inline
 * @volatile
 * struct alignment

@@ -18,7 +18,7 @@ public const cAllocator = Allocator {
 };
 
 
-public func new<T>(a: const Allocator* = null) : T* {
+public func new<T>(a: Allocator const* = null) : T* {
     if(!a) {
         a = &cAllocator
     }

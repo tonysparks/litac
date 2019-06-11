@@ -28,6 +28,7 @@ public class TypeResolver {
     private PhaseResult result;
     private Map<String, Tuple<Module,Decl>> genericTypes;
     private Set<String> resolvedGenericTypes;
+    private Map<String, Module> resolvedModules;
     private Module root;
     
     public TypeResolver(PhaseResult result, CompilationUnit unit) {
@@ -36,9 +37,10 @@ public class TypeResolver {
         
         this.genericTypes = new HashMap<>();
         this.resolvedGenericTypes = new HashSet<>();
+        this.resolvedModules = new HashMap<>();
     }
 
-    public Module resolveTypes() {
+    public Program resolveTypes() {
         Module module = resolveModule(this.unit.getMain());
                 
         // add the generic types to the root declaration list        
@@ -48,17 +50,23 @@ public class TypeResolver {
                              .map(e -> e.getSecond())                    
                              .collect(Collectors.toList()));
         
-        return module;
+        return new Program(module, resolvedModules, module.getSymbols());
     }
     
     private Module resolveModule(ModuleStmt moduleStmt) {
+        String moduleName = moduleStmt.name;
+        if(resolvedModules.containsKey(moduleName)) {
+            return resolvedModules.get(moduleName);
+        }
+        
         // First build up an inventory of all declarations
         DeclNodeVisitor declVisitor = new DeclNodeVisitor();
         declVisitor.visit(moduleStmt);
         
         Module module = declVisitor.module;
+        resolvedModules.put(moduleName, module);
         
-        // Now resolve the types        
+        // Now resolve the types      
         TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result, resolvedGenericTypes, module);
         moduleStmt.visit(checker);
         
@@ -72,7 +80,7 @@ public class TypeResolver {
         @Override
         public void visit(ModuleStmt stmt) {
             String moduleName = stmt.name;
-            
+                        
             this.module = new Module(root, genericTypes, result, stmt, moduleName);
             if(root == null) {
                 root = this.module;
@@ -285,6 +293,10 @@ public class TypeResolver {
             else if(type.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = type.as();
                 resolveType(stmt, ptrInfo.ptrOf, resolvedType);
+            }
+            else if(type.isKind(TypeKind.Const)) {
+                ConstTypeInfo constInfo = type.as();
+                resolveType(stmt, constInfo.constOf, resolvedType);
             }
             else if(type.isKind(TypeKind.Array)) {
                 ArrayTypeInfo arrayInfo = type.as();
@@ -685,6 +697,11 @@ public class TypeResolver {
         }
         
         @Override
+        public void visit(TypeOfExpr expr) {
+            expr.expr.visit(this);
+        }
+        
+        @Override
         public void visit(InitArgExpr expr) {
             expr.value.visit(this);
             expr.resolveTo(expr.value.getResolvedType());
@@ -825,7 +842,7 @@ public class TypeResolver {
         }
         
         @Override
-        public void visit(SizeOfIdentifierExpr expr) {
+        public void visit(TypeIdentifierExpr expr) {
             if(!expr.type.isResolved()) {
                 Symbol sym = peekScope().getSymbol(expr.variable); 
                 
@@ -856,6 +873,10 @@ public class TypeResolver {
                 case Ptr: {
                     PtrTypeInfo ptrInfo = type.as();
                     return resolveAggregate(ptrInfo.ptrOf, field, expr, value);                    
+                }
+                case Const: {
+                    ConstTypeInfo constInfo = type.as();
+                    return resolveAggregate(constInfo.constOf, field, expr, value);
                 }
                 case Struct: {
                     StructTypeInfo structInfo = type.as();

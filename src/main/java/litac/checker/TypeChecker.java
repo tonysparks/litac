@@ -414,6 +414,11 @@ public class TypeChecker {
         }
         
         @Override
+        public void visit(TypeOfExpr expr) {
+            expr.expr.visit(this);
+        }
+        
+        @Override
         public void visit(InitArgExpr expr) {
             expr.value.visit(this);
         }
@@ -578,7 +583,7 @@ public class TypeChecker {
         }
         
         @Override
-        public void visit(SizeOfIdentifierExpr expr) {
+        public void visit(TypeIdentifierExpr expr) {
         }
         
         private boolean typeCheckAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {            
@@ -586,6 +591,10 @@ public class TypeChecker {
                 case Ptr: {
                     PtrTypeInfo ptrInfo = type.as();
                     return typeCheckAggregate(ptrInfo.ptrOf, field, expr, value);                    
+                }
+                case Const: {
+                    ConstTypeInfo constInfo = type.as();
+                    return typeCheckAggregate(constInfo.constOf, field, expr, value);
                 }
                 case Struct: {
                     StructTypeInfo structInfo = type.as();

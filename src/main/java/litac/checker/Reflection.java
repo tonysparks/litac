@@ -6,8 +6,7 @@ package litac.checker;
 import java.util.*;
 
 import litac.ast.Decl;
-import litac.ast.Decl.ConstDecl;
-import litac.ast.Decl.EnumDecl;
+import litac.ast.Decl.*;
 import litac.ast.Expr;
 import litac.ast.Expr.*;
 import litac.checker.TypeInfo.*;
@@ -22,26 +21,67 @@ import litac.parser.tokens.TokenType;
  */
 public class Reflection {
     
-    public static void createTypeInfos(List<Decl> declarations, Module main) {
-        TypeInfo typeInfo = main.getType("TypeInfo");
-        ArrayTypeInfo arrayInfo = new ArrayTypeInfo(typeInfo, declarations.size(), null);
+    public static List<Decl> createTypeInfos(List<Decl> declarations, Program program) {
+        Module typeModule = program.getModule("type");
+        TypeInfo typeInfo = typeModule.getType("TypeInfo");
         
-        List<Expr> infos = addTypeInfos(declarations, main);
+        List<Symbol> symbols = program.getSymbols();
+        long numOfTypeInfos = symbols.stream()
+                                     .mapToLong(s -> s.type.getTypeId())
+                                     .max()
+                                     .orElse(0);
+        
+        // typeid of the max, must fit inside the array
+        if(numOfTypeInfos > 0) {
+            numOfTypeInfos++;
+        }
+        
+        
+        ArrayTypeInfo arrayInfo = new ArrayTypeInfo(typeInfo, numOfTypeInfos, null);
+        
+        List<Expr> infos = addTypeInfos(symbols, typeModule);
         ArrayInitExpr initExpr = new ArrayInitExpr(arrayInfo, infos);
+
+        Decl typeTable = new ConstDecl("typeTable", new ArrayTypeInfo(new PtrTypeInfo(typeInfo), numOfTypeInfos, null), initExpr, 0);
+        typeModule.currentScope().addSymbol(typeModule, typeTable, "typeTable", typeTable.type, true);
         
-        Symbol sym = main.currentScope().getSymbol("typeInfos");
+        Symbol sym = typeModule.currentScope().getSymbol("typeInfos");
         if(sym.decl instanceof ConstDecl) {
             ConstDecl typeInfoArray = (ConstDecl)sym.decl;
             typeInfoArray.attributes.notes.removeIf(n -> n.note.name.equals("foreign"));
-            typeInfoArray.expr = initExpr;
+            
+            IdentifierExpr idExpr = new IdentifierExpr("typeTable", typeTable.sym.type);
+            idExpr.sym = typeTable.sym;
+            typeInfoArray.expr = new CastExpr(new PtrTypeInfo(new PtrTypeInfo(typeInfo)), idExpr);
+            
             sym.removeForeign();
         }
+        
+        Symbol size = typeModule.currentScope().getSymbol("numOfTypeInfos");
+        if(size.decl instanceof ConstDecl) {
+            ConstDecl sizeValue = (ConstDecl)size.decl;
+            sizeValue.attributes.notes.removeIf(n -> n.note.name.equals("foreign"));
+            sizeValue.expr = new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(numOfTypeInfos));
+            size.removeForeign();
+        }
+                
+        return Arrays.asList(typeTable);
     }
 
-    private static List<Expr> addTypeInfos(List<Decl> declarations, Module main) {
+    private static List<Expr> addTypeInfos(List<Symbol> symbols, Module main) {
         List<Expr> exprs = new ArrayList<>();
-        for(Decl d : declarations) {
-            exprs.add(toExpr(d, main));
+        for(Symbol s : symbols) {
+            switch(s.decl.kind) {
+                case FUNC:
+                case STRUCT:
+                case UNION:
+                case TYPEDEF:
+                case ENUM:
+                    exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(s.type.getTypeId())), toExpr(s.decl, main)));
+                    break;
+                default:
+            }
+            
         }
         return exprs;
     }
@@ -59,12 +99,13 @@ public class Reflection {
         int argPosition = 0;
         List<InitArgExpr> args = new ArrayList<>();
         args.add(new InitArgExpr("name", argPosition++, new StringExpr(d.name)));
+        args.add(new InitArgExpr("id", argPosition++, new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(d.type.getTypeId()))));
+        
         switch(d.kind) {
             case ENUM: {
                 TypeInfo kindName = new IdentifierTypeInfo("Enum", Collections.emptyList());
                 args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), kindName)));
                 args.add(new InitArgExpr("enumType", argPosition++, newEnum((EnumDecl)d, main, anonInfo.getField("enumType").type.as())));
-                //InitArgExpr arg = new InitArgExpr(fieldName, argPosition, value)
                 break;
             }
             case FUNC:
@@ -80,7 +121,7 @@ public class Reflection {
         
         }
         
-        return new InitExpr(typeInfo, args);
+        return new UnaryExpr(TokenType.BAND, new InitExpr(typeInfo, args));
     }
     
     private static Expr newEnum(EnumDecl d, Module main, StructTypeInfo enumType) {
@@ -100,12 +141,13 @@ public class Reflection {
             Expr value = (field.value != null) 
                     ? field.value : new NumberExpr(TypeInfo.I32_TYPE, String.valueOf(i));
             arrayArg.add(new InitArgExpr("value", 1, value)); // TODO: get REAL value
-            arrayValues.add(new UnaryExpr(TokenType.BAND, new InitExpr(enumFieldInfo, arrayArg)));
+            //arrayValues.add(new UnaryExpr(TokenType.BAND, new InitExpr(enumFieldInfo, arrayArg)));
+            arrayValues.add(new InitExpr(enumFieldInfo, arrayArg));
             
             i++;
         }
         
-        args.add(new InitArgExpr("fields", argPosition++, new ArrayInitExpr(enumFieldInfo, arrayValues)));
+        args.add(new InitArgExpr("fields", argPosition++, new CastExpr(new ArrayTypeInfo(enumFieldInfo, i, null), new ArrayInitExpr(enumFieldInfo, arrayValues))));
         
         return new InitExpr(enumType, args);
     }

@@ -842,6 +842,27 @@ public class Parser {
         return node(new SizeOfExpr(expr));
     }
     
+    private Expr typeofExpr() {
+        boolean hasParen = match(TokenType.LEFT_PAREN);
+        
+        Expr expr = null;
+        
+        Token t = peek();        
+        if(t.getType().isPrimitiveToken() || t.getType().equals(LEFT_BRACKET)) {            
+            TypeInfo type = type();
+            expr = new IdentifierExpr(type.getName(), type);
+        }
+        else {
+            expr = expression();
+        }
+                
+        if(hasParen) {
+            consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        }
+        
+        return node(new TypeOfExpr(expr));
+    }
+    
     private Expr functionCall() {
         Expr expr = primary();
         while(true) {
@@ -895,6 +916,7 @@ public class Parser {
         if(check(LEFT_BRACKET)) return arrayInitExpr();
         if(match(LEFT_BRACE))   return aggregateInitExpr();  
         if(match(SIZEOF))       return sizeofExpr();
+        if(match(TYPEOF))       return typeofExpr();
         
         if(check(IDENTIFIER)) {
             IdentifierTypeInfo identifier = identifierType(true);
@@ -991,6 +1013,13 @@ public class Parser {
             else if(n.getType().equals(LEFT_BRACKET)) {
                 type = arrayType(type);
             }
+            else if(n.getType().equals(CONST)) {
+                if(type instanceof ConstTypeInfo) {
+                    throw error(n, ErrorCode.INVALID_CONST_EXPR);
+                }
+                
+                type = new ConstTypeInfo(type);
+            }
             else {
                 break;
             }
@@ -1029,9 +1058,9 @@ public class Parser {
             if(match(USING)) {
                 modifiers |= Attributes.USING_MODIFIER;
             }
-            else if(match(CONST)) {
-                modifiers |= Attributes.CONST_MODIFIER;
-            }
+//            else if(match(CONST)) {
+//                modifiers |= Attributes.CONST_MODIFIER;
+//            }
             else {
                 break;
             }

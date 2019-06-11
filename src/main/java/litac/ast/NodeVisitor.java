@@ -46,6 +46,7 @@ public interface NodeVisitor {
     
     void visit(CastExpr expr);
     void visit(SizeOfExpr expr);
+    void visit(TypeOfExpr expr);
     void visit(InitArgExpr expr);    
     void visit(InitExpr expr);    
     void visit(NullExpr expr);
@@ -57,7 +58,7 @@ public interface NodeVisitor {
     void visit(FuncCallExpr expr);
     void visit(IdentifierExpr expr);
     void visit(FuncIdentifierExpr expr);
-    void visit(SizeOfIdentifierExpr expr);
+    void visit(TypeIdentifierExpr expr);
     void visit(GetExpr expr);
     void visit(SetExpr expr);
     void visit(UnaryExpr expr);
@@ -206,6 +207,10 @@ public interface NodeVisitor {
         @Override
         public void visit(SizeOfExpr expr) {
         }
+        
+        @Override
+        public void visit(TypeOfExpr expr) {
+        }
 
         @Override
         public void visit(NullExpr expr) {
@@ -248,7 +253,7 @@ public interface NodeVisitor {
         }
         
         @Override
-        public void visit(SizeOfIdentifierExpr expr) {
+        public void visit(TypeIdentifierExpr expr) {
         }
 
         @Override

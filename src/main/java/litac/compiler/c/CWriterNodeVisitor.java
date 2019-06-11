@@ -48,18 +48,20 @@ public class CWriterNodeVisitor implements NodeVisitor {
     private Set<String> writtenModules;
     private CompilationUnit unit;
     private Module main;
-        
+    private Program program;    
+    
     private Stack<Queue<DeferStmt>> defers;
     private int aggregateLevel;
     
     private List<Decl> declarations;
     
-    public CWriterNodeVisitor(CompilationUnit unit, Module main, COptions options, Buf buf) {
+    public CWriterNodeVisitor(CompilationUnit unit, Program program, COptions options, Buf buf) {
         this.unit = unit;
-        this.main = main;
+        this.program = program;
         this.options = options;
         this.buf = buf;
         
+        this.main = program.getMainModule();
         this.declarations = new ArrayList<>();
         
         this.writtenModules = new HashSet<>();
@@ -71,8 +73,8 @@ public class CWriterNodeVisitor implements NodeVisitor {
         this.main.getModuleStmt().visit(this);
         
         DependencyGraph graph = new DependencyGraph(this.main.getPhaseResult());
-        Reflection.createTypeInfos(this.declarations, this.main);
-        //this.declarations.add(0, typeInfos);
+        List<Decl> typeInfos = Reflection.createTypeInfos(this.declarations, this.program);
+        this.declarations.addAll(0, typeInfos); 
         
         this.declarations = graph.sort(this.declarations);
         for(Decl d : this.declarations) {
@@ -140,11 +142,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 boolean isFirst = true;                
                 for(ParameterDecl p : funcInfo.parameterDecls) {
                     if(!isFirst) buf.out(",");
-                    
-                    if(p.attributes.isConst()) {
-                        buf.out("const ");
-                    }
-                    
+                                        
                     buf.out("%s", getTypeNameForC(p.type));
                     
                     isFirst = false;
@@ -295,6 +293,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 
                 return String.format("%s %s", sb.toString(), declName); 
             }
+            case Const: {
+                ConstTypeInfo constInfo = type.as();
+                return String.format("const %s", typeDeclForC(constInfo.constOf, declName));
+            }
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();      
                 TypeInfo baseInfo = arrayInfo.getBaseType();
@@ -349,6 +351,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
             case Ptr: {
                 PtrTypeInfo ptrInfo = type.as();
                 return getTypeNameForC(ptrInfo.ptrOf) + "*";
+            }
+            case Const: {
+                ConstTypeInfo constInfo = type.as();
+                return "const " + getTypeNameForC(constInfo.constOf);
             }
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();                
@@ -542,10 +548,6 @@ public class CWriterNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(VarFieldStmt stmt) {
-        if((stmt.modifiers & Attributes.CONST_MODIFIER) > 0) {
-            buf.out("const ");
-        }
-        
 //        if(stmt.type.isKind(TypeKind.FuncPtr)) {
 //            buf.out("%s;\n", typeDeclForC(stmt.type, stmt.name));
 //        }
@@ -647,7 +649,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
             return;
         }
         
-        buf.out("const %s = ", typeDeclForC(d.type, name));
+        // TODO: Rethink how constants are defined!!
+        // buf.out("const %s = ", typeDeclForC(d.type, name));
+        buf.out("%s = ", typeDeclForC(d.type, name));
         d.expr.visit(this);
         buf.out(";\n");
     }
@@ -706,11 +710,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             if(!isFirst) {
                 buf.out(",");
             }
-            
-            if(p.attributes.isConst()) {
-                buf.out("const ");
-            }
-            
+                        
             if(p.type.isKind(TypeKind.FuncPtr)) {
                 buf.out("%s", getTypeNameForC(p.type));
             }
@@ -827,11 +827,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         if(isForeign(d)) {
             return;
         }
-        
-        if(d.attributes.isConst()) {
-            buf.out("const ");
-        }
-        
+                
         buf.out("%s", typeDeclForC(d.type, name));
         
         if(d.expr != null) {
@@ -970,6 +966,11 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out("sizeof(");
         expr.expr.visit(this);
         buf.out(")");
+    }
+    
+    @Override
+    public void visit(TypeOfExpr expr) {
+        buf.out("(%s)", expr.expr.getResolvedType().getResolvedType().getTypeId());
     }
     
     @Override
@@ -1207,7 +1208,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     }
 
     @Override
-    public void visit(SizeOfIdentifierExpr expr) {
+    public void visit(TypeIdentifierExpr expr) {
         visit((IdentifierExpr)expr);
     }
     

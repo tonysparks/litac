@@ -86,6 +86,11 @@ public class Generics {
                 ptrInfo.ptrOf = createGenericTypeInfo(module, ptrInfo.ptrOf, genericParams, genericArgs);
                 return ptrInfo;                
             }
+            case Const: {
+                ConstTypeInfo constInfo = type.as();
+                constInfo.constOf = createGenericTypeInfo(module, constInfo.constOf, genericParams, genericArgs);
+                return constInfo;                
+            }
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();
                 arrayInfo.arrayOf = createGenericTypeInfo(module, arrayInfo.arrayOf, genericParams, genericArgs);

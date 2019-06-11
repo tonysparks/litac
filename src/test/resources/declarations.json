@@ -217,7 +217,7 @@
 				assert(x == 1024)
 			''',
 			error: "can't reassign constant variable 'x'"
-		},
+		},*/
 		{
 			name: "Generics struct and function",
 			definitions: '''
@@ -243,6 +243,7 @@
 				    if(a.size + 1 > a.capacity) {
 				        // grow
 				    }
+				    
 				    a.elements[a.size] = element;
 				    a.size += 1
 				}
@@ -1270,7 +1271,7 @@
                 
             ''',                       
             code: '''  
-                var t : const char* = "Hello";
+                var t : char const* = "Hello";
                 assert(t)
             ''', 
         },
@@ -1278,7 +1279,7 @@
             name: "Func Const Ptr Param",
             definitions: '''         
                 // TODO Return param       
-                func test(a: const char*) : char* {
+                func test(a: char const*) : char* {
                     return a
                 }
             ''',                       
@@ -1303,7 +1304,7 @@
                 assert(t[1] == 'i');
                 assert(t[2] == '\0');
             ''', 
-        },*/
+        },
         { 
             name: "Generics Struct with No GenArgs",
             definitions: '''         

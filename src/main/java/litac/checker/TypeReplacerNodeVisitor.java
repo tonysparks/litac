@@ -272,6 +272,11 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     public void visit(SizeOfExpr expr) {
         replaceType(expr.expr).visit(this);
     }
+    
+    @Override
+    public void visit(TypeOfExpr expr) {
+        replaceType(expr.expr).visit(this);
+    }
 
     @Override
     public void visit(InitArgExpr expr) {
@@ -339,7 +344,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     }
     
     @Override
-    public void visit(SizeOfIdentifierExpr expr) {
+    public void visit(TypeIdentifierExpr expr) {
         visit((IdentifierExpr)expr);
     }
 
