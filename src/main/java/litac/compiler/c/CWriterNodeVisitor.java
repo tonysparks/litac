@@ -50,7 +50,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     private Module main;
     private Program program;    
     
-    private Stack<Queue<DeferStmt>> defers;
+    private Stack<Stack<DeferStmt>> defers;
     private int aggregateLevel;
     
     private List<Decl> declarations;
@@ -649,8 +649,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
             return;
         }
         
-        // TODO: Rethink how constants are defined!!
-        // buf.out("const %s = ", typeDeclForC(d.type, name));
+        if(d.type.isPrimitive()) {
+            buf.out("const ");
+        }
         buf.out("%s = ", typeDeclForC(d.type, name));
         d.expr.visit(this);
         buf.out(";\n");
@@ -895,7 +896,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         outputDefer(this.defers.peek());
     }
     
-    private void outputDefer(Queue<DeferStmt> q) {
+    private void outputDefer(Stack<DeferStmt> q) {
         for(DeferStmt s : q){
             s.stmt.visit(this);
             buf.out(";\n");
@@ -917,7 +918,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(ReturnStmt stmt) {
-        for(Queue<DeferStmt> d : this.defers) {
+        for(Stack<DeferStmt> d : this.defers) {
             outputDefer(d);
         }
         
@@ -933,7 +934,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     public void visit(BlockStmt stmt) {
         buf.out("{");
         
-        this.defers.add(new LinkedList<>());
+        this.defers.add(new Stack<>());
         for(Stmt s : stmt.stmts) {
             s.visit(this);
             if(s instanceof Expr) {

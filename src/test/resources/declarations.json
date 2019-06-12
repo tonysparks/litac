@@ -217,7 +217,7 @@
 				assert(x == 1024)
 			''',
 			error: "can't reassign constant variable 'x'"
-		},*/
+		},
 		{
 			name: "Generics struct and function",
 			definitions: '''
@@ -240,10 +240,6 @@
 				}
 				
 				func ArrayAdd<T>(a: Array<T>*, element: T) {
-				    if(a.size + 1 > a.capacity) {
-				        // grow
-				    }
-				    
 				    a.elements[a.size] = element;
 				    a.size += 1
 				}
@@ -509,7 +505,7 @@
 
             '''                      
         },
-        {
+        { 
             name: "Generic Func Ptr in Struct",
             definitions: '''
                 
@@ -529,6 +525,30 @@
                 assert(t.y(1) == 1)
             '''                      
         },
+        { 
+            name: "Generic Func Ptr in Struct x2",
+            definitions: '''
+                
+                struct Test<T> {
+                    y: func<T>(T):T
+                }
+
+                func test(a:i32) : i32 {
+                    return a;
+                }                
+                func test2(a:f32) : f32 {
+                    return a;
+                }            
+            ''',                       
+            code: '''                
+                
+                var t = Test<i32> { &test }
+                assert(t.y(1) == 1)
+                
+                var t2 = Test<f32> { &test2 }
+                assert(t2.y(1.4) == 1.4)
+            '''                      
+        },        
         {
             name: "Generic Func Ptr in Func",
             definitions: '''
@@ -564,7 +584,7 @@
                 var t = gen<i32>(&test, 24)
                 assert(t == 24)
             ''',
-            error: "'func<T>(i32) : i32' is not of type 'func(f32) : f32'"                      
+            error: "'func(i32) : i32' is not of type 'func(f32) : f32'"                      
         },
         {
             name: "Generic of Generic",
@@ -1275,11 +1295,52 @@
                 assert(t)
             ''', 
         },
+        
+        { 
+            name: "Invalid Const assign to non-const",
+            definitions: '''         
+                
+            ''',                       
+            code: '''  
+                var t : char const* = "Hello"
+                var x : char* = t                
+            ''', 
+            error: "'char const*' is not of type 'char*'"
+        },
+        { 
+            name: "Assign no const",
+            definitions: '''         
+                
+            ''',                       
+            code: '''  
+                var t : char* = "Hello"
+                var x : char* = t
+                assert(t == x)                
+            ''',             
+        },
+        { 
+            name: "ArrayInt const",
+            definitions: '''         
+                
+            ''',                       
+            code: '''  
+                var t : []i32 const = []i32 const {1,2,3}                               
+            ''',             
+        },*/
+        { 
+            name: "PtrInt const",
+            definitions: '''         
+                
+            ''',                       
+            code: '''  
+                var t : i32 const* = []i32 const {1,2,3} as (i32 const*)                               
+            ''',             
+        },/*
         { 
             name: "Func Const Ptr Param",
             definitions: '''         
                 // TODO Return param       
-                func test(a: char const*) : char* {
+                func test(a: char const*) : char const* {
                     return a
                 }
             ''',                       
@@ -1375,6 +1436,6 @@
                 var x : X<f32> = X{}
             ''',
             error: "incorrect number of generic argument types, requires 1 and has 0" 
-        },
+        },*/
 	]
 }

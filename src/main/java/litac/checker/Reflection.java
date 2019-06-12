@@ -75,7 +75,7 @@ public class Reflection {
                 case FUNC:
                 case STRUCT:
                 case UNION:
-                case TYPEDEF:
+                //case TYPEDEF:
                 case ENUM:
                     exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(s.type.getTypeId())), toExpr(s.decl, main)));
                     break;

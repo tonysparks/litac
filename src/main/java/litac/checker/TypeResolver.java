@@ -476,6 +476,19 @@ public class TypeResolver {
             if(d.type == null) {
                 d.type = d.expr.getResolvedType();
             }
+            else {
+                // infer the array length, if this is an array
+                if(d.type.isKind(TypeKind.Array)) {
+                    ArrayTypeInfo arrayInfo = d.type.as();
+                    if(arrayInfo.length < 0) {
+                        TypeInfo exprInfo = d.expr.getResolvedType();
+                        if(exprInfo.isKind(TypeKind.Array)) {
+                            ArrayTypeInfo exprArrayInfo = exprInfo.as();
+                            arrayInfo.length = exprArrayInfo.length;
+                        }
+                    }
+                }
+            }
             
             // if we can't infer the type, some
             // type hasn't been resolved correctly

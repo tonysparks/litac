@@ -863,9 +863,16 @@ public abstract class TypeInfo {
             // Account for c style strings
             if(target.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = target.as();
-                if(ptrInfo.ptrOf.isKind(TypeKind.Char) ||
-                   ptrInfo.ptrOf.isKind(TypeKind.u8) ||
-                   ptrInfo.ptrOf.isKind(TypeKind.i8)) {
+                
+                TypeInfo ptrOf = ptrInfo.ptrOf;
+                if(ptrInfo.ptrOf.isKind(TypeKind.Const)) {
+                    ConstTypeInfo constInfo = ptrInfo.ptrOf.as();
+                    ptrOf = constInfo.constOf;
+                }
+                
+                if(ptrOf.isKind(TypeKind.Char) ||
+                   ptrOf.isKind(TypeKind.u8) ||
+                   ptrOf.isKind(TypeKind.i8)) {
                     return true;
                 }
             }
@@ -940,6 +947,11 @@ public abstract class TypeInfo {
                 return this.ptrOf.getResolvedType().canCastTo(ptrInfo.ptrOf.getResolvedType());
             }
             
+            if(target.isKind(TypeKind.Const)) {
+                ConstTypeInfo constInfo = target.as();
+                return canCastTo(constInfo.constOf.getResolvedType());
+            }
+            
             if(target.isKind(TypeKind.Array)) {
                 ArrayTypeInfo arrayInfo = target.as();
                 return this.ptrOf.getResolvedType().canCastTo(arrayInfo.arrayOf.getResolvedType());
@@ -960,6 +972,12 @@ public abstract class TypeInfo {
             if(target.isKind(TypeKind.Str)) {
                 if(this.ptrOf.isKind(TypeKind.Char)) {
                     return true;
+                }
+                if(this.ptrOf.isKind(TypeKind.Const)) {
+                    ConstTypeInfo constInfo = this.ptrOf.as();
+                    if(constInfo.constOf.isKind(TypeKind.Char)) {
+                        return true;
+                    }    
                 }
             }
             
@@ -982,7 +1000,7 @@ public abstract class TypeInfo {
                 
         @Override
         public String getName() {
-            return "const " + this.constOf.getName();
+            return this.constOf.getName() + " const";
         }
         
         @Override
@@ -994,6 +1012,11 @@ public abstract class TypeInfo {
         public boolean canCastTo(TypeInfo target) {
             if(target == this) {
                 return true;
+            }
+            
+            if(target.isKind(TypeKind.Const)) {
+                ConstTypeInfo constInfo = target.as();
+                return this.constOf.canCastTo(constInfo.constOf);
             }
             
             if(this.constOf.canCastTo(target)) {
@@ -1122,6 +1145,11 @@ public abstract class TypeInfo {
                    target.isKind(TypeKind.Ptr)) {
                     return true;
                 }
+            }
+            
+            if(target.isKind(TypeKind.Const)) {
+                ConstTypeInfo constInfo = target.as();
+                return canCastTo(constInfo.constOf);
             }
             
             return false;

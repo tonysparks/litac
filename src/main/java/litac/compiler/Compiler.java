@@ -17,9 +17,6 @@ public class Compiler {
 
     private BackendOptions options;
     
-    /**
-     * 
-     */
     public Compiler(BackendOptions options) {
         this.options = options;
     }

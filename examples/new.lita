@@ -42,4 +42,10 @@ func main(len: i32, args: char**) : i32 {
 	if(type) {
 		printf("NAME: %s\n", type.name)
 	}
+	
+	{
+		defer printf("1\n")
+		defer printf("2\n")
+		defer printf("3\n")
+	}
 }

@@ -79,34 +79,35 @@ public class Generics {
         switch(type.getKind()) {
             case Struct:
             case Union: {
-                return createFromGenericTypeInfo(module, type, genericArgs);                
+                return createFromGenericTypeInfo(module, type.copy(), genericArgs);                
             }                
             case Ptr: {
-                PtrTypeInfo ptrInfo = type.as();
+                PtrTypeInfo ptrInfo = type.copy().as();
                 ptrInfo.ptrOf = createGenericTypeInfo(module, ptrInfo.ptrOf, genericParams, genericArgs);
                 return ptrInfo;                
             }
             case Const: {
-                ConstTypeInfo constInfo = type.as();
+                ConstTypeInfo constInfo = type.copy().as();
                 constInfo.constOf = createGenericTypeInfo(module, constInfo.constOf, genericParams, genericArgs);
                 return constInfo;                
             }
             case Array: {
-                ArrayTypeInfo arrayInfo = type.as();
+                ArrayTypeInfo arrayInfo = type.copy().as();
                 arrayInfo.arrayOf = createGenericTypeInfo(module, arrayInfo.arrayOf, genericParams, genericArgs);
                 return arrayInfo;
             }
             case FuncPtr: {
-                FuncPtrTypeInfo funcPtr = type.as();
+                FuncPtrTypeInfo funcPtr = type.copy().as();
                 funcPtr.returnType = createGenericTypeInfo(module, funcPtr.returnType, genericParams, genericArgs);
                 for(int i = 0; i < funcPtr.params.size(); i++) {
                     TypeInfo p = funcPtr.params.get(i);
                     funcPtr.params.set(i, createGenericTypeInfo(module, p, genericParams, genericArgs));
                 }
+                funcPtr.genericParams.clear();
                 return funcPtr;
             }
             case Identifier: {
-                IdentifierTypeInfo idTypeInfo = type.as();
+                IdentifierTypeInfo idTypeInfo = type.copy().as();
                 
                 // Check and see if the identifier is another generic type with generic arguments,
                 // if it has them, swap them out with the corresponding generics on the parent type
