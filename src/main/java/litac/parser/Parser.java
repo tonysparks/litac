@@ -1044,6 +1044,9 @@ public class Parser {
             else if(expr instanceof IdentifierExpr) {
                 lengthExpr = expr;
             }
+            else if(expr instanceof GetExpr) {
+                lengthExpr = expr;
+            }
             else {
                 throw error(peek(), ErrorCode.INVALID_ARRAY_DIMENSION_EXPR);
             }            
@@ -1319,20 +1322,21 @@ public class Parser {
 
     private List<Expr> arrayArguments() {
         List<Expr> arguments = new ArrayList<>();
-        if(!check(RIGHT_BRACE)) {        
-            do {
-                Expr expr = null;
-                if(check(LEFT_BRACKET)) {
-                    expr = tryArrayDesignationExpr();
-                }
-                
-                if(expr == null) {
-                    expr = expression();
-                }
-                arguments.add(expr);
-            } 
-            while(match(COMMA));            
-        }
+        do {
+            if(check(RIGHT_BRACE)) {   
+                break;
+            }
+            Expr expr = null;
+            if(check(LEFT_BRACKET)) {
+                expr = tryArrayDesignationExpr();
+            }
+            
+            if(expr == null) {
+                expr = expression();
+            }
+            arguments.add(expr);
+        } 
+        while(match(COMMA));            
         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         

@@ -570,6 +570,23 @@ public abstract class TypeInfo {
             this.fields = fields;
         }
         
+        public EnumFieldInfo getField(String fieldName) {
+            return this.fields.stream()
+                        .filter(f -> f.name.equals(fieldName))
+                        .findFirst()
+                        .orElse(null);
+        }
+        
+        public int indexOf(String fieldName) {
+            for(int index = 0; index < this.fields.size(); index++) {
+                if(this.fields.get(index).name.equals(fieldName)) {
+                    return index;
+                }
+            }
+            
+            return -1;
+        }
+        
         @Override
         public String toString() {        
             return "enum " + this.name;
@@ -1007,6 +1024,25 @@ public abstract class TypeInfo {
         public String toString() {    
             return getName();
         }
+        
+        public TypeInfo baseOf() {
+            switch(constOf.getKind()) {
+                case Ptr: {
+                    PtrTypeInfo ptrInfo = constOf.as();
+                    return ptrInfo.ptrOf;
+                }
+                case Array: {
+                    ArrayTypeInfo arrayInfo = constOf.as();
+                    return arrayInfo.arrayOf;
+                }
+                case Str: {                    
+                    return TypeInfo.CHAR_TYPE;
+                }
+                default: {
+                    return constOf;
+                }
+            }
+        }
                 
         @Override
         public boolean canCastTo(TypeInfo target) {
@@ -1110,6 +1146,7 @@ public abstract class TypeInfo {
         
         private PrimitiveTypeInfo(String name, TypeKind kind) {
             super(kind, name);            
+            this.typeId = typeIdGen.getAndIncrement();
         }
         
         @Override
@@ -1158,7 +1195,8 @@ public abstract class TypeInfo {
     
     public static class VoidTypeInfo extends TypeInfo {
         private VoidTypeInfo() {
-            super(TypeKind.Void, "void");            
+            super(TypeKind.Void, "void");
+            this.typeId = typeIdGen.getAndIncrement();
         }
         
         @Override
@@ -1194,7 +1232,8 @@ public abstract class TypeInfo {
     
     public static class NullTypeInfo extends TypeInfo {
         private NullTypeInfo() {
-            super(TypeKind.Null, "null");            
+            super(TypeKind.Null, "null");
+            this.typeId = typeIdGen.getAndIncrement();
         }
         
         @Override

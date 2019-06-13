@@ -232,24 +232,6 @@ public class TypeResolver {
             return module.currentScope();
         }
         
-        private void validateArrayDimension(Stmt stmt, TypeInfo type) {
-            switch(type.getKind()) {
-                case i128:
-                case i16:
-                case i32:
-                case i64:
-                case i8:
-                case u128:
-                case u16:
-                case u32:
-                case u64:
-                case u8:
-                    break;
-                default:                    
-                    this.result.addError(stmt, "'%s' invalid array length type", type.getName());
-            }
-        }
-                
         private TypeInfo getType(Stmt stmt, List<TypeInfo> genericArgs, List<GenericParam> genericParams, TypeInfo expectedType) {
             for(int i = 0; i < genericParams.size(); i++) {
                 GenericParam p = genericParams.get(i);
@@ -305,30 +287,54 @@ public class TypeResolver {
                 if(arrayInfo.lengthExpr != null) {                    
                     arrayInfo.lengthExpr.visit(this);
                     
-                    if(arrayInfo.lengthExpr instanceof NumberExpr) {
-                          NumberExpr nExpr = (NumberExpr) arrayInfo.lengthExpr;                   
-                          validateArrayDimension(arrayInfo.lengthExpr, nExpr.type);
-                          
-                          arrayInfo.length = nExpr.asInt();
-                          
-                      }
-                      else if(arrayInfo.lengthExpr instanceof IdentifierExpr) {
-                          IdentifierExpr iExpr = (IdentifierExpr)arrayInfo.lengthExpr;
-                          if(iExpr.sym.decl instanceof ConstDecl) {
-                              validateArrayDimension(arrayInfo.lengthExpr, iExpr.sym.decl.type);
-                              
-                              ConstDecl cExpr = (ConstDecl)iExpr.sym.decl;
-                              NumberExpr nExpr = (NumberExpr)cExpr.expr;
-                              
-                              arrayInfo.length = nExpr.asInt();
-                          }
-                          else {
-                              this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
-                          }
-                      }
+                    Integer len = asInt(arrayInfo.lengthExpr);
+                    if(len == null) {
+                        this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
+                        return;
+                    }
+                    
+                    arrayInfo.length = len;
                 }
                 
             }
+        }
+        
+        private Integer asInt(Expr expr) {
+            if(expr instanceof NumberExpr) {
+                NumberExpr nExpr = (NumberExpr) expr;                   
+                return nExpr.asInt();
+            }
+            else if(expr instanceof IdentifierExpr) {
+                IdentifierExpr iExpr = (IdentifierExpr)expr;
+                if(iExpr.sym.decl instanceof ConstDecl) {
+                    ConstDecl cExpr = (ConstDecl)iExpr.sym.decl;
+                    if(cExpr.expr instanceof NumberExpr) {
+                        NumberExpr nExpr = (NumberExpr)cExpr.expr;
+                        
+                        return nExpr.asInt();
+                    }
+                }
+            }
+            else if(expr instanceof GetExpr) {
+                GetExpr getExpr = (GetExpr)expr;
+                TypeInfo objectInfo = getExpr.object.getResolvedType();
+                if(objectInfo.isKind(TypeKind.Enum)) {
+                    EnumTypeInfo enumInfo = objectInfo.as();
+                    EnumFieldInfo field = enumInfo.getField(getExpr.field.getName());
+                    if(field != null) {
+                        if(field.value != null) {
+                            return asInt(field.value);
+                        }
+                        
+                        int index = enumInfo.indexOf(field.name);
+                        if(index > -1) {
+                            return index;
+                        }
+                    }    
+                }                
+            }
+            
+            return null;
         }
         
         
@@ -510,6 +516,19 @@ public class TypeResolver {
                 // infer the type from the expression
                 if(d.type == null) {
                     d.type = d.expr.getResolvedType();
+                }
+                else {
+                    // infer the array length, if this is an array
+                    if(d.type.isKind(TypeKind.Array)) {
+                        ArrayTypeInfo arrayInfo = d.type.as();
+                        if(arrayInfo.length < 0) {
+                            TypeInfo exprInfo = d.expr.getResolvedType();
+                            if(exprInfo.isKind(TypeKind.Array)) {
+                                ArrayTypeInfo exprArrayInfo = exprInfo.as();
+                                arrayInfo.length = exprArrayInfo.length;
+                            }
+                        }
+                    }
                 }
             }
             
@@ -1137,6 +1156,10 @@ public class TypeResolver {
                     PtrTypeInfo ptrInfo = expr.object.getResolvedType().as();
                     expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
                     break;
+                case Const:
+                    ConstTypeInfo constInfo = expr.object.getResolvedType().as();
+                    expr.resolveTo(constInfo.baseOf().getResolvedType());
+                    break;
                 case Enum: {
                     expr.resolveTo(TypeInfo.I32_TYPE);
                     break;
@@ -1157,8 +1180,5 @@ public class TypeResolver {
             expr.resolveTo(expr.value.getResolvedType());
         }
         
-       
-        
     }
-    
 }

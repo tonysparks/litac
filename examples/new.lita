@@ -32,11 +32,16 @@ func main(len: i32, args: char**) : i32 {
 	for(var i = 0_i64; i < numOfTypeInfos; i += 1_i64) {
 		var type = typeInfos[i]
 		if(type != null) {
-			printf("TypeInfo: %s\n", type.name);
+            var kindStr = typeKindStr(type.kind);
+            if(!kindStr) {
+                kindStr = "";
+            }
+			printf("TypeInfo: {.name = %-15s, .kind = %-8s, .id = %llu } \n", type.name, kindStr, type.id);
 		}
 	}
 	
-	var id = typeof(Vec2)
+    var v = Vec2 { 0,0 }
+	var id = typeof(i32)
 	printf("ID: %llu\n", id)
 	var type = getTypeInfo(id)
 	if(type) {
