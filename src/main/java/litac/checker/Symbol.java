@@ -15,6 +15,7 @@ public class Symbol {
     public static final int IS_FOREIGN  = (1<<2);
     public static final int IS_CONSTANT = (1<<3);
     public static final int IS_USING    = (1<<4);
+    public static final int IS_TYPE     = (1<<5);
     
     public final Decl decl;
     public final String name;
@@ -61,6 +62,13 @@ public class Symbol {
      */
     public boolean isUsing() {
         return (this.flags & IS_USING) > 0;
+    }
+    
+    /**
+     * @return if this symbol represents a type
+     */
+    public boolean isType() {
+        return (this.flags & IS_TYPE) > 0;
     }
     
     /**

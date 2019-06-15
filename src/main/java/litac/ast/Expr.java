@@ -129,7 +129,7 @@ public abstract class Expr extends Stmt {
         public Expr expr;
         
         public SizeOfExpr(Expr expr) {
-            if(expr instanceof IdentifierExpr) {
+            if(expr instanceof IdentifierExpr && !(expr instanceof TypeIdentifierExpr)) {
                 IdentifierExpr idExpr = (IdentifierExpr)expr;
                 expr = new TypeIdentifierExpr(idExpr.variable, idExpr.type);
                 expr.setLineNumber(idExpr.getLineNumber());
@@ -156,7 +156,7 @@ public abstract class Expr extends Stmt {
         public Expr expr;
         
         public TypeOfExpr(Expr expr) {
-            if(expr instanceof IdentifierExpr) {
+            if(expr instanceof IdentifierExpr && !(expr instanceof TypeIdentifierExpr)) {
                 IdentifierExpr idExpr = (IdentifierExpr)expr;
                 expr = new TypeIdentifierExpr(idExpr.variable, idExpr.type);
                 expr.setLineNumber(idExpr.getLineNumber());
@@ -620,6 +620,7 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             FuncIdentifierExpr idExpr = new FuncIdentifierExpr(this.variable, this.type.copy());
+            idExpr.sym = this.sym;
             return idExpr;
         }
     }
@@ -638,6 +639,7 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             TypeIdentifierExpr idExpr = new TypeIdentifierExpr(this.variable, this.type.copy());
+            idExpr.sym = this.sym;
             return idExpr;
         }
     }

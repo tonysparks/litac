@@ -968,11 +968,6 @@ public abstract class TypeInfo {
                 }
             }
             
-            if(target.isKind(TypeKind.Ptr)) {
-                PtrTypeInfo ptrInfo = target.as();
-                return this.ptrOf.getResolvedType().canCastTo(ptrInfo.ptrOf.getResolvedType());
-            }
-            
             if(target.isKind(TypeKind.Const)) {
                 ConstTypeInfo constInfo = target.as();
                 return canCastTo(constInfo.constOf.getResolvedType());
@@ -993,6 +988,17 @@ public abstract class TypeInfo {
             
             if(isInteger(target)) {
                 return true;
+            }
+            
+            if(target.isKind(TypeKind.Ptr)) {
+                PtrTypeInfo ptrInfo = target.as();
+                if(ptrInfo.ptrOf.isKind(TypeKind.Const)) {
+                    if(!this.ptrOf.isKind(TypeKind.Const)) {
+                        return false;
+                    }
+                }
+                
+                return this.ptrOf.getResolvedType().canCastTo(ptrInfo.ptrOf.getResolvedType());
             }
             
             if(target.isKind(TypeKind.Str)) {

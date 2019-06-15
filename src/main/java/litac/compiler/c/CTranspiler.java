@@ -24,7 +24,7 @@ public class CTranspiler {
         public int indentWidth;
         public String compileCmd;
         public String symbolPrefix;        
-        private BackendOptions options;
+        public BackendOptions options;
         
         
         public COptions(BackendOptions options) {

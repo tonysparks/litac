@@ -64,7 +64,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         this.main.getModuleStmt().visit(this);
         
         DependencyGraph graph = new DependencyGraph(this.main.getPhaseResult());
-        List<Decl> typeInfos = Reflection.createTypeInfos(this.declarations, this.program);
+        List<Decl> typeInfos = Reflection.createTypeInfos(this.declarations, this.program, this.options.options.typeInfo);
         this.declarations.addAll(0, typeInfos); 
         
         this.declarations = graph.sort(this.declarations);
@@ -1304,7 +1304,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             buf.out("}");
         }
         else {
-            buf.appendRaw("{0}");
+            buf.appendRaw("{}");
         }
     }
     

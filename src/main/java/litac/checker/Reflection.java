@@ -21,25 +21,28 @@ import litac.parser.tokens.TokenType;
  */
 public class Reflection {
     
-    public static List<Decl> createTypeInfos(List<Decl> declarations, Program program) {
+    public static List<Decl> createTypeInfos(List<Decl> declarations, Program program, boolean includeTypeInfos) {
         Module typeModule = program.getModule("type");
         TypeInfo typeInfo = typeModule.getType("TypeInfo");
+        long numOfTypeInfos = 0;
         
         List<Symbol> symbols = program.getSymbols();
-        long numOfTypeInfos = symbols.stream()
-                                     .mapToLong(s -> s.type.getTypeId())
-                                     .max()
-                                     .orElse(0);
-        
-        // typeid of the max, must fit inside the array
-        if(numOfTypeInfos > 0) {
-            numOfTypeInfos++;
+        if(includeTypeInfos) {
+            numOfTypeInfos = symbols.stream()
+                                    .mapToLong(s -> s.type.getTypeId())
+                                    .max()
+                                    .orElse(0);
+            
+            // typeid of the max, must fit inside the array
+            if(numOfTypeInfos > 0) {
+                numOfTypeInfos++;
+            }
         }
         
         
         ArrayTypeInfo arrayInfo = new ArrayTypeInfo(typeInfo, numOfTypeInfos, null);
         
-        List<Expr> infos = addTypeInfos(symbols, typeModule);
+        List<Expr> infos = includeTypeInfos ? addTypeInfos(symbols, typeModule) : Arrays.asList();
         ArrayInitExpr initExpr = new ArrayInitExpr(arrayInfo, infos);
 
         Decl typeTable = new ConstDecl("typeTable", new ArrayTypeInfo(new PtrTypeInfo(typeInfo), numOfTypeInfos, null), initExpr, 0);
@@ -56,6 +59,7 @@ public class Reflection {
             
             sym.removeForeign();
         }
+            
         
         Symbol size = typeModule.currentScope().getSymbol("numOfTypeInfos");
         if(size.decl instanceof ConstDecl) {

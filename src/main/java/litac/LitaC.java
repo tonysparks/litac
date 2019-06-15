@@ -96,6 +96,10 @@ public class LitaC {
                     options.outputDir = new File(args[++i]);
                     break;
                 }
+                case "-types": {                    
+                    options.typeInfo = false;
+                    break;
+                }
                 default:                    
                     options.buildFile = new File(args[i]);
                     break;

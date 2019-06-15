@@ -6,7 +6,7 @@ import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
-import litac.checker.TypeInfo.FieldInfo;
+import litac.checker.TypeInfo.*;
 
 
 /**
@@ -327,13 +327,24 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     @Override
     public void visit(IdentifierExpr expr) {
         replaceType(expr);
-        expr.type = replaceType(expr.type);
-
-        // TODO: Fix me, this shouldn't be here!
-        if(expr.type != null) {
-            TypeInfo type = expr.type.getResolvedType();
-            if(type != null && expr.sym != null) {        
-                expr.sym = type.sym;
+        
+        if(expr.sym != null && expr.sym.isType()) {
+            TypeInfo newType = replaceType(expr.type);
+            expr.type = newType;
+            expr.resolveTo(newType);
+            expr.sym = newType.sym;
+        }
+        else {
+            IdentifierTypeInfo idInfo = (IdentifierTypeInfo)expr.type;
+            if(idInfo.resolvedType != null) {
+                idInfo.resolvedType = replaceType(idInfo.resolvedType);
+                expr.resolveTo(idInfo);
+            }
+            else {
+                TypeInfo newType = replaceType(expr.type);
+                expr.type = newType;
+                expr.resolveTo(newType);
+                expr.sym = newType.sym;
             }
         }
     }

@@ -27,6 +27,7 @@ public class BackendOptions {
     public String outputFileName;
     public OsType targetOS;
     public boolean run;
+    public boolean typeInfo;
     
     public CTranspiler.COptions cOptions;
     
@@ -47,6 +48,7 @@ public class BackendOptions {
         
         this.targetOS = OsType.WINDOWS;
         this.run = false;
+        this.typeInfo = true;
         
         this.cOptions = type == BackendType.C ? new CTranspiler.COptions(this) : null;
     }

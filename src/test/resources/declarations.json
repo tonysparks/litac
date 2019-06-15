@@ -11,7 +11,7 @@
 		}
 	'''
 	tests: [		
-		/*{
+		{
 			name: "Primatives",
 			code: '''
 				var i = 32
@@ -218,6 +218,9 @@
 			''',
 			error: "can't reassign constant variable 'x'"
 		},
+		
+		
+		
 		{
 			name: "Generics struct and function",
 			definitions: '''
@@ -240,7 +243,7 @@
 				}
 				
 				func ArrayAdd<T>(a: Array<T>*, element: T) {
-				    a.elements[a.size] = element;
+				 //   a.elements[a.size] = element;
 				    a.size += 1
 				}
 							
@@ -254,10 +257,13 @@
 				assert(a.size == 0);
 				
 				ArrayAdd<i32>(a, 4)
-				assert(a.elements[0] == 4)
+				//assert(a.elements[0] == 4)
 				  
 			'''
 		},
+		
+		
+		
 		{
             name: "Generics with greaterthan sign",
             definitions: '''                
@@ -473,7 +479,7 @@
                 var t = Test { .a: &test }
                 assert(t.a(1) == 1)
             '''                      
-        },*/
+        },
         {
             name: "ReadME Generics",
             definitions: '''
@@ -504,7 +510,7 @@
                 Vec2Add<f32>(origin, origin, origin)
 
             '''                      
-        },/*
+        },
         { 
             name: "Generic Func Ptr in Struct",
             definitions: '''
@@ -548,7 +554,7 @@
                 var t2 = Test<f32> { &test2 }
                 assert(t2.y(1.4) == 1.4)
             '''                      
-        },        
+        }, ///       
         {
             name: "Generic Func Ptr in Func",
             definitions: '''
@@ -1297,7 +1303,7 @@
         },
         
         { 
-            name: "Invalid Const assign to non-const",
+            name: "Invalid Const assign to nonconst",
             definitions: '''         
                 
             ''',                       
@@ -1333,6 +1339,7 @@
                 
             ''',                       
             code: '''  
+            	// doesn't work - disallow?
                 var t : i32 const* = []i32 const {1,2,3} as (i32 const*)                               
             ''',             
         },
@@ -1436,6 +1443,6 @@
                 var x : X<f32> = X{}
             ''',
             error: "incorrect number of generic argument types, requires 1 and has 0" 
-        },*/
+        }, 
 	]
 }

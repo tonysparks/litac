@@ -76,11 +76,15 @@ public class Scope {
             flags |= Symbol.IS_FOREIGN;
         }
         
+        if(isNewType) {
+            flags |= Symbol.IS_TYPE;
+        }
+        
         Symbol sym = new Symbol(decl, symbolName, type, module, flags);
         decl.sym = sym;
         
         if(isNewType) {
-            type.sym = sym;
+            type.sym = sym;            
         }
         
         if(decl instanceof ParameterDecl && type.isKind(TypeKind.FuncPtr)) {
