@@ -133,11 +133,11 @@ public struct TypeInfo {
 }
 
 public func getTypeInfo(id: typeid) : TypeInfo* {
-	if (id < 0_i64 || id >= numOfTypeInfos) {
-		return null;
-	}
-	
-	return typeInfos[id];
+    if (id < 0_i64 || id >= numOfTypeInfos) {
+        return null;
+    }
+    
+    return typeInfos[id];
 }
 
 public func typeKindStr(kind: TypeKind) : char const* {

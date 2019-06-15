@@ -1,108 +1,108 @@
 {
-	description: "Tests Generics",
-	program: '''				
-		@include("assert.h");
-		@foreign func assert(e:bool):void;
-		
-		%definitions%
-		
-		func main(len:i32, args:char**):i32 {
-			%test%
-		}
-	'''
-	tests: [		
-		
-		{
-			name: "Generics struct with union",
-			definitions: '''				
-				struct Person<T> {
-					union X<T> {
-						v: T
-					}
-				}
-							
-			''',			
-			code: '''
-				var x = Person<i32> { .X: X<i32>{4} }				
-				assert(x.X.v == 4)
-				  
-			'''
-		},
-		{
-			name: "Generics struct within union and generic field",
-			definitions: '''				
-				struct Person<T> {
-					union X<T> {
-						v: T
-					}
-					age: T
-				}
-							
-			''',			
-			code: '''
-				var x = Person<i32> { .X: X<i32>{4}, .age:56 }				
-				assert(x.X.v == 4)
-				assert(x.age == 56)  
-			'''
-		},
-		{
-			name: "Generics struct within union and field",
-			definitions: '''				
-				struct Person<T> {
-					union X<T> {
-						v: T
-					}
-					age: i64
-				}
-							
-			''',			
-			code: '''
-				var x = Person<i32> { .X: X<i32>{4}, .age:56_i64 }				
-				assert(x.X.v == 4)
-				assert(x.age == 56_i64)  
-			'''
-		},
-		{
-			name: "Generics struct and function",
-			definitions: '''
-				@include("stdlib.h");
+    description: "Tests Generics",
+    program: '''                
+        @include("assert.h");
+        @foreign func assert(e:bool):void;
+        
+        %definitions%
+        
+        func main(len:i32, args:char**):i32 {
+            %test%
+        }
+    '''
+    tests: [        
+        
+        {
+            name: "Generics struct with union",
+            definitions: '''                
+                struct Person<T> {
+                    union X<T> {
+                        v: T
+                    }
+                }
+                            
+            ''',            
+            code: '''
+                var x = Person<i32> { .X: X<i32>{4} }               
+                assert(x.X.v == 4)
+                  
+            '''
+        },
+        {
+            name: "Generics struct within union and generic field",
+            definitions: '''                
+                struct Person<T> {
+                    union X<T> {
+                        v: T
+                    }
+                    age: T
+                }
+                            
+            ''',            
+            code: '''
+                var x = Person<i32> { .X: X<i32>{4}, .age:56 }              
+                assert(x.X.v == 4)
+                assert(x.age == 56)  
+            '''
+        },
+        {
+            name: "Generics struct within union and field",
+            definitions: '''                
+                struct Person<T> {
+                    union X<T> {
+                        v: T
+                    }
+                    age: i64
+                }
+                            
+            ''',            
+            code: '''
+                var x = Person<i32> { .X: X<i32>{4}, .age:56_i64 }              
+                assert(x.X.v == 4)
+                assert(x.age == 56_i64)  
+            '''
+        },
+        {
+            name: "Generics struct and function",
+            definitions: '''
+                @include("stdlib.h");
 
-				@foreign func malloc(size: u64) : void*;
-								
-				struct Array<T> {
-					size: i32
-					capacity: i32
-					elements: T*
-				}
-				
-				func ArrayInit<T>(a: Array<T>**, initialSize: i32) {
-				    var size = sizeof(Array<T>) + (sizeof(T) * initialSize as (u64));
-					*a = malloc(size) as (Array<T>*);
-					(*a).size = 0;
-					(*a).capacity = initialSize;	
-					(*a).elements =	(*a + sizeof(Array<T>)) as (T*)				
-				}
-				
-				func ArrayAdd<T>(a: Array<T>*, element: T) {
-				 //   a.elements[a.size] = element;
-				    a.size += 1
-				}
-							
-			''',			
-			code: '''
-				var a : Array<i32>* = null;
-				ArrayInit<i32>(&a, 23);
-				
-				assert(a);
-				assert(a.capacity == 23)
-				assert(a.size == 0);
-				
-				ArrayAdd<i32>(a, 4)
-				//assert(a.elements[0] == 4)
-				  
-			'''
-		},
-		{
+                @foreign func malloc(size: u64) : void*;
+                                
+                struct Array<T> {
+                    size: i32
+                    capacity: i32
+                    elements: T*
+                }
+                
+                func ArrayInit<T>(a: Array<T>**, initialSize: i32) {
+                    var size = sizeof(Array<T>) + (sizeof(T) * initialSize as (u64));
+                    *a = malloc(size) as (Array<T>*);
+                    (*a).size = 0;
+                    (*a).capacity = initialSize;    
+                    (*a).elements = (*a + sizeof(Array<T>)) as (T*)             
+                }
+                
+                func ArrayAdd<T>(a: Array<T>*, element: T) {
+                 //   a.elements[a.size] = element;
+                    a.size += 1
+                }
+                            
+            ''',            
+            code: '''
+                var a : Array<i32>* = null;
+                ArrayInit<i32>(&a, 23);
+                
+                assert(a);
+                assert(a.capacity == 23)
+                assert(a.size == 0);
+                
+                ArrayAdd<i32>(a, 4)
+                //assert(a.elements[0] == 4)
+                  
+            '''
+        },
+        {
             name: "Generics with greaterthan sign",
             definitions: '''                
                 func test<T>(a: T) : T {
@@ -131,7 +131,7 @@
             ''',
             error: "illegal, left operand has type 'Testf32'"
         },
-		{
+        {
             name: "Break Generics via Expression",                       
             code: '''
                 var a = 1
@@ -373,5 +373,5 @@
             ''',
             error: "incorrect number of generic argument types, requires 1 and has 0" 
         }, 
-	]
+    ]
 }

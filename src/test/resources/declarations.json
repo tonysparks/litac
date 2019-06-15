@@ -1,174 +1,174 @@
 {
-	description: "Tests Declarations",
-	program: '''				
-		@include("assert.h");
-		@foreign func assert(e:bool):void;
-		
-		%definitions%
-		
-		func main(len:i32, args:char**):i32 {
-			%test%
-		}
-	'''
-	tests: [		
-		{
-			name: "Primatives",
-			code: '''
-				var i = 32
-				assert( i == 32 )
-				
-				var j = 64_i64
-				assert( j == 64_i64 )
-				
-				var b = false
-				assert( !b )
-				b = true
-				assert(b)
-				
-				var f = 45.756
-				assert(f == 45.756)
-				
-				var d = 245.756_f64
-				assert(d == 245.756_f64)
-				
-				var p = "hello"				
-				assert(p)
-				assert(p[0] == 'h')
-				
-				var index = p
-				var k = 0
-				while (*index) {
-					assert(p[k] == *index)
-					index += 1
-					k += 1
-				}
-				  
-			'''
-		}, 
-		{
-			name: "Casts",
-			definitions: '''
-				struct T {
-					v: i32
-				}
-				
-				struct X<T> {
-					v: T
-				}
-							
-			''',			
-			code: '''
-				var i : i64 = 32 as (i64) + 45_i64
-				assert( i == 77_i64 )
-				
-				
-				i = 2_i64*32 as (i64) + 45_i64
-				assert( i == 109_i64 )
+    description: "Tests Declarations",
+    program: '''                
+        @include("assert.h");
+        @foreign func assert(e:bool):void;
+        
+        %definitions%
+        
+        func main(len:i32, args:char**):i32 {
+            %test%
+        }
+    '''
+    tests: [        
+        {
+            name: "Primatives",
+            code: '''
+                var i = 32
+                assert( i == 32 )
+                
+                var j = 64_i64
+                assert( j == 64_i64 )
+                
+                var b = false
+                assert( !b )
+                b = true
+                assert(b)
+                
+                var f = 45.756
+                assert(f == 45.756)
+                
+                var d = 245.756_f64
+                assert(d == 245.756_f64)
+                
+                var p = "hello"             
+                assert(p)
+                assert(p[0] == 'h')
+                
+                var index = p
+                var k = 0
+                while (*index) {
+                    assert(p[k] == *index)
+                    index += 1
+                    k += 1
+                }
+                  
+            '''
+        }, 
+        {
+            name: "Casts",
+            definitions: '''
+                struct T {
+                    v: i32
+                }
+                
+                struct X<T> {
+                    v: T
+                }
+                            
+            ''',            
+            code: '''
+                var i : i64 = 32 as (i64) + 45_i64
+                assert( i == 77_i64 )
+                
+                
+                i = 2_i64*32 as (i64) + 45_i64
+                assert( i == 109_i64 )
 
-				
-				var t = T { 4}
-				var x = X<i32> {44} as (X<i32>)
-				  
-			'''
-		}, 
-		{
-			name: "Invalid struct Casts",
-			definitions: '''				
-				struct X<T> {
-					v: T
-				}
-							
-			''',			
-			code: '''
-				var x = X<i32> {44} as (X<f32>)
-				  
-			''',
-			error: "'struct Xf32' can't be casted to 'struct Xi32'"
-		},
-		{
-			name: "Invalid union Casts",
-			definitions: '''				
-				union X<T> {
-					v: T
-				}
-							
-			''',			
-			code: '''
-				var x = X<i32> {44} as (X<f32>)
-				  
-			''',
-			error: "'union Xf32' can't be casted to 'union Xi32'"
-		},
-		
-		{
-			name: "Enum",
-			definitions: '''				
-				enum TypeInfo {
-					Int = 0,
-					Float,
-					Double
-				}
-							
-			''',			
-			code: '''
-				var x: TypeInfo = TypeInfo.Int
-				assert(x == TypeInfo.Int)  
-			'''
-		},
-		{
-			name: "Enum different args",
-			definitions: '''				
-				enum TypeInfo {
-					Int = 12,
-					Float = 54,
-					Double = 166
-				}
-							
-			''',			
-			code: '''
-				var x = TypeInfo.Int
-				var y = TypeInfo.Float as (i32)
-				assert(x == TypeInfo.Int)  
-				assert(y == 54)
-				assert(TypeInfo.Int as (i32) == 12)
-				assert(TypeInfo.Float as (i32) == 54)
-				assert(TypeInfo.Double as (i32) == 166)
-			'''
-		},
-		{
-			name: "Enum in struct",
-			definitions: '''	
-				struct Type {			
-					enum TypeInfo {
-						Int = 12,
-						Float = 54,
-						Double = 166
-					}
-				}
-							
-			''',			
-			code: '''
-				var x = Type{TypeInfo.Int}
-				var y = TypeInfo.Float as (i32)
-				assert(x.TypeInfo == TypeInfo.Int)
-			'''
-		},
-		{
-			name: "Constant",					
-			code: '''
-				const x = 1024				
-				assert(x == 1024)
-			'''
-		},
-		{
-			name: "Invalid Constant reassign",					
-			code: '''
-				const x = 1024
-				x = 10
-				assert(x == 1024)
-			''',
-			error: "can't reassign constant variable 'x'"
-		},
+                
+                var t = T { 4}
+                var x = X<i32> {44} as (X<i32>)
+                  
+            '''
+        }, 
+        {
+            name: "Invalid struct Casts",
+            definitions: '''                
+                struct X<T> {
+                    v: T
+                }
+                            
+            ''',            
+            code: '''
+                var x = X<i32> {44} as (X<f32>)
+                  
+            ''',
+            error: "'struct Xf32' can't be casted to 'struct Xi32'"
+        },
+        {
+            name: "Invalid union Casts",
+            definitions: '''                
+                union X<T> {
+                    v: T
+                }
+                            
+            ''',            
+            code: '''
+                var x = X<i32> {44} as (X<f32>)
+                  
+            ''',
+            error: "'union Xf32' can't be casted to 'union Xi32'"
+        },
+        
+        {
+            name: "Enum",
+            definitions: '''                
+                enum TypeInfo {
+                    Int = 0,
+                    Float,
+                    Double
+                }
+                            
+            ''',            
+            code: '''
+                var x: TypeInfo = TypeInfo.Int
+                assert(x == TypeInfo.Int)  
+            '''
+        },
+        {
+            name: "Enum different args",
+            definitions: '''                
+                enum TypeInfo {
+                    Int = 12,
+                    Float = 54,
+                    Double = 166
+                }
+                            
+            ''',            
+            code: '''
+                var x = TypeInfo.Int
+                var y = TypeInfo.Float as (i32)
+                assert(x == TypeInfo.Int)  
+                assert(y == 54)
+                assert(TypeInfo.Int as (i32) == 12)
+                assert(TypeInfo.Float as (i32) == 54)
+                assert(TypeInfo.Double as (i32) == 166)
+            '''
+        },
+        {
+            name: "Enum in struct",
+            definitions: '''    
+                struct Type {           
+                    enum TypeInfo {
+                        Int = 12,
+                        Float = 54,
+                        Double = 166
+                    }
+                }
+                            
+            ''',            
+            code: '''
+                var x = Type{TypeInfo.Int}
+                var y = TypeInfo.Float as (i32)
+                assert(x.TypeInfo == TypeInfo.Int)
+            '''
+        },
+        {
+            name: "Constant",                   
+            code: '''
+                const x = 1024              
+                assert(x == 1024)
+            '''
+        },
+        {
+            name: "Invalid Constant reassign",                  
+            code: '''
+                const x = 1024
+                x = 10
+                assert(x == 1024)
+            ''',
+            error: "can't reassign constant variable 'x'"
+        },
         {
             name: "Typedef primitives",
             definitions: '''                
@@ -1044,7 +1044,7 @@
                 
             ''',                       
             code: '''  
-            	// doesn't work - disallow?
+                // doesn't work - disallow?
                 var t : i32 const* = []i32 const {1,2,3} as (i32 const*)                               
             ''',             
         },
@@ -1078,5 +1078,5 @@
                 assert(t[2] == '\0');
             ''', 
         },       
-	]
+    ]
 }
