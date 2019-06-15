@@ -1,0 +1,149 @@
+module type;
+
+@foreign public const typeInfos: TypeInfo**;
+@foreign public const numOfTypeInfos : i64;
+
+public enum TypeKind {
+    Bool,
+    Char,
+    I8,  U8,
+    I16, U16,
+    I32, U32,
+    I64, U64,
+    //    i128,u128,
+    F32, F64,
+        
+    Str,
+    Array,
+    Ptr,
+    Null,
+    FuncPtr,
+        
+    Struct,
+    Func,
+    Enum,
+    Union,
+        
+    Void,
+    
+    MaxTypeKind
+}
+
+const kindStr = [TypeKind.MaxTypeKind]char const* {
+    [TypeKind.Bool]   = "Bool",
+    [TypeKind.Char]   = "Char",
+    [TypeKind.I8]     = "I8",  
+    [TypeKind.U8]     = "U8",
+    [TypeKind.I16]    = "I16", 
+    [TypeKind.U16]    = "U16",
+    [TypeKind.I32]    = "I32", 
+    [TypeKind.U32]    = "U32",
+    [TypeKind.I64]    = "I64", 
+    [TypeKind.U64]    = "U64",
+    //    i128,u128,
+    [TypeKind.F32]    = "F32", 
+    [TypeKind.F64]    = "F64",
+        
+    [TypeKind.Str]    = "Str",
+    [TypeKind.Array]  = "Array",
+    [TypeKind.Ptr]    = "Ptr",
+    [TypeKind.Null]   = "Null",
+    [TypeKind.FuncPtr]= "FuncPtr",
+        
+    [TypeKind.Struct] = "Struct",
+    [TypeKind.Func]   = "Func",
+    [TypeKind.Enum]   = "Enum",
+    [TypeKind.Union]  = "Union",
+        
+    [TypeKind.Void]   = "Void",
+}
+
+typedef i64 as typeid;
+
+public enum Modifiers {
+    Using = (1<<0),    
+}
+
+public struct GenericInfo {
+    args: char const**
+    numOfArgs: i32
+}
+
+public struct ParamInfo {
+    genInfo: using GenericInfo
+    name: char const*
+    type: typeid
+    modifiers: Modifiers
+}
+
+public struct FieldInfo {
+    name: char const*
+    type: typeid
+    modifiers: Modifiers
+}
+
+public struct EnumFieldInfo {
+    name: char const*
+    value: i32
+}
+
+public struct TypeInfo {
+    kind:   TypeKind;
+    name:   char const*;
+    id:     typeid;
+    
+    union {
+        struct arrayType {
+            length:  i32
+            arrayOfType: typeid
+        }
+        struct ptrType {
+            ptrOfType: typeid
+        }
+        struct funcPtrType {
+            genInfo: using GenericInfo
+            returnType: typeid
+            params: ParamInfo*
+            numOfParams: i32
+        }
+        struct funcType {
+            genInfo: using GenericInfo
+            name: char const*
+            isVararg: bool
+            returnType: TypeInfo*
+            params: ParamInfo*
+            numOfParams: i32
+        }
+        struct structType {
+            name: char const*
+            fields: FieldInfo*
+            numOfFields: i32
+        }
+        struct unionType {
+            name: char const*
+            fields: FieldInfo*
+            numOfFields: i32
+        }
+        struct enumType {
+            name: char const*
+            fields: EnumFieldInfo*
+            numOfFields: i32
+        }
+    }
+}
+
+public func getTypeInfo(id: typeid) : TypeInfo* {
+	if (id < 0_i64 || id >= numOfTypeInfos) {
+		return null;
+	}
+	
+	return typeInfos[id];
+}
+
+public func typeKindStr(kind: TypeKind) : char const* {
+    if(kind < 0 || kind > TypeKind.MaxTypeKind) {
+        return null;
+    }
+    
+    return kindStr[kind]
+}

@@ -69,9 +69,10 @@ public class TestSuite {
                 BackendOptions options = new BackendOptions();
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = "";
+                options.run = true;
+                options.typeInfo = false;
                 
                 PhaseResult result = LitaC.compile(options);
-                
                 if(result.hasErrors()) {
                     for(PhaseError error : result.getErrors()) {
                         Errors.typeCheckError(error.stmt, error.message);
@@ -84,9 +85,13 @@ public class TestSuite {
                     for(PhaseError error : result.getErrors()) {                        
                         assertTrue(error.message.contains(test.error));        
                     }            
-                } 
+                }
+                else {
+                    assertNull(test.error);
+                }
                 
                 assertTrue(errorStream.toString("UTF-8").isEmpty());
+                
             }
             catch(Exception e) {
                 if(test.error == null) {

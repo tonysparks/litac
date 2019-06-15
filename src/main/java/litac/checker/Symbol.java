@@ -14,12 +14,14 @@ public class Symbol {
     public static final int IS_LOCAL    = (1<<1);
     public static final int IS_FOREIGN  = (1<<2);
     public static final int IS_CONSTANT = (1<<3);
+    public static final int IS_USING    = (1<<4);
+    public static final int IS_TYPE     = (1<<5);
     
     public final Decl decl;
     public final String name;
     public final TypeInfo type;
     public final Module declared;
-    private final int flags;
+    private      int flags;
     
     public Symbol(Decl decl, 
                   String name,
@@ -53,5 +55,26 @@ public class Symbol {
      */
     public boolean isConstant() {
         return (this.flags & IS_CONSTANT) > 0;
+    }
+    
+    /**
+     * @return true if this symbol was defined from a using modifier
+     */
+    public boolean isUsing() {
+        return (this.flags & IS_USING) > 0;
+    }
+    
+    /**
+     * @return if this symbol represents a type
+     */
+    public boolean isType() {
+        return (this.flags & IS_TYPE) > 0;
+    }
+    
+    /**
+     * Removes the foreign designation
+     */
+    public void removeForeign() {
+        this.flags &= ~IS_FOREIGN;
     }
 }

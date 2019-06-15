@@ -18,7 +18,7 @@ import litac.parser.ParseException;
 public enum TokenType {
     // Reserved words.    
     STRUCT, 
-        VAR, CONST, FUNC, ENUM, FOR, WHILE, DO, IF, ELSE, BREAK, CONTINUE, RETURN, GOTO, DEFER,
+        VAR, CONST, FUNC, ENUM, USING, FOR, WHILE, DO, IF, ELSE, BREAK, CONTINUE, RETURN, GOTO, DEFER,
         NULL, VOID, 
         TRUE, FALSE, BOOL, CHAR,
         I8, U8,
@@ -28,7 +28,7 @@ public enum TokenType {
         I128,U128,
         F32, F64, STRING, 
         ///ARRAY, 
-        MODULE, IMPORT, AS, TYPEDEF, SIZEOF, PUBLIC,
+        MODULE, IMPORT, AS, TYPEDEF, SIZEOF, TYPEOF, PUBLIC,
     UNION,
     // end Reserved words
 

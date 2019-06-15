@@ -49,6 +49,14 @@ public class Scope {
     }
     
     public Symbol addSymbol(Module module, Decl decl, String symbolName, TypeInfo type, boolean isConstant) {
+        int flags = 0;
+        if(isConstant) {
+            flags |= Symbol.IS_CONSTANT;
+        }
+        return addSymbol(module, decl, symbolName, type, flags);
+    }
+    
+    public Symbol addSymbol(Module module, Decl decl, String symbolName, TypeInfo type, int flags) {
         if(this.symbols.containsKey(symbolName)) {
             this.result.addError(decl, "symbol '%s' already defined", symbolName);
         }
@@ -58,7 +66,6 @@ public class Scope {
                             !(decl instanceof TypedefDecl) &&
                             !(decl instanceof ParameterDecl); 
         
-        int flags = 0;
         if(this.type.equals(ScopeType.LOCAL)) {
             if(!isNewType) {
                 flags |= Symbol.IS_LOCAL;
@@ -69,15 +76,15 @@ public class Scope {
             flags |= Symbol.IS_FOREIGN;
         }
         
-        if(isConstant) {
-            flags |= Symbol.IS_CONSTANT;
+        if(isNewType) {
+            flags |= Symbol.IS_TYPE;
         }
         
         Symbol sym = new Symbol(decl, symbolName, type, module, flags);
         decl.sym = sym;
         
         if(isNewType) {
-            type.sym = sym;
+            type.sym = sym;            
         }
         
         if(decl instanceof ParameterDecl && type.isKind(TypeKind.FuncPtr)) {

@@ -6,7 +6,7 @@ import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
-import litac.checker.TypeInfo.FieldInfo;
+import litac.checker.TypeInfo.*;
 
 
 /**
@@ -196,7 +196,9 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     @Override
     public void visit(ConstDecl d) {
         replaceType(d);
-        replaceType(d.expr).visit(this);
+        if(d.expr != null) {
+            replaceType(d.expr).visit(this);
+        }
     }
 
     @Override
@@ -246,6 +248,20 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     }
 
     @Override
+    public void visit(VarDeclsStmt stmt) {
+        for(Decl d : stmt.vars) {
+            d.visit(this);
+        }
+    }
+    
+    @Override
+    public void visit(ConstDeclsStmt stmt) {
+        for(Decl d : stmt.consts) {
+            d.visit(this);
+        }
+    }
+    
+    @Override
     public void visit(CastExpr expr) {
         expr.castTo = replaceType(expr.castTo);
         replaceType(expr.expr).visit(this);
@@ -254,6 +270,11 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(SizeOfExpr expr) {
+        replaceType(expr.expr).visit(this);
+    }
+    
+    @Override
+    public void visit(TypeOfExpr expr) {
         replaceType(expr.expr).visit(this);
     }
 
@@ -306,13 +327,24 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     @Override
     public void visit(IdentifierExpr expr) {
         replaceType(expr);
-        expr.type = replaceType(expr.type);
-
-        // TODO: Fix me, this shouldn't be here!
-        if(expr.type != null) {
-            TypeInfo type = expr.type.getResolvedType();
-            if(type != null) {        
-                expr.sym = type.sym;
+        
+        if(expr.sym != null && expr.sym.isType()) {
+            TypeInfo newType = replaceType(expr.type);
+            expr.type = newType;
+            expr.resolveTo(newType);
+            expr.sym = newType.sym;
+        }
+        else {
+            IdentifierTypeInfo idInfo = (IdentifierTypeInfo)expr.type;
+            if(idInfo.resolvedType != null) {
+                idInfo.resolvedType = replaceType(idInfo.resolvedType);
+                expr.resolveTo(idInfo);
+            }
+            else {
+                TypeInfo newType = replaceType(expr.type);
+                expr.type = newType;
+                expr.resolveTo(newType);
+                expr.sym = newType.sym;
             }
         }
     }
@@ -323,14 +355,15 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     }
     
     @Override
-    public void visit(SizeOfIdentifierExpr expr) {
+    public void visit(TypeIdentifierExpr expr) {
         visit((IdentifierExpr)expr);
     }
 
     @Override
     public void visit(GetExpr expr) {
         replaceType(expr);
-        replaceType(expr.object).visit(this);        
+        replaceType(expr.object).visit(this);
+        expr.field = replaceType(expr.field);
     }
 
     @Override
@@ -338,6 +371,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         replaceType(expr);
         replaceType(expr.object).visit(this);
         replaceType(expr.value).visit(this);
+        expr.field = replaceType(expr.field);
     }
 
     @Override

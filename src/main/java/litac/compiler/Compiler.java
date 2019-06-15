@@ -17,9 +17,6 @@ public class Compiler {
 
     private BackendOptions options;
     
-    /**
-     * 
-     */
     public Compiler(BackendOptions options) {
         this.options = options;
     }
@@ -33,34 +30,34 @@ public class Compiler {
         PhaseResult result = new PhaseResult();
         
         CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
-        Module main = typeCheck(options, result, unit);
+        Program program = typeCheck(options, result, unit);
         
         if(!result.hasErrors()) {
-            compile(options, result, unit, main);
+            compile(options, result, unit, program);
         }
                 
         return result;
     }
     
-    private Module typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
+    private Program typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
         TypeResolver resolver = new TypeResolver(result, unit);        
         TypeChecker checker = new TypeChecker(result);
                 
-        Module main = resolver.resolveTypes();
+        Program program = resolver.resolveTypes();
         if(!result.hasErrors()) {
-            checker.typeCheck(main);
+            checker.typeCheck(program.getMainModule());
         }
         
-        return main;
+        return program;
     }
     
     private static void compile(BackendOptions options, 
                                 PhaseResult checkerResult, 
                                 CompilationUnit unit,
-                                Module main) throws Exception {
+                                Program program) throws Exception {
         switch(options.backendType) {            
             case C: {
-                CTranspiler.transpile(checkerResult, unit, main, options);
+                CTranspiler.transpile(checkerResult, unit, program, options);
                 break;
             }
             default: {

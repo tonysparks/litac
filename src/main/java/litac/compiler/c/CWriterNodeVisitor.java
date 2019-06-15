@@ -3,16 +3,7 @@
  */
 package litac.compiler.c;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.Map.Entry;
 
 import litac.LitaC;
@@ -23,11 +14,9 @@ import litac.ast.Stmt;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
-import litac.checker.Module;
-import litac.checker.Note;
-import litac.checker.Symbol;
-import litac.checker.TypeInfo;
+import litac.checker.*;
 import litac.checker.TypeInfo.*;
+import litac.checker.FieldPath.FieldPathNode;
 import litac.compiler.Buf;
 import litac.compiler.CompilationUnit;
 import litac.compiler.c.CTranspiler.COptions;
@@ -50,19 +39,38 @@ public class CWriterNodeVisitor implements NodeVisitor {
     private Set<String> writtenModules;
     private CompilationUnit unit;
     private Module main;
-        
-    private Stack<Queue<DeferStmt>> defers;
+    private Program program;    
+    
+    private Stack<Stack<DeferStmt>> defers;
     private int aggregateLevel;
     
-    public CWriterNodeVisitor(CompilationUnit unit, Module main, COptions options, Buf buf) {
+    private List<Decl> declarations;
+    
+    public CWriterNodeVisitor(CompilationUnit unit, Program program, COptions options, Buf buf) {
         this.unit = unit;
-        this.main = main;
+        this.program = program;
         this.options = options;
         this.buf = buf;
+        
+        this.main = program.getMainModule();
+        this.declarations = new ArrayList<>();
         
         this.writtenModules = new HashSet<>();
         this.defers = new Stack<>();
         preface();
+    }
+    
+    public void write() {
+        this.main.getModuleStmt().visit(this);
+        
+        DependencyGraph graph = new DependencyGraph(this.main.getPhaseResult());
+        List<Decl> typeInfos = Reflection.createTypeInfos(this.declarations, this.program, this.options.options.typeInfo);
+        this.declarations.addAll(0, typeInfos); 
+        
+        this.declarations = graph.sort(this.declarations);
+        for(Decl d : this.declarations) {
+            d.visit(this);
+        }
     }
     
     /**
@@ -97,6 +105,8 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out("#define %s 0\n", prefix("false"));
         buf.out("#define %s void\n", prefix("void"));
         buf.outln();
+        
+        this.unit.getBuiltin().visit(this);
     }
     
     private void writeForwardDecl(Buf buf, String backendName, TypeInfo type) {
@@ -123,7 +133,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 boolean isFirst = true;                
                 for(ParameterDecl p : funcInfo.parameterDecls) {
                     if(!isFirst) buf.out(",");
-                    
+                                        
                     buf.out("%s", getTypeNameForC(p.type));
                     
                     isFirst = false;
@@ -222,19 +232,6 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }
             
             return 0;
-            
-//            if(aKind == TypeKind.Func) {
-//                if(bKind == TypeKind.Func) {
-//                    return 0;
-//                }
-//                return 1;
-//            }
-//            else {
-//                if(bKind == TypeKind.Func) {
-//                    return -1;
-//                }
-//            }
-//            return 0;
         }
     };
     
@@ -287,6 +284,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 
                 return String.format("%s %s", sb.toString(), declName); 
             }
+            case Const: {
+                ConstTypeInfo constInfo = type.as();
+                return String.format("const %s", typeDeclForC(constInfo.constOf, declName));
+            }
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();      
                 TypeInfo baseInfo = arrayInfo.getBaseType();
@@ -295,10 +296,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 StringBuilder sb = new StringBuilder();
                 do {
                     if(arrayInfo.length < 0) {
-                        sb.insert(0, "[]");
+                        sb.append("[]");
                     }
                     else {
-                        sb.insert(0, String.format("[%d]", arrayInfo.length));
+                        sb.append(String.format("[%d]", arrayInfo.length));
                     }
                     
                     
@@ -341,6 +342,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
             case Ptr: {
                 PtrTypeInfo ptrInfo = type.as();
                 return getTypeNameForC(ptrInfo.ptrOf) + "*";
+            }
+            case Const: {
+                ConstTypeInfo constInfo = type.as();
+                return "const " + getTypeNameForC(constInfo.constOf);
             }
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();                
@@ -459,39 +464,44 @@ public class CWriterNodeVisitor implements NodeVisitor {
             n.visit(this);
         }
                 
+        this.declarations.addAll(stmt.declarations);
         
         //
         // TODO: Do proper dependency ordering from all modules
         //
-        stmt.declarations
-            .stream()    
-            .filter(d -> d.kind != DeclKind.ENUM)
-            .sorted((a,b) -> {
-                if(a.equals(b)) {
-                    return 0;
-                }
-                
-                TypeKind aKind = a.type.getKind();
-                TypeKind bKind = b.type.getKind();
-                
-                if(aKind == TypeKind.Func) {
-                    if(bKind == TypeKind.Func) {
-                        return 0;
-                    }
-                    return 1;
-                }
-                else {
-                    if(bKind == TypeKind.Func) {
-                        return -1;
-                    }
-                }
-                return 0;
-            })
-            .forEach(d -> d.visit(this));        
+//        stmt.declarations
+//            .stream()    
+//            .filter(d -> d.kind != DeclKind.ENUM)
+//            .sorted((a,b) -> {
+//                if(a.equals(b)) {
+//                    return 0;
+//                }
+//                
+//                TypeKind aKind = a.type.getKind();
+//                TypeKind bKind = b.type.getKind();
+//                
+//                if(aKind == TypeKind.Func) {
+//                    if(bKind == TypeKind.Func) {
+//                        return 0;
+//                    }
+//                    return 1;
+//                }
+//                else {
+//                    if(bKind == TypeKind.Func) {
+//                        return -1;
+//                    }
+//                }
+//                return 0;
+//            })
+//            .forEach(d -> d.visit(this));        
     }
 
     @Override
     public void visit(ImportStmt stmt) {
+        if(stmt.moduleName.equals("builtin")) {
+            return;
+        }
+        
         ModuleStmt module = this.unit.getModule(stmt.moduleName);
         module.visit(this);
     }
@@ -529,12 +539,14 @@ public class CWriterNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(VarFieldStmt stmt) {
-        if(stmt.type.isKind(TypeKind.FuncPtr)) {
-            buf.out("%s;\n", typeDeclForC(stmt.type, stmt.name));
-        }
-        else {
-            buf.out("%s %s;\n", getTypeNameForC(stmt.type), stmt.name);
-        }
+//        if(stmt.type.isKind(TypeKind.FuncPtr)) {
+//            buf.out("%s;\n", typeDeclForC(stmt.type, stmt.name));
+//        }
+//        else {
+//            buf.out("%s %s;\n", getTypeNameForC(stmt.type), stmt.name);
+//        }
+        
+        buf.out("%s;\n", typeDeclForC(stmt.type, stmt.name));
     }
 
     @Override
@@ -543,6 +555,21 @@ public class CWriterNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(ParametersStmt stmt) {
+    }
+    
+    // TODO
+    @Override
+    public void visit(VarDeclsStmt stmt) {
+        for(Decl d : stmt.vars) {
+            d.visit(this);
+        }
+    }
+    
+    @Override
+    public void visit(ConstDeclsStmt stmt) {
+        for(Decl d : stmt.consts) {
+            d.visit(this);
+        }
     }
     
     @Override
@@ -613,7 +640,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
             return;
         }
         
-        buf.out("const %s = ", typeDeclForC(d.type, name));
+        if(d.type.isPrimitive()) {
+            buf.out("const ");
+        }
+        buf.out("%s = ", typeDeclForC(d.type, name));
         d.expr.visit(this);
         buf.out(";\n");
     }
@@ -672,7 +702,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             if(!isFirst) {
                 buf.out(",");
             }
-            
+                        
             if(p.type.isKind(TypeKind.FuncPtr)) {
                 buf.out("%s", getTypeNameForC(p.type));
             }
@@ -789,7 +819,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         if(isForeign(d)) {
             return;
         }
-        
+                
         buf.out("%s", typeDeclForC(d.type, name));
         
         if(d.expr != null) {
@@ -838,8 +868,12 @@ public class CWriterNodeVisitor implements NodeVisitor {
     @Override
     public void visit(ForStmt stmt) {
         buf.out("for(");
-        if(stmt.initStmt != null) stmt.initStmt.visit(this);
-        //buf.out(";");
+        if(stmt.initStmt != null) {
+            stmt.initStmt.visit(this);
+        }
+        else {
+            buf.out(";");    
+        }
         if(stmt.condExpr != null) stmt.condExpr.visit(this);
         buf.out(";");
         if(stmt.postStmt != null) stmt.postStmt.visit(this);
@@ -853,8 +887,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
         outputDefer(this.defers.peek());
     }
     
-    private void outputDefer(Queue<DeferStmt> q) {
-        for(DeferStmt s : q){
+    private void outputDefer(Stack<DeferStmt> q) {
+        ListIterator<DeferStmt> it = q.listIterator(q.size());
+        while(it.hasPrevious()) {
+            DeferStmt s = it.previous();
             s.stmt.visit(this);
             buf.out(";\n");
         }
@@ -875,7 +911,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(ReturnStmt stmt) {
-        for(Queue<DeferStmt> d : this.defers) {
+        for(Stack<DeferStmt> d : this.defers) {
             outputDefer(d);
         }
         
@@ -891,7 +927,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     public void visit(BlockStmt stmt) {
         buf.out("{");
         
-        this.defers.add(new LinkedList<>());
+        this.defers.add(new Stack<>());
         for(Stmt s : stmt.stmts) {
             s.visit(this);
             if(s instanceof Expr) {
@@ -899,9 +935,6 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }
         }
         
-//        if(!stmt.stmts.isEmpty() && !(stmt.stmts.get(stmt.stmts.size() - 1) instanceof ReturnStmt)) {
-//            outputDefer(this.defers.pop());
-//        }
         outputDefer(this.defers.pop());
         
         buf.out("}\n");
@@ -927,6 +960,11 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out("sizeof(");
         expr.expr.visit(this);
         buf.out(")");
+    }
+    
+    @Override
+    public void visit(TypeOfExpr expr) {
+        buf.out("(%s)", expr.expr.getResolvedType().getResolvedType().getTypeId());
     }
     
     @Override
@@ -979,7 +1017,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(NumberExpr expr) {
-        String n = expr.number.getText(); 
+        String n = expr.number; 
         buf.out(n);
         
         switch(expr.type.getKind()) {
@@ -1111,7 +1149,47 @@ public class CWriterNodeVisitor implements NodeVisitor {
     public void visit(IdentifierExpr expr) {
         Symbol sym = expr.sym;
         if(sym != null) {
-            buf.out("%s", cName(sym));
+            if(sym.isUsing()) {
+                TypeInfo paramInfo = sym.decl.type;
+                AggregateTypeInfo aggInfo = null;
+                if(paramInfo.isKind(TypeKind.Ptr)) {
+                    PtrTypeInfo ptrInfo = paramInfo.as();
+                    aggInfo = ptrInfo.getBaseType().as();
+                }
+                else {
+                    aggInfo = sym.decl.type.as();
+                }
+                
+                FieldPath path = aggInfo.getFieldPath(sym.name);
+                buf.out("%s", cName(sym.decl.sym));
+                
+                if(!path.hasPath()) {
+                    if(paramInfo.isKind(TypeKind.Ptr)) {
+                        buf.out("->");
+                    }
+                    else {
+                        buf.out(".");
+                    }
+                    buf.out("%s", cName(sym));
+                }
+                else {
+                    TypeInfo objectInfo = paramInfo;
+                    for(FieldPathNode n : path.getPath()) {                
+                        if(objectInfo.isKind(TypeKind.Ptr)) {
+                            buf.out("->");
+                        }
+                        else {
+                            buf.out(".");
+                        }
+                        
+                        buf.out("%s", n.field.name);
+                        objectInfo = n.field.type;
+                    }
+                }
+            }
+            else {
+                buf.out("%s", cName(sym));
+            }
         }
         else {
             buf.out("%s", prefix(expr.type.getName()));
@@ -1124,36 +1202,76 @@ public class CWriterNodeVisitor implements NodeVisitor {
     }
 
     @Override
-    public void visit(SizeOfIdentifierExpr expr) {
+    public void visit(TypeIdentifierExpr expr) {
         visit((IdentifierExpr)expr);
     }
     
     @Override
     public void visit(GetExpr expr) {
-        if(!expr.object.getResolvedType().isKind(TypeKind.Enum)) {
+        TypeInfo objectInfo = expr.object.getResolvedType();
+        if(objectInfo.isKind(TypeKind.Enum)) {
+            buf.out("%s", expr.field.name);
+        }
+        else {
             expr.object.visit(this);
-            if(expr.object.getResolvedType().isKind(TypeKind.Ptr)) {
-                buf.out("->");
+            
+            if(objectInfo.isKind(TypeKind.Ptr)) {
+                buf.out("->%s", expr.field.name);
             }
             else {
-                buf.out(".");
+                AggregateTypeInfo aggInfo = objectInfo.as();
+                FieldPath path = aggInfo.getFieldPath(expr.field.name);
+                
+                if(!path.hasPath()) {
+                    buf.out(".%s", expr.field.name);
+                }
+                else {
+                    for(FieldPathNode n : path.getPath()) {                
+                        if(objectInfo.isKind(TypeKind.Ptr)) {
+                            buf.out("->");
+                        }
+                        else {
+                            buf.out(".");
+                        }
+                        
+                        buf.out("%s", n.field.name);
+                        objectInfo = n.field.type;
+                    }
+                }
             }
         }
-        
-        buf.out("%s", expr.field.name);        
     }
     
     @Override
     public void visit(SetExpr expr) {
         expr.object.visit(this);
-        if(expr.object.getResolvedType().isKind(TypeKind.Ptr)) {
-            buf.out("->");
+        TypeInfo objectInfo = expr.object.getResolvedType();
+        
+        if(objectInfo.isKind(TypeKind.Ptr)) {
+            buf.out("->%s %s ", expr.field.name, expr.operator.getText());
         }
         else {
-            buf.out(".");
+            AggregateTypeInfo aggInfo = objectInfo.as();
+            FieldPath path = aggInfo.getFieldPath(expr.field.name);
+            
+            if(!path.hasPath()) {
+                buf.out(".%s %s ", expr.field.name, expr.operator.getText());
+            }
+            else {
+                for(FieldPathNode n : path.getPath()) {
+                    if(objectInfo.isKind(TypeKind.Ptr)) {
+                        buf.out("->");
+                    }
+                    else {
+                        buf.out(".");
+                    }
+                    buf.out("%s", n.field.name);
+                    objectInfo = n.field.type;
+                }
+                
+                buf.out("%s ", expr.operator.getText());
+            }
         }
-        buf.out("%s %s ", expr.field.name, expr.operator.getText());
-        
         expr.value.visit(this);            
     }
 
@@ -1175,18 +1293,18 @@ public class CWriterNodeVisitor implements NodeVisitor {
     @Override
     public void visit(ArrayInitExpr expr) {
         if(!expr.values.isEmpty()) {
-            buf.out(" {");
+            buf.out("{");
             boolean isFirst = true;
             for(Expr v : expr.values) {
-                if(!isFirst) buf.out(",");
+                if(!isFirst) buf.out(",\n");
                 isFirst = false;
                 
                 v.visit(this);
             }
-            buf.out(" }");
+            buf.out("}");
         }
         else {
-            buf.appendRaw("{0}");
+            buf.appendRaw("{}");
         }
     }
     

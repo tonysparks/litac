@@ -27,19 +27,19 @@ public abstract class Stmt extends Node {
             FieldInfo fieldInfo = null;
             if(s instanceof VarFieldStmt) {
                 VarFieldStmt var = (VarFieldStmt)s;
-                fieldInfo = new FieldInfo(var.type, var.name, null);
+                fieldInfo = new FieldInfo(var.type, var.name, var.modifiers, null);
             }
             else if(s instanceof StructFieldStmt) {
                 StructFieldStmt struct = (StructFieldStmt)s;
-                fieldInfo = new FieldInfo(struct.decl.type, struct.decl.name, null);
+                fieldInfo = new FieldInfo(struct.decl.type, struct.decl.name, 0, null);
             }
             else if(s instanceof UnionFieldStmt) {
                 UnionFieldStmt union = (UnionFieldStmt)s;
-                fieldInfo = new FieldInfo(union.decl.type, union.decl.name, null);
+                fieldInfo = new FieldInfo(union.decl.type, union.decl.name, 0, null);
             }
             else if(s instanceof EnumFieldStmt) {
                 EnumFieldStmt enm = (EnumFieldStmt)s;
-                fieldInfo = new FieldInfo(enm.decl.type, enm.decl.name, null);
+                fieldInfo = new FieldInfo(enm.decl.type, enm.decl.name, 0, null);
             }
             else {
                 throw new ParseException(ErrorCode.INVALID_FIELD, token);
@@ -123,10 +123,12 @@ public abstract class Stmt extends Node {
     public static class VarFieldStmt extends FieldStmt {
         public String name;
         public TypeInfo type;
+        public int modifiers;
         
-        public VarFieldStmt(String name, TypeInfo type) {
+        public VarFieldStmt(String name, TypeInfo type, int modifiers) {
             this.name = name;
             this.type = type;
+            this.modifiers = modifiers;
         }
 
         @Override
@@ -136,7 +138,7 @@ public abstract class Stmt extends Node {
         
         @Override
         protected Node doCopy() {            
-            return new VarFieldStmt(this.name, this.type.copy());
+            return new VarFieldStmt(this.name, this.type.copy(), this.modifiers);
         }
     }
     
@@ -394,6 +396,42 @@ public abstract class Stmt extends Node {
         @Override
         protected Node doCopy() {            
             return new ParametersStmt(copy(this.params), this.isVararg);
+        }
+    }
+    
+    public static class VarDeclsStmt extends Stmt {
+        public List<VarDecl> vars;
+        
+        public VarDeclsStmt(List<VarDecl> vars) {
+            this.vars = becomeParentOf(vars);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new VarDeclsStmt(copy(this.vars));
+        }
+    }
+    
+    public static class ConstDeclsStmt extends Stmt {
+        public List<ConstDecl> consts;
+        
+        public ConstDeclsStmt(List<ConstDecl> consts) {
+            this.consts = becomeParentOf(consts);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new ConstDeclsStmt(copy(this.consts));
         }
     }
 }

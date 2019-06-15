@@ -1,0 +1,19 @@
+@raw("""
+
+#if _MSC_VER
+#define THREADLOCAL __declspec(thread)
+#define INLINE static inline __forceinline
+#define NOINLINE __declspec(noinline)
+#endif
+
+#if __GNUC__
+#define THREADLOCAL __thread
+#define INLINE static inline __attribute__((always_inline))
+#define NOINLINE __attribute__((noinline))
+#endif
+
+""");
+
+
+import "type";
+

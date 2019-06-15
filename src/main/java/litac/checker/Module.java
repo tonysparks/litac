@@ -55,6 +55,7 @@ public class Module {
     private Map<String, Tuple<Module,Decl>> genericTypes;
     
     private PhaseResult result;
+    private List<Symbol> symbols;
     
     
     public Module(Module root,
@@ -85,11 +86,26 @@ public class Module {
         this.genericTypes = genericTypes;
         this.notes = new ArrayList<>();
         
+        if(this.root == null) {
+            this.symbols = new ArrayList<>();
+        }
+        
         this.currentScope = new Scope(result, ScopeType.MODULE);
     }
 
     public Module getRoot() {
         return root != null ? root : this;
+    }
+    
+    /**
+     * @return the symbols
+     */
+    public List<Symbol> getSymbols() {
+        if(this.root != null) {
+            return this.root.getSymbols();
+        }
+        
+        return this.symbols;
     }
     
     public PhaseResult getPhaseResult() {
@@ -248,7 +264,10 @@ public class Module {
             }
         }
         
-        return this.currentScope.addSymbol(this, decl, name, type);
+        Symbol sym = this.currentScope.addSymbol(this, decl, name, type);
+        getSymbols().add(sym);
+        
+        return sym;
     }
     
     public void declareNote(NoteStmt stmt) {

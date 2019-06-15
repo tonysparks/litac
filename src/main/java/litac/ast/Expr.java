@@ -3,7 +3,7 @@
  */
 package litac.ast;
 
-import java.util.List;
+import java.util.*;
 
 import litac.checker.Symbol;
 import litac.checker.TypeInfo;
@@ -129,9 +129,9 @@ public abstract class Expr extends Stmt {
         public Expr expr;
         
         public SizeOfExpr(Expr expr) {
-            if(expr instanceof IdentifierExpr) {
+            if(expr instanceof IdentifierExpr && !(expr instanceof TypeIdentifierExpr)) {
                 IdentifierExpr idExpr = (IdentifierExpr)expr;
-                expr = new SizeOfIdentifierExpr(idExpr.variable, idExpr.type);
+                expr = new TypeIdentifierExpr(idExpr.variable, idExpr.type);
                 expr.setLineNumber(idExpr.getLineNumber());
                 expr.setSourceLine(idExpr.getSourceLine());
                 expr.setSourceFile(idExpr.getSourceFile());
@@ -149,6 +149,33 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             return new SizeOfExpr(this.expr.copy());
+        }
+    }
+    
+    public static class TypeOfExpr extends Expr {
+        public Expr expr;
+        
+        public TypeOfExpr(Expr expr) {
+            if(expr instanceof IdentifierExpr && !(expr instanceof TypeIdentifierExpr)) {
+                IdentifierExpr idExpr = (IdentifierExpr)expr;
+                expr = new TypeIdentifierExpr(idExpr.variable, idExpr.type);
+                expr.setLineNumber(idExpr.getLineNumber());
+                expr.setSourceLine(idExpr.getSourceLine());
+                expr.setSourceFile(idExpr.getSourceFile());
+            }
+            
+            this.expr = becomeParentOf(expr);
+            resolveTo(TypeInfo.I64_TYPE);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new TypeOfExpr(this.expr.copy());
         }
     }
     
@@ -450,13 +477,25 @@ public abstract class Expr extends Stmt {
     }
     
     public static class NumberExpr extends ConstExpr {
-        public NumberToken number;
+        public String number;
         
-        public NumberExpr(NumberToken number) {
-            super(number.getTypeInfo());
+        public NumberExpr(NumberToken token) {
+            this(token.getTypeInfo(), token.getText());
+        }
+        
+        public NumberExpr(TypeInfo type, int number) {
+            this(type, String.valueOf(number));
+        }
+        
+        public NumberExpr(TypeInfo type, String number) {
+            super(type);
             this.number = number;
             
             resolveTo(this.type);
+        }
+        
+        public int asInt() {
+            return Integer.parseInt(this.number);
         }
         
 
@@ -467,7 +506,7 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new NumberExpr(this.number);
+            return new NumberExpr(type.copy(), this.number);
         }
     }
 
@@ -547,7 +586,7 @@ public abstract class Expr extends Stmt {
         public String variable;
         public TypeInfo type;
         public Symbol sym;
-        
+                
         public IdentifierExpr(String variable, TypeInfo type) {
             this.variable = variable;
             this.type = type;
@@ -562,6 +601,7 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             IdentifierExpr idExpr = new IdentifierExpr(this.variable, this.type.copy());
+            idExpr.sym = sym;
             return idExpr;
         }
     }
@@ -580,13 +620,14 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             FuncIdentifierExpr idExpr = new FuncIdentifierExpr(this.variable, this.type.copy());
+            idExpr.sym = this.sym;
             return idExpr;
         }
     }
     
-    public static class SizeOfIdentifierExpr extends IdentifierExpr {
+    public static class TypeIdentifierExpr extends IdentifierExpr {
         
-        public SizeOfIdentifierExpr(String variable, TypeInfo type) {
+        public TypeIdentifierExpr(String variable, TypeInfo type) {
             super(variable, type);
         }
 
@@ -597,7 +638,8 @@ public abstract class Expr extends Stmt {
 
         @Override
         protected Node doCopy() {            
-            SizeOfIdentifierExpr idExpr = new SizeOfIdentifierExpr(this.variable, this.type.copy());
+            TypeIdentifierExpr idExpr = new TypeIdentifierExpr(this.variable, this.type.copy());
+            idExpr.sym = this.sym;
             return idExpr;
         }
     }

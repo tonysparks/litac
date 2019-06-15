@@ -44,9 +44,10 @@ public abstract class Decl extends Stmt {
         
         public Expr expr;
         
-        public VarDecl(String name, TypeInfo type, Expr expr) {
+        public VarDecl(String name, TypeInfo type, Expr expr, int modifiers) {
             super(DeclKind.VAR, type, name);            
             this.expr = becomeParentOf(expr);
+            this.attributes.modifiers = modifiers;
         }
         
         @Override
@@ -56,16 +57,17 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new VarDecl(this.name, this.type.copy(), copy(this.expr));
+            return new VarDecl(this.name, this.type.copy(), copy(this.expr), this.attributes.modifiers);
         }
     }
     
     public static class ParameterDecl extends Decl {
         public Expr defaultValue;
 
-        public ParameterDecl(TypeInfo type, String name, Expr defaultValue) {
+        public ParameterDecl(TypeInfo type, String name, Expr defaultValue, int modifiers) {
             super(DeclKind.PARAM, type, name);
             this.defaultValue = becomeParentOf(defaultValue);
+            this.attributes.modifiers = modifiers;
         }
         
         @Override
@@ -80,16 +82,17 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new ParameterDecl(this.type.copy(), this.name, copy(this.defaultValue));
+            return new ParameterDecl(this.type.copy(), this.name, copy(this.defaultValue), this.attributes.modifiers);
         }
     }
         
     public static class ConstDecl extends Decl {
         public Expr expr;
         
-        public ConstDecl(String name, TypeInfo type, Expr expr) {
+        public ConstDecl(String name, TypeInfo type, Expr expr, int modifiers) {
             super(DeclKind.CONST, type, name);
             this.expr = becomeParentOf(expr);
+            this.attributes.modifiers = modifiers;
         }
         
         @Override
@@ -99,7 +102,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new ConstDecl(this.name, this.type.copy(), this.expr.copy());
+            return new ConstDecl(this.name, this.type.copy(), copy(this.expr), this.attributes.modifiers);
         }
     }
     

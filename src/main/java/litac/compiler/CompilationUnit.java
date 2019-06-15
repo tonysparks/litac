@@ -24,11 +24,14 @@ import litac.parser.Source;
 public class CompilationUnit {
 
     private ModuleStmt main;
+    private ModuleStmt builtin;
     private Map<String, ModuleStmt> imports;
     
-    private CompilationUnit(ModuleStmt main) {
+    private CompilationUnit(ModuleStmt builtin, ModuleStmt main) {
+        this.builtin = builtin;
         this.main = main;
         this.imports = new HashMap<>();
+        this.imports.put("builtins", builtin);
     }
     
     /**
@@ -40,6 +43,13 @@ public class CompilationUnit {
     
     public ModuleStmt getModule(String moduleName) {
         return this.imports.get(moduleName);
+    }
+    
+    /**
+     * @return the builtin
+     */
+    public ModuleStmt getBuiltin() {
+        return builtin;
     }
     
     /**
@@ -57,11 +67,15 @@ public class CompilationUnit {
      * @return
      */
     public static CompilationUnit modules(BackendOptions options, File moduleFile) throws IOException {
+        ModuleStmt builtin = readModule(new File(options.libDir, "builtins.lita"));
         ModuleStmt main = readModule(moduleFile);
+        main.imports.add(new ImportStmt("builtins", null));
         
-        CompilationUnit unit = new CompilationUnit(main);
+        CompilationUnit unit = new CompilationUnit(builtin, main);
         
-        new CompilationUnitNodeVisitor(options, unit).visit(main);
+        CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(options, unit);
+        visitor.visit(main);
+        visitor.visit(builtin);
         
         return unit;
     }
