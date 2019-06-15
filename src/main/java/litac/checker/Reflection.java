@@ -23,6 +23,10 @@ public class Reflection {
     
     public static List<Decl> createTypeInfos(List<Decl> declarations, Program program, boolean includeTypeInfos) {
         Module typeModule = program.getModule("type");
+        if(typeModule == null) {
+            return Arrays.asList();
+        }
+        
         TypeInfo typeInfo = typeModule.getType("TypeInfo");
         long numOfTypeInfos = 0;
         
@@ -118,7 +122,7 @@ public class Reflection {
         String name = Character.isLowerCase(prim.kind.name().charAt(0)) ? prim.kind.name().toUpperCase() : prim.kind.name();
         
         TypeInfo kindName = new IdentifierTypeInfo(name, Collections.emptyList());
-        args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), kindName)));
+        args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(name, kindName))));
         
         return new UnaryExpr(TokenType.BAND, new InitExpr(typeInfo, args));
     }
@@ -141,24 +145,24 @@ public class Reflection {
         switch(d.kind) {
             case ENUM: {
                 TypeInfo kindName = new IdentifierTypeInfo("Enum", Collections.emptyList());
-                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), kindName)));
+                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(kindName.name, kindName))));
                 args.add(new InitArgExpr("enumType", argPosition++, newEnum((EnumDecl)d, main, anonInfo.getField("enumType").type.as())));
                 break;
             }
             case FUNC: {
                 TypeInfo kindName = new IdentifierTypeInfo("Func", Collections.emptyList());
-                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), kindName)));
+                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(kindName.name, kindName))));
                 args.add(new InitArgExpr("funcType", argPosition++, newFunc((FuncDecl)d, main, anonInfo.getField("funcType").type.as())));
                 break;
             }
             case STRUCT: {
                 TypeInfo kindName = new IdentifierTypeInfo("Struct", Collections.emptyList());
-                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), kindName)));
+                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(kindName.name, kindName))));
                 break;
             }
             case UNION: {
                 TypeInfo kindName = new IdentifierTypeInfo("Union", Collections.emptyList());
-                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), kindName)));
+                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(kindName.name, kindName))));
                 break;
             }
             case CONST:

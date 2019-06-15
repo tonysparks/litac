@@ -363,15 +363,17 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     public void visit(GetExpr expr) {
         replaceType(expr);
         replaceType(expr.object).visit(this);
-        expr.field = replaceType(expr.field);
+        replaceType(expr.field).visit(this);
+        //expr.field = replaceType(expr.field);
     }
 
     @Override
     public void visit(SetExpr expr) {
         replaceType(expr);
         replaceType(expr.object).visit(this);
+        replaceType(expr.field).visit(this);
         replaceType(expr.value).visit(this);
-        expr.field = replaceType(expr.field);
+        //expr.field = replaceType(expr.field);
     }
 
     @Override

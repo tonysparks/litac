@@ -1210,20 +1210,20 @@ public class CWriterNodeVisitor implements NodeVisitor {
     public void visit(GetExpr expr) {
         TypeInfo objectInfo = expr.object.getResolvedType();
         if(objectInfo.isKind(TypeKind.Enum)) {
-            buf.out("%s", expr.field.name);
+            buf.out("%s", expr.field.type.name);
         }
         else {
             expr.object.visit(this);
             
             if(objectInfo.isKind(TypeKind.Ptr)) {
-                buf.out("->%s", expr.field.name);
+                buf.out("->%s", expr.field.type.name);
             }
             else {
                 AggregateTypeInfo aggInfo = objectInfo.as();
-                FieldPath path = aggInfo.getFieldPath(expr.field.name);
+                FieldPath path = aggInfo.getFieldPath(expr.field.type.name);
                 
                 if(!path.hasPath()) {
-                    buf.out(".%s", expr.field.name);
+                    buf.out(".%s", expr.field.type.name);
                 }
                 else {
                     for(FieldPathNode n : path.getPath()) {                
@@ -1248,14 +1248,14 @@ public class CWriterNodeVisitor implements NodeVisitor {
         TypeInfo objectInfo = expr.object.getResolvedType();
         
         if(objectInfo.isKind(TypeKind.Ptr)) {
-            buf.out("->%s %s ", expr.field.name, expr.operator.getText());
+            buf.out("->%s %s ", expr.field.type.name, expr.operator.getText());
         }
         else {
             AggregateTypeInfo aggInfo = objectInfo.as();
-            FieldPath path = aggInfo.getFieldPath(expr.field.name);
+            FieldPath path = aggInfo.getFieldPath(expr.field.type.name);
             
             if(!path.hasPath()) {
-                buf.out(".%s %s ", expr.field.name, expr.operator.getText());
+                buf.out(".%s %s ", expr.field.type.name, expr.operator.getText());
             }
             else {
                 for(FieldPathNode n : path.getPath()) {

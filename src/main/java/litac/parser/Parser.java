@@ -887,8 +887,8 @@ public class Parser {
                 expr = node(new SubscriptGetExpr(expr, index));
             }
             else if(match(DOT)) {
-                Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);                
-                expr = node(new GetExpr(expr, new IdentifierTypeInfo(name.getText(), Collections.emptyList())));
+                IdentifierTypeInfo identifier = identifierType(true);
+                expr = node(new GetExpr(expr, node(new IdentifierExpr(identifier.identifier, identifier))));
             }
             else if(match(AS)) {
                 expr = cast(expr);
@@ -937,6 +937,15 @@ public class Parser {
             }
             callee = node(new FuncIdentifierExpr(idExpr.variable, idExpr.type));
         }
+        else if(callee instanceof GetExpr) {
+            GetExpr getExpr = (GetExpr)callee;
+            if(getExpr.field.type instanceof IdentifierTypeInfo) {
+                genericArgs = ((IdentifierTypeInfo)getExpr.field.type).genericArgs;
+            }
+            IdentifierExpr newId = node(new FuncIdentifierExpr(getExpr.field.variable, getExpr.field.type));
+            getExpr.setField(newId);
+        }
+            
         
         return node(new FuncCallExpr(callee, arguments, genericArgs));
     }

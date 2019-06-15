@@ -320,7 +320,7 @@ public class TypeResolver {
                 TypeInfo objectInfo = getExpr.object.getResolvedType();
                 if(objectInfo.isKind(TypeKind.Enum)) {
                     EnumTypeInfo enumInfo = objectInfo.as();
-                    EnumFieldInfo field = enumInfo.getField(getExpr.field.getName());
+                    EnumFieldInfo field = enumInfo.getField(getExpr.field.variable);
                     if(field != null) {
                         if(field.value != null) {
                             return asInt(field.value);
@@ -985,6 +985,7 @@ public class TypeResolver {
                     // if we are parsing a Generic structure, ignore that we
                     // can't fully resolve this type (will get resolved when defined with concrete type)
                     if(!includeGenerics()) {
+                        expr.resolveTo(type);
                         break;
                     }
                 }
@@ -998,27 +999,29 @@ public class TypeResolver {
         
         @Override
         public void visit(GetExpr expr) {
-            expr.object.visit(this);            
+            expr.object.visit(this);  
+            //expr.field.visit(this);
             
-            if(!expr.field.isResolved()) {
+            if(!expr.field.type.isResolved()) {
                 TypeInfo type = expr.object.getResolvedType();
-                resolveAggregate(type, expr.field, expr, null);
+                resolveAggregate(type, expr.field.type, expr, null);
             }
             
-            resolveType(expr, expr.field);
+            resolveType(expr, expr.field.type);
         }
         
         @Override
         public void visit(SetExpr expr) {
-            expr.object.visit(this);            
+            expr.object.visit(this);         
+            //expr.field.visit(this);
             expr.value.visit(this);
             
-            if(!expr.field.isResolved()) {
+            if(!expr.field.type.isResolved()) {
                 TypeInfo type = expr.object.getResolvedType();
-                resolveAggregate(type, expr.field, expr, expr.value);
+                resolveAggregate(type, expr.field.type, expr, expr.value);
             }
             
-            resolveType(expr, expr.field);
+            resolveType(expr, expr.field.type);
         }
 
         @Override
