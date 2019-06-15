@@ -332,7 +332,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         // TODO: Fix me, this shouldn't be here!
         if(expr.type != null) {
             TypeInfo type = expr.type.getResolvedType();
-            if(type != null) {        
+            if(type != null && expr.sym != null) {        
                 expr.sym = type.sym;
             }
         }
@@ -351,7 +351,8 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     @Override
     public void visit(GetExpr expr) {
         replaceType(expr);
-        replaceType(expr.object).visit(this);        
+        replaceType(expr.object).visit(this);
+        expr.field = replaceType(expr.field);
     }
 
     @Override
@@ -359,6 +360,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         replaceType(expr);
         replaceType(expr.object).visit(this);
         replaceType(expr.value).visit(this);
+        expr.field = replaceType(expr.field);
     }
 
     @Override

@@ -334,8 +334,15 @@ public abstract class TypeInfo {
         return false;
     }
     
+    public TypeInfo copy() {
+        TypeInfo info = doCopy();
+        info.typeId = this.typeId;
+        info.sym = this.sym;
+        
+        return info;
+    }
     public abstract boolean canCastTo(TypeInfo target);
-    public abstract TypeInfo copy();
+    protected abstract TypeInfo doCopy();
     
     public static class FieldInfo {
         public TypeInfo type;
@@ -377,6 +384,8 @@ public abstract class TypeInfo {
         public boolean hasGenerics() {
             return !this.genericParams.isEmpty();
         }
+        
+        
     }
     public static abstract class AggregateTypeInfo extends GenericTypeInfo {
         public static final int IS_ANONYMOUS = (1<<0);
@@ -456,7 +465,7 @@ public abstract class TypeInfo {
         }
                 
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return new StructTypeInfo(this.name, genericParams, fieldInfos, flags);
         }
         
@@ -516,7 +525,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return new UnionTypeInfo(this.name, this.genericParams, this.fieldInfos, this.flags);
         }
         
@@ -593,7 +602,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return new EnumTypeInfo(this.name, this.fields);
         }
         
@@ -648,7 +657,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return new FuncTypeInfo(this.name, this.returnType.copy(), this.parameterDecls, this.isVararg, this.genericParams);
         }
         
@@ -743,7 +752,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return new FuncPtrTypeInfo(this.returnType.copy(), copy(this.params), this.isVararg, this.genericParams);
         }
         
@@ -856,7 +865,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return new StrTypeInfo(this.str);
         }
         
@@ -932,7 +941,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return new PtrTypeInfo(this.ptrOf.copy());
         }
                 
@@ -1011,7 +1020,7 @@ public abstract class TypeInfo {
         }
                 
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return new ConstTypeInfo(this.constOf.copy());
         }
                 
@@ -1076,7 +1085,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return new ArrayTypeInfo(copy(this.arrayOf), this.length, this.lengthExpr);
         }
         
@@ -1150,7 +1159,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return this;
         }
         
@@ -1205,7 +1214,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return this;
         }
 
@@ -1242,7 +1251,7 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
+        protected TypeInfo doCopy() {
             return this;
         }
         
@@ -1289,8 +1298,10 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public TypeInfo copy() {
-            return new IdentifierTypeInfo(this.identifier, copy(this.genericArgs));
+        protected TypeInfo doCopy() {
+            IdentifierTypeInfo info = new IdentifierTypeInfo(this.identifier, copy(this.genericArgs));
+            info.resolvedType = copy(this.resolvedType);
+            return info;
         }
         
         @Override

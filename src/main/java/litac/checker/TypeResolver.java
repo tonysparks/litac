@@ -837,10 +837,6 @@ public class TypeResolver {
                 IdentifierTypeInfo type = expr.type.as();
                 type.resolve(this.module, sym.type, includeGenerics());
                 
-//                TypeInfo newType = type.getResolvedType();
-//                if(newType.sym != null) {
-//                    expr.sym = newType.sym;   
-//                }
                 expr.sym = sym;
                 expr.resolveTo(expr.type); // TODO: remove type from IdExpr
             }

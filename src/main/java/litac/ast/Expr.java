@@ -601,6 +601,7 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             IdentifierExpr idExpr = new IdentifierExpr(this.variable, this.type.copy());
+            idExpr.sym = sym;
             return idExpr;
         }
     }

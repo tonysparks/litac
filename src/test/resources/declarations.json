@@ -473,7 +473,7 @@
                 var t = Test { .a: &test }
                 assert(t.a(1) == 1)
             '''                      
-        },
+        },*/
         {
             name: "ReadME Generics",
             definitions: '''
@@ -504,7 +504,7 @@
                 Vec2Add<f32>(origin, origin, origin)
 
             '''                      
-        },
+        },/*
         { 
             name: "Generic Func Ptr in Struct",
             definitions: '''
@@ -1326,7 +1326,7 @@
             code: '''  
                 var t : []i32 const = []i32 const {1,2,3}                               
             ''',             
-        },*/
+        },
         { 
             name: "PtrInt const",
             definitions: '''         
@@ -1335,7 +1335,7 @@
             code: '''  
                 var t : i32 const* = []i32 const {1,2,3} as (i32 const*)                               
             ''',             
-        },/*
+        },
         { 
             name: "Func Const Ptr Param",
             definitions: '''         

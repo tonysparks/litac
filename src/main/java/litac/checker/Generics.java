@@ -79,35 +79,36 @@ public class Generics {
         switch(type.getKind()) {
             case Struct:
             case Union: {
-                return createFromGenericTypeInfo(module, type.copy(), genericArgs);                
+               // AggregateTypeInfo aggInfo = type.as();
+                return createFromGenericTypeInfo(module, type, genericArgs);                
             }                
             case Ptr: {
-                PtrTypeInfo ptrInfo = type.copy().as();
+                PtrTypeInfo ptrInfo = (type = type.copy()).as();
                 ptrInfo.ptrOf = createGenericTypeInfo(module, ptrInfo.ptrOf, genericParams, genericArgs);
-                return ptrInfo;                
+                return type;                
             }
             case Const: {
-                ConstTypeInfo constInfo = type.copy().as();
+                ConstTypeInfo constInfo = (type = type.copy()).as();
                 constInfo.constOf = createGenericTypeInfo(module, constInfo.constOf, genericParams, genericArgs);
-                return constInfo;                
+                return type;                
             }
             case Array: {
-                ArrayTypeInfo arrayInfo = type.copy().as();
+                ArrayTypeInfo arrayInfo = (type = type.copy()).as();
                 arrayInfo.arrayOf = createGenericTypeInfo(module, arrayInfo.arrayOf, genericParams, genericArgs);
-                return arrayInfo;
+                return type;
             }
             case FuncPtr: {
-                FuncPtrTypeInfo funcPtr = type.copy().as();
+                FuncPtrTypeInfo funcPtr = (type = type.copy()).as();
                 funcPtr.returnType = createGenericTypeInfo(module, funcPtr.returnType, genericParams, genericArgs);
                 for(int i = 0; i < funcPtr.params.size(); i++) {
                     TypeInfo p = funcPtr.params.get(i);
                     funcPtr.params.set(i, createGenericTypeInfo(module, p, genericParams, genericArgs));
                 }
                 funcPtr.genericParams.clear();
-                return funcPtr;
+                return type;
             }
             case Identifier: {
-                IdentifierTypeInfo idTypeInfo = type.copy().as();
+                IdentifierTypeInfo idTypeInfo = (type = type.copy()).as();
                 
                 // Check and see if the identifier is another generic type with generic arguments,
                 // if it has them, swap them out with the corresponding generics on the parent type
@@ -126,8 +127,19 @@ public class Generics {
                     
                     TypeInfo resolvedType = module.getType(idTypeInfo.getName());
                     idTypeInfo.resolve(module, resolvedType, true);
-                    break;
                 }
+                else {
+                    for(int i = 0; i < genericParams.size(); i++) {
+                        GenericParam p = genericParams.get(i);
+                        if(p.name.equals(type.getName())) {
+                            TypeInfo genType = createGenericTypeInfo(module, genericArgs.get(i), genericParams, genericArgs);
+                            idTypeInfo.resolve(module, genType, true);
+                            return idTypeInfo.getResolvedType();
+                        }
+                    } 
+                }
+                
+                return type;
             }
             default: {
                 for(int i = 0; i < genericParams.size(); i++) {
@@ -238,9 +250,10 @@ public class Generics {
         
         for(ParameterDecl paramDecl : funcInfo.parameterDecls) {            
             TypeInfo argInfo = createGenericTypeInfo(module, paramDecl.type, funcInfo.genericParams, genericArgs);
-            paramDecl = new ParameterDecl(argInfo, paramDecl.name, paramDecl.defaultValue, paramDecl.attributes.modifiers);
+            ParameterDecl newParamDecl = new ParameterDecl(argInfo, paramDecl.name, paramDecl.defaultValue, paramDecl.attributes.modifiers);
+            newParamDecl.sym = paramDecl.sym;
             
-            newFuncParams.add(paramDecl);
+            newFuncParams.add(newParamDecl);
         }
          
         TypeInfo newReturnType = createGenericTypeInfo(module, funcInfo.returnType, funcInfo.genericParams, genericArgs);
