@@ -38,23 +38,16 @@ public class TestSuite {
     public List<TestCase> tests;
     
     
-    @Test
-    public void test() throws Exception {
-        String json = JsonValue.readHjson(new InputStreamReader(TestSuite.class.getResourceAsStream("/declarations.json"))).toString();
-        ObjectMapper mapper = new ObjectMapper();
-        TestSuite suite = mapper.readValue(json, TestSuite.class);
-        
-        
-        ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
-        PrintStream pStream = new PrintStream(errorStream, true, "UTF-8");
-        System.setErr(pStream);
-        
-        File outputDir = new File(System.getProperty("user.dir") + "/output_tests");
-        if(!outputDir.exists()) {
-            assertTrue(outputDir.mkdirs());
-        }
-        
+    private void runTestSuite(TestSuite suite, File outputDir, ByteArrayOutputStream errorStream) throws Exception {
+        System.out.println("\n\n\n");
+        System.out.println("*******************************************");
+        System.out.println("*******************************************");
+        System.out.println("\n");
         System.out.println("Running suite: " + suite.description);
+        System.out.println("\n");
+        System.out.println("*******************************************");
+        System.out.println("*******************************************");
+        
         for(TestCase test: suite.tests) {
             System.out.println("Running test: " + test.name);
             String fullProgram = suite.program
@@ -103,5 +96,47 @@ public class TestSuite {
             }
         }
     }
+    
+    @Test
+    public void test() throws Exception {
+        File testDir = new File("./src/test/resources");
+        
+        ObjectMapper mapper = new ObjectMapper();
+        ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
+        PrintStream pStream = new PrintStream(errorStream, true, "UTF-8");
+        System.setErr(pStream);
+        
+        File outputDir = new File(System.getProperty("user.dir") + "/output_tests");
+        if(!outputDir.exists()) {
+            assertTrue(outputDir.mkdirs());
+        }
+        
+        File[] testFiles = testDir.listFiles(file -> file.getName().toLowerCase().endsWith(".json"));
+        for(File testFile : testFiles) {
+            String json = JsonValue.readHjson(new FileReader(testFile)).toString();
+            TestSuite suite = mapper.readValue(json, TestSuite.class);
+            
+            runTestSuite(suite, outputDir, errorStream);
+        }
+    }
 
+    @Test
+    public void singleTest() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
+        PrintStream pStream = new PrintStream(errorStream, true, "UTF-8");
+        System.setErr(pStream);
+        
+        File outputDir = new File(System.getProperty("user.dir") + "/output_tests");
+        if(!outputDir.exists()) {
+            assertTrue(outputDir.mkdirs());
+        }
+        
+        
+        String json = JsonValue.readHjson(new InputStreamReader(TestSuite.class.getResourceAsStream("/singleTest.json"))).toString();
+        TestSuite suite = mapper.readValue(json, TestSuite.class);
+        
+        runTestSuite(suite, outputDir, errorStream);
+        
+    }
 }

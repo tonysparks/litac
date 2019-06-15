@@ -392,13 +392,15 @@ public abstract class Expr extends Stmt {
     
     public static class GetExpr extends Expr {
         public Expr object;
-        public TypeInfo field;
+        public IdentifierExpr field;
         
-        public GetExpr(Expr object, TypeInfo field) {
+        public GetExpr(Expr object, IdentifierExpr field) {
             this.object = becomeParentOf(object);
-            this.field = field;
-            
-            resolveTo(this.field);
+            this.field = becomeParentOf(field);            
+        }
+        
+        public void setField(IdentifierExpr newField) {
+            this.field = becomeParentOf(newField);
         }
 
         @Override
@@ -408,25 +410,23 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new GetExpr(object.copy(), this.field.copy());
+            return new GetExpr(object.copy(), field.copy());
         }
     }
     
     public static class SetExpr extends Expr {
         public Expr object;
-        public TypeInfo field;
+        public IdentifierExpr field;
         
         public TokenType operator;
         public Expr value;
         
-        public SetExpr(Expr object, TypeInfo field, TokenType operator, Expr value) {
+        public SetExpr(Expr object, IdentifierExpr field, TokenType operator, Expr value) {
             this.object = becomeParentOf(object);
-            this.field = field;
+            this.field = becomeParentOf(field);
             
             this.operator = operator;
             this.value = becomeParentOf(value);
-            
-            resolveTo(this.field);
         }
 
         @Override

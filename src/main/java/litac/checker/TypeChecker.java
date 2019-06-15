@@ -669,10 +669,11 @@ public class TypeChecker {
         
         @Override
         public void visit(GetExpr expr) {
-            expr.object.visit(this);            
+            expr.object.visit(this);       
+            expr.field.visit(this);
             
             TypeInfo type = expr.object.getResolvedType();
-            typeCheckAggregate(type, expr.field, expr, null);
+            typeCheckAggregate(type, expr.field.type, expr, null);
         }
         
         @Override
@@ -683,10 +684,11 @@ public class TypeChecker {
             }
             
             expr.object.visit(this);            
+            expr.field.visit(this);
             expr.value.visit(this);
             
             TypeInfo type = expr.object.getResolvedType();            
-            typeCheckAggregate(type, expr.field, expr, expr.value);
+            typeCheckAggregate(type, expr.field.type, expr, expr.value);
         }
 
         @Override
