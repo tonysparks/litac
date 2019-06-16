@@ -81,10 +81,8 @@ public class TestSuite {
                 }
                 else {
                     assertNull(test.error);
+                    assertTrue(errorStream.toString("UTF-8").isEmpty());
                 }
-                
-                assertTrue(errorStream.toString("UTF-8").isEmpty());
-                
             }
             catch(Exception e) {
                 if(test.error == null) {
@@ -93,6 +91,9 @@ public class TestSuite {
                 
                 
                 assertTrue(e.getMessage().contains(test.error));
+            }
+            finally {
+                errorStream.reset();
             }
         }
     }
@@ -124,7 +125,15 @@ public class TestSuite {
     public void singleTest() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
-        PrintStream pStream = new PrintStream(errorStream, true, "UTF-8");
+        PrintStream errStream = System.err;
+        OutputStream oStream = new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                errorStream.write(b);
+                errStream.write(b);
+            }
+        };
+        PrintStream pStream = new PrintStream(oStream, true, "UTF-8");
         System.setErr(pStream);
         
         File outputDir = new File(System.getProperty("user.dir") + "/output_tests");

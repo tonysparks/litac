@@ -306,12 +306,15 @@ public class TypeResolver {
             }
             else if(expr instanceof IdentifierExpr) {
                 IdentifierExpr iExpr = (IdentifierExpr)expr;
-                if(iExpr.sym.decl instanceof ConstDecl) {
+                if(iExpr.sym != null && iExpr.sym.decl instanceof ConstDecl) {
                     ConstDecl cExpr = (ConstDecl)iExpr.sym.decl;
                     if(cExpr.expr instanceof NumberExpr) {
                         NumberExpr nExpr = (NumberExpr)cExpr.expr;
                         
                         return nExpr.asInt();
+                    }
+                    else if(iExpr.sym.isForeign()) {
+                        return -1;
                     }
                 }
             }

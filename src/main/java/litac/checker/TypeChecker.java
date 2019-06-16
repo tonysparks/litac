@@ -148,7 +148,7 @@ public class TypeChecker {
                     return;
                 }
                 
-                checkType(check.stmt, check.type.getResolvedType(), expr.getResolvedType().getResolvedType(), check.isCasted);                                        
+                checkType(check.stmt, expr.getResolvedType().getResolvedType(), check.type.getResolvedType(), check.isCasted);                                        
             }
         }
         
@@ -733,9 +733,8 @@ public class TypeChecker {
             TypeInfo leftType = expr.left.getResolvedType().getResolvedType();
             TypeInfo rightType = expr.right.getResolvedType().getResolvedType();
             
-            addTypeCheck(expr.left, rightType);
-            addTypeCheck(expr.right, leftType);
-            
+            addTypeCheck(expr.left, expr.getResolvedType().getResolvedType());
+            addTypeCheck(expr.right, expr.getResolvedType().getResolvedType());
             
             switch(expr.operator) {
                 case EQUALS: {                    

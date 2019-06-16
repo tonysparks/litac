@@ -29,11 +29,16 @@ public class Compiler {
     public PhaseResult compile(File rootModule) throws Exception {
         PhaseResult result = new PhaseResult();
         
-        CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
-        Program program = typeCheck(options, result, unit);
-        
-        if(!result.hasErrors()) {
-            compile(options, result, unit, program);
+        try {
+            CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
+            Program program = typeCheck(options, result, unit);
+            
+            if(!result.hasErrors()) {
+                compile(options, result, unit, program);
+            }
+        }
+        catch(Exception e) {
+            result.addError(null, "internal compiler error: %s", e);
         }
                 
         return result;

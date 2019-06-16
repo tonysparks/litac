@@ -12,49 +12,13 @@
     '''
     tests: [                
         {
-            name: "Generics call generic func ptr in struct field",
-            definitions: '''                
-                struct Person<T> {
-                    f : func<T>(T): T
-                }
-                
-                func test(a:i32) : i32 {
-                    return a
-                }
-                
-                func call<T>(p : Person<T>) : T {
-                    return p.f<T>(4)
-                }
-                            
-            ''',            
+            name: "Implicit cast binary expr",                       
             code: '''
-                var x = Person<i32> {
-                    .f: &test 
-                }               
-                assert(call<i32>(x) == 4)
-                  
-            '''
-        },
-        { 
-            name: "Func Independent declaration Generics",
-            definitions: '''
-                func test<T>(a: T) : i32 {
-                    return a.x.y;
-                }                
-                                
-                struct A {
-                    x : B
-                }
-                struct B {
-                    y : i32
-                }
-            ''',                       
-            code: '''            
-                var a = A {
-                    .x: B {4}
-                }                           
-                assert(test<A>(a) == 4)                                
-            ''',                      
-        },
+                var x : i32 = 10
+                var a : f32 = x / 2.0f
+                
+                assert(a == 5.0f)
+            ''',
+        },     
     ]
 }

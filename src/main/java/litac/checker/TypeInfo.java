@@ -968,7 +968,9 @@ public abstract class TypeInfo {
                 }
             }
             
-            if(target.isKind(TypeKind.Const)) {
+            boolean isConstPtr = this.ptrOf.isKind(TypeKind.Const);
+            
+            if(target.isKind(TypeKind.Const) && !isConstPtr) {
                 ConstTypeInfo constInfo = target.as();
                 return canCastTo(constInfo.constOf.getResolvedType());
             }
@@ -992,25 +994,27 @@ public abstract class TypeInfo {
             
             if(target.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = target.as();
-                if(ptrInfo.ptrOf.isKind(TypeKind.Const)) {
-                    if(!this.ptrOf.isKind(TypeKind.Const)) {
+                
+                // target must be a const pointer too, if this is a const ptr
+                if(isConstPtr) {
+                    if(!ptrInfo.ptrOf.isKind(TypeKind.Const)) {
                         return false;
                     }
                 }
-                
+                                
                 return this.ptrOf.getResolvedType().canCastTo(ptrInfo.ptrOf.getResolvedType());
             }
             
             if(target.isKind(TypeKind.Str)) {
+                
+                // target must be a const pointer too, if this is a const ptr
+                if(isConstPtr) {
+                    return false;    
+                }
+                
                 if(this.ptrOf.isKind(TypeKind.Char)) {
                     return true;
-                }
-                if(this.ptrOf.isKind(TypeKind.Const)) {
-                    ConstTypeInfo constInfo = this.ptrOf.as();
-                    if(constInfo.constOf.isKind(TypeKind.Char)) {
-                        return true;
-                    }    
-                }
+                }                
             }
             
             return false;
@@ -1180,13 +1184,6 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            // Warnings, allow everything to be casted?
-            if(target.isPrimitive()) {
-                if(target.isGreater(this)) {
-                    return true;
-                }
-            }
-            
             if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
@@ -1202,6 +1199,17 @@ public abstract class TypeInfo {
             if(target.isKind(TypeKind.Const)) {
                 ConstTypeInfo constInfo = target.as();
                 return canCastTo(constInfo.constOf);
+            }
+            
+            // Warnings, allow everything to be casted?
+            if(target.isPrimitive()) {
+                if(isFloat(this) && isInteger(target)) {
+                    return false;
+                }
+                
+                if(target.isGreater(this)) {
+                    return true;
+                }
             }
             
             return false;

@@ -17,9 +17,15 @@ import litac.parser.tokens.TokenType;
 public class Errors {
 
     public static void typeCheckError(Stmt stmt, String message) {
-        System.out.println(String.format("*** ERROR: %s at line: %d in '%s'", message, stmt.getLineNumber(), stmt.getSourceFile()));
-        System.out.println("\t" +stmt.getSourceLine());
-        System.out.println();
+        if(stmt != null) {
+            System.err.println(String.format("*** ERROR: %s at line: %d in '%s'", message, stmt.getLineNumber(), stmt.getSourceFile()));
+            System.err.println("\t" +stmt.getSourceLine());
+            System.err.println();
+        }
+        else {
+            System.err.println(String.format("*** ERROR: %s", message));            
+            System.err.println();
+        }
     }
     
     /**

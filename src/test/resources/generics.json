@@ -138,7 +138,7 @@
                 var b = 2
                 var c = a < b > 2
                 assert(!c)
-            ''',           
+            ''',         
         },
         {
             name: "Break Generics via Cast",
@@ -193,7 +193,7 @@
             ''',                       
             code: '''                
                 
-                var origin = Vec2<f32> { 0.0, 0.0 }  // using generics syntax
+                var origin = Vec2<f32> { 0.0f, 0.0f }  // using generics syntax
                 var vel    = Vec2i { 0,0 }           // using the alias
                 
                 Vec2Add<i32>(vel, vel, vel)
@@ -242,7 +242,7 @@
                 assert(t.y(1) == 1)
                 
                 var t2 = Test<f32> { &test2 }
-                assert(t2.y(1.4) == 1.4)
+                assert(t2.y(1.4f) == 1.4f)
             '''                      
         }, ///       
         {
@@ -347,7 +347,7 @@
             code: '''  
                 var x : X<i32> = X<f32>{}
             ''',
-            error: "'struct Xf32' is not of type 'struct Xi32'" 
+            error: "'struct Xi32' is not of type 'struct Xf32'" 
         },
         { 
             name: "Generics Var mismatch Types no GenArgs",
@@ -359,7 +359,7 @@
             code: '''  
                 var x : X = X<f32>{}
             ''',
-            error: "'struct Xf32' is not of type 'struct X'" 
+            error: "'struct X' is not of type 'struct Xf32'" 
         },
         { 
             name: "Generics Var mismatch Types no GenArgs Init",
@@ -372,6 +372,51 @@
                 var x : X<f32> = X{}
             ''',
             error: "incorrect number of generic argument types, requires 1 and has 0" 
+        },
+        {
+            name: "Generics call generic func ptr in struct field",
+            definitions: '''                
+                struct Person<T> {
+                    f : func<T>(T): T
+                }
+                
+                func test(a:i32) : i32 {
+                    return a
+                }
+                
+                func call<T>(p : Person<T>) : T {
+                    return p.f<T>(4)
+                }
+                            
+            ''',            
+            code: '''
+                var x = Person<i32> {
+                    .f: &test 
+                }               
+                assert(call<i32>(x) == 4)
+                  
+            '''
+        },
+        { 
+            name: "Func Independent declaration Generics",
+            definitions: '''
+                func test<T>(a: T) : i32 {
+                    return a.x.y;
+                }                
+                                
+                struct A {
+                    x : B
+                }
+                struct B {
+                    y : i32
+                }
+            ''',                       
+            code: '''            
+                var a = A {
+                    .x: B {4}
+                }                           
+                assert(test<A>(a) == 4)                                
+            ''',                      
         }, 
     ]
 }

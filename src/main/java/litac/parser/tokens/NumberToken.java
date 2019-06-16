@@ -68,7 +68,7 @@ public class NumberToken extends Token {
                 sawDotDot = true; // it's a ".." token, so don't consume it
             }
             else {
-                type = F32; // decimal point, so token type is REAL
+                type = F64; // decimal point, so token type is REAL
                 textBuffer.append(currentChar);
                 currentChar = this.source.nextChar(); // consume decimal point
 
@@ -86,7 +86,7 @@ public class NumberToken extends Token {
         // There cannot be an exponent if we already saw a ".." token.
         currentChar = this.source.currentChar();
         if (!sawDotDot && ((currentChar == 'E') || (currentChar == 'e'))) {
-            type = F32; // exponent, so token type is REAL
+            type = F64; // exponent, so token type is REAL
             textBuffer.append(currentChar);
             currentChar = this.source.nextChar(); // consume 'E' or 'e'
 
@@ -120,19 +120,13 @@ public class NumberToken extends Token {
         }
 
         // Compute the value of a real number token.
-        else if (type == F32) {
+        else if (type == F64) {
             double floatValue = computeFloatValue(wholeDigits, fractionDigits, exponentDigits, exponentSign);
 
             if (type != ERROR) {
                 type = NUMBER;
                 value = floatValue;
-                if(floatValue < Float.MIN_VALUE || floatValue > Float.MAX_VALUE) {                   
-                    typeInfo = TypeInfo.F64_TYPE;
-                }
-                else {
-                    typeInfo = TypeInfo.F32_TYPE;
-                }
-                
+                typeInfo = TypeInfo.F64_TYPE;
             }
         }
 
@@ -215,7 +209,8 @@ public class NumberToken extends Token {
                 }
             }
         }
-        else if(currentChar == 'f') {
+        else if(currentChar == 'f' || currentChar == 'F' || 
+                currentChar == 'd' || currentChar == 'D') {
             StringBuilder floatType = new StringBuilder();
             floatType.append(currentChar);
             
@@ -225,9 +220,18 @@ public class NumberToken extends Token {
                 currentChar = this.source.nextChar();
             }
             
-            TypeKind kind = TypeKind.fromString(floatType.toString());
+            String ftype = floatType.toString();
+            TypeKind kind = TypeKind.fromString(ftype);
             if(kind == null) {
-                type = ERROR;
+                if(ftype.equalsIgnoreCase("f")) {
+                    result = TypeInfo.F32_TYPE;
+                }
+                else if(ftype.equalsIgnoreCase("d")) {
+                    result = TypeInfo.F64_TYPE;
+                }
+                else {
+                    type = ERROR;
+                }
             }
             else {
                 switch(kind) {

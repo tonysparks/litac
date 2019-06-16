@@ -175,8 +175,8 @@ public class Module {
             module.currentScope().getSymbols()
                                  .stream()
                                  .filter(s -> s.decl.attributes.isPublic &&
-                                              s.declared == module &&
-                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR))
+                                              s.declared == module /*&&
+                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR)*/)
                                  .forEach(s -> currentScope().addSymbol(alias, s));
         }
         else {
@@ -209,8 +209,8 @@ public class Module {
             module.currentScope().getSymbols()
                                  .stream()
                                  .filter(s -> s.decl.attributes.isPublic &&
-                                              s.declared == module &&
-                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR))
+                                              s.declared == module /*&&
+                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR)*/)
                                  .forEach(s -> currentScope().addSymbol(s));
             
             for(Entry<String, TypeInfo> typeEntry: module.foreignTypes.entrySet()) {
