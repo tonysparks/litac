@@ -238,7 +238,11 @@ public class CWriterNodeVisitor implements NodeVisitor {
     private void writeForwardDeclarations(Buf buf) {
         buf.out("// forward declarations\n");
         Map<String, TypeInfo> types = new HashMap<>();
-        writeModuleForwardDecl(buf, this.main, new ArrayList<>(), types);
+        List<NoteStmt> notes = new ArrayList<>();
+        
+        writeModuleForwardDecl(buf, this.main, new ArrayList<>(), types, notes);
+        
+        notes.forEach(note -> note.visit(this));
         
         types.entrySet()
              .stream()
@@ -248,16 +252,22 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out("// end forward declarations\n\n");
     }
     
-    private void writeModuleForwardDecl(Buf buf, Module module, List<Module> writtenModules, Map<String, TypeInfo> types) {
+    private void writeModuleForwardDecl(Buf buf, 
+                                        Module module, 
+                                        List<Module> writtenModules, 
+                                        Map<String, TypeInfo> types,
+                                        List<NoteStmt> notes) {
         if(writtenModules.contains(module)) {
             return;
         }
         
         writtenModules.add(module);
-                
+        
+        notes.addAll(module.getModuleStmt().notes);
+        
         module.getImports()
               .stream()
-              .forEach(m -> writeModuleForwardDecl(buf, m, writtenModules, types));
+              .forEach(m -> writeModuleForwardDecl(buf, m, writtenModules, types, notes));
         
 
         module.getDeclaredTypes()
@@ -460,9 +470,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
             i.visit(this);
         }
         
-        for(NoteStmt n : stmt.notes) {
-            n.visit(this);
-        }
+//        for(NoteStmt n : stmt.notes) {
+//            n.visit(this);
+//        }
                 
         this.declarations.addAll(stmt.declarations);
         

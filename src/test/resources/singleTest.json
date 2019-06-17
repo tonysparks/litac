@@ -12,12 +12,14 @@
     '''
     tests: [                
         {
-            name: "Implicit cast binary expr",                       
-            code: '''
-                var x : i32 = 10
-                var a : f32 = x / 2.0f
+            name: "Typecast", 
+            definitions: '''
+                typedef i64 as Time;
                 
-                assert(a == 5.0f)
+                
+            ''',                       
+            code: '''
+                var x : Time = 50_i64
             ''',
         },     
     ]

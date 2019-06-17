@@ -200,8 +200,9 @@ public class Module {
                     case Enum: {
                         this.enumTypes.put(aggType.getKey(), type.as());
                         break;
-                    }         
+                    }                        
                     default: {
+                        this.typedefTypes.put(aggType.getKey(), type);
                     }
                 }                
             }
