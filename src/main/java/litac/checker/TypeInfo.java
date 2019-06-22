@@ -182,17 +182,45 @@ public abstract class TypeInfo {
         }
     }
     
+    public static boolean isFunc(TypeInfo type) {
+        type = type.isResolved() ? type.getResolvedType() : type;
+        if(type.isKind(TypeKind.Func) || type.isKind(TypeKind.FuncPtr)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
     public static boolean isAggregate(TypeInfo type) {
         type = type.isResolved() ? type.getResolvedType() : type;
+        if(type.isKind(TypeKind.Const)) {
+            ConstTypeInfo constInfo = type.as();
+            return isAggregate(constInfo.constOf);
+        }
+        
         return type.isKind(TypeKind.Struct) || type.isKind(TypeKind.Union);
     }
     
     public static boolean isPtrAggregate(TypeInfo type) {
         type = type.getResolvedType();
-        if(type.isKind(TypeKind.Ptr)) {
+        if(isPtr(type)) {
             PtrTypeInfo ptrInfo = type.as();
             return isAggregate(ptrInfo.ptrOf);
         }
+        return false;
+    }
+    
+    public static boolean isPtr(TypeInfo type) {
+        type = type.getResolvedType();
+        if(type.isKind(TypeKind.Ptr)) {
+            return true;
+        }
+        
+        if(type.isKind(TypeKind.Const)) {
+            ConstTypeInfo constInfo = type.as();
+            return isPtr(constInfo.constOf);
+        }
+        
         return false;
     }
     
@@ -466,7 +494,7 @@ public abstract class TypeInfo {
                 
         @Override
         protected TypeInfo doCopy() {
-            return new StructTypeInfo(this.name, genericParams, fieldInfos, flags);
+            return new StructTypeInfo(this.name, new ArrayList<>(this.genericParams), fieldInfos, flags);
         }
         
         @Override
@@ -526,7 +554,7 @@ public abstract class TypeInfo {
         
         @Override
         protected TypeInfo doCopy() {
-            return new UnionTypeInfo(this.name, this.genericParams, this.fieldInfos, this.flags);
+            return new UnionTypeInfo(this.name, new ArrayList<>(this.genericParams), this.fieldInfos, this.flags);
         }
         
         @Override
@@ -653,12 +681,12 @@ public abstract class TypeInfo {
         
         public FuncPtrTypeInfo asPtr() {
             List<TypeInfo> params = this.parameterDecls.stream().map(p -> p.type).collect(Collectors.toList());
-            return new FuncPtrTypeInfo(this.returnType, params, this.isVararg, this.genericParams);
+            return new FuncPtrTypeInfo(this.returnType, params, this.isVararg, new ArrayList<>(this.genericParams));
         }
         
         @Override
         protected TypeInfo doCopy() {
-            return new FuncTypeInfo(this.name, this.returnType.copy(), this.parameterDecls, this.isVararg, this.genericParams);
+            return new FuncTypeInfo(this.name, this.returnType.copy(), this.parameterDecls, this.isVararg, new ArrayList<>(this.genericParams));
         }
         
         @Override
@@ -674,9 +702,12 @@ public abstract class TypeInfo {
                 }
             }
             
-            if(target.kind == TypeKind.Func) {
-                FuncTypeInfo funcType = (FuncTypeInfo) target;
-                if(this.parameterDecls.size() != funcType.parameterDecls.size()) {
+            if(target.isKind(TypeKind.Func) || target.isKind(TypeKind.FuncPtr)) {
+                FuncPtrTypeInfo funcType = target.isKind(TypeKind.FuncPtr) 
+                                                ? target.as() 
+                                                : ((FuncTypeInfo)target.as()).asPtr();
+                
+                if(this.parameterDecls.size() != funcType.params.size()) {
                     return false;
                 }
                 
@@ -685,7 +716,7 @@ public abstract class TypeInfo {
                 }
                 
                 for(int i = 0; i < this.parameterDecls.size(); i++) {
-                    if(!this.parameterDecls.get(i).type.strictEquals(funcType.parameterDecls.get(i).type)) {
+                    if(!this.parameterDecls.get(i).type.strictEquals(funcType.params.get(i))) {
                         return false;
                     }
                 }
@@ -693,7 +724,7 @@ public abstract class TypeInfo {
                 return this.returnType.strictEquals(funcType.returnType);
                        
             }
-            
+                        
             if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
@@ -753,7 +784,7 @@ public abstract class TypeInfo {
         
         @Override
         protected TypeInfo doCopy() {
-            return new FuncPtrTypeInfo(this.returnType.copy(), copy(this.params), this.isVararg, this.genericParams);
+            return new FuncPtrTypeInfo(this.returnType.copy(), copy(this.params), this.isVararg, new ArrayList<>(this.genericParams));
         }
         
         @Override
@@ -814,6 +845,25 @@ public abstract class TypeInfo {
             }
             
             return false;
+        }
+        
+        @Override
+        public String getName() {
+//            boolean isFirst = true;
+//            StringBuilder params = new StringBuilder();
+//            for(TypeInfo p : this.params) {
+//                if(!isFirst) params.append("_");
+//                params.append(p.getName());
+//                isFirst = false;
+//            }
+//            
+//            if(this.isVararg) {
+//                params.append("varargs");
+//            }
+//            
+//            return String.format("func_%s_%s", params, this.returnType.getName())
+//                    .replace("*", "ptr").replace(" ", "_");
+            return toString();
         }
         
         @Override
@@ -932,9 +982,14 @@ public abstract class TypeInfo {
          */
         public TypeInfo getBaseType() {
             TypeInfo base = this.ptrOf;
+            if(base.isKind(TypeKind.Const)) {
+                ConstTypeInfo constInfo = base.as();
+                base = constInfo.constOf;
+            }
+            
             while(base != null && base.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo subPtr = base.as();
-                base = subPtr.ptrOf;
+                base = subPtr.getBaseType();
             }
                 
             return base;

@@ -3,7 +3,7 @@
  */
 package litac.compiler;
 
-import java.io.File;
+import java.io.*;
 
 import litac.ast.Stmt;
 import litac.checker.*;
@@ -38,7 +38,10 @@ public class Compiler {
             }
         }
         catch(Exception e) {
-            result.addError(null, "internal compiler error: %s", e);
+            StringWriter writer = new StringWriter();
+            PrintWriter printWriter = new PrintWriter(writer);
+            e.printStackTrace(printWriter);
+            result.addError(null, "internal compiler error: %s", writer.toString());
         }
                 
         return result;

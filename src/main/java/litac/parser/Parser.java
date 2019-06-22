@@ -416,6 +416,25 @@ public class Parser {
     private Stmt statement() {    
         source();
         
+        // check for notes on declarations
+        if(check(AT)) {
+            List<NoteStmt> notes = notes();
+        
+            Decl decl = null;
+            if(match(VAR)) {
+                decl = varDeclaration();
+            }
+            else if(match(CONST)) {
+                decl = constDeclaration();
+            }
+            else {
+                throw error(peek(), ErrorCode.INVALID_NOTE_DECL);
+            }
+            
+            decl.attributes.notes = notes;
+            return decl;
+        }
+        
         if(match(LEFT_BRACE))   return blockStatement();        
         if(match(VAR))          return varDeclaration();        
         if(match(CONST))        return constDeclaration();
@@ -716,7 +735,7 @@ public class Parser {
     private Expr bitXor() {
         Expr expr = bitAnd();
         
-        while(match(BAND)) {
+        while(match(XOR)) {
             Token operator = previous();
             Expr right = bitAnd();
             expr = node(new BinaryExpr(expr, operator.getType(), right));

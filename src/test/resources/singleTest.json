@@ -2,6 +2,8 @@
     description: "Single Test",
     program: '''                
         @include("assert.h");
+       // @include("<thread.h>");
+        
         @foreign func assert(e:bool):void;
         
         %definitions%
@@ -11,16 +13,42 @@
         }
     '''
     tests: [                
-        {
+        /*{
             name: "Typecast", 
             definitions: '''
-                typedef i64 as Time;
+                typedef func<T>(T):T as Test;
                 
+                func test<T>(t: Test<T>, a: T) : T {
+                    if(!t) {
+                        return a + 1
+                    }
+                    return t<T>(a)
+                }        
+                
+                func z(a: i32) : i32 {
+                    return a
+                }
                 
             ''',                       
             code: '''
-                var x : Time = 50_i64
+                assert(test<i32>(&z, 4) == 4)
             ''',
-        },     
+        },*/
+        {
+            name: "Generics struct with union",
+            definitions: '''                
+                struct Person<T> {
+                    union X<T> {
+                        v: T
+                    }
+                }
+                            
+            ''',            
+            code: '''
+                var x = Person<i32> { .X: X<i32>{4} }               
+                assert(x.X.v == 4)
+                  
+            '''
+        },    
     ]
 }

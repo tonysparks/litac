@@ -36,6 +36,7 @@ public class LitaC {
         System.out.println("  -outpuDir <arg>      The directory in which the C output files are stored");
         System.out.println("  -v, -version         Displays the LitaC version");
         System.out.println("  -h, -help            Displays this help");
+        System.out.println("  -t, -types           Does not include TypeInfo for reflection");
         System.out.println("  -buildCmd            The underlying C compiler build and compile command.  Variables will ");
         System.out.println("                       be substituted if found: ");
         System.out.println("                          %output%         The executable name ");
@@ -96,6 +97,7 @@ public class LitaC {
                     options.outputDir = new File(args[++i]);
                     break;
                 }
+                case "-t":
                 case "-types": {                    
                     options.typeInfo = false;
                     break;

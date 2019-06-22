@@ -129,7 +129,7 @@
                 var x = a as (Test<f32>) > 0
                 assert(x)
             ''',
-            error: "illegal, left operand has type 'Testf32'"
+            error: "illegal, left operand has type 'Test<f32>'"
         },
         {
             name: "Break Generics via Expression",                       
@@ -347,7 +347,7 @@
             code: '''  
                 var x : X<i32> = X<f32>{}
             ''',
-            error: "'struct Xi32' is not of type 'struct Xf32'" 
+            error: "'struct X<i32>' is not of type 'struct X<f32>'" 
         },
         { 
             name: "Generics Var mismatch Types no GenArgs",
@@ -359,7 +359,7 @@
             code: '''  
                 var x : X = X<f32>{}
             ''',
-            error: "'struct X' is not of type 'struct Xf32'" 
+            error: "'struct X' is not of type 'struct X<f32>'" 
         },
         { 
             name: "Generics Var mismatch Types no GenArgs Init",

@@ -77,6 +77,9 @@ public class Generics {
         module = module.getRoot();
         
         switch(type.getKind()) {
+            case Func: {
+                return createFromGenericTypeInfo(module, type, genericArgs);
+            }
             case Struct:
             case Union: {
                // AggregateTypeInfo aggInfo = type.as();
@@ -184,6 +187,9 @@ public class Generics {
         module.declareStruct(decl, newStructName, newStructInfo);
         module.addGenericType(declared, decl);
         
+        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(newStructInfo.fieldInfos, module, structInfo.genericParams, genericArgs);
+        decl.visit(replacer);
+        
         return newStructInfo;
     }
     
@@ -206,43 +212,12 @@ public class Generics {
         module.declareUnion(decl, newUnionName, newUnionInfo);
         module.addGenericType(declared, decl);
         
+        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(newUnionInfo.fieldInfos, module, unionInfo.genericParams, genericArgs);
+        decl.visit(replacer);
+        
         return newUnionInfo;
     }
     
-    private static StructDecl createNewStructDecl(Module module, StructTypeInfo structInfo, List<GenericParam> genericParams, List<TypeInfo> genericArgs) { 
-        StructDecl decl = structInfo.sym.decl.copy();
-        decl.name = structInfo.name;
-        decl.type = structInfo;
-        
-        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(structInfo.fieldInfos, module, genericParams, genericArgs);
-        decl.visit(replacer);
-        
-        return decl;
-    }
-    
-    private static UnionDecl createNewUnionDecl(Module module, UnionTypeInfo unionInfo, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
-        UnionDecl decl = unionInfo.sym.decl.copy();
-        decl.name = unionInfo.name;
-        decl.type = unionInfo;
-        
-        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(unionInfo.fieldInfos, module, genericParams, genericArgs);
-        decl.visit(replacer);
-        
-        return decl;
-    }
-    
-    private static FuncDecl createNewFuncDecl(Module module, FuncTypeInfo funcInfo, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
-        FuncDecl decl = funcInfo.sym.decl.copy();
-        decl.name = funcInfo.name;
-        decl.type = funcInfo;
-        decl.returnType = funcInfo.returnType;
-        decl.params.params = funcInfo.parameterDecls;
-        
-        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(Collections.emptyList(), module, genericParams, genericArgs);
-        decl.visit(replacer);
-        
-        return decl;
-    }
     
     private static TypeInfo createFuncTypeInfo(Module module, String newFuncName, FuncTypeInfo funcInfo, List<TypeInfo> genericArgs) {
         
@@ -272,15 +247,58 @@ public class Generics {
         module.declareFunc(decl, newFuncName, newFuncInfo);
         module.addGenericType(declared, decl);
         
+        
+        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(Collections.emptyList(), module, funcInfo.genericParams, genericArgs);
+        decl.visit(replacer);
+        
         return newFuncInfo;
     }
+    
+    private static StructDecl createNewStructDecl(Module module, StructTypeInfo structInfo, List<GenericParam> genericParams, List<TypeInfo> genericArgs) { 
+        StructDecl decl = structInfo.sym.decl.copy();
+        decl.name = structInfo.name;
+        decl.type = structInfo;
+        decl.attributes = structInfo.sym.decl.attributes;
+        
+        return decl;
+    }
+    
+    private static UnionDecl createNewUnionDecl(Module module, UnionTypeInfo unionInfo, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
+        UnionDecl decl = unionInfo.sym.decl.copy();
+        decl.name = unionInfo.name;
+        decl.type = unionInfo;
+        decl.attributes = unionInfo.sym.decl.attributes;
+                
+        return decl;
+    }
+    
+    private static FuncDecl createNewFuncDecl(Module module, FuncTypeInfo funcInfo, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
+        FuncDecl decl = funcInfo.sym.decl.copy();
+        decl.name = funcInfo.name;
+        decl.type = funcInfo;
+        decl.returnType = funcInfo.returnType;
+        decl.params.params = funcInfo.parameterDecls;
+        decl.attributes = funcInfo.sym.decl.attributes;
+        
+        return decl;
+    }
+
     
     private static String newDeclGenericName(TypeInfo type, List<TypeInfo> genericArgs) {
         StringBuilder newName = new StringBuilder(type.getName());
         
+        if(!genericArgs.isEmpty()) {
+            newName.append("<");
+        }
         for(int i = 0; i < genericArgs.size(); i++) {
+            if(i > 0) newName.append(",");
+            
             TypeInfo argInfo = genericArgs.get(i);
             newName.append("").append(argInfo.getName().replace("::", ""));
+        }
+        
+        if(!genericArgs.isEmpty()) {
+            newName.append(">");
         }
         
         return newName.toString();

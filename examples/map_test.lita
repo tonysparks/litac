@@ -1,0 +1,54 @@
+//import "array"
+import "io"
+//import "mem"
+
+import "map"
+
+@include("<string.h>");
+@foreign func strcmp (a: char const*, b: char const*) : i32;
+@foreign func snprintf(buf: char*, len: i32, format: char const*, ...);
+
+
+// TODO -- why doesn't const work here???
+typedef Map<char /*const*/*, i32> as IntMap;
+typedef func(char*, char*) : bool as StrEqualFn;
+
+func StrEqual(a: char*, b: char*) : bool {
+    return strcmp(a, b) == 0;
+}
+
+func main(len:i32, args:char**):i32 {
+    var m : IntMap = IntMap{0};
+    
+    // todo type check the funcPtr -- shouldn't be allowed!!
+    //MapInit<char*, i32>(&m, 16, StrHashFn, StrEqualFn);
+    MapInit<char*, i32>(&m, 16, StrHashFn, &StrEqual);
+    
+    const strLen = 32
+    const count = 52
+    var buffers = [count][strLen]char* {};
+    
+    for(var i = 0; i < count; i+=1) {
+        snprintf(buffers[i] as (char*), strLen, "str%d", i);
+        printf("Buffer: %s\n", buffers[i] as (char*))
+        
+        MapPut<char*, i32>(&m, buffers[i] as (char*), i + 1);        
+    }
+    
+    printf("Count: %d\n", MapSize<char*, i32>(&m))
+    
+    for(var i = 0; i < count; i+=1) {
+        var v = MapGet<char*, i32>(&m, buffers[i] as (char*));
+        //var v = i + 1
+        printf("%s = %d\n", buffers[i] as (char*), v)
+    }
+    
+    printf("Iterator: \n")
+    
+    var iter = MapIter<char*, i32>(&m)
+    while(MapIterHasNext<char*, i32>(&iter)) {
+        var entry = MapIterNext<char*, i32>(&iter)
+        printf("%s = %d\n", entry.key, entry.value)
+    }
+    
+}

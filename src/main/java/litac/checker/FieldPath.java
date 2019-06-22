@@ -33,15 +33,13 @@ public class FieldPath {
         }
         
         private boolean isAgg(TypeInfo type) {
-            if (type.isKind(TypeKind.Struct) || 
-                type.isKind(TypeKind.Union)) {
+            if (TypeInfo.isAggregate(type)) {
                 return true;
             }
             
             // only only one level of pointers for using expression
-            if(type.isKind(TypeKind.Ptr)) {
-                PtrTypeInfo ptrInfo = type.as();
-                return !ptrInfo.ptrOf.isKind(TypeKind.Ptr) && isAgg(ptrInfo.getBaseType());
+            if(TypeInfo.isPtrAggregate(type)) {
+                return true;
             }
             
             return false;

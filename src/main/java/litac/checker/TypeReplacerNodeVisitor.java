@@ -149,10 +149,19 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(ForStmt stmt) {
-        replaceType(stmt.initStmt).visit(this);
-        replaceType(stmt.condExpr).visit(this);
+        if(stmt.initStmt != null) {
+            replaceType(stmt.initStmt).visit(this);
+        }
+        
+        if(stmt.condExpr != null) {
+            replaceType(stmt.condExpr).visit(this);
+        }
+        
         replaceType(stmt.bodyStmt).visit(this);
-        replaceType(stmt.postStmt).visit(this);
+        
+        if(stmt.postStmt != null) {
+            replaceType(stmt.postStmt).visit(this);
+        }
     }
 
     @Override
@@ -224,7 +233,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     @Override
     public void visit(TypedefDecl d) {
         // TODO Auto-generated method stub
-
+        System.out.println("here!" + d.alias);
     }
 
     @Override
@@ -288,6 +297,9 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     public void visit(InitExpr expr) {
         replaceGenericArgs(expr.genericArgs);
         replaceType(expr);        
+        for(Expr arg : expr.arguments) {
+            replaceType(arg).visit(this);
+        }
     }
 
     @Override
@@ -329,7 +341,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         replaceType(expr);
         
         if(expr.sym != null && expr.sym.isType()) {
-            TypeInfo newType = replaceType(expr.type);
+            TypeInfo newType = replaceType(expr.type).getResolvedType();
             expr.type = newType;
             expr.resolveTo(newType);
             expr.sym = newType.sym;
@@ -341,7 +353,9 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
                 expr.resolveTo(idInfo);
             }
             else {
-                TypeInfo newType = replaceType(expr.type);
+                // Don't get the resolved type, because that will bypass the Identifier 
+                // information
+                TypeInfo newType = replaceType(expr.type);//.getResolvedType();
                 expr.type = newType;
                 expr.resolveTo(newType);
                 expr.sym = newType.sym;

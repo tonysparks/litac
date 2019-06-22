@@ -2,9 +2,10 @@ import "array"
 import "io" as io
 import "mem"
 
+import "map"
 
 func main(len:i32, args:char**):i32 {
-
+    /*
     io::printf("Max %d\n", MAX_SIZE)
     io::printf("SEEK: %d\n", io::SEEK_END)
     var inline = 128
@@ -33,5 +34,5 @@ func main(len:i32, args:char**):i32 {
         return 1;
     }
     
-    io::printf("File data: \n%s", data)
+    io::printf("File data: \n%s", data)*/
 }

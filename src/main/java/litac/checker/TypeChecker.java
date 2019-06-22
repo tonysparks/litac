@@ -533,7 +533,7 @@ public class TypeChecker {
                 
                 if(funcInfo.params.size() != expr.arguments.size()) {
                     int numberOfSupplied = expr.arguments.size() + numberOfDefaultArgs;
-                    boolean correctArgs = funcInfo.params.size() == numberOfSupplied; 
+                    boolean correctArgs = funcInfo.params.size() <= numberOfSupplied; 
                     if(!correctArgs) {
                         if(funcInfo.params.size() > numberOfSupplied || !funcInfo.isVararg) {                    
                             this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());

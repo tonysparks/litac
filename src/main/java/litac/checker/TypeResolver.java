@@ -233,6 +233,12 @@ public class TypeResolver {
         }
         
         private TypeInfo getType(Stmt stmt, List<TypeInfo> genericArgs, List<GenericParam> genericParams, TypeInfo expectedType) {
+            if(expectedType == null && !includeGenerics()) {
+                // we're processing a generic function, we can only resolve so much
+                // with these unknown types
+                return null;
+            }
+            
             for(int i = 0; i < genericParams.size(); i++) {
                 GenericParam p = genericParams.get(i);
                 if(p.name.equals(expectedType.getName())) {
@@ -260,9 +266,16 @@ public class TypeResolver {
             if(!type.isResolved()) {  
                 if(resolvedType == null) {
                     resolvedType = getType(type.getName());
-                    if(resolvedType == null && includeGenerics()) {
-                        this.result.addError(stmt, "'%s' is an unknown type", type.getName());
-                        return;
+                    if(resolvedType == null) {
+                        if(!includeGenerics()) {
+                            //resolvedType = type;
+                            // todo
+                            return;
+                        }
+                        else {
+                            this.result.addError(stmt, "'%s' is an unknown type", type.getName());
+                            return;
+                        }
                     }
                 }
                 else if(!resolvedType.isResolved()) {
@@ -691,29 +704,17 @@ public class TypeResolver {
                     }
                                    
                     
-                    if(aggInfo.isKind(TypeKind.Struct)) {                        
-                        StructTypeInfo structInfo = aggInfo.as();
-                        if(index >= structInfo.fieldInfos.size()) {
-                            this.result.addError(expr, "invalid struct initialize index");
+                    if(TypeInfo.isAggregate(aggInfo)) {                        
+                        AggregateTypeInfo info = aggInfo.as();
+                        if(index >= info.fieldInfos.size()) {
+                            this.result.addError(expr, "invalid %s initialize index", info.getKind().name());
                         }
                         else {
-                            FieldInfo field = structInfo.fieldInfos.get(index);
+                            FieldInfo field = info.fieldInfos.get(index);
                             type = field.type;
                             expr.resolveTo(type);
                         }
                     }
-                    else if(aggInfo.isKind(TypeKind.Union)) {
-                        UnionTypeInfo unionInfo = aggInfo.as();
-                        if(index >= unionInfo.fieldInfos.size()) {
-                            this.result.addError(expr, "invalid union initialize index");
-                        }
-                        else {
-                            FieldInfo field = unionInfo.fieldInfos.get(index);
-                            type = field.type;
-                            expr.resolveTo(type);
-                        }
-                    }
-                    
                 }
             }
             

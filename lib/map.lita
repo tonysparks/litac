@@ -1,0 +1,193 @@
+module map;
+import "mem" as mem;
+import "io";
+
+
+public typedef func<K>(K) : u32 as HashFn;
+public typedef func<K>(K, K) : bool as EqualFn;
+
+// TODO: Fix binary expression with const
+public func StrHashFn(str: char /*const*/*) : u32 {
+    var hash = 5381_u32;
+    while (*str) {
+        hash = ((hash << 5_u32) + hash) ^ *str;
+        str += 1;
+    }
+    return hash;
+}
+
+public func PtrEqualFn<K>(a: K, b: K) : bool {
+    return a == b;
+}
+
+public struct Map<K, V> {
+    size: i32
+    capacity: i32    
+    hashFn: HashFn<K>
+    equalFn: EqualFn
+    allocator: using mem::Allocator const*
+    keys: K*
+    values: V*    
+}
+
+public struct MapIterator<K, V> {
+    m: Map<K, V>*
+    it: i32
+    count: i32
+}
+
+public struct MapEntry<K, V> {
+    key: K
+    value: V
+}
+
+
+public func MapInit<K, V>(m: Map<K, V>*, 
+                          initialSize: i32 = 16,
+                          hashFn: HashFn<K> = null,
+                          equalFn: EqualFn<K> = null,
+                          alloc: mem::Allocator const* = null) {
+    
+    if(!hashFn) {
+        hashFn = &StrHashFn
+    }
+    
+    if(!equalFn) {
+        equalFn = &PtrEqualFn<K>
+    }
+
+    if(!alloc) {
+        alloc = (&mem::cAllocator) as (mem::Allocator const*) 
+    }    
+    
+    m.size = 0;
+    m.capacity = 0;
+    m.hashFn = hashFn;
+    m.equalFn = equalFn;
+    m.allocator = alloc;
+    m.keys = 0;
+    m.values = 0;
+    
+    MapGrow<K, V>(m, initialSize);
+}
+
+public func MapFree<K, V>(m: Map<K, V>*) {
+    if(m) {
+        m.capacity = 0;
+        m.size = 0;
+        m.free(m.keys as (void*));
+        m.free(m.values as (void*));        
+    }
+}
+
+@inline
+public func MapSize<K, V>(m: Map<K, V>*) : i32 {
+    return m.size
+}
+
+public func MapPut<K, V>(m: Map<K, V>*, key: K, value: V) {
+    if(!value) {
+        return;
+    }
+    
+    if(2 * m.size >= m.capacity) {        
+        MapGrow<K, V>(m, 2 * m.capacity);    
+    }
+    
+    var i = m.hashFn<K>(key);
+    for(;;) {
+        i &= m.capacity - 1;
+        if(!m.keys[i]) {
+            m.size += 1
+            m.keys[i] = key;
+            m.values[i] = value;
+            return;
+        }
+        else if(m.equalFn<K>(m.keys[i], key)) {
+            m.values[i] = value;
+            return;
+        }
+        
+        i += 1;
+    }
+
+}
+
+public func MapGet<K, V>(m: Map<K, V>*, key: K) : V {
+    if(m.size == 0) {
+        return 0;
+    }
+    
+    var i = m.hashFn<K>(key);
+    for(;;) {
+        i &= m.capacity - 1;
+        if(m.equalFn<K>(m.keys[i], key)) {
+            return m.values[i];
+        }
+        else if(!m.keys[i]) {
+            return 0;
+        }
+        
+        i += 1;
+    }
+    
+    return 0;
+}
+
+func MapGrow<K, V>(m: Map<K, V>*, newSize: i32) {
+    if(newSize < 16) {
+        newSize = 16;
+    }
+    
+    var newMap = Map<K, V> {
+        .size: 0,
+        .capacity: newSize,
+        .keys: m.calloc(newSize, sizeof(K)) as (K*),
+        .values: m.alloc(newSize * sizeof(V)) as (V*),
+        .hashFn: m.hashFn,
+        .equalFn: m.equalFn,
+        .allocator: m.allocator
+    }
+    
+    for(var i = 0; i < m.capacity; i+=1) {
+        if(m.keys[i]) {
+            MapPut<K, V>(&newMap, m.keys[i], m.values[i]);
+        }
+    }
+    
+    MapFree<K, V>(m);
+    
+    *m = newMap;
+    //printf("New Size %d!\n", m.capacity)
+}
+
+
+// -------------------------------------------------------
+
+public func MapIter<K, V>(m: Map<K, V>*) : MapIterator<K, V> {
+    return MapIterator<K, V> {
+        .m: m,
+        .it: 0
+    }
+}
+
+public func MapIterHasNext<K, V>(iter: MapIterator<K, V>*) : bool {
+    return iter.count < iter.m.size;
+}
+
+public func MapIterNext<K, V>(iter: MapIterator<K, V>*) : MapEntry<K, V> {
+    var i = iter.it;
+    defer iter.it = i + 1
+    
+    for(; i < iter.m.capacity; i += 1) {        
+        if(iter.m.keys[i]) {
+            iter.count += 1
+            return MapEntry<K, V> {
+                .key: iter.m.keys[i],
+                .value: iter.m.values[i]
+            }
+        }        
+    }
+        
+    return MapEntry<K, V>{}
+}

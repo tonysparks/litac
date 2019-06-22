@@ -178,7 +178,7 @@
                 var x = X<i32> {44} as (X<f32>)
                   
             ''',
-            error: "'struct Xf32' can't be casted to 'struct Xi32'"
+            error: "'struct X<f32>' can't be casted to 'struct X<i32>'"
         },
         {
             name: "Invalid union Casts",
@@ -192,7 +192,7 @@
                 var x = X<i32> {44} as (X<f32>)
                   
             ''',
-            error: "'union Xf32' can't be casted to 'union Xi32'"
+            error: "'union X<f32>' can't be casted to 'union X<i32>'"
         },
         
         {

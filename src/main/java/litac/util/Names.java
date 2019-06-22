@@ -3,6 +3,8 @@
  */
 package litac.util;
 
+import litac.checker.TypeInfo;
+
 /**
  * @author Tony
  *
@@ -61,5 +63,28 @@ public class Names {
             return name.substring(0, name.indexOf("__"));
         }
         return "";
+    }
+    
+    public static String escapeName(TypeInfo type) {
+        if(TypeInfo.isAggregate(type) || TypeInfo.isFunc(type)) {
+            return escapeName(type.getName());
+        }
+        
+        return type.getName();
+    }
+    
+    public static String escapeName(String name) {
+        return name
+                .replace("::", "__")
+                .replace("*", "_ptr_")
+                .replace("<", "_cb_")
+                .replace(">", "_ce_")
+                .replace("[", "_bb_")
+                .replace("]", "_be_")
+                .replace("(", "_pb_")
+                .replace(")", "_pe_")
+                .replace(":", "_r_")
+                .replace(",", "_c_")
+                .replace(" ", "_");
     }
 }

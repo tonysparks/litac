@@ -19,7 +19,8 @@ public enum ErrorCode {
     INVALID_OBJECT_INIT("Invalid structure initializer"),
     INVALID_MODULE_ACCESS("Invalid module access"),
     INVALID_VARARG_POSITION("Invalid variable argument position"),
-
+    INVALID_NOTE_DECL("Invalid note declaration, must preceed either a 'var' or 'const' declaration"),
+    
     MISSING_COMMA("Missing ,"),
     MISSING_SEMICOLON("Missing ;"),
     MISSING_RIGHT_BRACE("Missing Right Brace"),
