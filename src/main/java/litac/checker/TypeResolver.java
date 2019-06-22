@@ -308,7 +308,17 @@ public class TypeResolver {
                     
                     arrayInfo.length = len;
                 }
+            }
+            else if(type.isKind(TypeKind.FuncPtr)) {
+                FuncPtrTypeInfo funcInfo = type.as();
+                if(funcInfo.hasGenerics()) {
+                    return;
+                }
                 
+                resolveType(stmt, funcInfo.returnType);
+                for(TypeInfo p : funcInfo.params) {
+                    resolveType(stmt, p);
+                }
             }
         }
         
@@ -669,9 +679,7 @@ public class TypeResolver {
         
         @Override
         public void visit(TypedefDecl d) {
-            // TODO
             resolveType(d, d.type);
-            //module.gett
         }
 
         private TypeInfo getAggregateFieldTypeInfo(InitExpr expr) {
@@ -825,6 +833,21 @@ public class TypeResolver {
                     
                     resolveType(arg, getType(expr, expr.genericArgs, funcPtr.genericParams, arg.getResolvedType()));
                 }                
+            }
+            
+            // type inference for generic functions 
+            if(funcPtr.hasGenerics() && expr.genericArgs.isEmpty()) {
+                expr.genericArgs = new ArrayList<>(funcPtr.genericParams.size());
+                
+                for(GenericParam p : funcPtr.genericParams) {
+                    for(int j = 0; j < funcPtr.params.size(); j++) {
+                        if(funcPtr.params.get(j).getName().equals(p.name)) {
+                            expr.genericArgs.add(expr.arguments.get(j).getResolvedType());
+                        }
+                    }
+                }
+                // TODO, reresolve the function now with populated genericArgs
+                expr.object.visit(this);
             }
         }
 

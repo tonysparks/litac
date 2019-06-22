@@ -138,7 +138,17 @@ public class CWriterNodeVisitor implements NodeVisitor {
                     
                     isFirst = false;
                 }
+
+                if(funcInfo.isVararg) {
+                    if(!isFirst) {
+                        buf.out(",");
+                    }
+                    
+                    buf.out("...");
+                }
+                
                 buf.out(")");
+                
                 
                 if(funcInfo.returnType.isKind(TypeKind.FuncPtr)) {
                     buf.out(") (");
@@ -291,7 +301,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();      
-                TypeInfo baseInfo = arrayInfo.getBaseType();
+                TypeInfo baseInfo = arrayInfo.getBaseType();                
                 String baseName = getTypeNameForC(baseInfo);
                 
                 StringBuilder sb = new StringBuilder();
@@ -310,7 +320,13 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 } 
                 while(arrayInfo != null);
                 
-                return String.format("%s %s%s", baseName, declName, sb.toString()); 
+                if(baseInfo.isKind(TypeKind.FuncPtr)) {
+                    return typeDeclForC(baseInfo, declName + sb.toString());
+                }
+                else {
+                    return String.format("%s %s%s", baseName, declName, sb.toString());
+                }
+                
             }
             case Str: {
                 return String.format("char* %s", declName);
@@ -337,6 +353,8 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }
         }
     }
+    
+    //private String funcPtr(FuncPtrTypeInfo funcInfo,)
     
     private String getTypeNameForC(TypeInfo type) {
         switch (type.getKind()) {
@@ -740,7 +758,14 @@ public class CWriterNodeVisitor implements NodeVisitor {
             isFirst = false;
         }
         
-        // TODO: Varargs
+        if(funcInfo.isVararg) {
+            if(!isFirst) {
+                buf.out(",");
+            }
+            
+            buf.out("...");
+        }
+        
         
         buf.out(")");
         
@@ -838,7 +863,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         // type in the Lita compiler
         //buf.out("typedef %s %s;\n", cTypeName(d.type), prefix(d.alias));
         
-        if(isForeign(d.type)) {
+        if(isForeign(d)) {
             return;
         }
         

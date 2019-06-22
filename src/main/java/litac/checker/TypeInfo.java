@@ -1401,7 +1401,6 @@ public abstract class TypeInfo {
                     resolvedTo = Generics.createFromGenericTypeInfo(module, resolvedTo, this.genericArgs);
                 }
                 this.resolvedType = resolvedTo;
-                //this.sym = resolvedTo.sym; overrides the correct sym for declarations
             }
         }
         

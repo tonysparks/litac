@@ -629,7 +629,7 @@ public class Parser {
                 UnaryExpr uExpr = (UnaryExpr)expr;
                 checkConstExpr(token, uExpr.expr);
             }
-            else if(expr instanceof IdentifierExpr) {
+            else if(expr instanceof IdentifierExpr || expr instanceof GetExpr) {
                 // this is allowed, will be checked for
                 // constant in type checker
             }

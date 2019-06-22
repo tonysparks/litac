@@ -1,0 +1,52 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "LitaC",
+	"patterns": [		
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#multistrings"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.litac",
+					"match": "\\b(var|const|func|struct|union|enum|module|import|if|else|while|for|break|continue|public|null|true|false|return|void|using|as|sizeof|typeof|defer|typedef)\\b"
+				},
+				{
+					"name": "keyword.other.litac",
+					"match": "\\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|i128|u128|f32|f64|char)\\b"
+				},
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.litac",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.litac",
+					"match": "\\\\."
+				}
+			]
+		},
+		"multistrings": {
+			"name": "string.quoted.double.litac",
+			"begin": "\"\"\"",
+			"end": "\"\"\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.litac",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.litac"
+}

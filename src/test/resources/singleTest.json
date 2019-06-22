@@ -14,7 +14,20 @@
     '''
     tests: [                
         /*{
-            name: "Typecast", 
+            name: "Generics inferred func",
+            definitions: '''                
+                func test<T>(a : T) : T {
+                    return a;
+                }
+                            
+            ''',            
+            code: '''
+        //        assert(test(2) == 2)
+                  
+            '''
+        },*/
+        {
+            name: "Generics embedded", 
             definitions: '''
                 typedef func<T>(T):T as Test;
                 
@@ -33,22 +46,6 @@
             code: '''
                 assert(test<i32>(&z, 4) == 4)
             ''',
-        },*/
-        {
-            name: "Generics struct with union",
-            definitions: '''                
-                struct Person<T> {
-                    union X<T> {
-                        v: T
-                    }
-                }
-                            
-            ''',            
-            code: '''
-                var x = Person<i32> { .X: X<i32>{4} }               
-                assert(x.X.v == 4)
-                  
-            '''
-        },    
+        },
     ]
 }

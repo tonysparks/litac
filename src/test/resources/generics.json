@@ -418,5 +418,26 @@
                 assert(test<A>(a) == 4)                                
             ''',                      
         }, 
+        {
+            name: "Generics embedded", 
+            definitions: '''
+                typedef func<T>(T):T as Test;
+                
+                func test<T>(t: Test<T>, a: T) : T {
+                    if(!t) {
+                        return a + 1
+                    }
+                    return t<T>(a)
+                }        
+                
+                func z(a: i32) : i32 {
+                    return a
+                }
+                
+            ''',                       
+            code: '''
+                assert(test<i32>(&z, 4) == 4)
+            ''',
+        },
     ]
 }

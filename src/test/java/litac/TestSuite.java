@@ -35,6 +35,7 @@ public class TestSuite {
     
     public String description;
     public String program;
+    public boolean includeTypeInfos;
     public List<TestCase> tests;
     
     
@@ -63,7 +64,7 @@ public class TestSuite {
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = "";
                 options.run = true;
-                options.typeInfo = false;
+                options.typeInfo = suite.includeTypeInfos;
                 
                 PhaseResult result = LitaC.compile(options);
                 if(result.hasErrors()) {

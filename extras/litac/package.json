@@ -1,0 +1,25 @@
+{
+    "name": "litac",
+    "displayName": "litac",
+    "description": "LitaC Programming Language",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.35.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "litac",
+            "aliases": ["LitaC", "litac"],
+            "extensions": [".litac",".lita"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "litac",
+            "scopeName": "source.litac",
+            "path": "./syntaxes/litac.tmLanguage.json"
+        }]
+    }
+}
