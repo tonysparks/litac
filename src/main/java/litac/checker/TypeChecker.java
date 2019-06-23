@@ -226,6 +226,25 @@ public class TypeChecker {
             
             stmt.bodyStmt.visit(this);
         }
+        
+        @Override
+        public void visit(SwitchCaseStmt stmt) {
+            stmt.cond.visit(this);
+            stmt.stmt.visit(this);
+        }
+        
+        @Override
+        public void visit(SwitchStmt stmt) {
+            stmt.cond.visit(this);
+            
+            for(SwitchCaseStmt s : stmt.stmts) {
+                s.visit(this);
+            }
+            
+            if(stmt.defaultStmt != null) {
+                stmt.defaultStmt.visit(this);
+            }
+        }
 
         @Override
         public void visit(BreakStmt stmt) {
@@ -698,7 +717,7 @@ public class TypeChecker {
             switch(expr.operator) {
                 case STAR: {
                     TypeInfo type = expr.expr.getResolvedType().getResolvedType();
-                    if(!type.isKind(TypeKind.Ptr) && !type.isKind(TypeKind.Str)) {
+                    if(!TypeInfo.isPtrLike(type)) {                            
                         this.result.addError(expr, "'%s' is not a pointer type", type);
                         return;
                     }

@@ -26,6 +26,8 @@ public class Parser {
     private int anonStructId;
     private int anonUnionId;
     private int loopLevel;
+    private int switchLevel;
+    private int breakLevel;
     private int aggregateLevel;
     
     private final Scanner scanner;
@@ -442,6 +444,7 @@ public class Parser {
         if(match(WHILE))        return whileStmt();
         if(match(DO))           return doWhileStmt();
         if(match(FOR))          return forStmt();
+        if(match(SWITCH))       return switchStmt();
         if(match(BREAK))        return breakStmt();
         if(match(CONTINUE))     return continueStmt();
         if(match(RETURN))       return returnStmt();
@@ -576,11 +579,81 @@ public class Parser {
         return node(new ForStmt(initStmt, condExpr, postStmt, bodyStmt));
     }
     
+    private SwitchCaseStmt switchCaseStmt() {
+        Expr cond =  constExpression();
+        consume(COLON, ErrorCode.MISSING_COLON);
+        
+        List<Stmt> stmts = new ArrayList<>();
+        
+        int breakCount = this.breakLevel;
+        while(!isAtEnd()) {
+            if(check(RIGHT_BRACE) ||
+               check(CASE) ||
+               check(DEFAULT)) {
+                break;
+            }
+            
+            Stmt stmt = statement();
+            stmts.add(stmt);
+                       
+            if(breakCount != this.breakLevel) {
+                this.breakLevel--;
+                break;
+            }
+        }
+        
+        return node(new SwitchCaseStmt(cond, stmts.isEmpty() 
+                            ? new EmptyStmt() : new BlockStmt(stmts)));
+    }
+    
+    private SwitchStmt switchStmt() {
+        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
+        Expr cond = expression();
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        
+        boolean startBrace = match(LEFT_BRACE);
+        
+        Stmt defaultStmt = null;
+        List<SwitchCaseStmt> caseStmts = new ArrayList<>();
+        
+        this.switchLevel++;
+        
+        while(!isAtEnd()) {
+            if(match(CASE)) {
+                caseStmts.add(switchCaseStmt());
+            }
+            else if(match(DEFAULT)) {
+                consume(COLON, ErrorCode.MISSING_COLON);
+                defaultStmt = statement();
+            }
+            else {
+                break;
+            }
+        }
+        
+        this.switchLevel--;
+        
+        if(startBrace) {
+            consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
+        }
+        
+        return node(new SwitchStmt(cond, caseStmts, defaultStmt));
+    }
+    
     
     private BreakStmt breakStmt() {     
-        if(this.loopLevel < 1) {
+        if(this.loopLevel < 1 && this.switchLevel < 1) {
             throw error(previous(), ErrorCode.INVALID_BREAK);
         }
+        
+        if(this.switchLevel > 0 && this.loopLevel < 1) {
+            if(this.breakLevel > 0) {
+                throw error(previous(), ErrorCode.INVALID_BREAK);
+            }
+            
+            this.breakLevel++;
+        }
+        
         return node(new BreakStmt());
     }
     
@@ -1403,7 +1476,15 @@ public class Parser {
             String fieldName = null;
             if(match(DOT)) {
                 fieldName = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER).getText();
-                consume(COLON, ErrorCode.MISSING_COLON);
+                if(check(COLON)) {
+                    consume(COLON, ErrorCode.MISSING_COLON);
+                }
+                else if(check(EQUALS)) {
+                    consume(EQUALS, ErrorCode.MISSING_EQUALS);
+                }
+                else {
+                    throw error(peek(), ErrorCode.MISSING_COLON);
+                }
             }
             
             Expr value = expression();

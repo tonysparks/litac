@@ -5,8 +5,8 @@ import "mem";
 @include("<stdlib.h>");
 
 @foreign public struct FILE;
-@foreign public func printf(s:char*, ...) : void;
-@foreign public func fopen(fileName:char*, openType:char*) : FILE*;
+@foreign public func printf(s:char const*, ...) : void;
+@foreign public func fopen(fileName:char const*, openType:char const*) : FILE*;
 @foreign public func fgets(buf: char*, n:i64, stream: FILE*): char*;
 @foreign public func fread(buf: char*, size:u64, n:i64, stream: FILE*) : i64;
 @foreign public func fclose(stream: FILE*) : void;
@@ -25,14 +25,13 @@ public enum FileStatus {
     IOError,
 }
 
-public func readFile(fileName: char*, data: char**, alloc: Allocator*) : FileStatus { 
+public func readFile(fileName: char const*, data: char**, alloc: Allocator const*) : FileStatus { 
     var fp = fopen(fileName, "r")
     if(fp == null) {
         return FileStatus.FileNotFoundError;
     }
-
     defer fclose(fp)
-    
+
     if (fseek(fp, 0, SEEK_END)) {
         return FileStatus.IOError;
     }
@@ -45,7 +44,7 @@ public func readFile(fileName: char*, data: char**, alloc: Allocator*) : FileSta
     if (fseek(fp, 0, SEEK_SET)) {
         return FileStatus.IOError;
     }
-
+    
     var buf = alloc.alloc(sizeof(char) * (len as(u64) + 1_u64)) as (char*);
     (*data) = buf;
 

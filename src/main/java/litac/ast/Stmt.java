@@ -301,6 +301,48 @@ public abstract class Stmt extends Node {
         }
     }
     
+    public static class SwitchCaseStmt extends Stmt {
+        public Expr cond;
+        public Stmt stmt;
+        
+        public SwitchCaseStmt(Expr cond, Stmt stmt) {
+            this.cond = becomeParentOf(cond);
+            this.stmt = becomeParentOf(stmt);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new SwitchCaseStmt(copy(this.cond), copy(this.stmt));
+        }
+    }
+    
+    public static class SwitchStmt extends Stmt {
+        public Expr cond;
+        public List<SwitchCaseStmt> stmts;
+        public Stmt defaultStmt;
+        
+        public SwitchStmt(Expr cond, List<SwitchCaseStmt> stmts, Stmt defaultStmt) {
+            this.cond = becomeParentOf(cond);
+            this.stmts = becomeParentOf(stmts);
+            this.defaultStmt = becomeParentOf(defaultStmt);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new SwitchStmt(copy(this.cond), copy(this.stmts), copy(defaultStmt));
+        }
+    }
+    
     public static class BreakStmt extends Stmt {
         @Override
         public void visit(NodeVisitor v) {

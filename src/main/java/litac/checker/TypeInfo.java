@@ -210,6 +210,17 @@ public abstract class TypeInfo {
         return false;
     }
     
+    public static boolean isPtrLike(TypeInfo type) {
+        type = type.getResolvedType();
+        if(type.isKind(TypeKind.Ptr) || 
+           type.isKind(TypeKind.Str) || 
+           type.isKind(TypeKind.Array)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
     public static boolean isPtr(TypeInfo type) {
         type = type.getResolvedType();
         if(type.isKind(TypeKind.Ptr)) {
@@ -221,6 +232,14 @@ public abstract class TypeInfo {
             return isPtr(constInfo.constOf);
         }
         
+        return false;
+    }
+    
+    public static boolean isVoidPtr(TypeInfo type) {
+        if(isPtr(type)) {
+            PtrTypeInfo ptrInfo = type.as();
+            return ptrInfo.ptrOf.isKind(TypeKind.Void);
+        }
         return false;
     }
     
@@ -1200,6 +1219,10 @@ public abstract class TypeInfo {
                     return false;
                 }
                 
+                return true;
+            }
+            
+            if(isVoidPtr(target)) {
                 return true;
             }
             

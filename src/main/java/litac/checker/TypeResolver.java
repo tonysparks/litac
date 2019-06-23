@@ -462,6 +462,25 @@ public class TypeResolver {
             stmt.bodyStmt.visit(this);
             exitScope();
         }
+        
+        @Override
+        public void visit(SwitchCaseStmt stmt) {
+            stmt.cond.visit(this);
+            stmt.stmt.visit(this);
+        }
+        
+        @Override
+        public void visit(SwitchStmt stmt) {
+            stmt.cond.visit(this);
+            
+            for(SwitchCaseStmt s : stmt.stmts) {
+                s.visit(this);
+            }
+            
+            if(stmt.defaultStmt != null) {
+                stmt.defaultStmt.visit(this);
+            }
+        }
 
         @Override
         public void visit(BreakStmt stmt) {
@@ -502,21 +521,30 @@ public class TypeResolver {
         public void visit(VarDecl d) {
             if(d.expr != null) {
                 d.expr.visit(this);
-            }
-            
-            // infer the type from the expression
-            if(d.type == null) {
-                d.type = d.expr.getResolvedType();
-            }
-            else {
-                // infer the array length, if this is an array
-                if(d.type.isKind(TypeKind.Array)) {
-                    ArrayTypeInfo arrayInfo = d.type.as();
-                    if(arrayInfo.length < 0) {
-                        TypeInfo exprInfo = d.expr.getResolvedType();
-                        if(exprInfo.isKind(TypeKind.Array)) {
-                            ArrayTypeInfo exprArrayInfo = exprInfo.as();
-                            arrayInfo.length = exprArrayInfo.length;
+    
+                // infer the type from the expression
+                if(d.type == null) {
+                    d.type = d.expr.getResolvedType();
+                    
+                    // we can't assign an array literal, so we must
+                    // infer as a pointer
+                    if(d.type.isKind(TypeKind.Array)) {
+                        if(!(d.expr instanceof ArrayInitExpr)) {
+                            ArrayTypeInfo arrayInfo = d.type.as();
+                            d.type = new PtrTypeInfo(arrayInfo.arrayOf);
+                        }
+                    }
+                }
+                else {
+                    // infer the array length, if this is an array
+                    if(d.type.isKind(TypeKind.Array)) {
+                        ArrayTypeInfo arrayInfo = d.type.as();
+                        if(arrayInfo.length < 0) {
+                            TypeInfo exprInfo = d.expr.getResolvedType();
+                            if(exprInfo.isKind(TypeKind.Array)) {
+                                ArrayTypeInfo exprArrayInfo = exprInfo.as();
+                                arrayInfo.length = exprArrayInfo.length;
+                            }
                         }
                     }
                 }
@@ -542,6 +570,15 @@ public class TypeResolver {
                 // infer the type from the expression
                 if(d.type == null) {
                     d.type = d.expr.getResolvedType();
+                    
+                    // we can't assign an array literal, so we must
+                    // infer as a pointer
+                    if(d.type.isKind(TypeKind.Array)) {
+                        if(!(d.expr instanceof ArrayInitExpr)) {
+                            ArrayTypeInfo arrayInfo = d.type.as();
+                            d.type = new PtrTypeInfo(arrayInfo.arrayOf);
+                        }
+                    }
                 }
                 else {
                     // infer the array length, if this is an array
@@ -1064,6 +1101,10 @@ public class TypeResolver {
                     }
                     else if(type.isKind(TypeKind.Str)) {
                         expr.resolveTo(type);
+                    }
+                    else if(type.isKind(TypeKind.Array)) {
+                        ArrayTypeInfo arrayInfo = type.as();
+                        expr.resolveTo(arrayInfo.arrayOf);
                     }
                     else {
                         this.result.addError(expr, "'%s' is not a pointer type", type);

@@ -24,6 +24,8 @@ public interface NodeVisitor {
     void visit(WhileStmt stmt);
     void visit(DoWhileStmt stmt);
     void visit(ForStmt stmt);
+    void visit(SwitchCaseStmt stmt);
+    void visit(SwitchStmt stmt);
     void visit(BreakStmt stmt);
     void visit(ContinueStmt stmt);
     void visit(ReturnStmt stmt);
@@ -122,6 +124,14 @@ public interface NodeVisitor {
         public void visit(ForStmt stmt) {
         }
 
+        @Override
+        public void visit(SwitchCaseStmt stmt) {
+        }
+        
+        @Override
+        public void visit(SwitchStmt stmt) {
+        }
+        
         @Override
         public void visit(BreakStmt stmt) {
         }

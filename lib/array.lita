@@ -1,8 +1,6 @@
 module array;
 import "mem" as mem;
 
-public const MAX_SIZE:i32 = 1024
-
 public struct Array<T> {
     size: i32
     capacity: i32
@@ -12,7 +10,7 @@ public struct Array<T> {
 
 public func ArrayInit<T>(a: Array<T>**, initialSize: i32 = 16, alloc: mem::Allocator const* = null) {
     if(!alloc) {
-        alloc = &mem::cAllocator
+        alloc = mem::cAllocator
     }
 
     var size = sizeof(Array<T>) + (sizeof(T) * initialSize as (u64));

@@ -141,6 +141,41 @@
             ''',
         },
         {
+            name: "Ptr type array", 
+            definitions: '''
+                                
+            ''',                       
+            code: '''
+                const t = [2] i32 { 4, 5 };
+                const z = *t;
+                 assert(z == 4)              
+            ''',
+        },        
+        {
+            name: "Array assign inference", 
+            definitions: '''
+                                
+            ''',                       
+            code: '''
+                const t = [2] i32 { 4, 5 };
+                const z = t;
+                assert(z[0] == 4)
+                assert(z[1] == 5)
+            ''',
+        },
+        {
+            name: "Array assign", 
+            definitions: '''
+                                
+            ''',                       
+            code: '''
+                const t : [2] i32 = [2] i32 { 4, 5 };
+                const z = t;
+                assert(z[0] == 4)
+                assert(z[1] == 5)
+            ''',
+        },
+        {
             name: "Casts",
             definitions: '''
                 struct T {
@@ -166,6 +201,18 @@
                   
             '''
         }, 
+        {
+            name: "Cast CharArray to VoidPtr", 
+            definitions: '''
+                func test(v: void*) {
+                }
+                
+            ''',                       
+            code: '''
+                var c = [4] char;
+                test(c as (void*))
+            ''',
+        },
         {
             name: "Invalid struct Casts",
             definitions: '''                

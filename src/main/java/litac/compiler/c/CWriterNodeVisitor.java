@@ -333,7 +333,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }
             case Enum: {
                 String typeName = getTypeNameForC(type);
-                return String.format("enum %s %s", typeName, declName);
+                return String.format("%s %s", typeName, declName);
             }
             case FuncPtr: {
                 FuncPtrTypeInfo funcInfo = type.as();
@@ -564,6 +564,10 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }
             case "inline": {
                 buf.out("INLINE ");
+                break;
+            }
+            case "static": {
+                buf.out("static ");
                 break;
             }
             case "register": {
@@ -948,6 +952,33 @@ public class CWriterNodeVisitor implements NodeVisitor {
         if(stmt.postStmt != null) stmt.postStmt.visit(this);
         buf.out(") {");
         stmt.bodyStmt.visit(this);
+        buf.out("}\n");
+    }
+    
+    @Override
+    public void visit(SwitchCaseStmt stmt) {
+        buf.out("case ");
+        stmt.cond.visit(this);
+        buf.out(": ");
+        stmt.stmt.visit(this);
+        buf.out(";\n");
+    }
+    
+    @Override
+    public void visit(SwitchStmt stmt) {
+        buf.out("switch(");
+        stmt.cond.visit(this);
+        buf.out(") {");
+        for(SwitchCaseStmt s : stmt.stmts) {
+            s.visit(this);
+        }
+        
+        if(stmt.defaultStmt != null) {
+            buf.out("default: ");
+            stmt.defaultStmt.visit(this);
+            buf.out(";\n");
+        }
+        
         buf.out("}\n");
     }
     

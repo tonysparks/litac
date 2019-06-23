@@ -163,6 +163,25 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
             replaceType(stmt.postStmt).visit(this);
         }
     }
+    
+    @Override
+    public void visit(SwitchCaseStmt stmt) {
+        replaceType(stmt.cond).visit(this);
+        replaceType(stmt.stmt).visit(this);
+    }
+    
+    @Override
+    public void visit(SwitchStmt stmt) {
+        replaceType(stmt.cond).visit(this);
+        
+        for(SwitchCaseStmt s : stmt.stmts) {
+            replaceType(s).visit(this);
+        }
+        
+        if(stmt.defaultStmt != null) {
+            replaceType(stmt.defaultStmt).visit(this);
+        }
+    }
 
     @Override
     public void visit(BreakStmt stmt) {

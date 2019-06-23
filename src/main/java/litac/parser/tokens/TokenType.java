@@ -19,7 +19,7 @@ public enum TokenType {
     // Reserved words.    
     STRUCT, 
         VAR, CONST, FUNC, ENUM, USING, FOR, WHILE, DO, IF, ELSE, BREAK, CONTINUE, RETURN, GOTO, DEFER,
-        NULL, VOID, 
+        NULL, VOID, CASE, DEFAULT, SWITCH,
         TRUE, FALSE, BOOL, CHAR,
         I8, U8,
         I16, U16,

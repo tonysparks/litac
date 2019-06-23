@@ -1,9 +1,7 @@
 {
-    description: "Single Test",
+    description: "Tests Stmts",
     program: '''                
         @include("assert.h");
-       // @include("<thread.h>");
-        
         @foreign func assert(e:bool):void;
         
         %definitions%
@@ -12,55 +10,7 @@
             %test%
         }
     '''
-    tests: [                
-        /*{
-            name: "Generics inferred func",
-            definitions: '''                
-                func test<T>(a : T) : T {
-                    return a;
-                }
-                            
-            ''',            
-            code: '''
-        //        assert(test(2) == 2)
-                  
-            '''
-        },*/
-        /*{
-            name: "Generics embedded", 
-            definitions: '''
-                typedef func<T>(T):T as Test;
-                
-                func test<T>(t: Test<T>, a: T) : T {
-                    if(!t) {
-                        return a + 1
-                    }
-                    return t<T>(a)
-                }        
-                
-                func z(a: i32) : i32 {
-                    return a
-                }
-                
-            ''',                       
-            code: '''
-                assert(test<i32>(&z, 4) == 4)
-            ''',
-        },*/
-        /*{
-            name: "CharArray cast to VoidPtr", 
-            definitions: '''
-                func test(v: void*) {
-                }
-                
-            ''',                       
-            code: '''
-                var c = [4] char;
-                test(c as (void*))
-            ''',
-        },*/
-        
-        /*
+    tests: [        
         {
             name: "Switch", 
             definitions: '''
@@ -143,34 +93,6 @@
                 assert(i == 1)
             ''',
             error: "*** Invalid break statement"
-        },*/
-        
-        /* TODO***************
-        {
-            name: "Fix precedence", 
-            definitions: '''
-                                
-            ''',                       
-            code: '''
-                const cAllocator : Allocator const* = (&Allocator {
-                    .alloc:   &malloc,
-                    .calloc:  &calloc,
-                    .realloc: &realloc,
-                    .free:    &free
-                }) as (Allocator const*);
-
-            ''',
-        },*/
-        
-        {
-            name: "WTF", 
-            definitions: '''
-                                
-            ''',                       
-            code: '''
-                var text: [2] char;
-            ''',
-        },        
-    
+        },
     ]
 }

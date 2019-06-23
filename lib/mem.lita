@@ -1,9 +1,14 @@
 @include("<stdlib.h>");
+@include("<string.h>");
 
 @foreign public func malloc(size: u64) : void*;
 @foreign public func realloc(ptr:void*, size: u64) : void*;
 @foreign public func calloc(num: u64, size: u64) : void*;
 @foreign public func free(ptr:void*) : void;
+
+@foreign public func memset(ptr: void*, value: i32, len: u64) : void*;
+@foreign public func memcpy (dest: void*, src: void const*, num: u64) : void*;
+@foreign public func memmove (dest: void*, src: void const*, num: u64) : void*;
 
 public struct Allocator {
     alloc:   func(u64): void*
@@ -12,12 +17,12 @@ public struct Allocator {
     free:    func(void*) : void
 }
 
-public const cAllocator = Allocator {
+public const cAllocator : Allocator const* = (&Allocator {
     .alloc:   &malloc,
     .calloc:  &calloc,
     .realloc: &realloc,
     .free:    &free
-};
+}) as (Allocator const*);
 
 
 public func new<T>(a: Allocator const* = null) : T* {
