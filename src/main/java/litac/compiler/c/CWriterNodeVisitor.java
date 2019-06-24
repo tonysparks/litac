@@ -3,6 +3,8 @@
  */
 package litac.compiler.c;
 
+import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -558,6 +560,21 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 if(note.attributes != null) {
                     for(String line : note.attributes) {
                         buf.appendRaw(line);
+                    }
+                }
+                break;
+            }
+            case "cFile": {
+                if(note.attributes != null) {
+                    for(String file: note.attributes) {
+                        try {
+                            String contents = new String(Files.readAllBytes(new File(file).toPath()));
+                            buf.appendRaw(contents);
+                            buf.outln();
+                        }
+                        catch(IOException e) {
+                            this.main.getPhaseResult().addError(stmt, "Unable to load C source file: %s", e);
+                        }
                     }
                 }
                 break;
