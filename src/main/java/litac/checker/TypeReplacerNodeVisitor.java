@@ -209,6 +209,14 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     public void visit(DeferStmt stmt) {
         replaceType(stmt.stmt).visit(this);
     }
+    
+    @Override
+    public void visit(GotoStmt stmt) {
+    }
+    
+    @Override
+    public void visit(LabelStmt stmt) {
+    }
 
     @Override
     public void visit(EmptyStmt stmt) {
@@ -397,7 +405,6 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         replaceType(expr);
         replaceType(expr.object).visit(this);
         replaceType(expr.field).visit(this);
-        //expr.field = replaceType(expr.field);
     }
 
     @Override
@@ -420,6 +427,14 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         replaceType(expr);
         replaceType(expr.left).visit(this);
         replaceType(expr.right).visit(this);
+    }
+    
+    @Override
+    public void visit(TernaryExpr expr) {
+        replaceType(expr);
+        replaceType(expr.cond).visit(this);
+        replaceType(expr.then).visit(this);
+        replaceType(expr.other).visit(this);
     }
 
     @Override

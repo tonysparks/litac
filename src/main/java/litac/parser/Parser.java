@@ -29,6 +29,7 @@ public class Parser {
     private int switchLevel;
     private int breakLevel;
     private int aggregateLevel;
+    private int funcLevel;
     
     private final Scanner scanner;
     private final List<Token> tokens;
@@ -212,14 +213,27 @@ public class Parser {
     
     private FuncDecl funcDeclaration() {
         source();
+        this.funcLevel++;
+        
 
+        ParameterDecl objectParam = null;
+        if(match(LEFT_PAREN)) {
+            objectParam = parameterDecl(false);
+            consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        }
+        
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        
+        
         List<GenericParam> genericParams = Collections.emptyList();
         if(match(LESS_THAN)) {
             genericParams = genericParameters();
         }
         
         ParametersStmt parameters = parametersStmt();
+        if(objectParam != null) {
+            parameters.params.add(0, objectParam);
+        }
         
         TypeInfo returnType = TypeInfo.VOID_TYPE;
         if(match(COLON)) {
@@ -239,6 +253,8 @@ public class Parser {
         else {        
             body = statement();
         }
+        
+        this.funcLevel--;
         
         return node(new FuncDecl(identifier.getText(), type, parameters, body, returnType));
     }
@@ -449,7 +465,15 @@ public class Parser {
         if(match(CONTINUE))     return continueStmt();
         if(match(RETURN))       return returnStmt();
         if(match(DEFER))        return deferStmt();
-        //if(match(SEMICOLON))    return emptyStmt(); 
+        if(match(GOTO))         return gotoStmt();
+        //if(match(SEMICOLON))    return emptyStmt();
+        
+        if(check(IDENTIFIER)) {
+            Stmt stmt = tryLabelStmt();
+            if(stmt != null) {
+                return stmt;
+            }
+        }
         
         return expression();
     }
@@ -677,6 +701,27 @@ public class Parser {
         return node(new DeferStmt(statement()));
     }
     
+    private GotoStmt gotoStmt() {
+        Token label = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        return node(new GotoStmt(label.getText()));
+    }
+    
+    private LabelStmt tryLabelStmt() {
+        int backtrack = this.current;
+        
+        Token label = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        if(!match(COLON)) {
+            this.current = backtrack;
+            return null;
+        }
+        
+        if(this.funcLevel < 0) {
+            throw error(peek(), ErrorCode.INVALID_ARRAY_DIMENSION_EXPR);
+        }
+        
+        return node(new LabelStmt(label.getText()));
+    }
+    
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      *                      Expression parsing
      *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -745,13 +790,13 @@ public class Parser {
     }
         
     private Expr assignment() {
-        Expr expr = or();
+        Expr expr = ternary();
         
         while(match(EQUALS,
                     PLUS_EQ, MINUS_EQ, DIV_EQ, MUL_EQ,MOD_EQ,
                     LSHIFT_EQ, RSHIFT_EQ, BNOT_EQ, XOR_EQ, BAND_EQ, BOR_EQ)) {
             TokenType operator = previous().getType();
-            Expr right = or();
+            Expr right = ternary();
             
             if(expr instanceof GetExpr) {
                 GetExpr getExpr = (GetExpr)expr;
@@ -764,6 +809,19 @@ public class Parser {
             else {
                 expr = node(new BinaryExpr(expr, operator, right));
             }
+        }
+        
+        return expr;
+    }
+    
+    private Expr ternary() {
+        Expr expr = or();
+        
+        if(match(QUESTION_MARK)) {
+            Expr then = expression();
+            consume(COLON, ErrorCode.MISSING_COLON);
+            Expr other = expression();
+            expr = node(new TernaryExpr(expr, then, other));
         }
         
         return expr;
@@ -887,6 +945,7 @@ public class Parser {
     private Expr factor() {
         Expr expr = unary();
         
+        
         while(match(SLASH, STAR, MOD)) {
             Token operator = previous();
             Expr right = unary();
@@ -900,9 +959,26 @@ public class Parser {
         if(match(NOT, MINUS, PLUS, STAR, BAND, BNOT)) {
             Token operator = previous();
             Expr right = unary();
+
             return node(new UnaryExpr(operator.getType(), right)); 
         }
         
+//        Expr expr = null;        
+//        if(match(SIZEOF)) {
+//            expr = sizeofExpr();
+//        }
+//        if(match(TYPEOF)) {
+//            expr = typeofExpr();
+//        }
+//        else if(expr == null) {
+//            expr = functionCall();    
+//        }
+//        
+//        if(match(AS)) {
+//            expr = cast(expr);
+//        }
+//        
+//        return expr;
         return functionCall();
     }
     
@@ -1346,20 +1422,9 @@ public class Parser {
                         throw error(peek(), ErrorCode.INVALID_VARARG_POSITION);
                     }
                 }
-                else {
-                    Token param = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-                    String parameterName = param.getText();
-                    
-                    consume(COLON, ErrorCode.MISSING_COLON);
-                    int modifiers = modifiers();
-                    TypeInfo type = type(false);
-                    
-                    Expr defaultValue = null;
-                    if(match(EQUALS)) {
-                        defaultValue = constExpression();
-                    }
-                    
-                    parameterInfos.add(node(new ParameterDecl(type, parameterName, defaultValue, modifiers)));
+                else {               
+                    ParameterDecl param = parameterDecl(true);
+                    parameterInfos.add(param);
                 }
             }
             while(match(COMMA));
@@ -1367,6 +1432,22 @@ public class Parser {
         
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         return node(new ParametersStmt(parameterInfos, isVarargs));
+    }
+    
+    private ParameterDecl parameterDecl(boolean allowEquals) {
+        Token param = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        String parameterName = param.getText();
+        
+        consume(COLON, ErrorCode.MISSING_COLON);
+        int modifiers = modifiers();
+        TypeInfo type = type(false);
+        
+        Expr defaultValue = null;
+        if(match(EQUALS)) {
+            defaultValue = constExpression();
+        }
+        
+        return (node(new ParameterDecl(type, parameterName, defaultValue, modifiers)));
     }
     
     /**

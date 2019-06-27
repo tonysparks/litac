@@ -233,6 +233,28 @@ public abstract class Expr extends Stmt {
         }
     }
     
+    public static class TernaryExpr extends Expr {
+        public Expr cond;
+        public Expr then;
+        public Expr other;
+
+        public TernaryExpr(Expr cond, Expr then, Expr other) {
+            this.cond = becomeParentOf(cond);
+            this.then = becomeParentOf(then);
+            this.other = becomeParentOf(other);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {
+            return new TernaryExpr(copy(this.cond), copy(this.then), copy(this.other));
+        }
+    }
+    
     public static class BinaryExpr extends Expr {
 
         public Expr left;
@@ -393,6 +415,7 @@ public abstract class Expr extends Stmt {
     public static class GetExpr extends Expr {
         public Expr object;
         public IdentifierExpr field;
+        public boolean isMethodCall;
         
         public GetExpr(Expr object, IdentifierExpr field) {
             this.object = becomeParentOf(object);

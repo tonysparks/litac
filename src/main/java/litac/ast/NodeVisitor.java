@@ -35,6 +35,8 @@ public interface NodeVisitor {
     void visit(ParametersStmt stmt);
     void visit(VarDeclsStmt stmt);
     void visit(ConstDeclsStmt stmt);
+    void visit(GotoStmt stmt);
+    void visit(LabelStmt stmt);
     
     void visit(ConstDecl d);
     void visit(EnumDecl d);
@@ -65,6 +67,7 @@ public interface NodeVisitor {
     void visit(SetExpr expr);
     void visit(UnaryExpr expr);
     void visit(BinaryExpr expr);
+    void visit(TernaryExpr expr);
     void visit(ArrayInitExpr expr);
     void visit(ArrayDesignationExpr expr);
     void visit(SubscriptGetExpr expr);
@@ -151,6 +154,14 @@ public interface NodeVisitor {
         
         @Override
         public void visit(DeferStmt stmt) {
+        }
+        
+        @Override
+        public void visit(GotoStmt stmt) {
+        }
+        
+        @Override
+        public void visit(LabelStmt stmt) {
         }
         
         @Override
@@ -278,6 +289,10 @@ public interface NodeVisitor {
 
         @Override
         public void visit(BinaryExpr expr) {
+        }
+        
+        @Override
+        public void visit(TernaryExpr expr) {
         }
 
         @Override

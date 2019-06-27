@@ -117,6 +117,42 @@ public abstract class Stmt extends Node {
         }
     }
     
+    public static class GotoStmt extends Stmt {
+        public String label;
+        
+        public GotoStmt(String label) {
+            this.label = label;
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);            
+        } 
+        
+        @Override
+        protected Node doCopy() {            
+            return new GotoStmt(this.label);
+        }
+    }
+    
+    public static class LabelStmt extends Stmt {
+        public String label;
+        
+        public LabelStmt(String label) {
+            this.label = label;
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);            
+        } 
+        
+        @Override
+        protected Node doCopy() {            
+            return new LabelStmt(this.label);
+        }
+    }
+    
     public static abstract class FieldStmt extends Stmt {        
     }
     

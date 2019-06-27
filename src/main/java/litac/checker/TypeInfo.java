@@ -432,6 +432,34 @@ public abstract class TypeInfo {
             return !this.genericParams.isEmpty();
         }
         
+        public String getBaseName() {
+            String name = getName();
+            int index = name.indexOf("<");
+            if(index > -1) {
+                return name.substring(0, index);
+            }
+            
+            return name;
+        }
+        
+        @Override
+        public boolean strictEquals(TypeInfo other) {
+            if(other == this) {
+                return true;
+            }
+            
+            if(other.isKind(this.getKind())) {
+                GenericTypeInfo genInfo = (GenericTypeInfo)other.getResolvedType();
+                if(genInfo.hasGenerics() && this.hasGenerics()) {
+                    return genInfo.getName().equals(this.getResolvedType().getName());
+                }
+                
+                return genInfo.getBaseName()
+                         .equals(this.getBaseName());
+            }
+            
+            return false;
+        }
         
     }
     public static abstract class AggregateTypeInfo extends GenericTypeInfo {

@@ -514,6 +514,14 @@ public class TypeResolver {
         }
         
         @Override
+        public void visit(GotoStmt stmt) {
+        }
+        
+        @Override
+        public void visit(LabelStmt stmt) {
+        }
+        
+        @Override
         public void visit(EmptyStmt stmt) {
         }
         
@@ -998,6 +1006,29 @@ public class TypeResolver {
                         expr.resolveTo(usingField);
                         return true;
                     }
+                    
+                    FuncTypeInfo funcInfo = this.module.getFuncType(field.getName());
+                    if(funcInfo != null) {                        
+                        if(funcInfo.parameterDecls.isEmpty()) {
+                            this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
+                            break;
+                        }              
+                        
+                        ParameterDecl objectParam = funcInfo.parameterDecls.get(0);
+                        TypeInfo baseType = objectParam.type.getResolvedType();
+                        if(TypeInfo.isPtrAggregate(baseType)) {
+                            baseType = ((PtrTypeInfo) baseType.as()).getBaseType().getResolvedType();
+                        }
+                        
+                        if(baseType.strictEquals(structInfo)) {
+                            if(!field.isResolved()) {
+                                resolveType(expr, field, funcInfo);
+                            }
+                            
+                            expr.resolveTo(field.getResolvedType());
+                            return true;
+                        }
+                    }
 
                     this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);                    
                     break;
@@ -1175,6 +1206,14 @@ public class TypeResolver {
             }            
         }
 
+        @Override
+        public void visit(TernaryExpr expr) {
+            expr.cond.visit(this);
+            expr.then.visit(this);
+            expr.other.visit(this);
+            
+            expr.resolveTo(expr.then.getResolvedType());
+        }
 
         @Override
         public void visit(ArrayInitExpr expr) {

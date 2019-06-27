@@ -1028,16 +1028,30 @@ public class CWriterNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(ReturnStmt stmt) {
-        for(Stack<DeferStmt> d : this.defers) {
-            outputDefer(d);
-        }
-        
-        buf.out("return");
-        if(stmt.returnExpr != null) {
-            buf.out(" ");
+        if(!this.defers.isEmpty() && this.defers.stream().anyMatch(s->!s.isEmpty()) && stmt.returnExpr != null) {
+            TypeInfo type = stmt.returnExpr.getResolvedType().getResolvedType();
+            buf.out("{\n%s = ", typeDeclForC(type, "___result"));
             stmt.returnExpr.visit(this);
+            buf.out(";\n");
+            
+            for(Stack<DeferStmt> d : this.defers) {
+                outputDefer(d);
+            }
+            
+            buf.out("return ___result;\n}\n");                        
         }
-        buf.out(";\n");
+        else {
+            for(Stack<DeferStmt> d : this.defers) {
+                outputDefer(d);
+            }
+        
+            buf.out("return");
+            if(stmt.returnExpr != null) {
+                buf.out(" ");
+                stmt.returnExpr.visit(this);
+            }
+            buf.out(";\n");
+        }
     }
 
     @Override
@@ -1060,6 +1074,16 @@ public class CWriterNodeVisitor implements NodeVisitor {
     @Override
     public void visit(DeferStmt stmt) {
         this.defers.peek().add(stmt);
+    }
+    
+    @Override
+    public void visit(GotoStmt stmt) {
+        buf.out("goto %s;\n", stmt.label);
+    }
+    
+    @Override
+    public void visit(LabelStmt stmt) {
+        buf.out("%s:\n", stmt.label);
     }
 
     @Override
@@ -1233,12 +1257,20 @@ public class CWriterNodeVisitor implements NodeVisitor {
             params = funcInfo.parameterDecls;
         }
         
+        List<Expr> suppliedArguments = new ArrayList<>(expr.arguments);
+        
+        GetExpr getExpr = getMethodCall(expr.object);
+        if(getExpr != null) {
+            suppliedArguments.add(0, getExpr.object);
+            buf.out("%s", getTypeNameForC(getExpr.field.type));
+        }
+        
         buf.out("(");
         boolean isFirst = true;
         
         int i = 0;
-        for(; i < expr.arguments.size(); i++) {
-            Expr e = expr.arguments.get(i);
+        for(; i < suppliedArguments.size(); i++) {
+            Expr e = suppliedArguments.get(i);
             if(!isFirst) buf.out(",");
             e.visit(this);                
             isFirst = false;
@@ -1323,8 +1355,37 @@ public class CWriterNodeVisitor implements NodeVisitor {
         visit((IdentifierExpr)expr);
     }
     
+    private boolean hasMethodCall(Expr expr) {
+        return getMethodCall(expr) != null;
+    }
+    
+    private GetExpr getMethodCall(Expr expr) {
+        if(expr instanceof GetExpr) {
+            GetExpr e = (GetExpr)expr;
+            if(e.isMethodCall) {
+                return e;
+            }
+            
+            return getMethodCall(e.object);
+        }
+        
+        return null;
+    }
+    
+//    private void visitMethodCall(GetExpr expr) {
+//        GetExpr e = getMethodCall(expr);
+//        System.out.println(e);
+//    }
+    
+    
     @Override
     public void visit(GetExpr expr) {
+        // if this is a method call, the expression will be
+        // handled by the functionCall expression
+        if(hasMethodCall(expr)) {            
+            return;
+        }
+        
         TypeInfo objectInfo = expr.object.getResolvedType();
         if(objectInfo.isKind(TypeKind.Enum)) {
             buf.out("%s", expr.field.type.name);
@@ -1420,6 +1481,16 @@ public class CWriterNodeVisitor implements NodeVisitor {
         expr.left.visit(this);
         buf.out(" %s ", expr.operator.getText());
         expr.right.visit(this);
+    }
+    
+    @Override
+    public void visit(TernaryExpr expr) {
+        buf.out("(");
+        expr.cond.visit(this);
+        buf.out(") ? ");
+        expr.then.visit(this);
+        buf.out(" : ");
+        expr.other.visit(this);        
     }
 
     @Override

@@ -1,9 +1,7 @@
 {
-    description: "Single Test",
+    description: "Methods",
     program: '''                
         @include("assert.h");
-       // @include("<thread.h>");
-        
         @foreign func assert(e:bool):void;
         
         %definitions%
@@ -13,56 +11,7 @@
         }
     '''
     tests: [
-        /*
-        {
-            name: "WTF", 
-            definitions: '''
-                                
-            ''',                       
-            code: '''
-                var text: [2] char;
-            ''',
-        },                    
-        {
-            name: "Fix precedence", 
-            definitions: '''
-                struct Test {
-                }
-            ''',                       
-            code: '''
-                const cType : Test const* = (&Test {
-                }) as (Test const*);
-
-            ''',
-        },
-        {
-            name: "Casts",
-            definitions: '''
-                struct T {
-                    v: i32
-                }
-                
-                struct X<T> {
-                    v: T
-                }
-                            
-            ''',            
-            code: '''
-                //var i : i64 = 32 as (i64) + 45_i64
-                //assert( i == 77_i64 )
-                
-                
-                var i = 2_i64*32 as (i64) + 45_i64
-                assert( i == 109_i64 )
-
-                
-                //var t = T { 4}
-                //var x = X<i32> {44} as (X<i32>)
-                  
-            '''
-        },      */       
-            /*     
-        {
+         {
             name: "Func Method syntax",
             definitions: '''
                 struct Test {
@@ -95,7 +44,7 @@
                 var t = &Test{.field: 4}
                 assert(t.apply() == 4)                 
             '''
-        },*/
+        },
         {
             name: "Func Method syntax with const ptr",
             definitions: '''

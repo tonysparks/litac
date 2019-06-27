@@ -4,16 +4,12 @@
 package litac.checker;
 
 
-import litac.ast.NodeVisitor.AbstractNodeVisitor;
-
 import java.util.*;
 
-import litac.ast.Decl;
-import litac.ast.Expr;
-import litac.ast.Stmt;
+import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
-import litac.ast.Node;
+import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.*;
 import litac.util.Tuple;
@@ -47,7 +43,7 @@ public class TypeChecker {
     
     
     private void typeCheckModule(Module module) {
-        TypeCheckerNodeVisitor checker = new TypeCheckerNodeVisitor(this.result);
+        TypeCheckerNodeVisitor checker = new TypeCheckerNodeVisitor(module, this.result);
         module.getModuleStmt().visit(checker);
         
         checker.checkTypes();
@@ -73,12 +69,16 @@ public class TypeChecker {
             }
         }
         
+        private Module module;
         private PhaseResult result;
         private List<TypeCheck> pendingChecks;
+        private Map<String, Boolean> labels;
         
-        public TypeCheckerNodeVisitor(PhaseResult result) {
+        public TypeCheckerNodeVisitor(Module module, PhaseResult result) {
+            this.module = module;
             this.result = result;
-            this.pendingChecks = new ArrayList<>();     
+            this.pendingChecks = new ArrayList<>();
+            this.labels = new HashMap<>();
         }
         
         private void addTypeCheck(Expr expr, TypeInfo type) {
@@ -291,6 +291,16 @@ public class TypeChecker {
         }
         
         @Override
+        public void visit(GotoStmt stmt) {
+            this.labels.putIfAbsent(stmt.label, false);
+        }
+        
+        @Override
+        public void visit(LabelStmt stmt) {
+            this.labels.put(stmt.label, true);
+        }
+        
+        @Override
         public void visit(EmptyStmt stmt) {
         }
         
@@ -340,8 +350,15 @@ public class TypeChecker {
         @Override
         public void visit(FuncDecl d) {
             FuncTypeInfo funcInfo = d.type.as();
-            if(!funcInfo.hasGenerics()) {                
+            if(!funcInfo.hasGenerics()) {
+                this.labels.clear();
                 d.bodyStmt.visit(this);
+                
+                this.labels.forEach((label, isDefined) -> {
+                    if(!isDefined) {
+                        result.addError(d.bodyStmt, "'%s' label not found", label);
+                    }
+                });
             }
             
             boolean hasDefault = false;
@@ -529,11 +546,21 @@ public class TypeChecker {
         public void visit(FuncCallExpr expr) {
             expr.object.visit(this);            
             
-            
             TypeInfo type = expr.object.getResolvedType();
             if(!type.isKind(TypeKind.Func) && !type.isKind(TypeKind.FuncPtr)) {
                 this.result.addError(expr, "'%s' is not a function", type.getName());
                 return;
+            }
+            
+            List<Expr> suppliedArguments = new ArrayList<>(expr.arguments);
+            
+            // see if this is method call syntax
+            if(expr.object instanceof GetExpr) {
+                GetExpr getExpr = (GetExpr) expr.object;
+                if(getExpr.field.getResolvedType().isKind(TypeKind.Func)) {
+                    getExpr.isMethodCall = true;
+                    suppliedArguments.add(0, getExpr.object);
+                }
             }
             
             checkGenericArgs(expr, expr.genericArgs, type);
@@ -550,8 +577,8 @@ public class TypeChecker {
                     }
                 }
                 
-                if(funcInfo.params.size() != expr.arguments.size()) {
-                    int numberOfSupplied = expr.arguments.size() + numberOfDefaultArgs;
+                if(funcInfo.params.size() != suppliedArguments.size()) {
+                    int numberOfSupplied = suppliedArguments.size() + numberOfDefaultArgs;
                     boolean correctArgs = funcInfo.params.size() <= numberOfSupplied; 
                     if(!correctArgs) {
                         if(funcInfo.params.size() > numberOfSupplied || !funcInfo.isVararg) {                    
@@ -563,8 +590,8 @@ public class TypeChecker {
             else {
                 funcInfo = type.as();
                 
-                if(funcInfo.params.size() != expr.arguments.size()) {
-                    if(funcInfo.params.size() > expr.arguments.size() || !funcInfo.isVararg) {                    
+                if(funcInfo.params.size() != suppliedArguments.size()) {
+                    if(funcInfo.params.size() > suppliedArguments.size() || !funcInfo.isVararg) {                    
                         this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
                     }
                 }
@@ -576,8 +603,8 @@ public class TypeChecker {
             for(; i < funcInfo.params.size(); i++) {
                 TypeInfo paramInfo = funcInfo.params.get(i);
                 
-                if(i < expr.arguments.size()) {
-                    Expr arg = expr.arguments.get(i);
+                if(i < suppliedArguments.size()) {
+                    Expr arg = suppliedArguments.get(i);
                     arg.visit(this);
                     
                     addTypeCheck(arg, arg.getResolvedType(), paramInfo);
@@ -585,8 +612,8 @@ public class TypeChecker {
             }
             
             if(funcInfo.isVararg) {
-                for(; i < expr.arguments.size(); i++) {
-                    Expr arg = expr.arguments.get(i);
+                for(; i < suppliedArguments.size(); i++) {
+                    Expr arg = suppliedArguments.get(i);
                     arg.visit(this);
                 }                
             }
@@ -604,7 +631,7 @@ public class TypeChecker {
         @Override
         public void visit(TypeIdentifierExpr expr) {
         }
-        
+                
         private boolean typeCheckAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {            
             switch(type.getKind()) {
                 case Ptr: {
@@ -639,6 +666,30 @@ public class TypeChecker {
                             addTypeCheck(expr, value.getResolvedType(), usingField);
                         }
                         return true;
+                    }
+
+                    // do not allow method call syntax for Set operations
+                    if(value == null) {
+                        FuncTypeInfo funcInfo = this.module.getFuncType(field.getName());
+                        if(funcInfo != null) {
+                            if(funcInfo.parameterDecls.isEmpty()) {
+                                this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
+                                break;
+                            }
+                            
+                            ParameterDecl objectParam = funcInfo.parameterDecls.get(0);
+                            TypeInfo baseType = objectParam.type.getResolvedType();
+                            if(TypeInfo.isPtrAggregate(baseType)) {
+                                baseType = ((PtrTypeInfo) baseType.as()).getBaseType().getResolvedType();
+                            }
+                            
+                            if(!baseType.strictEquals(structInfo)) {
+                                this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
+                                break;
+                            }
+                            
+                            return true;
+                        }
                     }
                     
                     this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);
@@ -833,6 +884,15 @@ public class TypeChecker {
                 break;
             
             }
+        }
+        
+        @Override
+        public void visit(TernaryExpr expr) {
+            expr.cond.visit(this);
+            expr.then.visit(this);
+            expr.other.visit(this);
+            
+            addTypeCheck(expr, expr.then.getResolvedType(), expr.other.getResolvedType());
         }
 
 
