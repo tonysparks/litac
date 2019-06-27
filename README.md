@@ -193,7 +193,7 @@ func main(len:i32, args:char**):i32 {
 ```
 
 
-# Struct Methods
+# Methods
 There is syntax to allow functions to masquerad around like methods.
 
 ```C
@@ -210,7 +210,7 @@ func main(len:i32, args:char**) : i32 {
     var origin = Vec2{0,0}
     
     // method syntax sugar
-    origin.Add(Vec2(3,4})
+    origin.Add(Vec2{3,4})
     
     
     // or you can call it as a normal function
