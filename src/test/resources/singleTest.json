@@ -261,5 +261,23 @@
                 assert(r == 32)                
             '''
         },
+        {
+            name: "Func Method call as func",
+            definitions: '''
+                struct A {
+                    a: i32
+                }
+                
+                func (a: A) fn() : i32 {
+                    return a.a;
+                }
+                            
+            ''',            
+            code: '''
+                var a = A { 4 }
+                var r = fn(a)
+                assert(r == 4) 
+            '''
+        },
     ]
 }

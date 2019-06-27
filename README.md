@@ -1,7 +1,15 @@
 # LitaC
-LitaC (pronounced Lee-ta-see) is a C like language.  In fact, its main goal is to be C with some minor syntax sugar.  It compiles to ISO-C99 - so it's fairly 
-easy to use C libraries.
+LitaC (pronounced Lee-ta-see) is a C like language.  In fact, its main goal is to be C with some minor syntax sugar.  It compiles to ISO-C99 (C11 for some features) which has the benefits of being fairly easy to use existing C libraries and code.
 
+# Goals & Purpose
+First what's not a goal: LitaC is not meant to replace any existing languages.  It isn't trying to conquer the programming world.
+
+With that disclaimer out of the way, what I'd like LitaC to do:
+* A less cumbersome version of C; C is beautiful, but it is showing its age
+* Make it easier for me to write video games in a native language
+* Find enjoyment in programming
+
+# Syntax
 The syntax:
 
 ```C
@@ -43,7 +51,8 @@ struct X {
 }
 
 func main(len:i32, args:char**):i32 {
-
+   io::printf("Just because you are paranoid, don't mean their not after you\n") // the io:: namespaces the function
+	
 	// numbers
 	var b : bool = true // Boolean type, is an int8_t in C, 0 = false, 1 = true
 	var i : i8 = 1_i8   // 8-bit integer, is an int8_t in C
@@ -53,12 +62,12 @@ func main(len:i32, args:char**):i32 {
 	// ..u32, u64, u128
 	var f : f32 = 0.5_f32 // 32-bit float
 	var d : f64 = 0.5_f64 // 64-bit float
-	var u = 0.5 // 32-bit float
+	var u = 0.5 // 64-bit float
 	
 	
 	// types can be inferred:
 	var age = 32   // age is a i32
-	var n   = 32_i128   // is a i128
+	var n   = 32_i64   // is a i64
 	
 	// String and Arrays
 	var s   = "Hello"  // a char* null terminated string. TODO, make strings include length
@@ -128,6 +137,24 @@ func main(len:i32, args:char**):i32 {
 	for(var j = 0; j < 10; j+=1) {
 	   printf("%d\n", j)
 	}
+	
+   var x = 2
+   switch(x) {
+	   case 0: printf("it's 0\n")
+	      break;
+	   case 1: printf("it's 1\n")
+          break;
+      default:
+         printf("I give up!\n")
+         
+   }
+	
+   printf("The Packers are ")
+   goto end;  // jump over this lie
+   prinf("not ")
+	
+end:
+   printf("the best\n");
 }
 ```
 
@@ -163,3 +190,31 @@ func main(len:i32, args:char**):i32 {
 }
 
 ```
+
+
+# Struct Methods
+There is syntax to allow functions to masquerad around like methods.
+
+```C
+struct Vec2 {
+    x: f32
+    y: f32
+}
+
+func (v: Vec2) Add(other: Vec2) : Vec2 {
+    return Vec2 { v.x + other.x, v.y + other.y }
+}
+
+func main(len:i32, args:char**) : i32 {
+    var origin = Vec2{0,0}
+    
+    // method syntax sugar
+    origin.Add(Vec2(3,4})
+    
+    
+    // or you can call it as a normal function
+    Add(origin, Vec2{3, 4})
+    
+}
+
+```  

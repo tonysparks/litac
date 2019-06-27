@@ -17,7 +17,7 @@ import litac.compiler.Compiler;
  */
 public class LitaC {
 
-    public static final String VERSION = "v0.1.0";
+    public static final String VERSION = "v0.2.0";
     
     private static void checkArg(String[] args, int index, String paramName) {
         if(index + 1 >= args.length) {
