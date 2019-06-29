@@ -1221,7 +1221,7 @@ public abstract class TypeInfo {
         
         @Override
         public String toString() {
-            return arrayOf.getName() + "[]";
+            return String.format("[%s]%s", this.length > -1 ? String.valueOf(this.length) : "", arrayOf.getName());
         }
         
         @Override
@@ -1443,7 +1443,7 @@ public abstract class TypeInfo {
                 return resolvedType.getResolvedType();
             }
             
-            return resolvedType;
+            return this;
         }
         
         public void resolve(Module module, TypeInfo resolvedTo, boolean resolveGenerics) {

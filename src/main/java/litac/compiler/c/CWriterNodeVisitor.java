@@ -769,12 +769,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
                 buf.out(",");
             }
                         
-            if(p.type.isKind(TypeKind.FuncPtr)) {
-                buf.out("%s", typeDeclForC(p.type, prefix(p.name))); 
-            }
-            else {
-                buf.out("%s %s", getTypeNameForC(p.type), prefix(p.name));
-            }
+            buf.out("%s", typeDeclForC(p.type, prefix(p.name))); 
             
             isFirst = false;
         }

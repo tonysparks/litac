@@ -4,6 +4,7 @@
 package litac.checker;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import litac.ast.Decl.*;
 import litac.checker.TypeInfo.*;
@@ -77,13 +78,31 @@ public class Generics {
         module = module.getRoot();
         
         switch(type.getKind()) {
-            case Func: {
-                return createFromGenericTypeInfo(module, type, genericArgs);
-            }
+            case Func: 
             case Struct:
             case Union: {
-               // AggregateTypeInfo aggInfo = type.as();
-                return createFromGenericTypeInfo(module, type, genericArgs);                
+                
+                // Only use the Generic Args that are needed
+                List<TypeInfo> narrowedGenericArgs = genericArgs;
+                if(type instanceof IdentifierTypeInfo) {
+                    IdentifierTypeInfo idInfo = (IdentifierTypeInfo)type;
+                
+                    if(genericParams.size() != genericArgs.size()) {
+                        System.out.println();
+                    }
+                    
+                    narrowedGenericArgs = new ArrayList<>();
+                    for(int i = 0; i < genericParams.size(); i++) {
+                        GenericParam parent = genericParams.get(i);
+                        if(idInfo.genericArgs.stream().anyMatch(p -> parent.name.equals(p.getName()))) {
+                            narrowedGenericArgs.add(genericArgs.get(i));
+                        }
+                        else {
+                            System.out.println("Not using: " + parent.name);
+                        }
+                    }                
+                }
+                return createFromGenericTypeInfo(module, type, narrowedGenericArgs);                
             }                
             case Ptr: {
                 PtrTypeInfo ptrInfo = (type = type.copy()).as();
@@ -135,9 +154,18 @@ public class Generics {
                     for(int i = 0; i < genericParams.size(); i++) {
                         GenericParam p = genericParams.get(i);
                         if(p.name.equals(type.getName())) {
-                            TypeInfo genType = createGenericTypeInfo(module, genericArgs.get(i), genericParams, genericArgs);
-                            idTypeInfo.resolve(module, genType, true);
-                            return idTypeInfo.getResolvedType();
+                            TypeInfo genericArg = genericArgs.get(i);
+                            // Don't get caught in a recursive loop, ensure the target type is resolved
+                            // (it could be unresolved if it's a Generic type itself)
+                            //if(genericArg.isResolved()) {
+                                TypeInfo genType = createGenericTypeInfo(module, genericArg, genericParams, genericArgs);
+                                idTypeInfo.resolve(module, genType, true);
+                                return idTypeInfo.getResolvedType();
+//                            }
+//                            else {
+//                                idTypeInfo.resolve(module, genericArg, false);
+//                                return idTypeInfo.getResolvedType();
+//                            }
                         }
                     } 
                 }

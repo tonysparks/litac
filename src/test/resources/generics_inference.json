@@ -1,9 +1,7 @@
 {
-    description: "Single Test",
+    description: "Generics Inference",
     program: '''                
         @include("assert.h");
-       // @include("<thread.h>");
-        
         @foreign func assert(e:bool):void;
         
         %definitions%
@@ -13,56 +11,6 @@
         }
     '''
     tests: [
-        /*
-        {
-            name: "WTF", 
-            definitions: '''
-                                
-            ''',                       
-            code: '''
-                var text: [2] char;
-            ''',
-        },                    
-        {
-            name: "Fix precedence", 
-            definitions: '''
-                struct Test {
-                }
-            ''',                       
-            code: '''
-                const cType : Test const* = (&Test {
-                }) as (Test const*);
-
-            ''',
-        },
-        {
-            name: "Casts",
-            definitions: '''
-                struct T {
-                    v: i32
-                }
-                
-                struct X<T> {
-                    v: T
-                }
-                            
-            ''',            
-            code: '''
-                //var i : i64 = 32 as (i64) + 45_i64
-                //assert( i == 77_i64 )
-                
-                
-                var i = 2_i64*32 as (i64) + 45_i64
-                assert( i == 109_i64 )
-
-                
-                //var t = T { 4}
-                //var x = X<i32> {44} as (X<i32>)
-                  
-            '''
-        },*/       
-
-        /*
         { 
             name: "Generics Type Inference",
             definitions: '''                
@@ -181,26 +129,6 @@
             ''',                       
             code: '''     
                 assert(test(&run, 4) == 4)
-            ''',                      
-        },*/
-        
-        { 
-            name: "Generics Type Inference from Struct of Struct Generic Type multiple",
-            definitions: '''                
-                struct B<T> {
-                    b: T
-                }
-                struct Test<T, V> {
-                    t : B<T>
-                    v : B<V>
-                }
-                func test<T, V>(a:Test<T, V>):T {
-                    return a.t.b + a.v.b
-                }
-            ''',                       
-            code: '''         
-                var t = Test<i32, char*> { B<i32>{4}, B<char*>{"hi"} }                                 
-                assert(test(t) == 4)
             ''',                      
         },
     ]

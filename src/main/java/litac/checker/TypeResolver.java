@@ -255,13 +255,30 @@ public class TypeResolver {
         }
         
         private void resolveType(Stmt stmt, TypeInfo type) {
-            resolveType(stmt, type, null);
+            resolveType(stmt, type, null, null);
         }
         
         private void resolveType(Stmt stmt, TypeInfo type, TypeInfo resolvedType) {
+            resolveType(stmt, type, resolvedType, null);
+        }
+        
+        private void resolveType(Stmt stmt, TypeInfo type, Set<TypeInfo> visited) {
+            resolveType(stmt, type, null, visited);
+        }
+        
+        private void resolveType(Stmt stmt, TypeInfo type, TypeInfo resolvedType, Set<TypeInfo> visited) {
             if(type == null) {
                 return;
             }
+            
+            if(visited != null) {                                   
+                if(visited.contains(type)) {
+                    return;
+                }
+                
+                visited.add(type);
+            }
+            
             
             if(!type.isResolved()) {  
                 if(resolvedType == null) {
@@ -279,7 +296,7 @@ public class TypeResolver {
                     }
                 }
                 else if(!resolvedType.isResolved()) {
-                    resolveType(stmt, resolvedType);
+                    resolveType(stmt, resolvedType, visited);
                 }
                 
                 IdentifierTypeInfo idType = type.as();
@@ -287,15 +304,15 @@ public class TypeResolver {
             }
             else if(type.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = type.as();
-                resolveType(stmt, ptrInfo.ptrOf, resolvedType);
+                resolveType(stmt, ptrInfo.ptrOf, resolvedType, visited);
             }
             else if(type.isKind(TypeKind.Const)) {
                 ConstTypeInfo constInfo = type.as();
-                resolveType(stmt, constInfo.constOf, resolvedType);
+                resolveType(stmt, constInfo.constOf, resolvedType, visited);
             }
             else if(type.isKind(TypeKind.Array)) {
                 ArrayTypeInfo arrayInfo = type.as();
-                resolveType(stmt, arrayInfo.arrayOf, resolvedType);
+                resolveType(stmt, arrayInfo.arrayOf, resolvedType, visited);
                 
                 if(arrayInfo.lengthExpr != null) {                    
                     arrayInfo.lengthExpr.visit(this);
@@ -315,11 +332,37 @@ public class TypeResolver {
                     return;
                 }
                 
-                resolveType(stmt, funcInfo.returnType);
+                if(visited == null) {
+                    visited = new HashSet<>();                    
+                }
+                
+                visited.add(funcInfo);
+                
+                resolveType(stmt, funcInfo.returnType, visited);
                 for(TypeInfo p : funcInfo.params) {
-                    resolveType(stmt, p);
+                    resolveType(stmt, p, visited);
                 }
             }
+//            else if(TypeInfo.isAggregate(type)) {
+//                AggregateTypeInfo aggInfo = type.as();
+//                if(aggInfo.hasGenerics()) {
+//                    return;
+//                }
+//                if(visited == null) {
+//                    visited = new HashSet<>();                    
+//                }
+//                
+//                visited.add(aggInfo);
+//                
+//                System.out.println(aggInfo.name);
+//                if(aggInfo.name.equals("Test<i32,char*>")) {
+//                    System.out.println(aggInfo.name);
+//                }
+//                
+//                for(FieldInfo field : aggInfo.fieldInfos) {
+//                    resolveType(stmt, field.type, null, visited);
+//                }
+//            }
         }
         
         private Integer asInt(Expr expr) {
@@ -534,6 +577,10 @@ public class TypeResolver {
                 if(d.type == null) {
                     d.type = d.expr.getResolvedType();
                     
+                    if(d.type == null) {
+                        return;
+                    }
+                    
                     // we can't assign an array literal, so we must
                     // infer as a pointer
                     if(d.type.isKind(TypeKind.Array)) {
@@ -578,6 +625,10 @@ public class TypeResolver {
                 // infer the type from the expression
                 if(d.type == null) {
                     d.type = d.expr.getResolvedType();
+                    
+                    if(d.type == null) {
+                        return;
+                    }
                     
                     // we can't assign an array literal, so we must
                     // infer as a pointer
@@ -833,6 +884,121 @@ public class TypeResolver {
             }
         }
 
+        private TypeInfo inferredType(String genericName, TypeInfo paramType, TypeInfo argumentType) {
+            if(paramType.getName().equals(genericName)) {
+                return argumentType.getResolvedType();
+            }
+            
+            if(!paramType.getKind().equals(argumentType.getKind())) {
+                return null;
+            }
+            
+            switch(paramType.getKind()) {
+                case Array: {
+                    ArrayTypeInfo arrayInfo = paramType.as();
+                    ArrayTypeInfo argumentArrayInfo = argumentType.as();
+                    return inferredType(genericName, arrayInfo.arrayOf, argumentArrayInfo.arrayOf);
+                }
+                case Const: {
+                    ConstTypeInfo constInfo = paramType.as();
+                    ConstTypeInfo argumentConstInfo = argumentType.as();
+                    return inferredType(genericName, constInfo.constOf, argumentConstInfo.constOf);
+                }
+                case FuncPtr: {
+                    FuncPtrTypeInfo funcInfo = paramType.as();
+                    FuncPtrTypeInfo argumentFuncInfo = argumentType.as();
+                    
+                    TypeInfo retType = inferredType(genericName, funcInfo.returnType, argumentFuncInfo.returnType);
+                    if(retType != null) {
+                        return retType;
+                    }
+                    
+                    
+                    for(int i = 0; i < funcInfo.params.size(); i++) {
+                        if(i < argumentFuncInfo.params.size()) {
+                            TypeInfo pType = inferredType(genericName, funcInfo.params.get(i), argumentFuncInfo.params.get(i));
+                            if(pType != null) {
+                                return pType;
+                            }
+                        }
+                    }
+                    
+                    break;
+                }
+                case Ptr: {
+                    PtrTypeInfo ptrInfo = paramType.as();
+                    PtrTypeInfo argumentPtrInfo = argumentType.as();
+                    return inferredType(genericName, ptrInfo.ptrOf, argumentPtrInfo.ptrOf);
+                }
+                case Struct: {
+                    // GenericArg is V; but struct field is defined as T
+                    StructTypeInfo structInfo = paramType.as();
+                    StructTypeInfo argumentStructInfo = argumentType.as();
+                    for(FieldInfo field : structInfo.fieldInfos) {
+                        TypeInfo fieldType = inferredType(genericName, field.type, argumentStructInfo.getField(field.name).type);
+                        if(fieldType != null) {
+                            return fieldType;
+                        }
+                    }
+                    break;
+                }
+                case Union: {
+                    UnionTypeInfo unionInfo = paramType.as();
+                    UnionTypeInfo argumentUnionInfo = argumentType.as();
+                    for(FieldInfo field : unionInfo.fieldInfos) {
+                        TypeInfo fieldType = inferredType(genericName, field.type, argumentUnionInfo.getField(field.name).type);
+                        if(fieldType != null) {
+                            return fieldType;
+                        }
+                    }
+                    break;
+                }
+                case Identifier:
+                    break;
+                default:
+                    break;            
+            }
+            
+            return null;
+            
+        }
+        
+        private FuncPtrTypeInfo inferFuncCallExpr(FuncCallExpr expr, FuncPtrTypeInfo funcPtr) {
+            for(Expr arg : expr.arguments) {
+                arg.visit(this);
+            }
+            
+            expr.genericArgs = new ArrayList<>(funcPtr.genericParams.size());
+            
+            for(GenericParam p : funcPtr.genericParams) {
+                for(int j = 0; j < funcPtr.params.size(); j++) {
+                    TypeInfo paramType = funcPtr.params.get(j);
+                    
+                    TypeInfo inferredType = inferredType(p.name, paramType, expr.arguments.get(j).getResolvedType());
+                    if(inferredType != null) {
+                        expr.genericArgs.add(inferredType);
+                        break;
+                    }
+                }
+            }
+            
+            expr.object.unresolve();
+            if(expr.object instanceof IdentifierExpr) {
+                IdentifierExpr idExpr = (IdentifierExpr)expr.object;
+                idExpr.setGenericArgs(expr.genericArgs);
+            }
+            
+            expr.object.visit(this);
+                        
+            TypeInfo type = expr.object.getResolvedType();            
+            if(type.isKind(TypeKind.Func)) {
+                FuncTypeInfo funcInfo = type.as();
+                return funcInfo.asPtr();
+            }
+            
+            return type.as();
+        }
+        
         @Override
         public void visit(FuncCallExpr expr) {
             for(TypeInfo arg : expr.genericArgs) {
@@ -854,6 +1020,11 @@ public class TypeResolver {
             }
             else {
                 funcPtr = type.as();
+            }
+            
+            // type inference for generic functions 
+            if(funcPtr.hasGenerics() && expr.genericArgs.isEmpty()) {            
+                funcPtr = inferFuncCallExpr(expr, funcPtr);            
             }
             
             expr.resolveTo(getType(expr, expr.genericArgs, funcPtr.genericParams, funcPtr.returnType));
@@ -879,27 +1050,17 @@ public class TypeResolver {
                     resolveType(arg, getType(expr, expr.genericArgs, funcPtr.genericParams, arg.getResolvedType()));
                 }                
             }
-            
-            // type inference for generic functions 
-            if(funcPtr.hasGenerics() && expr.genericArgs.isEmpty()) {
-                expr.genericArgs = new ArrayList<>(funcPtr.genericParams.size());
-                
-                for(GenericParam p : funcPtr.genericParams) {
-                    for(int j = 0; j < funcPtr.params.size(); j++) {
-                        if(funcPtr.params.get(j).getName().equals(p.name)) {
-                            expr.genericArgs.add(expr.arguments.get(j).getResolvedType());
-                        }
-                    }
-                }
-                // TODO, reresolve the function now with populated genericArgs
-                expr.object.visit(this);
-            }
         }
 
         @Override
         public void visit(IdentifierExpr expr) {
             if(!expr.type.isResolved()) {
                 Symbol sym = peekScope().getSymbol(expr.variable); 
+                
+                // Might be a generic type not defined
+                if(sym == null && !includeGenerics()) {                    
+                    return;
+                }
                 
                 if(sym == null) {
                     this.result.addError(expr, "unknown variable '%s'", expr.variable);
@@ -923,8 +1084,12 @@ public class TypeResolver {
                     Symbol sym = peekScope().getSymbol(expr.variable); 
                     
                     if(sym == null || !sym.type.isKind(TypeKind.FuncPtr)) {
+                        if(sym == null && !includeGenerics()) {                    
+                            return;
+                        }
+                        
                         this.result.addError(expr, "unknown function '%s'", expr.variable);
-                        return;
+                        return;                        
                     }
                     
                     resolvedType = sym.type;
@@ -947,19 +1112,18 @@ public class TypeResolver {
                 Symbol sym = peekScope().getSymbol(expr.variable); 
                 
                 // Might be a generic type not defined
-                if(sym == null) {                    
+                if(sym == null && !includeGenerics()) {                    
                     return;
                 }
-                else {
-                    IdentifierTypeInfo type = expr.type.as();
-                    type.resolve(this.module, sym.type, includeGenerics());
-                    
-                    TypeInfo newType = type.getResolvedType();
-                    if(newType.sym != null) {
-                        expr.sym = newType.sym;
-                    }
-                    expr.resolveTo(expr.type); // TODO: remove type from IdExpr
+                
+                IdentifierTypeInfo type = expr.type.as();
+                type.resolve(this.module, sym.type, includeGenerics());
+                
+                TypeInfo newType = type.getResolvedType();
+                if(newType.sym != null) {
+                    expr.sym = newType.sym;
                 }
+                expr.resolveTo(expr.type); // TODO: remove type from IdExpr
             }
         }
         

@@ -83,6 +83,10 @@ public abstract class Expr extends Stmt {
         return this.resolvedTo != null && this.resolvedTo.isResolved();
     }
     
+    public void unresolve() {
+        this.resolvedTo = null;
+    }
+    
     @SuppressWarnings("unchecked")
     @Override
     public <T extends Node> T copy() {
@@ -201,10 +205,17 @@ public abstract class Expr extends Stmt {
         }
     }
     
-    public static class InitExpr extends Expr {
+    public static abstract class GenericExpr extends Expr {
+        public List<TypeInfo> genericArgs;
+        
+        public GenericExpr() {
+            this.genericArgs = Collections.emptyList();
+        }
+    }
+    
+    public static class InitExpr extends GenericExpr {
         public TypeInfo type;
         public List<InitArgExpr> arguments;
-        public List<TypeInfo> genericArgs;
         
         public InitExpr(TypeInfo type, List<InitArgExpr> arguments) {
             this.type = type;
@@ -390,10 +401,9 @@ public abstract class Expr extends Stmt {
 
     }
     
-    public static class FuncCallExpr extends Expr {
+    public static class FuncCallExpr extends GenericExpr {
         public Expr object;
         public List<Expr> arguments;
-        public List<TypeInfo> genericArgs;
         
         public FuncCallExpr(Expr object, List<Expr> arguments, List<TypeInfo> genericArgs) {
             this.object = becomeParentOf(object);
@@ -616,9 +626,36 @@ public abstract class Expr extends Stmt {
             resolveTo(type);
         }
 
+        public List<TypeInfo> getGenericArgs() {
+            if(this.type instanceof IdentifierTypeInfo) {
+                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)this.type;
+                return idInfo.genericArgs;
+            }
+            
+            return Collections.emptyList();
+        }
+        
+        public void setGenericArgs(List<TypeInfo> genericArgs) {            
+            if(this.type instanceof IdentifierTypeInfo) {
+                IdentifierTypeInfo idInfo = (IdentifierTypeInfo) this.type;
+                idInfo.genericArgs = genericArgs;
+            }
+        }
+        
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
+        }
+        
+        @Override
+        public void unresolve() {
+            if(this.type instanceof IdentifierTypeInfo) {
+                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)this.type;
+                idInfo.resolvedType = null;
+            }
+            
+            
+            super.unresolve();
         }
 
         @Override
