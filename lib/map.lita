@@ -57,7 +57,7 @@ public func MapInit<K, V>(m: Map<K, V>*,
     }
 
     if(!alloc) {
-        alloc = (&mem::cAllocator) as (mem::Allocator const*) 
+        alloc = mem::cAllocator 
     }    
     
     m.size = 0;

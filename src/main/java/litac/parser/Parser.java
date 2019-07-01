@@ -1100,16 +1100,17 @@ public class Parser {
         List<Expr> arguments = arguments();
         if(callee instanceof IdentifierExpr) {
             IdentifierExpr idExpr = (IdentifierExpr)callee;
-            if(idExpr.type instanceof IdentifierTypeInfo) {
-                genericArgs = ((IdentifierTypeInfo)idExpr.type).genericArgs;
-            }
+            genericArgs = idExpr.getGenericArgs();
+            
             callee = node(new FuncIdentifierExpr(idExpr.variable, idExpr.type));
         }
         else if(callee instanceof GetExpr) {
             GetExpr getExpr = (GetExpr)callee;
-            if(getExpr.field.type instanceof IdentifierTypeInfo) {
-                genericArgs = ((IdentifierTypeInfo)getExpr.field.type).genericArgs;
+            if(getExpr.field instanceof IdentifierExpr) {
+                IdentifierExpr idExpr = (IdentifierExpr)getExpr.field;
+                genericArgs = idExpr.getGenericArgs();    
             }
+            
             IdentifierExpr newId = node(new FuncIdentifierExpr(getExpr.field.variable, getExpr.field.type));
             getExpr.setField(newId);
         }

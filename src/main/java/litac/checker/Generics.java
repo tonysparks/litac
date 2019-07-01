@@ -4,7 +4,6 @@
 package litac.checker;
 
 import java.util.*;
-
 import litac.ast.Decl.*;
 import litac.checker.TypeInfo.*;
 
@@ -30,11 +29,16 @@ public class Generics {
      * @return the new {@link TypeInfo}
      */
     public static TypeInfo createFromGenericTypeInfo(Module module, TypeInfo type, List<TypeInfo> genericArgs) {
-        if(genericArgs.isEmpty() || type.isPrimitive()) {
+        if(genericArgs.isEmpty() || type.isPrimitive() || !type.hasGenerics()) {
             return type;
         }
         
+        type = normalizeType(module, type);
+        
+        // All generics are defined in the root module
+        // so we want to ensure we are comparing types from the root module
         module = module.getRoot();
+        
         
         String genericImplTypeName = newDeclGenericName(type, genericArgs);
         TypeInfo resultType = module.getType(genericImplTypeName);
@@ -74,16 +78,44 @@ public class Generics {
     
     public static TypeInfo createGenericTypeInfo(Module module, TypeInfo type, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
         
+        type = normalizeType(module, type);
         module = module.getRoot();
         
         switch(type.getKind()) {
-            case Func: {
-                return createFromGenericTypeInfo(module, type, genericArgs);
-            }
+            case Func: 
             case Struct:
             case Union: {
-               // AggregateTypeInfo aggInfo = type.as();
-                return createFromGenericTypeInfo(module, type, genericArgs);                
+                
+                // Only use the Generic Args that are needed
+                List<TypeInfo> narrowedGenericArgs = genericArgs;
+                if(type.hasGenericArgs()) {
+                    narrowedGenericArgs = new ArrayList<>();
+                    for(int i = 0; i < genericParams.size(); i++) {
+                        GenericParam parent = genericParams.get(i);
+                        
+                        // First check and see if there are Generic Parameters that should be substituted with
+                        // the parents generic arguments
+                        if(type.getGenericArgs().stream().anyMatch(p -> parent.name.equals(p.getName()))) {
+                            narrowedGenericArgs.add(genericArgs.get(i));
+                        }
+                        else {
+                            
+                            // Otherwise, this type might already have generic definitions itself; if 
+                            // so, populate it with its supplied generic arguments
+                            if(type.isResolved() && type.hasGenerics()) {
+                                GenericTypeInfo genInfo = type.as();
+                                for(int j = 0; j < genInfo.genericParams.size(); j++) {
+                                    GenericParam genParam = genInfo.genericParams.get(j);
+                                    if(genParam.name.equals(parent.name)) {
+                                        narrowedGenericArgs.add(type.getGenericArgs().get(j));
+                                    }                                    
+                                }
+                            }
+                        }
+                    }                
+                }
+                
+                return createFromGenericTypeInfo(module, type, narrowedGenericArgs);                
             }                
             case Ptr: {
                 PtrTypeInfo ptrInfo = (type = type.copy()).as();
@@ -115,7 +147,7 @@ public class Generics {
                 
                 // Check and see if the identifier is another generic type with generic arguments,
                 // if it has them, swap them out with the corresponding generics on the parent type
-                if(!idTypeInfo.isResolved() && !idTypeInfo.genericArgs.isEmpty()) {
+                if(!idTypeInfo.isResolved() && idTypeInfo.hasGenericArgs()) {
                     
                     for(int index = 0; index < idTypeInfo.genericArgs.size(); index++)  {
                         TypeInfo genericArg = idTypeInfo.genericArgs.get(index);
@@ -135,7 +167,16 @@ public class Generics {
                     for(int i = 0; i < genericParams.size(); i++) {
                         GenericParam p = genericParams.get(i);
                         if(p.name.equals(type.getName())) {
-                            TypeInfo genType = createGenericTypeInfo(module, genericArgs.get(i), genericParams, genericArgs);
+                            TypeInfo genericArg = genericArgs.get(i);
+                            // Don't get caught in a recursive loop, ensure the target type is resolved
+                            // (it could be unresolved if it's a Generic type itself)
+                            if(!genericArg.isResolved() && !genericArg.hasGenericArgs()) {
+                                // TODO: Get the stmt where this was defined!!
+                                module.getPhaseResult().addError(null, "'%s' is an unknown type", genericArg.getName());
+                                return type;
+                            }
+                            
+                            TypeInfo genType = createGenericTypeInfo(module, genericArg, genericParams, genericArgs);
                             idTypeInfo.resolve(module, genType, true);
                             return idTypeInfo.getResolvedType();
                         }
@@ -152,6 +193,36 @@ public class Generics {
                     }
                 }
             }
+        }
+        
+        return type;
+    }
+    
+    private static TypeInfo normalizeType(Module module, TypeInfo type) {
+        // If this type is aliasing the real type, make sure we use
+        // the real type and not the aliased for generic creation.  
+        // This helps with the type checker as it doesn't have to look
+        // up aliased types
+        
+        // Function Pointers are type declarations themselves, so
+        // it doesn't make sense to get the root function pointer declaration
+        if(type.isResolved() && type.isKind(TypeKind.FuncPtr)) {
+            return type;
+        }
+        
+        TypeInfo realType = module.getAliasedType(type.getName());
+        if(realType != null) {
+            if(realType instanceof IdentifierTypeInfo &&
+               type instanceof IdentifierTypeInfo) { 
+                realType = realType.copy();
+                
+                IdentifierTypeInfo realIdInfo = (IdentifierTypeInfo)realType;
+                IdentifierTypeInfo typeIdInfo = (IdentifierTypeInfo)type;
+                
+                realIdInfo.genericArgs = new ArrayList<>(typeIdInfo.genericArgs);
+            }
+            
+            type = realType;
         }
         
         return type;
@@ -285,7 +356,12 @@ public class Generics {
 
     
     private static String newDeclGenericName(TypeInfo type, List<TypeInfo> genericArgs) {
-        StringBuilder newName = new StringBuilder(type.getName());
+        String baseType = type.getName();
+        if(type.isResolved() && !type.hasGenericArgs()) {
+            baseType = type.getResolvedType().getName();
+        }
+        
+        StringBuilder newName = new StringBuilder(baseType);
         
         if(!genericArgs.isEmpty()) {
             newName.append("<");
@@ -294,7 +370,8 @@ public class Generics {
             if(i > 0) newName.append(",");
             
             TypeInfo argInfo = genericArgs.get(i);
-            newName.append("").append(argInfo.getName().replace("::", ""));
+            
+            newName.append(newDeclGenericName(argInfo, argInfo.getGenericArgs()));
         }
         
         if(!genericArgs.isEmpty()) {

@@ -31,11 +31,13 @@ public class TestSuite {
         public String code;
         public String definitions = "";
         public String error;
+        public boolean disabled;
     }
     
     public String description;
     public String program;
     public boolean includeTypeInfos;
+    public boolean disabled;
     public List<TestCase> tests;
     
     
@@ -49,8 +51,17 @@ public class TestSuite {
         System.out.println("*******************************************");
         System.out.println("*******************************************");
         
+        if(suite.disabled) {
+            System.out.println("Skipping (is disabled)");
+        }
+        
         for(TestCase test: suite.tests) {
             System.out.println("Running test: " + test.name);
+            
+            if(test.disabled) {
+                System.out.println("Skipping (is disabled)");
+            }
+            
             String fullProgram = suite.program
                                         .replace("%definitions%", test.definitions)
                                         .replace("%test%", test.code);
@@ -105,7 +116,15 @@ public class TestSuite {
         
         ObjectMapper mapper = new ObjectMapper();
         ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
-        PrintStream pStream = new PrintStream(errorStream, true, "UTF-8");
+        PrintStream errStream = System.err;
+        OutputStream oStream = new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                errorStream.write(b);
+                errStream.write(b);
+            }
+        };
+        PrintStream pStream = new PrintStream(oStream, true, "UTF-8");
         System.setErr(pStream);
         
         File outputDir = new File(System.getProperty("user.dir") + "/output_tests");

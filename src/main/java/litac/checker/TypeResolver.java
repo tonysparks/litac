@@ -14,6 +14,7 @@ import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.CompilationUnit;
+import litac.util.Stack;
 import litac.util.Tuple;
 
 /**
@@ -191,7 +192,7 @@ public class TypeResolver {
         
         private Module module;
         private PhaseResult result;
-        private FuncTypeInfo currentFuncInfo;
+        private Stack<GenericTypeInfo> currentGenericType;
         private Set<String> resolvedGenericTypes;
         
         // The type the generic module is defined in        
@@ -203,9 +204,23 @@ public class TypeResolver {
             this.result = result;
             this.module = module;
             this.resolvedGenericTypes = resolvedGenericTypes;
+            this.currentGenericType = new Stack<>();
         }
         
         private TypeInfo getType(String typeName) {
+            // This type could actually be a generic parameter, if so
+            // make sure not to attempt to get an actual defined type, 
+            // as the generic parameter takes precedence
+            if(!this.currentGenericType.isEmpty()) {
+                for(GenericTypeInfo genType: this.currentGenericType) {
+                    for(GenericParam p : genType.genericParams) {
+                        if(p.name.equals(typeName)) {
+                            return null;
+                        }
+                    }
+                }
+            }
+            
             TypeInfo type = this.module.getType(typeName);
             if(type == null && this.genericModule != null) {
                 return this.genericModule.getType(typeName);
@@ -214,9 +229,8 @@ public class TypeResolver {
             return type;
         }
         
-        private boolean includeGenerics() {
-            return this.currentFuncInfo == null ||
-                  !this.currentFuncInfo.hasGenerics();
+        private boolean isResolvingGenericDecl() {
+            return !this.currentGenericType.isEmpty();
         }
         
         private void enterScope() {
@@ -233,7 +247,7 @@ public class TypeResolver {
         }
         
         private TypeInfo getType(Stmt stmt, List<TypeInfo> genericArgs, List<GenericParam> genericParams, TypeInfo expectedType) {
-            if(expectedType == null && !includeGenerics()) {
+            if(expectedType == null && isResolvingGenericDecl()) {
                 // we're processing a generic function, we can only resolve so much
                 // with these unknown types
                 return null;
@@ -257,25 +271,22 @@ public class TypeResolver {
         private void resolveType(Stmt stmt, TypeInfo type) {
             resolveType(stmt, type, null);
         }
-        
+                        
         private void resolveType(Stmt stmt, TypeInfo type, TypeInfo resolvedType) {
             if(type == null) {
                 return;
-            }
+            }            
             
             if(!type.isResolved()) {  
                 if(resolvedType == null) {
                     resolvedType = getType(type.getName());
                     if(resolvedType == null) {
-                        if(!includeGenerics()) {
-                            //resolvedType = type;
-                            // todo
+                        if(isResolvingGenericDecl()) {
                             return;
                         }
-                        else {
-                            this.result.addError(stmt, "'%s' is an unknown type", type.getName());
-                            return;
-                        }
+                        
+                        this.result.addError(stmt, "'%s' is an unknown type", type.getName());
+                        return;                        
                     }
                 }
                 else if(!resolvedType.isResolved()) {
@@ -283,7 +294,7 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo idType = type.as();
-                idType.resolve(this.module, resolvedType, includeGenerics());
+                idType.resolve(this.module, resolvedType, !isResolvingGenericDecl());
             }
             else if(type.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = type.as();
@@ -534,6 +545,10 @@ public class TypeResolver {
                 if(d.type == null) {
                     d.type = d.expr.getResolvedType();
                     
+                    if(d.type == null) {
+                        return;
+                    }
+                    
                     // we can't assign an array literal, so we must
                     // infer as a pointer
                     if(d.type.isKind(TypeKind.Array)) {
@@ -578,6 +593,10 @@ public class TypeResolver {
                 // infer the type from the expression
                 if(d.type == null) {
                     d.type = d.expr.getResolvedType();
+                    
+                    if(d.type == null) {
+                        return;
+                    }
                     
                     // we can't assign an array literal, so we must
                     // infer as a pointer
@@ -644,7 +663,9 @@ public class TypeResolver {
                 FuncTypeInfo funcInfo = d.type.as();
                 // must resolve types, even for generic functions
                 // otherwise the Generic.replacer will not work
-                this.currentFuncInfo = funcInfo;
+                if(funcInfo.hasGenerics()) {
+                    this.currentGenericType.add(funcInfo);
+                }
                 
                 resolveType(d, d.returnType);
                 for(ParameterDecl p : d.params.params) {
@@ -669,7 +690,9 @@ public class TypeResolver {
                 
                 d.bodyStmt.visit(this);
                 
-                this.currentFuncInfo = null;
+                if(funcInfo.hasGenerics()) {
+                    this.currentGenericType.pop();
+                }
             }
             exitScope();
         }
@@ -679,13 +702,17 @@ public class TypeResolver {
         public void visit(StructDecl d) {
             StructTypeInfo structInfo = d.type.as();
             if(structInfo.hasGenerics()) {
-                return;
+                this.currentGenericType.add(structInfo);
             }
             
             resolveType(d, d.type);
             
             for(FieldStmt s : d.fields) {
                 s.visit(this);
+            }
+            
+            if(structInfo.hasGenerics()) {
+                this.currentGenericType.pop();
             }
         }
         
@@ -712,7 +739,7 @@ public class TypeResolver {
         public void visit(UnionDecl d) {
             UnionTypeInfo unionInfo = d.type.as();
             if(unionInfo.hasGenerics()) {
-                return;
+                this.currentGenericType.add(unionInfo);
             }
             
             resolveType(d, d.type);
@@ -720,10 +747,20 @@ public class TypeResolver {
             for(FieldStmt s : d.fields) {
                 s.visit(this);
             }
+            
+            if(unionInfo.hasGenerics()) {
+                this.currentGenericType.pop();
+            }
         }
         
         @Override
         public void visit(TypedefDecl d) {
+            if(d.type.hasGenericArgs()) {                
+                for(TypeInfo type: d.type.getGenericArgs()) {
+                    resolveType(d, type);        
+                }
+            }
+            
             resolveType(d, d.type);
         }
 
@@ -829,10 +866,134 @@ public class TypeResolver {
                 }
             
                 IdentifierTypeInfo idInfo = expr.type.as();
-                idInfo.resolve(this.module, type, includeGenerics());
+                idInfo.resolve(this.module, type, !isResolvingGenericDecl());
             }
         }
 
+        private TypeInfo inferredType(String genericName, TypeInfo paramType, TypeInfo argumentType) {
+            if(paramType.getName().equals(genericName)) {
+                return argumentType.getResolvedType();
+            }
+            
+            if(!paramType.getKind().equals(argumentType.getKind())) {
+                return null;
+            }
+            
+            int index = 0;
+            if(paramType.hasGenericArgs()) {
+                List<TypeInfo> genericArgs = paramType.getGenericArgs();
+                for(;index < genericArgs.size(); index++) {
+                    if(genericArgs.get(index).name.equals(genericName)) {
+                        break;
+                    }
+                }
+            }
+            
+            switch(paramType.getKind()) {
+                case Array: {
+                    ArrayTypeInfo arrayInfo = paramType.as();
+                    ArrayTypeInfo argumentArrayInfo = argumentType.as();
+                    return inferredType(genericName, arrayInfo.arrayOf, argumentArrayInfo.arrayOf);
+                }
+                case Const: {
+                    ConstTypeInfo constInfo = paramType.as();
+                    ConstTypeInfo argumentConstInfo = argumentType.as();
+                    return inferredType(genericName, constInfo.constOf, argumentConstInfo.constOf);
+                }
+                case FuncPtr: {
+                    FuncPtrTypeInfo funcInfo = paramType.as();
+                    if(!funcInfo.hasGenerics() || funcInfo.genericParams.size() <= index) {
+                        break;
+                    }
+                    
+                    genericName = funcInfo.genericParams.get(index).name;
+                    FuncPtrTypeInfo argumentFuncInfo = argumentType.as();
+                    
+                    TypeInfo retType = inferredType(genericName, funcInfo.returnType, argumentFuncInfo.returnType);
+                    if(retType != null) {
+                        return retType;
+                    }
+                    
+                    
+                    for(int i = 0; i < funcInfo.params.size(); i++) {
+                        if(i < argumentFuncInfo.params.size()) {
+                            TypeInfo pType = inferredType(genericName, funcInfo.params.get(i), argumentFuncInfo.params.get(i));
+                            if(pType != null) {
+                                return pType;
+                            }
+                        }
+                    }
+                    
+                    break;
+                }
+                case Ptr: {
+                    PtrTypeInfo ptrInfo = paramType.as();
+                    PtrTypeInfo argumentPtrInfo = argumentType.as();
+                    return inferredType(genericName, ptrInfo.ptrOf, argumentPtrInfo.ptrOf);
+                }
+                case Union:
+                case Struct: {
+                    AggregateTypeInfo aggInfo = paramType.as();
+                    if(!aggInfo.hasGenerics() || aggInfo.genericParams.size() <= index) {
+                        break;
+                    }
+                    
+                    genericName = aggInfo.genericParams.get(index).name;                    
+                    AggregateTypeInfo argumentAggInfo = argumentType.as();
+                    for(FieldInfo field : aggInfo.fieldInfos) {
+                        TypeInfo fieldType = inferredType(genericName, field.type, argumentAggInfo.getField(field.name).type);
+                        if(fieldType != null) {
+                            return fieldType;
+                        }
+                    }
+                    break;
+                }
+                case Identifier:
+                    break;
+                default:
+                    break;            
+            }
+            
+            return null;
+            
+        }
+        
+        private FuncPtrTypeInfo inferFuncCallExpr(FuncCallExpr expr, FuncPtrTypeInfo funcPtr) {
+            for(Expr arg : expr.arguments) {
+                arg.visit(this);
+            }
+            
+            expr.genericArgs = new ArrayList<>(funcPtr.genericParams.size());
+            
+            for(GenericParam p : funcPtr.genericParams) {
+                for(int j = 0; j < funcPtr.params.size(); j++) {
+                    TypeInfo paramType = funcPtr.params.get(j);
+                    
+                    TypeInfo inferredType = inferredType(p.name, paramType, expr.arguments.get(j).getResolvedType());
+                    if(inferredType != null) {
+                        expr.genericArgs.add(inferredType);
+                        break;
+                    }
+                }
+            }
+            
+            expr.object.unresolve();
+            if(expr.object instanceof IdentifierExpr) {
+                IdentifierExpr idExpr = (IdentifierExpr)expr.object;
+                idExpr.setGenericArgs(expr.genericArgs);
+            }
+            
+            expr.object.visit(this);
+                        
+            TypeInfo type = expr.object.getResolvedType();            
+            if(type.isKind(TypeKind.Func)) {
+                FuncTypeInfo funcInfo = type.as();
+                return funcInfo.asPtr();
+            }
+            
+            return type.as();
+        }
+        
         @Override
         public void visit(FuncCallExpr expr) {
             for(TypeInfo arg : expr.genericArgs) {
@@ -854,6 +1015,11 @@ public class TypeResolver {
             }
             else {
                 funcPtr = type.as();
+            }
+            
+            // type inference for generic functions 
+            if(funcPtr.hasGenerics() && expr.genericArgs.isEmpty()) {            
+                funcPtr = inferFuncCallExpr(expr, funcPtr);            
             }
             
             expr.resolveTo(getType(expr, expr.genericArgs, funcPtr.genericParams, funcPtr.returnType));
@@ -879,21 +1045,6 @@ public class TypeResolver {
                     resolveType(arg, getType(expr, expr.genericArgs, funcPtr.genericParams, arg.getResolvedType()));
                 }                
             }
-            
-            // type inference for generic functions 
-            if(funcPtr.hasGenerics() && expr.genericArgs.isEmpty()) {
-                expr.genericArgs = new ArrayList<>(funcPtr.genericParams.size());
-                
-                for(GenericParam p : funcPtr.genericParams) {
-                    for(int j = 0; j < funcPtr.params.size(); j++) {
-                        if(funcPtr.params.get(j).getName().equals(p.name)) {
-                            expr.genericArgs.add(expr.arguments.get(j).getResolvedType());
-                        }
-                    }
-                }
-                // TODO, reresolve the function now with populated genericArgs
-                expr.object.visit(this);
-            }
         }
 
         @Override
@@ -901,13 +1052,18 @@ public class TypeResolver {
             if(!expr.type.isResolved()) {
                 Symbol sym = peekScope().getSymbol(expr.variable); 
                 
+                // Might be a generic type not defined
+                if(sym == null && isResolvingGenericDecl()) {                    
+                    return;
+                }
+                
                 if(sym == null) {
                     this.result.addError(expr, "unknown variable '%s'", expr.variable);
                     return;
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, sym.type, includeGenerics());
+                type.resolve(this.module, sym.type, !isResolvingGenericDecl());
                 
                 expr.sym = sym;
                 expr.resolveTo(expr.type); // TODO: remove type from IdExpr
@@ -923,15 +1079,19 @@ public class TypeResolver {
                     Symbol sym = peekScope().getSymbol(expr.variable); 
                     
                     if(sym == null || !sym.type.isKind(TypeKind.FuncPtr)) {
+                        if(sym == null && isResolvingGenericDecl()) {                    
+                            return;
+                        }
+                        
                         this.result.addError(expr, "unknown function '%s'", expr.variable);
-                        return;
+                        return;                        
                     }
                     
                     resolvedType = sym.type;
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, resolvedType, includeGenerics());
+                type.resolve(this.module, resolvedType, !isResolvingGenericDecl());
 
                 TypeInfo newType = type.getResolvedType();
                 if(newType.sym != null) {
@@ -947,19 +1107,18 @@ public class TypeResolver {
                 Symbol sym = peekScope().getSymbol(expr.variable); 
                 
                 // Might be a generic type not defined
-                if(sym == null) {                    
+                if(sym == null && isResolvingGenericDecl()) {                    
                     return;
                 }
-                else {
-                    IdentifierTypeInfo type = expr.type.as();
-                    type.resolve(this.module, sym.type, includeGenerics());
-                    
-                    TypeInfo newType = type.getResolvedType();
-                    if(newType.sym != null) {
-                        expr.sym = newType.sym;
-                    }
-                    expr.resolveTo(expr.type); // TODO: remove type from IdExpr
+                
+                IdentifierTypeInfo type = expr.type.as();
+                type.resolve(this.module, sym.type, !isResolvingGenericDecl());
+                
+                TypeInfo newType = type.getResolvedType();
+                if(newType.sym != null) {
+                    expr.sym = newType.sym;
                 }
+                expr.resolveTo(expr.type); // TODO: remove type from IdExpr
             }
         }
         
@@ -1079,7 +1238,7 @@ public class TypeResolver {
                 case Identifier: {
                     // if we are parsing a Generic structure, ignore that we
                     // can't fully resolve this type (will get resolved when defined with concrete type)
-                    if(!includeGenerics()) {
+                    if(isResolvingGenericDecl()) {
                         expr.resolveTo(type);
                         break;
                     }

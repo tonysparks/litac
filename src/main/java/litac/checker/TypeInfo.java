@@ -312,6 +312,18 @@ public abstract class TypeInfo {
         return false;
     }
     
+    public boolean hasGenerics() {
+        return false;
+    }
+    
+    public boolean hasGenericArgs() {
+        return false;
+    }
+    
+    public List<TypeInfo> getGenericArgs() {
+        return Collections.emptyList();
+    }
+    
     public boolean isKind(TypeKind kind) {
         return this.kind == kind;
     }
@@ -428,6 +440,7 @@ public abstract class TypeInfo {
             this.genericParams = genericParams;
         }
         
+        @Override
         public boolean hasGenerics() {
             return !this.genericParams.isEmpty();
         }
@@ -550,15 +563,8 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            if(target.kind == TypeKind.Identifier) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
-                }
-            }
-            
-            if(target.kind == TypeKind.Struct) {
-                StructTypeInfo targetStruct = (StructTypeInfo)target;
+            if(target.isKind(TypeKind.Struct)) {
+                StructTypeInfo targetStruct = target.as();
                 
                 if(this.fieldInfos.size() < targetStruct.fieldInfos.size()) {
                     return false;
@@ -609,16 +615,9 @@ public abstract class TypeInfo {
             if(target == this) {
                 return true;
             }
-            
-            if(target.kind == TypeKind.Identifier) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
-                }
-            }
-            
-            if(target.kind == TypeKind.Union) {
-                UnionTypeInfo targetUnion = (UnionTypeInfo)target;
+                        
+            if(target.isKind(TypeKind.Union)) {
+                UnionTypeInfo targetUnion = target.as();
                 
                 if(this.fieldInfos.size() < targetUnion.fieldInfos.size()) {
                     return false;
@@ -632,6 +631,8 @@ public abstract class TypeInfo {
                         return false;
                     }
                 }
+                
+                return true;
             }
             
             if(target.isKind(TypeKind.Bool)) {
@@ -686,15 +687,8 @@ public abstract class TypeInfo {
             if(target == this) {
                 return true;
             }
-            
-            if(target.kind == TypeKind.Identifier) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
-                }
-            }
-            
-            if(target.kind == TypeKind.Enum) {
+                        
+            if(target.isKind(TypeKind.Enum)) {
                 return this.name.equals(target.name);
             }
             
@@ -741,15 +735,10 @@ public abstract class TypeInfo {
             if(target == this) {
                 return true;
             }
-            
-            if(target.kind == TypeKind.Identifier) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
-                }
-            }
-            
-            if(target.isKind(TypeKind.Func) || target.isKind(TypeKind.FuncPtr)) {
+                        
+            if(target.isKind(TypeKind.Func) || 
+               target.isKind(TypeKind.FuncPtr)) {
+                
                 FuncPtrTypeInfo funcType = target.isKind(TypeKind.FuncPtr) 
                                                 ? target.as() 
                                                 : ((FuncTypeInfo)target.as()).asPtr();
@@ -840,13 +829,6 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            if(target.kind == TypeKind.Identifier) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
-                }
-            }
-            
             if(target.isKind(TypeKind.Func)) {
                 FuncTypeInfo funcType = target.as();
                 if(this.params.size() != funcType.parameterDecls.size()) {
@@ -896,20 +878,6 @@ public abstract class TypeInfo {
         
         @Override
         public String getName() {
-//            boolean isFirst = true;
-//            StringBuilder params = new StringBuilder();
-//            for(TypeInfo p : this.params) {
-//                if(!isFirst) params.append("_");
-//                params.append(p.getName());
-//                isFirst = false;
-//            }
-//            
-//            if(this.isVararg) {
-//                params.append("varargs");
-//            }
-//            
-//            return String.format("func_%s_%s", params, this.returnType.getName())
-//                    .replace("*", "ptr").replace(" ", "_");
             return toString();
         }
         
@@ -972,14 +940,7 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            if(target.kind == TypeKind.Identifier) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
-                }
-            }
-            
-            if(target.kind == TypeKind.Str) {
+            if(target.isKind(TypeKind.Str)) {
                 return true;
             }
             
@@ -1062,14 +1023,7 @@ public abstract class TypeInfo {
             if(target == this) {
                 return true;
             }
-            
-            if(target.isKind(TypeKind.Identifier)) {
-                IdentifierTypeInfo idInfo = target.as();
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.getResolvedType());
-                }
-            }
-            
+                 
             boolean isConstPtr = this.ptrOf.isKind(TypeKind.Const);
             
             if(target.isKind(TypeKind.Const) && !isConstPtr) {
@@ -1221,20 +1175,13 @@ public abstract class TypeInfo {
         
         @Override
         public String toString() {
-            return arrayOf.getName() + "[]";
+            return String.format("[%s]%s", this.length > -1 ? String.valueOf(this.length) : "", arrayOf.getName());
         }
         
         @Override
         public boolean canCastTo(TypeInfo target) {
             if(target == this) {
                 return true;
-            }
-            
-            if(target.isKind(TypeKind.Identifier)) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
-                }
             }
             
             if(target.isKind(TypeKind.Array)) {
@@ -1344,14 +1291,7 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            if(target.kind == TypeKind.Identifier) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
-                }
-            }
-            
-            if(target.kind == this.kind) {
+            if(target.isKind(TypeKind.Void)) {
                 return true;
             }
             
@@ -1381,14 +1321,7 @@ public abstract class TypeInfo {
                 return true;
             }
             
-            if(target.kind == TypeKind.Identifier) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)target;
-                if(idInfo.isResolved()) {
-                    return canCastTo(idInfo.resolvedType);
-                }
-            }
-            
-            if(target.kind == this.kind) {
+            if(target.isKind(TypeKind.Null)) {
                 return true;
             }
             
@@ -1438,18 +1371,92 @@ public abstract class TypeInfo {
         }
         
         @Override
+        public boolean hasGenericArgs() {
+            return this.genericArgs != null && !this.genericArgs.isEmpty();
+        }
+        
+        @Override
+        public boolean hasGenerics() {
+            if(isResolved()) {
+                return getResolvedType().hasGenerics();
+            }
+            
+            return false;
+        }
+        
+        @Override
+        public List<TypeInfo> getGenericArgs() {
+            return this.genericArgs;
+        }
+        
+        @Override
         public TypeInfo getResolvedType() {
             if(resolvedType != null) {
                 return resolvedType.getResolvedType();
             }
             
-            return resolvedType;
+            return this;
+        }
+        
+        private TypeInfo updateGenericParam(TypeInfo type, List<GenericParam> oldNames, List<TypeInfo> newTypes) {
+            switch(type.getKind()) {
+                case FuncPtr: {
+                    FuncPtrTypeInfo funcInfo = type.as();
+                    funcInfo.returnType = updateGenericParam(funcInfo.returnType, oldNames, newTypes);
+                    int i = 0;
+                    for(TypeInfo param : funcInfo.params) {
+                        funcInfo.params.set(i++, updateGenericParam(param, oldNames, newTypes));
+                    }
+                    return funcInfo;
+                }
+                case Identifier: {
+                    for(int i = 0; i < oldNames.size(); i++) {
+                        if(type.getName().equals(oldNames.get(i).name)) {
+                            return newTypes.get(i);
+                        }
+                    }
+                    // Error??
+                    break;
+                }
+                case Struct:
+                case Union: {
+                    AggregateTypeInfo aggInfo = type.as();
+                    for(FieldInfo field : aggInfo.fieldInfos) {
+                        field.type= updateGenericParam(field.type, oldNames, newTypes);
+                    }
+                    
+                    break;
+                }
+                default: {
+                    return type;
+                }
+            }
+            
+            return type;
         }
         
         public void resolve(Module module, TypeInfo resolvedTo, boolean resolveGenerics) {
             if(resolvedTo != null) {
                 if(resolveGenerics) {
                     resolvedTo = Generics.createFromGenericTypeInfo(module, resolvedTo, this.genericArgs);
+                }
+                else {
+                    // TODO: Need to replace Supplied Generic Args with defined Args if the type 
+                    // is a Typedef
+                    if(resolvedTo.isKind(TypeKind.FuncPtr)) {
+                        if((resolvedTo instanceof GenericTypeInfo) && !this.genericArgs.isEmpty()) {
+                            resolvedTo = resolvedTo.copy();
+                            GenericTypeInfo genInfo = (GenericTypeInfo)resolvedTo;
+                            resolvedTo = updateGenericParam(resolvedTo, genInfo.genericParams, this.genericArgs);
+                            genInfo = (GenericTypeInfo)resolvedTo;                        
+                            
+                            genInfo.genericParams.clear();
+                            for(TypeInfo p : this.genericArgs) {
+                                genInfo.genericParams.add(new GenericParam(p.getName()));
+                            }          
+                        }                    
+                    }
+                    
                 }
                 this.resolvedType = resolvedTo;
             }

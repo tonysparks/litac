@@ -57,7 +57,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new VarDecl(this.name, this.type.copy(), copy(this.expr), this.attributes.modifiers);
+            return new VarDecl(this.name, TypeInfo.copy(this.type), copy(this.expr), this.attributes.modifiers);
         }
     }
     

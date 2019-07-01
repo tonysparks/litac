@@ -26,7 +26,7 @@ public enum TokenType {
         I32, U32,
         I64, U64,
         I128,U128,
-        F32, F64, STRING, 
+        F32, F64, //STRING, 
         ///ARRAY, 
         MODULE, IMPORT, AS, TYPEDEF, SIZEOF, TYPEOF, PUBLIC,
     UNION,
@@ -51,7 +51,7 @@ public enum TokenType {
     DOUBLE_QUOTE("\""),  
 
     // end Special symbols
-
+    STRING,
     IDENTIFIER,    
     NUMBER,
 //    STRING,
@@ -66,7 +66,7 @@ public enum TokenType {
     private static final int LAST_SPECIAL_INDEX  = DOUBLE_QUOTE.ordinal();
     
     private static final int FIRST_PRIMITIVE_INDEX = TRUE.ordinal();
-    private static final int LAST_PRIMITIVE_INDEX  = STRING.ordinal();
+    private static final int LAST_PRIMITIVE_INDEX  = F64.ordinal();
 
     private String text;  // token text
 
