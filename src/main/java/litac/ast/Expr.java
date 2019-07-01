@@ -228,8 +228,9 @@ public abstract class Expr extends Stmt {
         public void resolveTo(TypeInfo type) {        
             super.resolveTo(type);
             this.type = type;
-            if(type instanceof IdentifierTypeInfo) {
-                this.genericArgs = ((IdentifierTypeInfo)type).genericArgs;
+            
+            if(type.hasGenericArgs()) {
+                this.genericArgs = type.getGenericArgs();
             }
         }
         
@@ -627,9 +628,8 @@ public abstract class Expr extends Stmt {
         }
 
         public List<TypeInfo> getGenericArgs() {
-            if(this.type instanceof IdentifierTypeInfo) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)this.type;
-                return idInfo.genericArgs;
+            if(this.type.hasGenericArgs()) {                
+                return this.type.getGenericArgs();
             }
             
             return Collections.emptyList();

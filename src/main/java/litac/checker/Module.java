@@ -408,6 +408,10 @@ public class Module {
         return this.typedefTypes.get(typeName);
     }
     
+    public TypeInfo getAliasedType(String typeName) {
+        return this.typedefTypes.get(typeName);
+    }
+    
     public void addGenericType(Module root, Decl decl) {
         this.genericTypes.put(decl.name, new Tuple<>(root, decl));
     }

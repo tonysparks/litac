@@ -1,5 +1,6 @@
 {
     description: "Generics Inference",
+    disabled: false,
     program: '''                
         @include("assert.h");
         @foreign func assert(e:bool):void;
@@ -11,6 +12,7 @@
         }
     '''
     tests: [
+        
         { 
             name: "Generics Type Inference",
             definitions: '''                
@@ -130,6 +132,169 @@
             code: '''     
                 assert(test(&run, 4) == 4)
             ''',                      
+        },
+        
+        { 
+            name: "Generics Type Inference from Struct of Struct Generic Type multiple",
+            definitions: '''                
+                struct B<Z> {
+                    b: Z
+                }
+                struct Test<X, Y> {
+                    t : B<X>
+                    v : B<Y>
+                }
+                func test<T, V>(a:Test<T, V>):T {
+                    return a.t.b
+                }
+            ''',                       
+            code: '''         
+                var t = Test<i32, char*> { B<i32>{4}, B<char*>{"hi"} }                                 
+                assert(test(t) == 4)
+            ''',                      
+        },
+        // With different Generic Arg names
+        
+        
+        { 
+            name: "Generics Type Inference from Struct Generic Type",
+            definitions: '''                
+                struct Test<V> {
+                    a : V
+                }
+                func test<T>(t:Test<T>):T {
+                    return t.a
+                }
+            ''',                       
+            code: '''         
+                var t = Test<i32> { 4 }                                 
+                assert(test(t) == 4)
+            ''',                      
+        },
+        
+        { 
+            name: "Generics Type Inference from Struct of Struct Generic Type",
+            definitions: '''                
+                struct B<V> {
+                    b: V
+                }
+                struct Test<V> {
+                    a : B<V>
+                }
+                func test<T>(t:Test<T>):T {
+                    return t.a.b
+                }
+            ''',                       
+            code: '''         
+                var t = Test<i32> { B<i32>{4} }                                 
+                assert(test(t) == 4)
+            ''',                      
+        },
+        
+        
+        { 
+            name: "Generics Type Inference from Union Generic Type",
+            definitions: '''                
+                union Test<V> {
+                    a : V
+                }
+                func test<T>(t:Test<T>):T {
+                    return t.a
+                }
+            ''',                       
+            code: '''         
+                var t = Test<i32> { 4 }                                 
+                assert(test(t) == 4)
+            ''',                      
+        },
+               
+        
+        { 
+            name: "Generics Type Inference from Func Ptr Generic Type",
+            definitions: '''      
+                typedef func<V>(V):V as Func
+                
+                func test<T>(fn: Func<T>, t: T):T {
+                    return fn<T>(t)
+                }
+                func run(t: i32) : i32 {
+                    return t
+                }
+            ''',                       
+            code: '''     
+                assert(test(&run, 4) == 4)
+            ''',                      
+        },
+        
+        
+        { 
+            name: "Generics Type Inference from Union Generic Type with typedef",
+            definitions: '''                
+                union Test<V> {
+                    a : V
+                }
+                
+                typedef Test as Foo
+                
+                func test<T>(t:Foo<T>):T {
+                    return t.a
+                }
+            ''',                       
+            code: '''         
+                var t = Test<i32> { 4 }                                 
+                assert(test(t) == 4)
+            ''',                      
+        },
+        
+        { 
+            name: "Generics Type Inference Partial from Union Generic Type",
+            definitions: '''                
+                union Test<T> {
+                    a : T
+                }
+                func test<T>(t:Test<T>, b: Test<i64>):T {
+                    return t.a + (b.a as (T))
+                }
+            ''',                       
+            code: '''         
+                var t = Test<i32> { 4 }                                 
+                var z = Test<i64> { 8 }
+                assert(test(t, z) == 12)
+            ''',                      
+        },
+        
+        { 
+            name: "Generics Type Inference Partial with Typedef from Union Generic Type",
+            definitions: '''                
+                union Test<T> {
+                    a : T
+                }
+                
+                typedef Test<i64> as TestLong
+                
+                func test<T>(t:Test<T>, b: TestLong):T {
+                    return t.a + (b.a as (T))
+                }
+            ''',                       
+            code: '''         
+                var t = Test<i32> { 4 }
+                var z = Test<i64> { 8 }
+                assert(test(t, z) == 12)
+            ''',                      
+        },
+        
+        { 
+            name: "Generics Type Inference no Params",
+            definitions: '''                                                
+                func test<T>(): T {
+                    var x : T = 4 as (T)
+                    return x
+                }
+            ''',                       
+            code: '''         
+                assert(test() == 4)
+            ''',  
+            error: "'T' invalid generic argument type"
         },
     ]
 }

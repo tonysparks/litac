@@ -14,6 +14,7 @@ import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.CompilationUnit;
+import litac.util.Stack;
 import litac.util.Tuple;
 
 /**
@@ -191,7 +192,7 @@ public class TypeResolver {
         
         private Module module;
         private PhaseResult result;
-        private FuncTypeInfo currentFuncInfo;
+        private Stack<GenericTypeInfo> currentGenericType;
         private Set<String> resolvedGenericTypes;
         
         // The type the generic module is defined in        
@@ -203,9 +204,23 @@ public class TypeResolver {
             this.result = result;
             this.module = module;
             this.resolvedGenericTypes = resolvedGenericTypes;
+            this.currentGenericType = new Stack<>();
         }
         
         private TypeInfo getType(String typeName) {
+            // This type could actually be a generic parameter, if so
+            // make sure not to attempt to get an actual defined type, 
+            // as the generic parameter takes precedence
+            if(!this.currentGenericType.isEmpty()) {
+                for(GenericTypeInfo genType: this.currentGenericType) {
+                    for(GenericParam p : genType.genericParams) {
+                        if(p.name.equals(typeName)) {
+                            return null;
+                        }
+                    }
+                }
+            }
+            
             TypeInfo type = this.module.getType(typeName);
             if(type == null && this.genericModule != null) {
                 return this.genericModule.getType(typeName);
@@ -214,9 +229,8 @@ public class TypeResolver {
             return type;
         }
         
-        private boolean includeGenerics() {
-            return this.currentFuncInfo == null ||
-                  !this.currentFuncInfo.hasGenerics();
+        private boolean isResolvingGenericDecl() {
+            return !this.currentGenericType.isEmpty();
         }
         
         private void enterScope() {
@@ -233,7 +247,7 @@ public class TypeResolver {
         }
         
         private TypeInfo getType(Stmt stmt, List<TypeInfo> genericArgs, List<GenericParam> genericParams, TypeInfo expectedType) {
-            if(expectedType == null && !includeGenerics()) {
+            if(expectedType == null && isResolvingGenericDecl()) {
                 // we're processing a generic function, we can only resolve so much
                 // with these unknown types
                 return null;
@@ -255,64 +269,44 @@ public class TypeResolver {
         }
         
         private void resolveType(Stmt stmt, TypeInfo type) {
-            resolveType(stmt, type, null, null);
+            resolveType(stmt, type, null);
         }
-        
+                        
         private void resolveType(Stmt stmt, TypeInfo type, TypeInfo resolvedType) {
-            resolveType(stmt, type, resolvedType, null);
-        }
-        
-        private void resolveType(Stmt stmt, TypeInfo type, Set<TypeInfo> visited) {
-            resolveType(stmt, type, null, visited);
-        }
-        
-        private void resolveType(Stmt stmt, TypeInfo type, TypeInfo resolvedType, Set<TypeInfo> visited) {
             if(type == null) {
                 return;
-            }
-            
-            if(visited != null) {                                   
-                if(visited.contains(type)) {
-                    return;
-                }
-                
-                visited.add(type);
-            }
-            
+            }            
             
             if(!type.isResolved()) {  
                 if(resolvedType == null) {
                     resolvedType = getType(type.getName());
                     if(resolvedType == null) {
-                        if(!includeGenerics()) {
-                            //resolvedType = type;
-                            // todo
+                        if(isResolvingGenericDecl()) {
                             return;
                         }
-                        else {
-                            this.result.addError(stmt, "'%s' is an unknown type", type.getName());
-                            return;
-                        }
+                        
+                        this.result.addError(stmt, "'%s' is an unknown type", type.getName());
+                        return;                        
                     }
                 }
                 else if(!resolvedType.isResolved()) {
-                    resolveType(stmt, resolvedType, visited);
+                    resolveType(stmt, resolvedType);
                 }
                 
                 IdentifierTypeInfo idType = type.as();
-                idType.resolve(this.module, resolvedType, includeGenerics());
+                idType.resolve(this.module, resolvedType, !isResolvingGenericDecl());
             }
             else if(type.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = type.as();
-                resolveType(stmt, ptrInfo.ptrOf, resolvedType, visited);
+                resolveType(stmt, ptrInfo.ptrOf, resolvedType);
             }
             else if(type.isKind(TypeKind.Const)) {
                 ConstTypeInfo constInfo = type.as();
-                resolveType(stmt, constInfo.constOf, resolvedType, visited);
+                resolveType(stmt, constInfo.constOf, resolvedType);
             }
             else if(type.isKind(TypeKind.Array)) {
                 ArrayTypeInfo arrayInfo = type.as();
-                resolveType(stmt, arrayInfo.arrayOf, resolvedType, visited);
+                resolveType(stmt, arrayInfo.arrayOf, resolvedType);
                 
                 if(arrayInfo.lengthExpr != null) {                    
                     arrayInfo.lengthExpr.visit(this);
@@ -332,37 +326,11 @@ public class TypeResolver {
                     return;
                 }
                 
-                if(visited == null) {
-                    visited = new HashSet<>();                    
-                }
-                
-                visited.add(funcInfo);
-                
-                resolveType(stmt, funcInfo.returnType, visited);
+                resolveType(stmt, funcInfo.returnType);
                 for(TypeInfo p : funcInfo.params) {
-                    resolveType(stmt, p, visited);
+                    resolveType(stmt, p);
                 }
             }
-//            else if(TypeInfo.isAggregate(type)) {
-//                AggregateTypeInfo aggInfo = type.as();
-//                if(aggInfo.hasGenerics()) {
-//                    return;
-//                }
-//                if(visited == null) {
-//                    visited = new HashSet<>();                    
-//                }
-//                
-//                visited.add(aggInfo);
-//                
-//                System.out.println(aggInfo.name);
-//                if(aggInfo.name.equals("Test<i32,char*>")) {
-//                    System.out.println(aggInfo.name);
-//                }
-//                
-//                for(FieldInfo field : aggInfo.fieldInfos) {
-//                    resolveType(stmt, field.type, null, visited);
-//                }
-//            }
         }
         
         private Integer asInt(Expr expr) {
@@ -695,7 +663,9 @@ public class TypeResolver {
                 FuncTypeInfo funcInfo = d.type.as();
                 // must resolve types, even for generic functions
                 // otherwise the Generic.replacer will not work
-                this.currentFuncInfo = funcInfo;
+                if(funcInfo.hasGenerics()) {
+                    this.currentGenericType.add(funcInfo);
+                }
                 
                 resolveType(d, d.returnType);
                 for(ParameterDecl p : d.params.params) {
@@ -720,7 +690,9 @@ public class TypeResolver {
                 
                 d.bodyStmt.visit(this);
                 
-                this.currentFuncInfo = null;
+                if(funcInfo.hasGenerics()) {
+                    this.currentGenericType.pop();
+                }
             }
             exitScope();
         }
@@ -730,13 +702,17 @@ public class TypeResolver {
         public void visit(StructDecl d) {
             StructTypeInfo structInfo = d.type.as();
             if(structInfo.hasGenerics()) {
-                return;
+                this.currentGenericType.add(structInfo);
             }
             
             resolveType(d, d.type);
             
             for(FieldStmt s : d.fields) {
                 s.visit(this);
+            }
+            
+            if(structInfo.hasGenerics()) {
+                this.currentGenericType.pop();
             }
         }
         
@@ -763,7 +739,7 @@ public class TypeResolver {
         public void visit(UnionDecl d) {
             UnionTypeInfo unionInfo = d.type.as();
             if(unionInfo.hasGenerics()) {
-                return;
+                this.currentGenericType.add(unionInfo);
             }
             
             resolveType(d, d.type);
@@ -771,10 +747,20 @@ public class TypeResolver {
             for(FieldStmt s : d.fields) {
                 s.visit(this);
             }
+            
+            if(unionInfo.hasGenerics()) {
+                this.currentGenericType.pop();
+            }
         }
         
         @Override
         public void visit(TypedefDecl d) {
+            if(d.type.hasGenericArgs()) {                
+                for(TypeInfo type: d.type.getGenericArgs()) {
+                    resolveType(d, type);        
+                }
+            }
+            
             resolveType(d, d.type);
         }
 
@@ -880,7 +866,7 @@ public class TypeResolver {
                 }
             
                 IdentifierTypeInfo idInfo = expr.type.as();
-                idInfo.resolve(this.module, type, includeGenerics());
+                idInfo.resolve(this.module, type, !isResolvingGenericDecl());
             }
         }
 
@@ -891,6 +877,16 @@ public class TypeResolver {
             
             if(!paramType.getKind().equals(argumentType.getKind())) {
                 return null;
+            }
+            
+            int index = 0;
+            if(paramType.hasGenericArgs()) {
+                List<TypeInfo> genericArgs = paramType.getGenericArgs();
+                for(;index < genericArgs.size(); index++) {
+                    if(genericArgs.get(index).name.equals(genericName)) {
+                        break;
+                    }
+                }
             }
             
             switch(paramType.getKind()) {
@@ -906,6 +902,11 @@ public class TypeResolver {
                 }
                 case FuncPtr: {
                     FuncPtrTypeInfo funcInfo = paramType.as();
+                    if(!funcInfo.hasGenerics() || funcInfo.genericParams.size() <= index) {
+                        break;
+                    }
+                    
+                    genericName = funcInfo.genericParams.get(index).name;
                     FuncPtrTypeInfo argumentFuncInfo = argumentType.as();
                     
                     TypeInfo retType = inferredType(genericName, funcInfo.returnType, argumentFuncInfo.returnType);
@@ -930,23 +931,17 @@ public class TypeResolver {
                     PtrTypeInfo argumentPtrInfo = argumentType.as();
                     return inferredType(genericName, ptrInfo.ptrOf, argumentPtrInfo.ptrOf);
                 }
+                case Union:
                 case Struct: {
-                    // GenericArg is V; but struct field is defined as T
-                    StructTypeInfo structInfo = paramType.as();
-                    StructTypeInfo argumentStructInfo = argumentType.as();
-                    for(FieldInfo field : structInfo.fieldInfos) {
-                        TypeInfo fieldType = inferredType(genericName, field.type, argumentStructInfo.getField(field.name).type);
-                        if(fieldType != null) {
-                            return fieldType;
-                        }
+                    AggregateTypeInfo aggInfo = paramType.as();
+                    if(!aggInfo.hasGenerics() || aggInfo.genericParams.size() <= index) {
+                        break;
                     }
-                    break;
-                }
-                case Union: {
-                    UnionTypeInfo unionInfo = paramType.as();
-                    UnionTypeInfo argumentUnionInfo = argumentType.as();
-                    for(FieldInfo field : unionInfo.fieldInfos) {
-                        TypeInfo fieldType = inferredType(genericName, field.type, argumentUnionInfo.getField(field.name).type);
+                    
+                    genericName = aggInfo.genericParams.get(index).name;                    
+                    AggregateTypeInfo argumentAggInfo = argumentType.as();
+                    for(FieldInfo field : aggInfo.fieldInfos) {
+                        TypeInfo fieldType = inferredType(genericName, field.type, argumentAggInfo.getField(field.name).type);
                         if(fieldType != null) {
                             return fieldType;
                         }
@@ -1058,7 +1053,7 @@ public class TypeResolver {
                 Symbol sym = peekScope().getSymbol(expr.variable); 
                 
                 // Might be a generic type not defined
-                if(sym == null && !includeGenerics()) {                    
+                if(sym == null && isResolvingGenericDecl()) {                    
                     return;
                 }
                 
@@ -1068,7 +1063,7 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, sym.type, includeGenerics());
+                type.resolve(this.module, sym.type, !isResolvingGenericDecl());
                 
                 expr.sym = sym;
                 expr.resolveTo(expr.type); // TODO: remove type from IdExpr
@@ -1084,7 +1079,7 @@ public class TypeResolver {
                     Symbol sym = peekScope().getSymbol(expr.variable); 
                     
                     if(sym == null || !sym.type.isKind(TypeKind.FuncPtr)) {
-                        if(sym == null && !includeGenerics()) {                    
+                        if(sym == null && isResolvingGenericDecl()) {                    
                             return;
                         }
                         
@@ -1096,7 +1091,7 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, resolvedType, includeGenerics());
+                type.resolve(this.module, resolvedType, !isResolvingGenericDecl());
 
                 TypeInfo newType = type.getResolvedType();
                 if(newType.sym != null) {
@@ -1112,12 +1107,12 @@ public class TypeResolver {
                 Symbol sym = peekScope().getSymbol(expr.variable); 
                 
                 // Might be a generic type not defined
-                if(sym == null && !includeGenerics()) {                    
+                if(sym == null && isResolvingGenericDecl()) {                    
                     return;
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, sym.type, includeGenerics());
+                type.resolve(this.module, sym.type, !isResolvingGenericDecl());
                 
                 TypeInfo newType = type.getResolvedType();
                 if(newType.sym != null) {
@@ -1243,7 +1238,7 @@ public class TypeResolver {
                 case Identifier: {
                     // if we are parsing a Generic structure, ignore that we
                     // can't fully resolve this type (will get resolved when defined with concrete type)
-                    if(!includeGenerics()) {
+                    if(isResolvingGenericDecl()) {
                         expr.resolveTo(type);
                         break;
                     }

@@ -3,7 +3,68 @@
 	"name": "LitaC",
 	"patterns": [		
 		{
-			"include": "#keywords"
+			"name": "keyword.control.litac",
+			"match": "\\b(var|const|func|struct|union|enum|module|import|if|else|while|for|break|continue|switch|case|default|public|null|true|false|return|void|using|as|sizeof|typeof|defer|typedef)\\b"
+		},
+		{
+			"name": "keyword.other.litac",
+			"match": "\\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|i128|u128|f32|f64|char)\\b"
+		},
+		{
+			"name": "meta.tag.litac",
+			"match": "\\b(@[A-Za-z0-9_]+)"
+		},
+		
+		{
+			"name": "comment.line.double-dash.litac",
+			"match": "(//).*$\n?"
+		},
+		{
+			"name": "comment.block.litac",
+			"begin": "/\\*",
+			"end": "\\*/"
+		},
+		
+		{
+			"match": "%=|\\+=|-=|\\*=|(?<!\\()/=",
+			"name": "keyword.other.assignment.compound.litac"
+		},
+		{
+			"match": "&=|\\^=|<<=|>>=|\\|=",
+			"name": "keyword.other.assignment.compound.bitwise.litac"
+		},
+		{
+			"match": "<<|>>",
+			"name": "keyword.other.bitwise.shift.litac"
+		},
+		{
+			"match": "!=|<=|>=|==|<|>",
+			"name": "keyword.other.comparison.litac"
+		},
+		{
+			"match": "&&|!|\\|\\|",
+			"name": "keyword.other.logical.litac"
+		},
+		{
+			"match": "&|\\||\\^|~",
+			"name": "keyword.other.litac"
+		},
+		{
+			"match": "=",
+			"name": "constant.other.litac"
+		},
+		{
+			"match": "%|\\*|/|-|\\+",
+			"name": "keyword.other.litac"
+		},
+		
+		{
+			"match": "\\(|\\)|\\{|\\}|\\,|\\.|\\*|;",
+			"name": "keyword.other.litac"
+		},
+		{
+			"match": "(?<!\\w)(?=\\d|\\.\\d)",
+			"name": "constant.numeric.litac"
 		},
 		{
 			"include": "#strings"
@@ -12,19 +73,7 @@
 			"include": "#multistrings"
 		}
 	],
-	"repository": {
-		"keywords": {
-			"patterns": [
-				{
-					"name": "keyword.control.litac",
-					"match": "\\b(var|const|func|struct|union|enum|module|import|if|else|while|for|break|continue|public|null|true|false|return|void|using|as|sizeof|typeof|defer|typedef)\\b"
-				},
-				{
-					"name": "keyword.other.litac",
-					"match": "\\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|i128|u128|f32|f64|char)\\b"
-				},
-			]
-		},
+	"repository": {		
 		"strings": {
 			"name": "string.quoted.double.litac",
 			"begin": "\"",
