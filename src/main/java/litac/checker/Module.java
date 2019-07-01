@@ -54,6 +54,8 @@ public class Module {
     
     private Map<String, Tuple<Module,Decl>> genericTypes;
     
+    private Map<String, List<FuncTypeInfo>> funcOverloads;
+    
     private PhaseResult result;
     private List<Symbol> symbols;
     
@@ -82,6 +84,8 @@ public class Module {
         
         this.importedFuncTypes = new HashMap<>();
         this.importedAggregateTypes = new HashMap<>();
+        
+        this.funcOverloads = new HashMap<>();
         
         this.genericTypes = genericTypes;
         this.notes = new ArrayList<>();
@@ -120,9 +124,9 @@ public class Module {
         return imports.values();
     }
     
-    public Collection<FuncTypeInfo> getDeclaredFuncs() {
-        return funcTypes.values();
-    }
+//    public Collection<FuncTypeInfo> getDeclaredFuncs() {
+//        return funcTypes.values();
+//    }
     
     public Collection<TypeInfo> getDeclaredTypes() {
         Collection<TypeInfo> result = new ArrayList<>(); 
@@ -175,8 +179,7 @@ public class Module {
             module.currentScope().getSymbols()
                                  .stream()
                                  .filter(s -> s.decl.attributes.isPublic &&
-                                              s.declared == module /*&&
-                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR)*/)
+                                              s.declared == module)
                                  .forEach(s -> currentScope().addSymbol(alias, s));
         }
         else {
@@ -210,8 +213,7 @@ public class Module {
             module.currentScope().getSymbols()
                                  .stream()
                                  .filter(s -> s.decl.attributes.isPublic &&
-                                              s.declared == module /*&&
-                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR)*/)
+                                              s.declared == module)
                                  .forEach(s -> currentScope().addSymbol(s));
             
             for(Entry<String, TypeInfo> typeEntry: module.foreignTypes.entrySet()) {
@@ -276,14 +278,22 @@ public class Module {
     }
     
     public Symbol declareFunc(FuncDecl stmt, String funcName, FuncTypeInfo type) {
-        if(this.funcTypes.containsKey(funcName)) {
+        String funcSig = type.getSignature();
+        
+        if(this.funcTypes.containsKey(funcSig)) {
             this.result.addError(stmt, "%s function is already defined", funcName);
-            return this.funcTypes.get(funcName).sym;
+            return this.funcTypes.get(funcSig).sym;
         }
         
-        this.funcTypes.put(funcName, type);
+        this.funcTypes.put(funcSig, type);
         
-        return addPublicDecl(stmt, funcName, type);
+        if(!this.funcOverloads.containsKey(funcName)) {
+            this.funcOverloads.put(funcName, new ArrayList<>());
+        }
+        
+        this.funcOverloads.get(funcName).add(type);
+        
+        return addPublicDecl(stmt, funcSig, type);
     }
     
     public Symbol declareStruct(StructDecl stmt, String structName, StructTypeInfo type) {

@@ -801,6 +801,43 @@ public abstract class TypeInfo {
             
             return String.format("func %s%s(%s) : %s", this.name, genParams, params, this.returnType);
         }
+        
+        /**
+         * @return the function signature that uniquely identifies this
+         * function
+         */
+        public String getSignature() {
+            StringBuilder genParams = new StringBuilder();
+            
+            boolean isFirst = true;
+            if(!this.genericParams.isEmpty()) {
+                genParams.append("<");
+                for(GenericParam p: this.genericParams) {
+                    if(!isFirst) genParams.append(", ");
+                    genParams.append(p.name);
+                    isFirst = false;
+                }
+                genParams.append(">");
+            }
+            
+            
+            isFirst = true;
+            StringBuilder params = new StringBuilder();
+            for(ParameterDecl p : this.parameterDecls) {
+                if(!isFirst) params.append(", ");
+                params.append(p);
+                isFirst = false;
+            }
+            
+            if(this.isVararg) {
+                if(!isFirst) {
+                    params.append(",");
+                }
+                params.append("...");
+            }
+            
+            return String.format("%s/%s(%s):%s", this.name, genParams, params, this.returnType);
+        }
     }
     
     public static class FuncPtrTypeInfo extends GenericTypeInfo {
