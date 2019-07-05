@@ -1,4 +1,3 @@
-module io;
 import "mem";
 
 @include("<stdio.h>");

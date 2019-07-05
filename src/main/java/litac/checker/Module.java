@@ -364,6 +364,23 @@ public class Module {
         return addPublicDecl(stmt, alias, aliasedType);
     }
     
+    public boolean addIncomplete(Decl decl) {
+        if(!decl.attributes.isPublic) {
+            return false;
+        }
+        
+        Symbol sym = this.currentScope.getSymbol(decl.name); 
+        if(sym != null) {
+            this.result.addError(decl, "%s is already defined", decl.name);
+            return false;
+        }
+        
+        Symbol newSym = this.currentScope.addSymbol(this, decl, decl.name, decl.type, Symbol.IS_INCOMPLETE);
+        getSymbols().add(newSym);
+        
+        return true;
+    }
+    
     public FuncTypeInfo getFuncType(String funcName) {
         if(funcName.contains("::")) {
             return this.importedFuncTypes.get(funcName);

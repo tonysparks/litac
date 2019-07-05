@@ -83,14 +83,7 @@ public class Parser {
         List<NoteStmt> moduleNotes = new ArrayList<>();
         List<Decl> declarations = new ArrayList<>();
         
-        String moduleName = ""; // default to global module
-        if(match(MODULE))  {
-            moduleName = moduleDeclaration();
-        }
-        else {
-            moduleName = Names.getModuleName(this.scanner.getSourceFile());
-        }
-        
+        String moduleName = Names.getModuleName(this.scanner.getSourceFile());
         while(!isAtEnd()) {
             if(match(IMPORT)) {
                 imports.add(importDeclaration());
@@ -129,14 +122,7 @@ public class Parser {
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      *                      Declaration parsing
      *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-    
-    private String moduleDeclaration() {
-        source();
         
-        Token moduleName = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-        return moduleName.getText();
-    }
-    
     private ImportStmt importDeclaration() {
         source();
         

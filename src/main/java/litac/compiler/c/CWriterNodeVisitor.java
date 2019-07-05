@@ -454,7 +454,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     }
     
     private String cName(Symbol sym) {
-        String declName = sym.isType() ? Names.escapeName(sym.type) : sym.decl.name;
+        String declName = sym.isType() ? Names.escapeName(sym.getType()) : sym.decl.name;
         
         if(sym.isLocal()) {
             return prefix(declName);

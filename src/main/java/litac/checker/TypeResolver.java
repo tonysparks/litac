@@ -30,6 +30,8 @@ public class TypeResolver {
     private Map<String, Tuple<Module,Decl>> genericTypes;
     private Set<String> resolvedGenericTypes;
     private Map<String, Module> resolvedModules;
+    private List<Decl> pendingGlobals;
+    
     private Module root;
     
     public TypeResolver(PhaseResult result, CompilationUnit unit) {
@@ -39,6 +41,7 @@ public class TypeResolver {
         this.genericTypes = new HashMap<>();
         this.resolvedGenericTypes = new HashSet<>();
         this.resolvedModules = new HashMap<>();
+        this.pendingGlobals = new ArrayList<>();
     }
 
     public Program resolveTypes() {
@@ -54,45 +57,78 @@ public class TypeResolver {
         return new Program(module, resolvedModules, module.getSymbols());
     }
     
-    private Module resolveModule(ModuleStmt moduleStmt) {
+    private Module resolveModule(ModuleStmt moduleStmt) {        
+        // First phase, build up an inventory of all declarations
+        DeclNodeVisitor declVisitor = new DeclNodeVisitor(moduleStmt);
+        declVisitor.visit(moduleStmt);
+        
+        
+        Set<String> resolvedModules = new HashSet<>();
+        Module module = declVisitor.module;
+        
+        // resolve globals
+        resolveGlobals(resolvedModules);
+        
+        // Second phase, resolve all types, visiting function/type bodies
+        TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result,
+                                                                      unit,
+                                                                      resolvedGenericTypes,
+                                                                      resolvedModules,
+                                                                      module);
+        
+        moduleStmt.visit(checker);
+        
+        return module;
+    }
+    
+    private Module resolveDeclModule(ModuleStmt moduleStmt) {
         String moduleName = moduleStmt.name;
         if(resolvedModules.containsKey(moduleName)) {
             return resolvedModules.get(moduleName);
         }
         
         // First build up an inventory of all declarations
-        DeclNodeVisitor declVisitor = new DeclNodeVisitor();
+        DeclNodeVisitor declVisitor = new DeclNodeVisitor(moduleStmt);
         declVisitor.visit(moduleStmt);
-        
-        Module module = declVisitor.module;
-        resolvedModules.put(moduleName, module);
-        
-        // Now resolve the types      
-        TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result, resolvedGenericTypes, module);
-        moduleStmt.visit(checker);
-        
-        return module;
+                
+        return declVisitor.module;
     }
     
+    private void resolveGlobals(Set<String> resolvedModules) {
+        for(Decl d : pendingGlobals) {
+            TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result,
+                    unit,
+                    resolvedGenericTypes,
+                    resolvedModules,
+                    d.sym.declared);
+            
+            d.visit(checker);
+        }
+    }
    
     private class DeclNodeVisitor extends AbstractNodeVisitor {
         Module module;
         
-        @Override
-        public void visit(ModuleStmt stmt) {
+        public DeclNodeVisitor(ModuleStmt stmt) {
             String moduleName = stmt.name;
-                        
+            
             this.module = new Module(root, genericTypes, result, stmt, moduleName);
+        }
+        
+        @Override
+        public void visit(ModuleStmt stmt) {            
             if(root == null) {
                 root = this.module;
             }
             
-            for(ImportStmt i : stmt.imports) {
-                i.visit(this);
-            }
-            
             for(Decl d : stmt.declarations) {
                 d.visit(this);
+            }
+                        
+            resolvedModules.put(module.name(), module);
+            
+            for(ImportStmt i : stmt.imports) {
+                i.visit(this);
             }
         }
         
@@ -107,7 +143,7 @@ public class TypeResolver {
             
             ModuleStmt moduleStmt = unit.getImports().get(stmt.moduleName);
             
-            Module module = resolveModule(moduleStmt);
+            Module module = resolveDeclModule(moduleStmt);
             this.module.importModule(stmt, module, stmt.alias);
         }
         
@@ -185,6 +221,20 @@ public class TypeResolver {
             this.module.declareTypedef(d, d.alias, d.type);
         }
 
+        @Override
+        public void visit(ConstDecl d) {            
+            if(this.module.addIncomplete(d)) {
+                pendingGlobals.add(d);
+            }
+        }
+        
+        @Override
+        public void visit(VarDecl d) {
+            if(this.module.addIncomplete(d)) {
+                pendingGlobals.add(d);
+            }
+        }
+        
     }
     
     
@@ -192,19 +242,25 @@ public class TypeResolver {
         
         private Module module;
         private PhaseResult result;
+        private CompilationUnit unit;
         private Stack<GenericTypeInfo> currentGenericType;
         private Set<String> resolvedGenericTypes;
+        private Set<String> resolvedModules;
         
         // The type the generic module is defined in        
         private Module genericModule;
         
         public TypeResolverNodeVisitor(PhaseResult result, 
+                                       CompilationUnit unit,
                                        Set<String> resolvedGenericTypes,
+                                       Set<String> resolvedModules,
                                        Module module) {
             this.result = result;
+            this.unit = unit;
             this.module = module;
             this.resolvedGenericTypes = resolvedGenericTypes;
             this.currentGenericType = new Stack<>();
+            this.resolvedModules = resolvedModules;
         }
         
         private TypeInfo getType(String typeName) {
@@ -275,17 +331,30 @@ public class TypeResolver {
         private void resolveType(Stmt stmt, TypeInfo type, TypeInfo resolvedType) {
             if(type == null) {
                 return;
-            }            
+            }          
             
-            if(!type.isResolved()) {  
+            if(type.hasGenericArgs() && !type.hasGenerics()) {
+                List<TypeInfo> args = type.getGenericArgs();
+                for(TypeInfo t : args) {
+                    resolveType(stmt, t);
+                }
+            }
+            
+            if(!type.isResolved()) {
                 if(resolvedType == null) {
                     resolvedType = getType(type.getName());
-                    if(resolvedType == null) {
+                    if(resolvedType == null) {                        
                         if(isResolvingGenericDecl()) {
+                            if(this.currentGenericType.peek().isGenericParam(type.getName())) {
+                                IdentifierTypeInfo idType = type.as();
+                                idType.makeGenericParam();
+                            }
                             return;
                         }
                         
-                        this.result.addError(stmt, "'%s' is an unknown type", type.getName());
+                        if(!type.isGenericParam()) {
+                            this.result.addError(stmt, "'%s' is an unknown type", type.getName());
+                        }
                         return;                        
                     }
                 }
@@ -416,8 +485,21 @@ public class TypeResolver {
         
 
         @Override
-        public void visit(ImportStmt stmt) {
-            // TODO
+        public void visit(ImportStmt stmt) {            
+            Module importModule = module.getModule(stmt.alias != null ? stmt.alias : stmt.moduleName);
+            if(this.resolvedModules.contains(importModule.name())) {
+                return;
+            }
+            
+            this.resolvedModules.add(importModule.name());
+            
+            TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result, 
+                                                                          unit,
+                                                                          resolvedGenericTypes, 
+                                                                          resolvedModules,
+                                                                          importModule);
+            
+            importModule.getModuleStmt().visit(checker);
         }
 
         @Override
@@ -581,7 +663,13 @@ public class TypeResolver {
             
             resolveType(d, d.type);
             
-            peekScope().addSymbol(this.module, d, d.name, d.type);            
+            if(d.attributes.isGlobal && d.attributes.isPublic) {
+                Symbol sym = peekScope().getSymbol(d.name);
+                sym.markComplete();
+            }
+            else {
+                peekScope().addSymbol(this.module, d, d.name, d.type);
+            }
         }
         
   
@@ -624,7 +712,13 @@ public class TypeResolver {
             
             resolveType(d, d.type);
             
-            peekScope().addSymbol(this.module, d, d.name, d.type, true);
+            if(d.attributes.isGlobal && d.attributes.isPublic) {
+                Symbol sym = peekScope().getSymbol(d.name);
+                sym.markComplete();
+            }
+            else {
+                peekScope().addSymbol(this.module, d, d.name, d.type, true);
+            }
         }
 
         @Override
@@ -1063,7 +1157,7 @@ public class TypeResolver {
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, sym.type, !isResolvingGenericDecl());
+                type.resolve(this.module, sym.getType(), !isResolvingGenericDecl());
                 
                 expr.sym = sym;
                 expr.resolveTo(expr.type); // TODO: remove type from IdExpr
@@ -1078,7 +1172,7 @@ public class TypeResolver {
                 if(resolvedType == null) {
                     Symbol sym = peekScope().getSymbol(expr.variable); 
                     
-                    if(sym == null || !sym.type.isKind(TypeKind.FuncPtr)) {
+                    if(sym == null || !sym.getType().isKind(TypeKind.FuncPtr)) {
                         if(sym == null && isResolvingGenericDecl()) {                    
                             return;
                         }
@@ -1087,7 +1181,7 @@ public class TypeResolver {
                         return;                        
                     }
                     
-                    resolvedType = sym.type;
+                    resolvedType = sym.getType();
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
@@ -1104,15 +1198,26 @@ public class TypeResolver {
         @Override
         public void visit(TypeIdentifierExpr expr) {
             if(!expr.type.isResolved()) {
-                Symbol sym = peekScope().getSymbol(expr.variable); 
+                Symbol sym = peekScope().getSymbol(expr.variable);
+                
                 
                 // Might be a generic type not defined
-                if(sym == null && isResolvingGenericDecl()) {                    
-                    return;
+                if(sym == null) {
+                    if(isResolvingGenericDecl()) {
+                        return;
+                    }
+                    
+                    TypeInfo type = getType(expr.type.getName());
+                    if(type == null) {
+                        this.result.addError(expr, "unknown type '%s'", expr.variable);
+                        return;   
+                    }
+                    
+                    sym = type.sym;
                 }
                 
                 IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, sym.type, !isResolvingGenericDecl());
+                type.resolve(this.module, sym.getType(), !isResolvingGenericDecl());
                 
                 TypeInfo newType = type.getResolvedType();
                 if(newType.sym != null) {
@@ -1127,6 +1232,8 @@ public class TypeResolver {
                 this.result.addError(expr, "unknown type");
                 return false;
             }
+            
+            resolveType(expr, type);
             
             switch(type.getKind()) {
                 case Ptr: {
@@ -1257,7 +1364,7 @@ public class TypeResolver {
             //expr.field.visit(this);
             
             if(!expr.field.type.isResolved()) {
-                TypeInfo type = expr.object.getResolvedType();
+                TypeInfo type = expr.object.getResolvedType();                
                 resolveAggregate(type, expr.field.type, expr, null);
             }
             

@@ -1,4 +1,3 @@
-module map;
 import "mem" as mem;
 import "io";
 

@@ -140,6 +140,7 @@ public class Generics {
                     funcPtr.params.set(i, createGenericTypeInfo(module, p, genericParams, genericArgs));
                 }
                 funcPtr.genericParams.clear();
+                type.clearGenericArgs();
                 return type;
             }
             case Identifier: {
@@ -168,13 +169,17 @@ public class Generics {
                         GenericParam p = genericParams.get(i);
                         if(p.name.equals(type.getName())) {
                             TypeInfo genericArg = genericArgs.get(i);
+                            if(genericArg.isGenericParam()) {
+                                continue;
+                            }
+                            
                             // Don't get caught in a recursive loop, ensure the target type is resolved
                             // (it could be unresolved if it's a Generic type itself)
-                            if(!genericArg.isResolved() && !genericArg.hasGenericArgs()) {
-                                // TODO: Get the stmt where this was defined!!
-                                module.getPhaseResult().addError(null, "'%s' is an unknown type", genericArg.getName());
-                                return type;
-                            }
+//                            if(!genericArg.isResolved() && !genericArg.isGenericParam()) {
+//                                // TODO: Get the stmt where this was defined!!
+//                                module.getPhaseResult().addError(null, "'%s' is an unknown type", genericArg.getName());
+//                                return type;
+//                            }
                             
                             TypeInfo genType = createGenericTypeInfo(module, genericArg, genericParams, genericArgs);
                             idTypeInfo.resolve(module, genType, true);

@@ -7,7 +7,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
+import litac.Errors;
 import litac.checker.*;
+import litac.checker.PhaseResult.PhaseError;
 import litac.compiler.BackendOptions;
 import litac.compiler.Buf;
 import litac.compiler.CompilationUnit;
@@ -67,6 +69,9 @@ public class CTranspiler {
         // if there are any type checker errors, we want to fail at this point,
         // this allows me to debug the output C
         if(checkerResult.hasErrors()) {
+            for(PhaseError error : checkerResult.getErrors()) {
+                Errors.typeCheckError(error.stmt, error.message);
+            } 
             System.exit(23);
         }
         

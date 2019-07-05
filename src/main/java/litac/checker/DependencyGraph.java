@@ -36,6 +36,7 @@ public class DependencyGraph {
         }
     }
     
+    private List<Decl> sortedGlobals;
     private List<Decl> sortedDependencies;
     private List<Decl> sortedAggregates;
     
@@ -45,10 +46,10 @@ public class DependencyGraph {
 
     public DependencyGraph(PhaseResult result) {
         this.result = result;
+        this.sortedGlobals = new ArrayList<>();
         this.sortedDependencies = new ArrayList<>();
         this.sortedAggregates = new ArrayList<>();
-        this.states = //new IdentityHashMap<>();
-                new LinkedHashMap<>();
+        this.states = new LinkedHashMap<>();
     }
 
     private void buildDependsOn(DeclState state) {
@@ -79,6 +80,8 @@ public class DependencyGraph {
             switch(d.kind) {
                 case CONST:
                 case VAR:
+                    this.sortedGlobals.add(d);
+                    break;
                 case FUNC:
                 case TYPEDEF:
                     this.sortedDependencies.add(d);
@@ -138,8 +141,11 @@ public class DependencyGraph {
             }
         }
         
-        this.sortedDependencies.addAll(0, this.sortedAggregates);
+        List<Decl> sorted = new ArrayList<>();
+        sorted.addAll(this.sortedAggregates);
+        sorted.addAll(this.sortedGlobals);
+        sorted.addAll(this.sortedDependencies);
         
-        return this.sortedDependencies;
+        return sorted;
     }
 }

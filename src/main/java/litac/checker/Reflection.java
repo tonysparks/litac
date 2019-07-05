@@ -33,7 +33,7 @@ public class Reflection {
         List<Symbol> symbols = program.getSymbols();
         if(includeTypeInfos) {
             numOfTypeInfos = symbols.stream()
-                                    .mapToLong(s -> s.type.getTypeId())
+                                    .mapToLong(s -> s.getType().getTypeId())
                                     .max()
                                     .orElse(0);
             
@@ -57,7 +57,7 @@ public class Reflection {
             ConstDecl typeInfoArray = (ConstDecl)sym.decl;
             typeInfoArray.attributes.notes.removeIf(n -> n.note.name.equals("foreign"));
             
-            IdentifierExpr idExpr = new IdentifierExpr("typeTable", typeTable.sym.type);
+            IdentifierExpr idExpr = new IdentifierExpr("typeTable", typeTable.sym.getType());
             idExpr.sym = typeTable.sym;
             typeInfoArray.expr = new CastExpr(new PtrTypeInfo(new PtrTypeInfo(typeInfo)), idExpr);
             
@@ -85,7 +85,7 @@ public class Reflection {
                 case UNION:
                 //case TYPEDEF:
                 case ENUM:
-                    exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(s.type.getTypeId())), toExpr(s.decl, main)));
+                    exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(s.getType().getTypeId())), toExpr(s.decl, main)));
                     break;
                 default:
             }            

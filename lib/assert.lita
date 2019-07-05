@@ -1,4 +1,2 @@
-module assert;
-
 @include("assert.h");
 @foreign public func assert(e:bool):void;

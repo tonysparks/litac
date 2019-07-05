@@ -1,5 +1,3 @@
-module array;
-
 import "mem" as mem;
 import "assert"
 

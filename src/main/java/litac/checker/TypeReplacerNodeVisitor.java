@@ -375,8 +375,10 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
         }
         else {
             IdentifierTypeInfo idInfo = (IdentifierTypeInfo)expr.type;
-            if(idInfo.resolvedType != null) {
+            if(idInfo.resolvedType != null) {                
                 idInfo.resolvedType = replaceType(idInfo.resolvedType);
+                idInfo.clearGenericArgs();
+                
                 expr.resolveTo(idInfo);
             }
             else {

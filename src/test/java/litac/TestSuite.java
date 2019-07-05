@@ -26,12 +26,18 @@ import litac.compiler.BackendOptions;
  */
 public class TestSuite {
 
+    public static class TestModule {
+        public String name;
+        public String program;
+    }
+    
     public static class TestCase {
         public String name;
         public String code;
         public String definitions = "";
         public String error;
         public boolean disabled;
+        public TestModule[] modules;
     }
     
     public String description;
@@ -60,6 +66,14 @@ public class TestSuite {
             
             if(test.disabled) {
                 System.out.println("Skipping (is disabled)");
+            }
+            
+            if(test.modules != null) {
+                for(TestModule tm : test.modules) {
+                    File tmp = new File(outputDir, tm.name.replace(" ", "_") + ".lita");            
+                    Files.write(tmp.toPath(), tm.program.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    tmp.deleteOnExit();
+                }
             }
             
             String fullProgram = suite.program

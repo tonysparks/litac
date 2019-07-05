@@ -1,5 +1,3 @@
-module type;
-
 @foreign public const typeInfos: TypeInfo**;
 @foreign public const numOfTypeInfos : i64;
 

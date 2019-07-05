@@ -312,6 +312,10 @@ public abstract class TypeInfo {
         return false;
     }
     
+    public boolean isGenericParam() {
+        return false;
+    }
+    
     public boolean hasGenerics() {
         return false;
     }
@@ -322,6 +326,9 @@ public abstract class TypeInfo {
     
     public List<TypeInfo> getGenericArgs() {
         return Collections.emptyList();
+    }
+    
+    public void clearGenericArgs() {        
     }
     
     public boolean isKind(TypeKind kind) {
@@ -453,6 +460,13 @@ public abstract class TypeInfo {
             }
             
             return name;
+        }
+        
+        /**
+         * @return true if the supplied name is a generic parameter
+         */
+        public boolean isGenericParam(String name) {
+            return this.genericParams.stream().anyMatch(p -> p.name.equals(name));
         }
         
         @Override
@@ -1334,11 +1348,14 @@ public abstract class TypeInfo {
         public TypeInfo resolvedType;
         public String identifier;
         
+        private boolean isGenericParam;
+        
         public IdentifierTypeInfo(String identifier, List<TypeInfo> genericArgs) {
             super(TypeKind.Identifier, identifier);
             this.genericArgs = genericArgs;
             this.identifier = identifier;
             this.resolvedType = null;
+            this.isGenericParam = false;
         }
 
         @Override
@@ -1363,6 +1380,26 @@ public abstract class TypeInfo {
                 return this.resolvedType.toString();
             }
             return "[unresolved] : " + this.identifier;
+        }
+        
+        @Override
+        public boolean isGenericParam() {
+            return this.isGenericParam;
+        }
+        
+        /**
+         * Denotes this as a generic argument
+         */
+        public void makeGenericParam() {
+            this.isGenericParam = true;
+        }
+        
+        @Override
+        public void clearGenericArgs() {
+            this.genericArgs.clear();
+            if(this.resolvedType instanceof IdentifierTypeInfo) {
+                ((IdentifierTypeInfo)this.resolvedType).clearGenericArgs();
+            }
         }
         
         @Override
