@@ -14,164 +14,47 @@
             %test%
         }
     '''
-    tests: [
-        /*
-        {
-            name: "WTF", 
-            definitions: '''
-                                
-            ''',                       
-            code: '''
-                var text: [2] char;
-            ''',
-        },                    
-        {
-            name: "Fix precedence", 
-            definitions: '''
-                struct Test {
-                }
-            ''',                       
-            code: '''
-                const cType : Test const* = (&Test {
-                }) as (Test const*);
-
-            ''',
-        }*/       
+    tests: [                           
         /*{
-            name: "Array Import", 
+            name: "Defer Continue Embedded", 
             definitions: '''
-                struct Sprite {
-                    a: i32
-                }
                 
-                struct Test {
-                    sprites: Array<Sprite>
-                }
             ''',                       
             code: '''
-                var t = Test{}
-                ArrayInit(&t.sprites, 16)
-
-            ''',
-        },*/
-		/*{
-            name: "Generics call generic func ptr in struct field",
-            definitions: '''                
-                struct Person<T> {
-                    f : func<T>(T): T
-                }
-                
-                func test(a:i32) : i32 {
-                    return a
-                }
-                
-                func call<T>(p : Person<T>) : T {
-                    return p.f<T>(4)
-                }
-                            
-            ''',            
-            code: '''
-                var x = Person<i32> {
-                    .f: &test 
-                }               
-                assert(call<i32>(x) == 4)
-                  
-            '''
-        },
-		 {
-            name: "Generics embedded", 
-            definitions: '''
-                typedef func<T>(T):T as Test;
-                
-                func test<T>(t: Test<T>, a: T) : T {
-                    if(!t) {
-                        return a + 1
+                {
+                    var count = 0
+                    for(var i = 0; i < 10; i+=1) {
+                        defer count += 1
+                        
+                        if(i % 2 == 0) {
+                            continue
+                        }
                     }
-                    return t<T>(a)
-                }        
-                
-                func z(a: i32) : i32 {
-                    return a
+                    
+                    assert(count == 10)
                 }
                 
-            ''',                       
-            code: '''
-                assert(test<i32>(&z, 4) == 4)
+
             ''',
-        },*/
-        /*{
-            name: "Import",
-            modules: [
-                {
-                    name: "test_array",
-                    program: '''
-                        public struct X {
-                            x: i32
-                        }
-                    '''
-                }
-            ], 
-            definitions: '''
-                import "test_array"
-                
-            ''',                       
-            code: '''
-                var x = X{4}
-                assert(x.x == 4)
-            ''',
-        },*/
-        /*{
-            name: "Import Circular",
-            modules: [
-                {
-                    name: "x",
-                    program: '''
-                        import "y";
-                        
-                        public struct X {
-                            y: Y*
-                        }
-                    '''
-                },
-                {
-                    name: "y",
-                    program: '''
-                        import "x";
-                        
-                        public struct Y {
-                            x: X*
-                        }
-                    '''
-                }
-            ], 
-            definitions: '''
-                import "x"
-                import "y"
-            ''',                       
-            code: '''
-                var x = X{null}
-                var y = Y{&x}
-                x.y = &y  
-                assert(x.y == &y)
-                assert(y.x == &x)              
-            ''',
-        },*/
+        }*/
+        
         {
-            name: "Import Const",
-            modules: [
-                {
-                    name: "x",
-                    program: '''                                                
-                        public const X: i32 = 4
-                    '''
-                },
-            ], 
+            name: "For Loop", 
             definitions: '''
-                import "x"
+                
             ''',                       
-            code: '''  
-                assert(X == 4)              
+            code: '''
+                
+                var count = 0
+                for(count = 0; count < 10;) {
+                     count+=1
+                }
+                
+                assert(count == 10)
+                
+                
+
             ''',
-        },
+        }
     ]
 }

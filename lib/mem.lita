@@ -27,8 +27,8 @@ public const cAllocator : Allocator const* = (&Allocator {
 
 public func new<T>(a: Allocator const* = null) : T* {
     if(!a) {
-        a = &cAllocator
+        a = cAllocator
     }
     
-    return cAllocator.alloc(sizeof(T)) as (T*)
+    return a.alloc(sizeof(T)) as (T*)
 }

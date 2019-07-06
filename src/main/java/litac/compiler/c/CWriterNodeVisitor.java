@@ -726,7 +726,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
         for(EnumFieldInfo f : d.fields) {
             if(!isFirst) buf.out(",\n");
             
-            buf.out("%s", f.name);
+            buf.out("%s_%s", name, f.name);
             if(f.value != null) {
                 buf.out(" = ");
                 f.value.visit(this);
@@ -955,6 +955,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
         buf.out("for(");
         if(stmt.initStmt != null) {
             stmt.initStmt.visit(this);
+            if(stmt.initStmt instanceof Expr) {
+                buf.out(";");    
+            }
         }
         else {
             buf.out(";");    
@@ -996,7 +999,9 @@ public class CWriterNodeVisitor implements NodeVisitor {
     
     
     private void outputDefer() {
-        outputDefer(this.defers.peek());
+        if(!this.defers.isEmpty()) {
+            outputDefer(this.defers.peek());
+        }
     }
     
     private void outputDefer(Stack<DeferStmt> q) {
@@ -1053,7 +1058,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     public void visit(BlockStmt stmt) {
         buf.out("{");
         
-        this.defers.add(new Stack<>());
+        int deferCount = this.defers.size();
         for(Stmt s : stmt.stmts) {
             s.visit(this);
             if(s instanceof Expr) {
@@ -1061,13 +1066,19 @@ public class CWriterNodeVisitor implements NodeVisitor {
             }
         }
         
-        outputDefer(this.defers.pop());
+        if(this.defers.size() > deferCount) {
+            outputDefer(this.defers.pop());
+        }
         
         buf.out("}\n");
     }
 
     @Override
     public void visit(DeferStmt stmt) {
+        if(this.defers.isEmpty()) {
+            this.defers.add(new Stack<>());
+        }
+        
         this.defers.peek().add(stmt);
     }
     
@@ -1383,7 +1394,12 @@ public class CWriterNodeVisitor implements NodeVisitor {
         
         TypeInfo objectInfo = expr.object.getResolvedType();
         if(objectInfo.isKind(TypeKind.Enum)) {
-            buf.out("%s", expr.field.type.name);
+            if(isForeign(objectInfo.getResolvedType())) {
+                buf.out("%s", expr.field.type.name);
+            }
+            else {
+                buf.out("%s_%s", cName(objectInfo.getResolvedType().sym), expr.field.type.name);
+            }
         }
         else {
             expr.object.visit(this);
