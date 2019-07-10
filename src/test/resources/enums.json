@@ -1,5 +1,5 @@
 {
-    description: "Single Test",
+    description: "Enums",
     disabled: false,
     program: '''                
         @include("assert.h");
@@ -12,7 +12,7 @@
         }
     '''
     tests: [                           
-        /*{
+        {
             name: "Enum asStr", 
             definitions: '''
                 @include("<string.h>");
@@ -47,7 +47,7 @@
                 assert(Test.A == 0)
                 assert(strcmp(ToStr(Test.A), "A") == 0)
             ''',
-        },*/
+        },
         {
             name: "Enum inside struct", 
             definitions: '''

@@ -210,5 +210,229 @@
                 assert(r == 32)                
             '''
         },
+        {
+            name: "Method with ptr and callsite no ptr", 
+            definitions: '''
+                struct X {
+                    a: i32
+                }
+                
+                func method(x: X*) : i32 {
+                    return x.a
+                }
+            ''',                       
+            code: '''
+                var x = X{4}
+                assert(x.method() == 4)
+            ''',
+        },
+        {
+            name: "Method with ptr and callsite ptr", 
+            definitions: '''
+                struct X {
+                    a: i32
+                }
+                
+                func method(x: X*) : i32 {
+                    return x.a
+                }
+            ''',                       
+            code: '''
+                var x = &X{4}
+                assert(x.method() == 4)
+            ''',
+        },
+        {
+            name: "Method with ptr and callsite with struct of object no ptr", 
+            definitions: '''
+                struct Y {
+                    x: X
+                }
+                struct X {
+                    a: i32
+                }
+                
+                func method(x: X*) : i32 {
+                    return x.a
+                }
+            ''',                       
+            code: '''
+                
+                var x = X{4}
+                var y = Y{x}
+                assert(y.x.method() == 4)
+            ''',
+        },
+        {
+            name: "Method with ptr and callsite with struct of object ptr", 
+            definitions: '''
+                struct Y {
+                    x: X*
+                }
+                struct X {
+                    a: i32
+                }
+                
+                func method(x: X*) : i32 {
+                    return x.a
+                }
+            ''',                       
+            code: '''
+                
+                var x = X{4}
+                var y = Y{&x}
+                assert(y.x.method() == 4)
+            ''',
+        },
+        {
+            name: "Method with ptr and callsite with struct of object ptr in def", 
+            definitions: '''
+                struct Y {
+                    x: X*
+                }
+                struct X {
+                    a: i32
+                }
+                
+                func method(x: X*) : i32 {
+                    return x.a
+                }
+            ''',                       
+            code: '''
+                
+                var x = &X{4}
+                var y = Y{x}
+                assert(y.x.method() == 4)
+            ''',
+        },
+        {
+            name: "Method with ptr and callsite with struct of object ptr in def from method", 
+            definitions: '''
+                struct Y {
+                    x: X*
+                }
+                struct X {
+                    a: i32
+                }
+                
+                func method(x: X*) : i32 {
+                    return x.a
+                }
+                
+                func test(y: Y): i32 {
+                    return y.x.method()
+                }
+            ''',                       
+            code: '''
+                
+                var x = &X{4}
+                var y = Y{x}
+                assert(test(y) == 4)
+            ''',
+        },
+        {
+            name: "Method with ptr and callsite with struct of object no ptr in def from method", 
+            definitions: '''
+                struct Y {
+                    x: X
+                }
+                struct X {
+                    a: i32
+                }
+                
+                func method(x: X*) : i32 {
+                    return x.a
+                }
+                
+                func test(y: Y): i32 {
+                    return y.x.method()
+                }
+            ''',                       
+            code: '''
+                
+                var x = X{4}
+                var y = Y{x}
+                assert(test(y) == 4)
+            ''',
+        },
+        {
+            name: "Method chain", 
+            definitions: '''
+                struct Y {
+                    x: X
+                }
+                struct X {
+                    a: i32
+                }
+                
+                func methodX(x: X) : i32 {
+                    return x.a
+                }
+                
+                func methodY(y: Y): X {
+                    return y.x
+                }
+            ''',                       
+            code: '''
+                
+                var x = X{4}
+                var y = Y{x}
+                
+                assert(y.methodY().methodX() == 4)
+            ''',
+        },
+        {
+            name: "Method chain with ptr", 
+            definitions: '''
+                struct Y {
+                    x: X*
+                }
+                struct X {
+                    a: i32
+                }
+                
+                func methodX(x: X*) : i32 {
+                    return x.a
+                }
+                
+                func methodY(y: Y): X* {
+                    return y.x
+                }
+            ''',                       
+            code: '''
+                
+                var x = X{4}
+                var y = Y{&x}
+                
+                assert(y.methodY().methodX() == 4)
+            ''',
+        },
+        {
+            name: "Invalid Method chain no ptr RValue", 
+            definitions: '''
+                struct Y {
+                    x: X
+                }
+                struct X {
+                    a: i32
+                }
+                
+                func methodX(x: X*) : i32 {
+                    return x.a
+                }
+                
+                func methodY(y: Y): X {
+                    return y.x
+                }
+            ''',                       
+            code: '''
+                
+                var x = X{4}
+                var y = Y{x}
+                
+                assert(y.methodY().methodX() == 4)
+            ''',
+            error: "cannot take the return value address of 'methodX' as it's an R-Value"
+        }
     ]
 }

@@ -12,6 +12,7 @@ import litac.ast.Expr.*;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.*;
+import litac.parser.tokens.TokenType;
 import litac.util.Tuple;
 
 /**
@@ -383,7 +384,7 @@ public class TypeChecker {
                 }
                 definedFields.put(field.name, new Tuple<>(aggInfo, field));
                 
-                if((field.modifiers & Attributes.USING_MODIFIER) > 0) {
+                if(field.attributes.isUsing()) {
                     if(field.type.isKind(TypeKind.Struct) || field.type.isKind(TypeKind.Union)) {
                         checkDuplicateFields(stmt, field.type.as(), definedFields);
                     }                
@@ -553,12 +554,13 @@ public class TypeChecker {
             }
             
             List<Expr> suppliedArguments = new ArrayList<>(expr.arguments);
+            boolean isMethodCall = false;
             
             // see if this is method call syntax
             if(expr.object instanceof GetExpr) {
                 GetExpr getExpr = (GetExpr) expr.object;
                 if(getExpr.field.getResolvedType().isKind(TypeKind.Func)) {
-                    getExpr.isMethodCall = true;
+                    isMethodCall = getExpr.isMethodCall = true;
                     suppliedArguments.add(0, getExpr.object);
                 }
             }
@@ -606,6 +608,28 @@ public class TypeChecker {
                 if(i < suppliedArguments.size()) {
                     Expr arg = suppliedArguments.get(i);
                     arg.visit(this);
+                    
+                    TypeInfo argInfo = arg.getResolvedType();
+                    
+                    // if this is a method call, we will automatically
+                    // convert to a pointer if necessary
+                    if(isMethodCall && i == 0) {
+                        if(TypeInfo.isPtrAggregate(paramInfo)) {
+                            if(!TypeInfo.isPtrAggregate(argInfo)) {
+                                GetExpr getExpr = (GetExpr) expr.object;
+                                
+                                // Can't take the address of an R-Value :(
+                                if(getExpr.object instanceof FuncCallExpr) {
+                                    this.result.addError(getExpr.object, "cannot take the return value address of '%s' as it's an R-Value", getExpr.field.variable);
+                                }
+                                
+                                getExpr.object = new UnaryExpr(TokenType.BAND, new GroupExpr(getExpr.object));
+                                getExpr.object.resolveTo(new PtrTypeInfo(argInfo));
+                                
+                                arg = getExpr.object;
+                            }
+                        }
+                    }
                     
                     addTypeCheck(arg, arg.getResolvedType(), paramInfo);
                 }

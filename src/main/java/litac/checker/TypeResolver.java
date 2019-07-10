@@ -189,6 +189,21 @@ public class TypeResolver {
                     f.value.resolveTo(TypeInfo.I32_TYPE);
                 }
             }
+            
+            Note asStr = d.getNote("asStr");
+            if(asStr != null) {
+                String funcName = asStr.getAttr(0, d.name + "AsStr");
+                FuncTypeInfo asStrFuncInfo = new FuncTypeInfo(funcName, 
+                                                              new PtrTypeInfo(new ConstTypeInfo(TypeInfo.CHAR_TYPE)), 
+                                                              Arrays.asList(new ParameterDecl(d.type, "e", null, 0)), 
+                                                              false, 
+                                                              Collections.emptyList());
+                FuncDecl funcDecl = new FuncDecl(asStrFuncInfo.name, asStrFuncInfo, new ParametersStmt(asStrFuncInfo.parameterDecls, false), new EmptyStmt(), asStrFuncInfo.returnType);
+                // Name must match CGen.visit(EnumDecl)
+                funcDecl.addNote(new Note("foreign", Arrays.asList("__" + this.module.name() + "_" + d.name + "_AsStr")));
+                
+                this.module.declareFunc(funcDecl, asStrFuncInfo.name, asStrFuncInfo);
+            }
         }
 
 

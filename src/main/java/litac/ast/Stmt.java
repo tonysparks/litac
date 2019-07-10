@@ -7,8 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import litac.ast.Decl.*;
-import litac.checker.Note;
-import litac.checker.TypeInfo;
+import litac.checker.*;
 import litac.checker.TypeInfo.FieldInfo;
 import litac.parser.ErrorCode;
 import litac.parser.ParseException;
@@ -27,19 +26,19 @@ public abstract class Stmt extends Node {
             FieldInfo fieldInfo = null;
             if(s instanceof VarFieldStmt) {
                 VarFieldStmt var = (VarFieldStmt)s;
-                fieldInfo = new FieldInfo(var.type, var.name, var.modifiers, null);
+                fieldInfo = new FieldInfo(var.type, var.name, var.attributes, null);
             }
             else if(s instanceof StructFieldStmt) {
                 StructFieldStmt struct = (StructFieldStmt)s;
-                fieldInfo = new FieldInfo(struct.decl.type, struct.decl.name, 0, null);
+                fieldInfo = new FieldInfo(struct.decl.type, struct.decl.name, struct.decl.attributes, null);
             }
             else if(s instanceof UnionFieldStmt) {
                 UnionFieldStmt union = (UnionFieldStmt)s;
-                fieldInfo = new FieldInfo(union.decl.type, union.decl.name, 0, null);
+                fieldInfo = new FieldInfo(union.decl.type, union.decl.name, union.decl.attributes, null);
             }
             else if(s instanceof EnumFieldStmt) {
                 EnumFieldStmt enm = (EnumFieldStmt)s;
-                fieldInfo = new FieldInfo(enm.decl.type, enm.decl.name, 0, null);
+                fieldInfo = new FieldInfo(enm.decl.type, enm.decl.name, enm.decl.attributes, null);
             }
             else {
                 throw new ParseException(ErrorCode.INVALID_FIELD, token);
@@ -153,20 +152,31 @@ public abstract class Stmt extends Node {
         }
     }
     
-    public static abstract class FieldStmt extends Stmt {        
+    public static abstract class FieldStmt extends Stmt { 
     }
     
     public static class VarFieldStmt extends FieldStmt {
         public String name;
         public TypeInfo type;
-        public int modifiers;
+        public Attributes attributes;
         
         public VarFieldStmt(String name, TypeInfo type, int modifiers) {
             this.name = name;
             this.type = type;
-            this.modifiers = modifiers;
+            this.attributes = new Attributes();
+            this.attributes.modifiers = modifiers;
         }
-
+        
+        public FieldStmt addNotes(List<NoteStmt> notes) {
+            if(notes != null) {
+                if(this.attributes.notes == null) {
+                    this.attributes.notes = new ArrayList<>();
+                }
+                this.attributes.notes.addAll(notes);
+            }
+            return this;
+        }
+        
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
@@ -174,7 +184,9 @@ public abstract class Stmt extends Node {
         
         @Override
         protected Node doCopy() {            
-            return new VarFieldStmt(this.name, this.type.copy(), this.modifiers);
+            VarFieldStmt v = new VarFieldStmt(this.name, this.type.copy(), this.attributes.modifiers);
+            v.attributes = this.attributes;
+            return v;
         }
     }
     

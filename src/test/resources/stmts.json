@@ -126,6 +126,28 @@
             code: '''
                 assert(test() == -2)
             ''',            
+        },
+        {
+            name: "Defer Continue Embedded", 
+            definitions: '''
+                
+            ''',                       
+            code: '''
+                {
+                    var count = 0
+                    for(var i = 0; i < 10; i+=1) {
+                        defer count += 1
+                        
+                        if(i % 2 == 0) {
+                            continue
+                        }
+                    }
+                    
+                    assert(count == 10)
+                }
+                
+
+            ''',
         },     
         {
             name: "Ternary",
@@ -237,6 +259,23 @@
                 assert(test() == 4)                 
             '''
         },                    
-    
+        {
+            name: "For Loop", 
+            definitions: '''
+                
+            ''',                       
+            code: '''
+                
+                var count = 0
+                for(count = 0; count < 10;) {
+                     count+=1
+                }
+                
+                assert(count == 10)
+                
+                
+
+            ''',
+        }    
     ]
 }

@@ -82,7 +82,7 @@ public class CTranspiler {
     private static Buf toC(CompilationUnit unit, Program program, COptions options) throws Exception {
         Buf buf = new Buf(options.indentWidth, options.useTabs);        
         
-        CWriterNodeVisitor cWriter = new CWriterNodeVisitor(unit, program, options, buf);                
+        CGenNodeVisitor cWriter = new CGenNodeVisitor(unit, program, options, buf);                
         cWriter.write();
         
         return buf;

@@ -33,7 +33,7 @@ import litac.util.Stack;
  * @author Tony
  *
  */
-public class CWriterNodeVisitor implements NodeVisitor {
+public class CGenNodeVisitor implements NodeVisitor {
 
     private COptions options;
     private Buf buf;
@@ -48,7 +48,7 @@ public class CWriterNodeVisitor implements NodeVisitor {
     
     private List<Decl> declarations;
     
-    public CWriterNodeVisitor(CompilationUnit unit, Program program, COptions options, Buf buf) {
+    public CGenNodeVisitor(CompilationUnit unit, Program program, COptions options, Buf buf) {
         this.unit = unit;
         this.program = program;
         this.options = options;
@@ -709,12 +709,40 @@ public class CWriterNodeVisitor implements NodeVisitor {
         d.expr.visit(this);
         buf.out(";\n");
     }
+    
+    private void writeEnumStrFunc(String name, EnumDecl d) {
+        Note asStr = d.getNote("asStr");
+        if(asStr != null) {
+            int size = d.fields.size();
+            buf.outln();
+            buf.out("const char* __%s_%s_AsStr(%s __e) {", d.sym.declared.name(), d.name, name);
+            buf.out("if(__e < 0 || __e >= %d) {", size);
+            buf.out("return \"\";");
+            buf.out("}\n");
+            buf.out("static const char* _str[%d] = {", size);
+            
+            boolean isFirst = true;
+            for(EnumFieldInfo f : d.fields) {
+                if(!isFirst) buf.out(",\n");
+                
+                buf.out("[%s_%s] = \"%s\"", name, f.name, f.name);
+                isFirst = false;
+            }
+            buf.out("};\n");
+            
+            buf.out("return _str[__e];");
+            
+            buf.out("}");
+            buf.outln();
+        }
+    }
 
     @Override
     public void visit(EnumDecl d) {
         String name = cName(d.sym);
         
         if(isForeign(d.type)) {
+            writeEnumStrFunc(name, d);
             return;
         }
         
@@ -735,6 +763,8 @@ public class CWriterNodeVisitor implements NodeVisitor {
         }            
         buf.out("} %s;", name);
         buf.outln();
+        
+        writeEnumStrFunc(name, d);
     }
 
 

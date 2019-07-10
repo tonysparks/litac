@@ -18,4 +18,12 @@ public class Note {
         this.name = name;
         this.attributes = attributes;
     }
+    
+    public String getAttr(int index, String defaultValue) {
+        if(this.attributes == null || this.attributes.size() <= index) {
+            return defaultValue;
+        }
+        
+        return this.attributes.get(index);
+    }
 }

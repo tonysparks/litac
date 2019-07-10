@@ -237,7 +237,7 @@ public class Generics {
         List<FieldInfo> newFieldInfos = new ArrayList<>(aggInfo.fieldInfos.size());
         for(FieldInfo field : aggInfo.fieldInfos) {            
             TypeInfo newType = createGenericTypeInfo(module, field.type, aggInfo.genericParams, genericArgs);
-            FieldInfo newField = new FieldInfo(newType, field.name, field.modifiers, field.genericArg);            
+            FieldInfo newField = new FieldInfo(newType, field.name, field.attributes, field.genericArg);            
             newFieldInfos.add(newField);
         }
         

@@ -414,12 +414,12 @@ public abstract class TypeInfo {
         public TypeInfo type;
         public String name;
         public String genericArg;
-        public int modifiers;
+        public Attributes attributes;
         
-        public FieldInfo(TypeInfo type, String name, int modifiers, String genericArg) {
+        public FieldInfo(TypeInfo type, String name, Attributes attributes, String genericArg) {
             this.type = type;
             this.name = name;
-            this.modifiers = modifiers;
+            this.attributes = attributes;
             this.genericArg = genericArg;
         }
     }
@@ -511,7 +511,7 @@ public abstract class TypeInfo {
             this.pathCache = new HashMap<>();
             
             for(FieldInfo field : fieldInfos) {
-                if((field.modifiers & Attributes.USING_MODIFIER) > 0) {
+                if(field.attributes.isUsing()) {
                     if(this.usingInfos == null) {
                         this.usingInfos = new ArrayList<>();
                     }

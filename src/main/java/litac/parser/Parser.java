@@ -489,6 +489,7 @@ public class Parser {
     }
     
     private FieldStmt fieldStatement() {
+        List<NoteStmt> notes = notes();
         switch(peek().getType()) {
             case IDENTIFIER: {
                 Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
@@ -496,24 +497,27 @@ public class Parser {
                 int modifiers = modifiers();
                 TypeInfo type = type(false);
                 
-                return node(new VarFieldStmt(identifier.getText(), type, modifiers));
+                return node(new VarFieldStmt(identifier.getText(), type, modifiers).addNotes(notes));
             }                
             case STRUCT: {
                 advance();
                 
                 StructDecl struct = structDeclaration();
+                struct.addNotes(notes);
                 return node(new StructFieldStmt(struct));
             }
             case UNION: {
                 advance();
                 
                 UnionDecl union = unionDeclaration();
+                union.addNotes(notes);
                 return node(new UnionFieldStmt(union));                
             }
             case ENUM: {
                 advance();
                 
                 EnumDecl enm = enumDeclaration();
+                enm.addNotes(notes);
                 return node(new EnumFieldStmt(enm));
             }
             default:
