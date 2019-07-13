@@ -1,0 +1,353 @@
+import "mem" as mem;
+import "io";
+import "assert";
+
+@include("<stdarg.h>");
+@include("<stdio.h>");
+
+@foreign struct va_list;
+@foreign func va_start(args: va_list, format: char const*);
+@foreign func va_end(args: va_list);
+@foreign func va_copy(a: va_list, b: va_list);
+@foreign func vsnprintf(b: char*, len: u64, format: char const*, args: va_list) : i32;
+@foreign func memmove(dst: void*, src: char const*, num: u64) : void*;
+@foreign func strlen(str: char const*) : u64;
+
+
+public struct StringBuffer {
+    length: i32
+    capacity: i32
+    buffer: char*
+    alloc: mem::Allocator const*
+}
+
+public func (b: StringBuffer*) init(initialSize: i32 = 16, 
+                                    alloc: mem::Allocator const* = null) {
+    if(!alloc) {
+        alloc = mem::cAllocator
+    }
+    
+    b.alloc = alloc;
+    b.length = 0;
+    b.capacity = initialSize;    
+    
+    var length = (sizeof(char) * initialSize as (u64));    
+    b.buffer = alloc.calloc(0, length) as (char*)
+}
+
+public func (b: StringBuffer*) free() {
+    if(b && b.buffer) {
+        b.alloc.free(b.buffer as (void*))
+        b.buffer = null
+        b.length = 0
+        b.capacity = 0
+    }
+}
+
+public func (b: StringBuffer*) appendStr(str: char*, len: i32) {
+    if(str == null || len < 1) {
+        return;
+    }
+
+    if(b.length + len > b.capacity) {
+        BufferGrow(b, len)        
+    }
+    
+    mem::memcpy((&b.buffer[b.length]) as (void*), 
+                str as (void const*), 
+                len * sizeof(char))
+    b.length += len
+}
+
+
+public func (b: StringBuffer*) appendFloat(f: f64) : i32 {
+    return b.append("%f", f)
+}
+
+public func (b: StringBuffer*) appendI32(i: i32) : i32 {
+    return b.append("%d", i)
+}
+
+public func (b: StringBuffer*) appendI64(i: i64) : i32 {
+    return b.append("%ld", i)
+}
+
+public func (b: StringBuffer*) appendU32(i: u32) : i32 {
+    return b.append("%u", i)
+}
+
+public func (b: StringBuffer*) appendU64(i: u64) : i32 {
+    return b.append("%lu", i)
+}
+
+public func (b: StringBuffer*) appendChar(c: char) : i32 {
+    return b.append("%c", c)
+}
+
+public func (b: StringBuffer*) append(format: char const*, ...) : i32 {
+    const MAX_BUFFER_SIZE = 32;
+
+    // ensure we have enough of a buffer initially
+    if(b.length + MAX_BUFFER_SIZE > b.capacity) {
+        BufferGrow(b, MAX_BUFFER_SIZE)        
+    }
+
+    // get the variable args
+    var args1:va_list;
+    va_start(args1, format);
+
+    // need to copy the args even though we won't know if we
+    // need them until after we use the first set
+    var args2: va_list;
+    va_copy(args2, args1);
+
+    // have to call vsnprintf at least once - might as well use a small
+    // fixed-size buffer just in case the final string fits in it
+    var len = vsnprintf(&b.buffer[b.length], MAX_BUFFER_SIZE, format, args1);
+    va_end(args1);
+
+    // if it didn't fit, expand the buffer for the necessary length
+    if (len >= MAX_BUFFER_SIZE) {        
+        BufferGrow(b, (len + 1) - MAX_BUFFER_SIZE);
+
+        var n = vsnprintf(&b.buffer[b.length], len + 1, format, args2);
+        va_end(args2);
+
+        if(n < 0) {
+            return n;
+        }
+
+        b.length += n
+        return len
+    }
+    
+    if(len < 0) {
+        return len
+    }
+
+    b.length += len
+    return len
+}
+
+/*
+func Print(b: char const*, n: i32) {
+    printf("'")
+    for(var i = 0; i < n; i+=1) {
+        var c = b[i]
+        if(c == '\0') {
+            printf("X")
+        }
+        else 
+            printf("%c", c)
+    }
+
+    printf("'\n")
+}*/
+
+public func (b: StringBuffer*) delete(start: i32, end: i32) {
+    if(b.length == 0) {
+        return;
+    }
+
+    if(start < 0) {
+        start = 0
+    }
+    if(end > b.length) {
+        end = b.length
+    }
+
+    if(start > end) {
+        return;
+    }
+
+    b.length -= (end - start)
+
+    // move the contents over
+    mem::memmove((&b.buffer[start]) as (void*), 
+                 (&b.buffer[end]) as (void const*), 
+                 (b.length) * sizeof(char))
+}
+
+public func (b: StringBuffer*) contains(str: char const*, len: i32 = -1) : bool {
+    return b.indexOf(str, len) > -1;
+}
+
+public func (b: StringBuffer*) indexOf(str: char const*, len: i32 = -1) : i32 {
+    return b.indexOfAt(str, len, 0)
+}
+
+public func (b: StringBuffer*) indexOfAt(str: char const*, len: i32 = -1, fromIndex: i32 = 0) : i32 {
+    var target = str
+    var source = b.buffer
+
+    var targetOffset = 0;
+    var sourceOffset = 0;
+
+    var first = target[0];
+
+    var targetCount = len
+    if(len < 0) {
+        targetCount = strlen(str);
+    }
+
+    var max = sourceOffset + (b.length - targetCount);
+
+    for (var i = sourceOffset + fromIndex; i <= max; i += 1) {
+        /* Look for first character. */
+        if (source[i] != first) {
+            while (i <= max && source[i] != first) {
+                i+=1
+            }
+        }
+
+        /* Found first character, now look at the rest of v2 */
+        if (i <= max) {
+            var j = i + 1;
+            var end = j + targetCount - 1;
+            for (var k = targetOffset + 1; j < end && source[j] == target[k];) {
+                j += 1;
+                k += 1;
+            }
+
+            if (j == end) {
+                /* Found whole string. */
+                return i - sourceOffset;
+            }
+        }
+    }
+    return -1;
+}
+
+
+public func (b: StringBuffer*) insert(index: i32, format: char const*, ...) : i32 {
+    const MAX_BUFFER_SIZE = 32;
+
+    if(index < 0) {
+        index = 0
+    }
+
+    // clamp
+    if(index > b.length) {
+        index = b.length
+    }
+
+    // ensure we have enough of a buffer initially
+    if(b.length + MAX_BUFFER_SIZE > b.capacity) {
+        BufferGrow(b, MAX_BUFFER_SIZE)        
+    }
+
+    var startChar = b.buffer[index]
+
+    // move the contents over
+    mem::memmove((&b.buffer[index + MAX_BUFFER_SIZE]) as (void*), 
+                 (&b.buffer[index]) as (void const*), 
+                 MAX_BUFFER_SIZE * sizeof(char))
+
+    // get the variable args
+    var args1:va_list;
+    va_start(args1, format);
+
+    // need to copy the args even though we won't know if we
+    // need them until after we use the first set
+    var args2: va_list;
+    va_copy(args2, args1);
+
+    // have to call vsnprintf at least once - might as well use a small
+    // fixed-size buffer just in case the final string fits in it
+    var len = vsnprintf(&b.buffer[index], MAX_BUFFER_SIZE, format, args1);
+    va_end(args1);
+
+    // if it didn't fit, expand the buffer for the necessary length
+    if (len >= MAX_BUFFER_SIZE) {
+        BufferGrow(b, (len + 1) - MAX_BUFFER_SIZE);
+
+        // move the contents over again
+        mem::memmove((&b.buffer[index + len - 1]) as (void*), 
+                     (&b.buffer[index + MAX_BUFFER_SIZE - 1]) as (void const*), 
+                     (len + 1) * sizeof(char))
+
+        var n = vsnprintf(&b.buffer[index], len + 1, format, args2);
+        va_end(args2);
+
+        b.buffer[index + len] = startChar
+
+        if(n < 0) {
+            return n;
+        }
+
+        b.length += n
+        return len
+    }
+    
+    if(len < 0) {
+        return len
+    }
+
+    // move the contents over to the left                
+    mem::memmove((&b.buffer[index + len]) as (void*), 
+                 (&b.buffer[index + MAX_BUFFER_SIZE]) as (void const*), 
+                 (MAX_BUFFER_SIZE) * sizeof(char))
+
+
+    b.length += len
+    return len
+}
+
+
+public func (b: StringBuffer*) copyTo(buf: char*, len: i32) : i32 {
+    var bytesCopied = len
+    if(b.length < len) {
+        bytesCopied = b.length
+    }
+    
+    mem::memcpy(buf as (void*),
+                (&b.buffer[0]) as (void const*), 
+                bytesCopied * sizeof(char))
+
+    return (bytesCopied)
+}
+
+public func (b: StringBuffer*) forEach(fn : func(char) : bool) {
+    for(var i = 0; i < b.length; i+=1) {
+        if(fn(b.buffer[i])) {
+            break;
+        }
+    }
+}
+
+public func (b: StringBuffer*) empty() : bool {
+    return b.length == 0
+}
+
+public func (b: StringBuffer*) size() : i32 {
+    return b.length
+}
+
+public func (b: StringBuffer*) clear() {
+    b.length = 0
+}
+
+public func (b: StringBuffer*) cStr() : char const* {
+    if(b.length + 1 > b.capacity) {
+        BufferGrow(b, 1)
+    }
+
+    b.buffer[b.length] = '\0'
+    return (b.buffer) as (char const*)
+}
+
+
+
+func BufferGrow(b: StringBuffer*, increment: i32) {
+    var doubleCurrent = b.capacity * 2
+    var minReq = b.length + increment
+    var n = minReq
+    
+    if(doubleCurrent > minReq) {
+        n = doubleCurrent        
+    }
+    
+    var newlength = (sizeof(char) * n as (u64));     
+    b.buffer = b.alloc.realloc(b.buffer as (void*), newlength) as (char*)
+    b.capacity = n;    
+}

@@ -3,118 +3,137 @@ import "assert"
 
 /*
     Simple dynamically expandle array
-    
-    TODO: Remove redudant Array wart on all functions (implement function overloading)
 */    
-
 public struct Array<T> {
-    size: i32
+    length: i32
     capacity: i32
     elements: T*
-    alloc: using mem::Allocator const*
+    alloc: mem::Allocator const*
 }
 
-public func ArrayInit<T>(a: Array<T>*, initialSize: i32 = 16, alloc: mem::Allocator const* = null) {
+public func (a: Array<T>*) init<T>(initialSize: i32 = 16, alloc: mem::Allocator const* = null) {
     if(!alloc) {
         alloc = mem::cAllocator
     }
     
     a.alloc = alloc;
-    a.size = 0;
+    a.length = 0;
     a.capacity = initialSize;    
     
-    var size = (sizeof(T) * initialSize as (u64));    
-    a.elements = alloc.alloc(size) as (T*)
+    var length = (sizeof(T) * initialSize as (u64));    
+    a.elements = alloc.alloc(length) as (T*)
 }
 
-public func  (a: Array<T>*) ArrayFree<T>() {
+public func (a: Array<T>*) free<T>() {
     if(a && a.elements) {
-        a.free(a.elements as (void*))
+        a.alloc.free(a.elements as (void*))
         a.elements = null
+        a.length = 0
+        a.capacity = 0
     }
 }
 
-public func (a: Array<T>*) ArrayAdd<T>(element: T) {
-    if(a.size + 1 > a.capacity) {
+public func (a: Array<T>*) add<T>(element: T) {
+    if(a.length + 1 > a.capacity) {
         ArrayGrow<T>(a, 1)        
     }
-    a.elements[a.size] = element;
-    a.size += 1
+    a.elements[a.length] = element;
+    a.length += 1
 }
 
-public func (a: Array<T>*) ArrayPush<T>(element: T) {
-    ArrayAdd<T>(a, element)
+public func (a: Array<T>*) push<T>(element: T) {
+    a.add<T>(a, element)
 }
 
-public func (a: Array<T>*) ArrayGet<T>(index: i32) : T {
+public func (a: Array<T>*) get<T>(index: i32) : T {
+    assert(index >= 0 && index < a.length)
+
     return a.elements[index]
 }
 
-public func (a: Array<T>*) ArrayLast<T>() : T {    
-    assert(a.size != 0)
-    
-    return a.elements[a.size - 1]
+public func (a: Array<T>*) set<T>(index: i32, element: T) {
+    assert(index >= 0 && index < a.length)
+
+    a.elements[index] = element;
 }
 
-public func (a: Array<T>*) ArrayPop<T>() : T {
-    assert(a.size != 0)
+public func (a: Array<T>*) first<T>() : T {    
+    assert(a.length != 0)
     
-    var r = a.elements[a.size - 1]
-    a.size -= 1
+    return a.elements[0]
+}
+
+public func (a: Array<T>*) last<T>() : T {    
+    assert(a.length != 0)
+    
+    return a.elements[a.length - 1]
+}
+
+public func (a: Array<T>*) pop<T>() : T {
+    assert(a.length != 0)
+    
+    var r = a.elements[a.length - 1]
+    a.length -= 1
     
     return r
 }
 
-public func (a: Array<T>*) ArrayRemoveAt<T>(index: i32) : T {
-    assert(index >= 0 && index < a.size)
+public func (a: Array<T>*) removeAt<T>(index: i32) : T {
+    assert(index >= 0 && index < a.length)
     
     var r = a.elements[index]
-    if(index < a.size - 1) {
-        mem::memmove((&a.elements[index]) as (void*), (&a.elements[index + 1]) as (void const*), ((a.size - 1) - index) * sizeof(T))
+    if(index < a.length - 1) {
+        mem::memmove((&a.elements[index]) as (void*), 
+                     (&a.elements[index + 1]) as (void const*), 
+                     ((a.length - 1) - index) * sizeof(T))
     }
     
-    a.size -= 1
+    a.length -= 1
     return r
 }
 
 
-public func (a: Array<T>*) ArrayAddAll<T>(other: Array<T>*) {
-    if(!other && other.size > 0) {
+public func (a: Array<T>*) addAll<T>(other: Array<T>*) {
+    if(!other && other.length > 0) {
         return;
     }
     
-    if(a.size + other.size > a.capacity) {
-        ArrayGrow<T>(a, other.size)
+    if(a.length + other.length > a.capacity) {
+        ArrayGrow<T>(a, other.length)
     }
     
-    mem::memcpy((&a.elements[a.size]) as (void*), 
+    mem::memcpy((&a.elements[a.length]) as (void*), 
                 (&other.elements[0]) as (void const*), 
-                other.size * sizeof(T))
-    a.size += other.size
+                other.length * sizeof(T))
+    a.length += other.length
 }
 
-public func (a: Array<T>*) ArrayForeach<T>(fn : func<T>(T) : bool) {
-    for(var i = 0; i < a.size; i+=1) {
+public func (a: Array<T>*) forEach<T>(fn : func<T>(T) : bool) {
+    for(var i = 0; i < a.length; i+=1) {
         if(fn<T>(a.elements[i])) {
             break;
         }
     }
 }
 
-public func (a: Array<T>*) ArrayEmpty<T>() : bool {
-    return a.size == 0
+public func (a: Array<T>*) empty<T>() : bool {
+    return a.length == 0
+}
+
+public func (a: Array<T>*) size<T>() : i32 {
+    return a.length
 }
 
 func ArrayGrow<T>(a: Array<T>*, increment: i32) {
     var doubleCurrent = a.capacity * 2
-    var minReq = a.size + increment
+    var minReq = a.length + increment
     var n = minReq
     
     if(doubleCurrent > minReq) {
         n = doubleCurrent        
     }
     
-    var newSize = (sizeof(T) * n as (u64));     
-    a.elements = a.realloc(a.elements as (void*), newSize) as (T*)
+    var newlength = (sizeof(T) * n as (u64));     
+    a.elements = a.alloc.realloc(a.elements as (void*), newlength) as (T*)
     a.capacity = n;    
 }

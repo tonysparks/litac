@@ -311,7 +311,7 @@ public class Generics {
         FuncTypeInfo newFuncInfo = new FuncTypeInfo(newFuncName, 
                                                     newReturnType, 
                                                     newFuncParams, 
-                                                    funcInfo.isVararg, 
+                                                    funcInfo.flags, 
                                                     Collections.emptyList());
         newFuncInfo.sym = funcInfo.sym;
         FuncDecl decl = createNewFuncDecl(module, 
@@ -364,6 +364,13 @@ public class Generics {
         String baseType = type.getName();
         if(type.isResolved() && !type.hasGenericArgs()) {
             baseType = type.getResolvedType().getName();
+        }
+        
+        if(type.isKind(TypeKind.Func)) {
+            FuncTypeInfo funcInfo = type.as();
+            if(funcInfo.isMethod()) {
+                baseType = funcInfo.getMethodName();
+            }
         }
         
         StringBuilder newName = new StringBuilder(baseType);

@@ -258,6 +258,22 @@
             '''
         },
         {
+            name: "Enum SizeOf",
+            definitions: '''                
+                enum TypeInfo {
+                    Int = 0,
+                    Float,
+                    Double
+                }
+                            
+            ''',            
+            code: '''
+                var x: TypeInfo = TypeInfo.Int
+                assert(sizeof(x) == 4)
+                assert(sizeof(TypeInfo.Int) == 4)
+            '''
+        },
+        {
             name: "Enum different args",
             definitions: '''                
                 enum TypeInfo {

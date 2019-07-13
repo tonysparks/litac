@@ -238,15 +238,7 @@ public class Module {
     }
     
     private boolean isForeign(Decl decl) {
-        if(decl.attributes.notes != null) {
-            for(NoteStmt n : decl.attributes.notes) {
-                if(n.note.name.equalsIgnoreCase("foreign")) {
-                    return true;
-                }
-            }
-        }
-        
-        return false;
+        return decl.attributes.isForeign();
     }
     
     private Symbol addPublicDecl(Decl decl, String name, TypeInfo type) {

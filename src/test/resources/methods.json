@@ -1,5 +1,6 @@
 {
     description: "Methods",
+    disabled: false,
     program: '''                
         @include("assert.h");
         @foreign func assert(e:bool):void;
@@ -217,7 +218,7 @@
                     a: i32
                 }
                 
-                func method(x: X*) : i32 {
+                func (x: X*) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -233,7 +234,7 @@
                     a: i32
                 }
                 
-                func method(x: X*) : i32 {
+                func (x: X*) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -252,7 +253,7 @@
                     a: i32
                 }
                 
-                func method(x: X*) : i32 {
+                func (x: X*) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -273,7 +274,7 @@
                     a: i32
                 }
                 
-                func method(x: X*) : i32 {
+                func (x: X*) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -294,7 +295,7 @@
                     a: i32
                 }
                 
-                func method(x: X*) : i32 {
+                func (x: X*) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -315,7 +316,7 @@
                     a: i32
                 }
                 
-                func method(x: X*) : i32 {
+                func (x: X*) method() : i32 {
                     return x.a
                 }
                 
@@ -340,7 +341,7 @@
                     a: i32
                 }
                 
-                func method(x: X*) : i32 {
+                func (x: X*) method() : i32 {
                     return x.a
                 }
                 
@@ -365,11 +366,11 @@
                     a: i32
                 }
                 
-                func methodX(x: X) : i32 {
+                func (x: X) methodX() : i32 {
                     return x.a
                 }
                 
-                func methodY(y: Y): X {
+                func (y: Y) methodY(): X {
                     return y.x
                 }
             ''',                       
@@ -391,11 +392,11 @@
                     a: i32
                 }
                 
-                func methodX(x: X*) : i32 {
+                func (x: X*) methodX() : i32 {
                     return x.a
                 }
                 
-                func methodY(y: Y): X* {
+                func (y: Y) methodY(): X* {
                     return y.x
                 }
             ''',                       
@@ -417,11 +418,11 @@
                     a: i32
                 }
                 
-                func methodX(x: X*) : i32 {
+                func (x: X*) methodX() : i32 {
                     return x.a
                 }
                 
-                func methodY(y: Y): X {
+                func (y: Y) methodY(): X {
                     return y.x
                 }
             ''',                       
@@ -433,6 +434,174 @@
                 assert(y.methodY().methodX() == 4)
             ''',
             error: "cannot take the return value address of 'methodX' as it's an R-Value"
-        }
+        },
+        {
+            name: "Method infer generics", 
+            definitions: '''
+                struct Test<T> {
+                    a: T
+                }
+                
+                func (t: Test<T>) method<T>() : T {
+                    return t.a
+                }
+            ''',                       
+            code: '''
+                var t = Test<i32>{4}
+                assert(t.method() == 4)
+            ''',
+        },
+        {
+            name: "Method infer generics ptr", 
+            definitions: '''
+                struct Test<T> {
+                    a: T
+                }
+                
+                func (t: Test<T>*) method<T>() : T {
+                    return t.a
+                }
+            ''',                       
+            code: '''
+                var t = Test<i32>{4}
+                assert(t.method() == 4)
+            ''',
+        },
+        {
+            name: "Method generics ptr", 
+            definitions: '''
+                struct Test<T> {
+                    a: T
+                }
+                
+                func (t: Test<T>*) method<T>() : T {
+                    return t.a
+                }
+            ''',                       
+            code: '''
+                var t = Test<i32>{4}
+                assert(t.method<i32>() == 4)
+            ''',
+        },
+        // multiple args
+        {
+            name: "Method infer generics multiarg", 
+            definitions: '''
+                struct Test<T> {
+                    a: T
+                }
+                
+                func (t: Test<T>) method<T>(z: T) : T {
+                    return t.a + z
+                }
+            ''',                       
+            code: '''
+                var t = Test<i32>{4}
+                assert(t.method(8) == 12)
+            ''',
+        },
+        {
+            name: "Method infer generics ptr multiarg", 
+            definitions: '''
+                struct Test<T> {
+                    a: T
+                }
+                
+                func (t: Test<T>*) method<T>(z: T) : T {
+                    return t.a + z
+                }
+            ''',                       
+            code: '''
+                var t = Test<i32>{4}
+                assert(t.method(8) == 12)
+            ''',
+        },
+        {
+            name: "Method generics ptr multiarg", 
+            definitions: '''
+                struct Test<T> {
+                    a: T
+                }
+                
+                func (t: Test<T>*) method<T>(z: T) : T {
+                    return t.a + z
+                }
+            ''',                       
+            code: '''
+                var t = Test<i32>{4}
+                assert(t.method<i32>(8) == 12)
+            ''',
+        },
+        {
+            name: "Method func ptr", 
+            definitions: '''
+                struct Test<T> {
+                    a: T
+                }
+                
+                func (t: Test<T>*) method<T>(z: T) : T {
+                    return t.a + z
+                }
+            ''',                       
+            code: '''
+                var t = Test<i32>{4}
+                var x : func(Test<i32>*, i32):i32 = &Test_method<i32>;
+                assert(t.method<i32>(8) == 12)
+                assert(x(&t, 8) == 12)
+            ''',
+        },
+        
+        {
+            name: "Func Method two levels deep Generics inside Generic Func",
+            definitions: '''
+                struct A<T> {
+                    a: T
+                }
+                
+                struct B<T> {
+                    b: T
+                }
+                
+                func (a: A<T>) apply<T>() : B {
+                    return B<T>{a.a}
+                }
+                
+                func (b: B<T>) run<T>() : T {
+                    return b.b
+                }
+                
+                func test<T>(v: T) : T {
+                    var a = A<T>{v}
+                    var r = a.apply<T>().run<T>()
+                    return r;
+                }
+                            
+            ''',            
+            code: '''
+                var r = test<i32>(4)
+                assert(r == 4)                 
+            '''
+        },
+        { 
+            name: "Method definition out of order",
+            definitions: '''                                
+                struct Test {
+                    x: i32
+                }
+                
+                
+                func (t: Test*) a() : i32 {
+                    return t.b()
+                }
+                
+                func (t: Test*) b() : i32 {
+                    return t.x
+                }
+            ''',                       
+            code: '''         
+                var t = Test{4}                            
+                assert(t.a() == 4)
+            ''',                      
+        },
     ]
 }

@@ -72,7 +72,18 @@ public abstract class Expr extends Stmt {
     
     public void resolveTo(TypeInfo type) {
         if(type != null) {
-            this.resolvedTo = type.isResolved() ? type.getResolvedType() : type;
+            if(type.isResolved()) {
+                this.resolvedTo = type.getResolvedType();
+            }
+            else {
+                TypeInfo partialResolved = type.getResolvedType();
+                if(partialResolved != null) {
+                    this.resolvedTo = partialResolved;
+                }
+                else {
+                    this.resolvedTo = type;
+                }
+            }
         }
         else {
             this.resolvedTo = null;

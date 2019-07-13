@@ -8,6 +8,7 @@ import java.nio.file.*;
 import java.util.List;
 
 import org.hjson.JsonValue;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,6 +60,7 @@ public class TestSuite {
         
         if(suite.disabled) {
             System.out.println("Skipping (is disabled)");
+            return;
         }
         
         for(TestCase test: suite.tests) {
@@ -66,6 +68,7 @@ public class TestSuite {
             
             if(test.disabled) {
                 System.out.println("Skipping (is disabled)");
+                continue;
             }
             
             if(test.modules != null) {
@@ -155,8 +158,8 @@ public class TestSuite {
         }
     }
 
-    @Test
-    public void singleTest() throws Exception {
+    @Ignore
+    private void singleFileTest(String filename) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
         PrintStream errStream = System.err;
@@ -176,10 +179,20 @@ public class TestSuite {
         }
         
         
-        String json = JsonValue.readHjson(new InputStreamReader(TestSuite.class.getResourceAsStream("/singleTest.json"))).toString();
+        String json = JsonValue.readHjson(new InputStreamReader(TestSuite.class.getResourceAsStream(filename))).toString();
         TestSuite suite = mapper.readValue(json, TestSuite.class);
         
         runTestSuite(suite, outputDir, errorStream);
         
+    }
+    
+    @Test
+    public void singleTest() throws Exception {
+        singleFileTest("/singleTest.json");        
+    }
+    
+    @Test
+    public void fileTest() throws Exception {
+        singleFileTest("/string_buffer.json");        
     }
 }

@@ -141,7 +141,7 @@ public class CGenNodeVisitor implements NodeVisitor {
                     isFirst = false;
                 }
 
-                if(funcInfo.isVararg) {
+                if(funcInfo.isVararg()) {
                     if(!isFirst) {
                         buf.out(",");
                     }
@@ -416,20 +416,12 @@ public class CGenNodeVisitor implements NodeVisitor {
             return defaultName;
         }
         
-        List<NoteStmt> notes = d.attributes.notes;
-        if(notes == null) {
+        NoteStmt n = d.attributes.getNote("foreign");
+        if(n == null) {
             return defaultName;
         }
         
-        for(NoteStmt n : notes) {
-            if(n.note.name.equals("foreign")) {
-                if(n.note.attributes != null && !n.note.attributes.isEmpty()) {
-                    return n.note.attributes.get(0);
-                }
-            }
-        }
-        
-        return defaultName;
+        return n.getAttr(0, defaultName);
     }
     
     
@@ -464,9 +456,10 @@ public class CGenNodeVisitor implements NodeVisitor {
             return getForeignName(sym.decl, declName);
         }
         
-        if(sym.decl.kind == DeclKind.FUNC && 
-           sym.decl.name.equals("main")) {
-            return declName;
+        if(sym.decl.kind == DeclKind.FUNC) {
+            if(sym.decl.name.equals("main")) {
+                return declName;
+            }
         }
         
         return prefix(Names.backendName(sym.declared.name(), declName));
@@ -537,8 +530,7 @@ public class CGenNodeVisitor implements NodeVisitor {
     }
 
     @Override
-    public void visit(NoteStmt stmt) {
-        Note note = stmt.note;
+    public void visit(NoteStmt note) {
         switch(note.name) {
             case "include": {
                 if(note.attributes != null) {
@@ -573,7 +565,7 @@ public class CGenNodeVisitor implements NodeVisitor {
                             buf.outln();
                         }
                         catch(IOException e) {
-                            this.main.getPhaseResult().addError(stmt, "Unable to load C source file: %s", e);
+                            this.main.getPhaseResult().addError(note, "Unable to load C source file: %s", e);
                         }
                     }
                 }
@@ -711,7 +703,7 @@ public class CGenNodeVisitor implements NodeVisitor {
     }
     
     private void writeEnumStrFunc(String name, EnumDecl d) {
-        Note asStr = d.getNote("asStr");
+        NoteStmt asStr = d.attributes.getNote("asStr");
         if(asStr != null) {
             int size = d.fields.size();
             buf.outln();
@@ -804,7 +796,7 @@ public class CGenNodeVisitor implements NodeVisitor {
             isFirst = false;
         }
         
-        if(funcInfo.isVararg) {
+        if(funcInfo.isVararg()) {
             if(!isFirst) {
                 buf.out(",");
             }
@@ -950,12 +942,14 @@ public class CGenNodeVisitor implements NodeVisitor {
         buf.out("if (");
         stmt.condExpr.visit(this);
         buf.out(") \n");            
-        stmt.thenStmt.visit(this);            
+        stmt.thenStmt.visit(this);
+        if(stmt.thenStmt instanceof Expr) buf.out(";");
         buf.out("\n");
         
         if(stmt.elseStmt != null) {
             buf.out("else \n");                
-            stmt.elseStmt.visit(this);                
+            stmt.elseStmt.visit(this);
+            if(stmt.elseStmt instanceof Expr) buf.out(";");
             buf.out("\n");
         }
     }
@@ -966,15 +960,16 @@ public class CGenNodeVisitor implements NodeVisitor {
         stmt.condExpr.visit(this);
         buf.out(")\n");
         stmt.bodyStmt.visit(this);
+        if(stmt.bodyStmt instanceof Expr) buf.out(";");
         buf.out("\n");
     }
 
 
     @Override
     public void visit(DoWhileStmt stmt) {
-        buf.out("do ");
+        buf.out("do {");
         stmt.bodyStmt.visit(this);
-        buf.out("\n while (");
+        buf.out("}\n while (");
         stmt.condExpr.visit(this);
         buf.out(");");
     }
@@ -1388,7 +1383,12 @@ public class CGenNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(TypeIdentifierExpr expr) {
-        visit((IdentifierExpr)expr);
+        if(expr.sym == null) {
+            buf.out("%s", getTypeNameForC(expr.type));
+        }
+        else {
+            visit((IdentifierExpr)expr);
+        }
     }
     
     private boolean hasMethodCall(Expr expr) {
@@ -1408,11 +1408,22 @@ public class CGenNodeVisitor implements NodeVisitor {
         return null;
     }
     
-//    private void visitMethodCall(GetExpr expr) {
-//        GetExpr e = getMethodCall(expr);
-//        System.out.println(e);
-//    }
     
+    // TODO: replace below calls with this
+    private String fieldName(FieldInfo field) {
+        NoteStmt note = field.attributes.getNote("alias");
+        if(note == null) {
+            return field.type.name;
+        }
+        
+        String alias = note.getAttr(0, null);
+        if(alias == null) {
+            this.main.getPhaseResult().addError(note, "'alias' note must define an alias name");
+            return "";
+        }
+        
+        return alias;
+    }
     
     @Override
     public void visit(GetExpr expr) {

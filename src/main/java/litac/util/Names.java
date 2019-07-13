@@ -4,6 +4,7 @@
 package litac.util;
 
 import litac.checker.TypeInfo;
+import litac.checker.TypeInfo.*;
 
 /**
  * @author Tony
@@ -66,11 +67,29 @@ public class Names {
     }
     
     public static String escapeName(TypeInfo type) {
-        if(TypeInfo.isAggregate(type) || TypeInfo.isFunc(type)) {
+        if(TypeInfo.isAggregate(type)) {
+            return escapeName(type.getName());
+        }
+        
+        if(TypeInfo.isFunc(type)) {
+            if(type.isKind(TypeKind.Func)) {
+                FuncTypeInfo funcInfo = type.as();
+                return escapeName(funcInfo.getMethodName());    
+            }
+            
             return escapeName(type.getName());
         }
         
         return type.getName();
+    }
+    
+    public static String baseTypeName(String name) {
+        int index = name.indexOf('<');
+        if(index < 0) {
+            return name;
+        }
+        
+        return name.substring(0, index);
     }
     
     public static String escapeName(String name) {
@@ -86,5 +105,43 @@ public class Names {
                 .replace(":", "_r_")
                 .replace(",", "_c_")
                 .replace(" ", "_");
+    }
+    
+    public static String methodName(TypeInfo recvInfo, String funcName) {
+        if(recvInfo == null) {
+            return funcName;
+        }
+        
+        String recvName = null;
+        
+        recvInfo = recvInfo.getResolvedType();
+        switch(recvInfo.getKind()) {
+            case Ptr: {
+                PtrTypeInfo ptrInfo = recvInfo.as();
+                recvName = ptrInfo.getBaseType().getName();
+                break;
+            }
+            case Array: {
+                ArrayTypeInfo arrayInfo = recvInfo.as();
+                recvName = arrayInfo.getBaseType().getName();
+                break;
+            }
+            case Str: {
+                recvName = "String";                    
+                break;
+            }
+            case Const: {
+                ConstTypeInfo constInfo = recvInfo.as();
+                recvName = constInfo.getBaseType().getName();
+                break;
+            }
+            default: {
+                recvName = recvInfo.getName();
+                break;
+            }
+        }
+        
+        recvName = escapeName(baseTypeName(recvName));        
+        return String.format("%s_%s", recvName, funcName);
     }
 }

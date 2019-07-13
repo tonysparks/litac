@@ -12,61 +12,27 @@
         }
     '''
     tests: [                           
-        /*{
-            name: "Enum asStr", 
-            definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+        
+        { 
+            name: "Method definition order",
+            definitions: '''                                
+                struct Test {
+                    x: i32
+                }
                 
-                @asStr
-                enum Test {
-                    A,
-                    B
+                
+                func (t: Test*) a() : i32 {
+                    return t.b()
+                }
+                
+                func (t: Test*) b() : i32 {
+                    return t.x
                 }
             ''',                       
-            code: '''
-                
-                assert(Test.A == 0)
-                assert(strcmp(TestAsStr(Test.A), "A") == 0)
-            ''',
-        },
-        {
-            name: "Enum asStr with name", 
-            definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
-                
-                @asStr("ToStr")
-                enum Test {
-                    A,
-                    B
-                }
-            ''',                       
-            code: '''
-                
-                assert(Test.A == 0)
-                assert(strcmp(ToStr(Test.A), "A") == 0)
-            ''',
-        },*/
-        {
-            name: "Enum inside struct", 
-            definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
-                
-                struct X {
-                    @asStr("ToStr")
-                    enum Test {
-                        A,
-                        B
-                    }
-                }
-            ''',                       
-            code: '''
-                
-                assert(Test.A == 0)
-                assert(strcmp(ToStr(Test.A), "A") == 0)
-            ''',
+            code: '''         
+                var t = Test{4}                            
+                assert(t.a() == 4)
+            ''',                      
         },
     ]
 }

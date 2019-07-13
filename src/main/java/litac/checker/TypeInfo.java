@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import litac.ast.Decl.ParameterDecl;
 import litac.ast.Expr;
+import litac.util.Names;
 
 
 /**
@@ -34,6 +35,9 @@ public abstract class TypeInfo {
     public static final TypeInfo F64_TYPE  = new PrimitiveTypeInfo("f64", TypeKind.f64);
     public static final TypeInfo NULL_TYPE = new NullTypeInfo();
     public static final TypeInfo VOID_TYPE = new VoidTypeInfo();
+    
+    public static final int FUNC_ISVARARG_FLAG = (1<<0);
+    public static final int FUNC_ISMETHOD_FLAG = (1<<1);
     
     public static TypeInfo copy(TypeInfo type) {
         if(type != null) {
@@ -132,6 +136,10 @@ public abstract class TypeInfo {
             case Identifier: {
                 IdentifierTypeInfo idType = type.as();
                 return isInteger(idType.getResolvedType());
+            }
+            case Const: {
+                ConstTypeInfo constInfo = type.as();
+                return isInteger(constInfo.constOf);
             }
             case Bool:
             case Char:
@@ -721,27 +729,52 @@ public abstract class TypeInfo {
     public static class FuncTypeInfo extends GenericTypeInfo {
         public TypeInfo returnType;
         public List<ParameterDecl> parameterDecls;
-        public boolean isVararg;
+        public int flags;
         
         public FuncTypeInfo(String name, 
                             TypeInfo returnType, 
                             List<ParameterDecl> parameterDecls, 
-                            boolean isVararg,
+                            int flags,
                             List<GenericParam> genericParams) {
             super(TypeKind.Func, name, genericParams);
             this.returnType = returnType;
             this.parameterDecls = parameterDecls;
-            this.isVararg = isVararg;
+            this.flags = flags;
+        }
+                
+        public static String getMethodName(TypeInfo recvInfo, String funcName) {            
+            return Names.methodName(recvInfo, funcName);
         }
         
+        public TypeInfo getReceiverType() {
+            if(this.parameterDecls.isEmpty() || !isMethod()) {
+                return null;
+            }
+            
+            return this.parameterDecls.get(0).type;
+        }
+        
+        public String getMethodName() {
+            TypeInfo recvInfo = getReceiverType();
+            return getMethodName(recvInfo, getName());
+        }
+        
+        public boolean isVararg() {
+            return (this.flags & FUNC_ISVARARG_FLAG) > 0;
+        }
+        
+        public boolean isMethod() {
+            return (this.flags & FUNC_ISMETHOD_FLAG) > 0;
+        }
+                
         public FuncPtrTypeInfo asPtr() {
             List<TypeInfo> params = this.parameterDecls.stream().map(p -> p.type).collect(Collectors.toList());
-            return new FuncPtrTypeInfo(this.returnType, params, this.isVararg, new ArrayList<>(this.genericParams));
+            return new FuncPtrTypeInfo(this.returnType, params, isVararg(), new ArrayList<>(this.genericParams));
         }
         
         @Override
         protected TypeInfo doCopy() {
-            return new FuncTypeInfo(this.name, this.returnType.copy(), this.parameterDecls, this.isVararg, new ArrayList<>(this.genericParams));
+            return new FuncTypeInfo(this.name, this.returnType.copy(), this.parameterDecls, this.flags, new ArrayList<>(this.genericParams));
         }
         
         @Override
@@ -761,7 +794,7 @@ public abstract class TypeInfo {
                     return false;
                 }
                 
-                if(this.isVararg != funcType.isVararg) {
+                if(this.isVararg() != funcType.isVararg) {
                     return false;
                 }
                 
@@ -806,7 +839,7 @@ public abstract class TypeInfo {
                 isFirst = false;
             }
             
-            if(this.isVararg) {
+            if(this.isVararg()) {
                 if(!isFirst) {
                     params.append(",");
                 }
@@ -849,7 +882,7 @@ public abstract class TypeInfo {
                     return false;
                 }
                 
-                if(this.isVararg != funcType.isVararg) {
+                if(this.isVararg != funcType.isVararg()) {
                     return false;
                 }
                 
@@ -1024,12 +1057,17 @@ public abstract class TypeInfo {
                 
         @Override
         public String getName() {
-            return ptrOf.getName() + "*";
+            return ptrOf.getResolvedType().getName() + "*";
         }
         
         @Override
         public String toString() {    
-            return ptrOf.toString() + "*";
+            return ptrOf.getResolvedType().toString() + "*";
+        }
+        
+        @Override
+        public boolean isResolved() {
+            return ptrOf.isResolved();
         }
                 
         @Override
@@ -1106,7 +1144,7 @@ public abstract class TypeInfo {
                 
         @Override
         public String getName() {
-            return this.constOf.getName() + " const";
+            return this.constOf.getResolvedType().getName() + " const";
         }
         
         @Override
@@ -1114,7 +1152,12 @@ public abstract class TypeInfo {
             return getName();
         }
         
-        public TypeInfo baseOf() {
+        @Override
+        public boolean isResolved() {
+            return constOf.isResolved();
+        }
+        
+        public TypeInfo getBaseType() {
             switch(constOf.getKind()) {
                 case Ptr: {
                     PtrTypeInfo ptrInfo = constOf.as();
@@ -1184,12 +1227,17 @@ public abstract class TypeInfo {
         
         @Override
         public String getName() {        
-            return arrayOf.getName() + "[]";
+            return arrayOf.getResolvedType().getName() + "[]";
         }
         
         @Override
         public String toString() {
-            return String.format("[%s]%s", this.length > -1 ? String.valueOf(this.length) : "", arrayOf.getName());
+            return String.format("[%s]%s", this.length > -1 ? String.valueOf(this.length) : "", arrayOf.getResolvedType().getName());
+        }
+        
+        @Override
+        public boolean isResolved() {
+            return arrayOf.isResolved();
         }
         
         @Override

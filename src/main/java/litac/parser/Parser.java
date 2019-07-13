@@ -226,10 +226,19 @@ public class Parser {
             returnType = type(false);
         }
         
+        int flags = 0;
+        if(parameters.isVararg) {
+            flags |= TypeInfo.FUNC_ISVARARG_FLAG;
+        }
+        
+        if(objectParam != null) {
+            flags |= TypeInfo.FUNC_ISMETHOD_FLAG;
+        }
+        
         TypeInfo type = new FuncTypeInfo(identifier.getText(), 
                                          returnType, 
                                          parameters.params, 
-                                         parameters.isVararg,
+                                         flags,
                                          genericParams);
         
         Stmt body;
@@ -406,7 +415,7 @@ public class Parser {
                     consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
                 }     
                 
-                notes.add(node(new NoteStmt(new Note(identifier.getText(), attributes))));
+                notes.add(node(new NoteStmt(identifier.getText(), attributes)));
             }
         }
         
@@ -503,21 +512,21 @@ public class Parser {
                 advance();
                 
                 StructDecl struct = structDeclaration();
-                struct.addNotes(notes);
+                struct.attributes.addNotes(notes);
                 return node(new StructFieldStmt(struct));
             }
             case UNION: {
                 advance();
                 
                 UnionDecl union = unionDeclaration();
-                union.addNotes(notes);
+                union.attributes.addNotes(notes);
                 return node(new UnionFieldStmt(union));                
             }
             case ENUM: {
                 advance();
                 
                 EnumDecl enm = enumDeclaration();
-                enm.addNotes(notes);
+                enm.attributes.addNotes(notes);
                 return node(new EnumFieldStmt(enm));
             }
             default:
@@ -984,13 +993,22 @@ public class Parser {
         
         Expr expr = null;
         
-        Token t = peek();        
-        if(t.getType().isPrimitiveToken() || t.getType().equals(LEFT_BRACKET)) {            
+        int backtrack = this.current;
+        
+        if(hasParen) {            
             TypeInfo type = type();
-            expr = new IdentifierExpr(type.getName(), type);
+            
+            // check to see if this is an enum type (or a field expression)
+            if(check(DOT)) {
+                this.current = backtrack;
+                expr = unary();
+            }
+            else {
+                expr = new IdentifierExpr(type.getName(), type);
+            }
         }
         else {
-            expr = expression();
+            expr = unary();
         }
                 
         if(hasParen) {

@@ -3,7 +3,6 @@
  */
 package litac.ast;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import litac.checker.*;
@@ -37,35 +36,6 @@ public abstract class Decl extends Stmt {
         this.type = type;
         this.name = name;
         this.attributes = new Attributes();
-    }
-    
-    public Note getNote(String name) {
-        if(this.attributes.notes == null) {
-            return null;
-        }
-        
-        return this.attributes.notes.stream()
-                    .filter(n -> n.note.name.equals(name))
-                    .findFirst()
-                    .map(n -> n.note)
-                    .orElse(null);
-    }
-        
-    public void addNote(Note note) {
-        if(this.attributes.notes == null) {
-            this.attributes.notes = new ArrayList<>();
-        }
-        
-        this.attributes.notes.add(new NoteStmt(note));
-    }
-    
-    public void addNotes(List<NoteStmt> notes) {
-        if(notes != null) {
-            if(this.attributes.notes == null) {
-                this.attributes.notes = new ArrayList<>();
-            }
-            this.attributes.notes.addAll(notes);
-        }
     }
     
     public static class VarDecl extends Decl {

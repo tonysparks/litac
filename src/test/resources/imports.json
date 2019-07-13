@@ -12,25 +12,6 @@
         }
     '''
     tests: [           
-       {
-            name: "Array Import", 
-            definitions: '''
-                import "array";
-                
-                struct Sprite {
-                    a: i32
-                }
-                
-                struct Test {
-                    sprites: Array<Sprite>
-                }
-            ''',                       
-            code: '''
-                var t = Test{}
-                ArrayInit(&t.sprites, 16)
-
-            ''',
-        },
 		{
             name: "Generics call generic func ptr in struct field",
             definitions: '''                

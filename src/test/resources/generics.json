@@ -157,6 +157,20 @@
             error: "illegal, left operand has type 'Test'"                      
         },
         {
+            name: "Generics via Sizeof with lt expr",
+            definitions: '''                
+                struct Test {
+                    u: i32
+                }
+                            
+            ''',                       
+            code: '''                
+                var b = 1
+                var c = sizeof Test < b > 0     
+                assert(c == false)                                          
+            ''',
+        },
+        {
             name: "Break Generics via Sizeof",
             definitions: '''                
                 struct Test {
@@ -166,9 +180,10 @@
             ''',                       
             code: '''                
                 var b = 1
-                var c = sizeof(Test < b > 0)                                               
+                var c = sizeof (Test < b > 0)     
+                assert(c == false)                                          
             ''',
-            error: "illegal, left operand has type 'Test'"                      
+            error: "Missing )"                      
         },
         {
             name: "ReadME Generics",

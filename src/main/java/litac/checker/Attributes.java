@@ -3,6 +3,7 @@
  */
 package litac.checker;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import litac.ast.Stmt.NoteStmt;
@@ -38,6 +39,35 @@ public class Attributes {
     }
     
     public boolean isForeign() {
-        return this.notes != null && this.notes.stream().anyMatch(n -> n.note.name.equals("foreign"));
+        return this.notes != null && this.notes.stream().anyMatch(n -> n.name.equals("foreign"));
+    }
+    
+    public NoteStmt getNote(String name) {
+        if(this.notes == null) {
+            return null;
+        }
+        
+        return this.notes.stream()
+                    .filter(n -> n.name.equals(name))
+                    .findFirst()
+                    .orElse(null);
+    }
+    
+    
+    public void addNote(NoteStmt note) {
+        if(this.notes == null) {
+            this.notes = new ArrayList<>();
+        }
+        
+        this.notes.add(note);
+    }
+    
+    public void addNotes(List<NoteStmt> notes) {
+        if(notes != null) {
+            if(this.notes == null) {
+                this.notes = new ArrayList<>();
+            }
+            this.notes.addAll(notes);
+        }
     }
 }

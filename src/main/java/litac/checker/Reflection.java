@@ -55,7 +55,7 @@ public class Reflection {
         Symbol sym = typeModule.currentScope().getSymbol("typeInfos");
         if(sym.decl instanceof ConstDecl) {
             ConstDecl typeInfoArray = (ConstDecl)sym.decl;
-            typeInfoArray.attributes.notes.removeIf(n -> n.note.name.equals("foreign"));
+            typeInfoArray.attributes.notes.removeIf(n -> n.name.equals("foreign"));
             
             IdentifierExpr idExpr = new IdentifierExpr("typeTable", typeTable.sym.getType());
             idExpr.sym = typeTable.sym;
@@ -68,7 +68,7 @@ public class Reflection {
         Symbol size = typeModule.currentScope().getSymbol("numOfTypeInfos");
         if(size.decl instanceof ConstDecl) {
             ConstDecl sizeValue = (ConstDecl)size.decl;
-            sizeValue.attributes.notes.removeIf(n -> n.note.name.equals("foreign"));
+            sizeValue.attributes.notes.removeIf(n -> n.name.equals("foreign"));
             sizeValue.expr = new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(numOfTypeInfos));
             size.removeForeign();
         }

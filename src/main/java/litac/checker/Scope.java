@@ -7,7 +7,6 @@ import java.util.*;
 
 import litac.ast.Decl;
 import litac.ast.Decl.*;
-import litac.ast.Stmt.NoteStmt;
 import litac.checker.TypeInfo.TypeKind;
 import litac.util.Names;
 
@@ -98,16 +97,7 @@ public class Scope {
         
 
     private boolean isForeign(Decl d) {
-        boolean isForeign = false;
-        if(d.attributes.notes != null) {
-            for(NoteStmt n : d.attributes.notes) {
-                if(n.note.name.equalsIgnoreCase("foreign")) {
-                    isForeign = true;
-                }
-            }
-        }
-        
-        return isForeign;            
+        return d.attributes.isForeign();
     }
     
     

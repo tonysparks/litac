@@ -82,18 +82,8 @@ public class FieldPath {
         return this.targetField.field;
     }
     
-    private FieldInfo getField(String field, AggregateTypeInfo aggInfo) {
-        for(FieldInfo f : aggInfo.fieldInfos) {
-            if(f.name.equals(field)) {
-                return f;
-            }                
-        }
-        
-        return null;
-    }
-    
     private List<FieldPathNode> findPath(AggregateTypeInfo ownerInfo, String field) {
-        FieldInfo f = getField(field, ownerInfo);
+        FieldInfo f = ownerInfo.getField(field);
         if(f != null) {
             return Arrays.asList(new FieldPathNode(ownerInfo, f));
         }

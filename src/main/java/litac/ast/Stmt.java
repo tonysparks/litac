@@ -99,10 +99,20 @@ public abstract class Stmt extends Node {
     
 
     public static class NoteStmt extends Stmt {
-        public Note note;
+        public final String name;
+        public final List<String> attributes;
         
-        public NoteStmt(Note note) {
-            this.note = note;
+        public NoteStmt(String name, List<String> attributes) {
+            this.name = name;
+            this.attributes = attributes;
+        }
+        
+        public String getAttr(int index, String defaultValue) {
+            if(this.attributes == null || this.attributes.size() <= index) {
+                return defaultValue;
+            }
+            
+            return this.attributes.get(index);
         }
         
         @Override
@@ -112,7 +122,7 @@ public abstract class Stmt extends Node {
         
         @Override
         protected Node doCopy() {            
-            return new NoteStmt(this.note);
+            return new NoteStmt(this.name, this.attributes);
         }
     }
     
