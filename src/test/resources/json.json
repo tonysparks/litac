@@ -1,0 +1,63 @@
+{
+    description: "Json",
+    disabled: false,
+    program: '''                
+        @include("assert.h");
+        @foreign func assert(e:bool):void;
+        
+        %definitions%
+        
+        func main(len:i32, args:char**):i32 {
+            %test%
+        }
+    '''
+    tests: [                           
+        {
+            name: "Json Parse",
+           // disabled: true, 
+            definitions: '''
+                @include("<string.h>");
+                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                
+                import "json";
+                import "string_buffer";
+                import "io";
+                
+            ''',                       
+            code: '''
+                var data: char*;                
+                var status = readFile("C:/Users/antho/git/mini/assets/mini_city.json", &data)
+                if(status) {
+                    printf("Failed to open\n")
+                    return 1;
+                }
+                
+                var buf : StringBuffer;
+                buf.init(16)
+                
+                var n = Parse(data)
+               // buf.clear()
+                PrintJson(n, &buf)
+                printf("%s\n", buf.cStr())
+                 /*
+                var node = Parse("""
+                    [
+                         true, 4, "hi", 34343, null, [5],
+                         {
+                            "k" : "v"
+                         }
+                        
+                    ]
+                """)
+                
+                
+                buf.append("\n")
+                //buf.clear()
+                PrintJson(node, &buf)
+                
+                printf("%s\n", buf.cStr())
+                node.free()*/
+            ''',
+        },
+    ]
+}

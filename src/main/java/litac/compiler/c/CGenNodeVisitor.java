@@ -43,6 +43,7 @@ public class CGenNodeVisitor implements NodeVisitor {
     private Module main;
     private Program program;    
     
+    private Stack<FuncTypeInfo> currentFuncType;
     private Stack<Stack<DeferStmt>> defers;
     private int aggregateLevel;
     
@@ -56,6 +57,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         
         this.main = program.getMainModule();
         this.declarations = new ArrayList<>();
+        this.currentFuncType = new Stack<>();
         
         this.writtenModules = new HashSet<>();
         this.defers = new Stack<>();
@@ -704,27 +706,17 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     private void writeEnumStrFunc(String name, EnumDecl d) {
         NoteStmt asStr = d.attributes.getNote("asStr");
-        if(asStr != null) {
-            int size = d.fields.size();
+        if(asStr != null) {            
             buf.outln();
-            buf.out("const char* __%s_%s_AsStr(%s __e) {", d.sym.declared.name(), d.name, name);
-            buf.out("if(__e < 0 || __e >= %d) {", size);
-            buf.out("return \"\";");
-            buf.out("}\n");
-            buf.out("static const char* _str[%d] = {", size);
-            
-            boolean isFirst = true;
-            for(EnumFieldInfo f : d.fields) {
-                if(!isFirst) buf.out(",\n");
-                
-                buf.out("[%s_%s] = \"%s\"", name, f.name, f.name);
-                isFirst = false;
+            buf.out("const char* __%s_%s_AsStr(%s __e) {", d.sym.declared.name(), d.name, name);            
+            buf.out("switch(__e) {");            
+            for(EnumFieldInfo f : d.fields) {                                
+                buf.out("case %s_%s: return \"%s\";\n", name, f.name, f.name);                
             }
-            buf.out("};\n");
-            
-            buf.out("return _str[__e];");
-            
+            buf.out("default: return \"\";");
+            buf.out("}\n");            
             buf.out("}");
+            
             buf.outln();
         }
     }
@@ -775,6 +767,7 @@ public class CGenNodeVisitor implements NodeVisitor {
 
         visitNotes(d.attributes.notes);
         
+        currentFuncType.add(funcInfo);
         buf.outln();
         
         if(d.returnType.isKind(TypeKind.FuncPtr)) {
@@ -834,6 +827,8 @@ public class CGenNodeVisitor implements NodeVisitor {
         d.bodyStmt.visit(this);
         if(!isBlock) buf.out("}");
         buf.outln();
+        
+        currentFuncType.pop();
     }
 
 
@@ -1053,8 +1048,12 @@ public class CGenNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(ReturnStmt stmt) {
-        if(!this.defers.isEmpty() && this.defers.stream().anyMatch(s->!s.isEmpty()) && stmt.returnExpr != null) {
-            TypeInfo type = stmt.returnExpr.getResolvedType().getResolvedType();
+        if(!this.defers.isEmpty() && 
+            this.defers.stream().anyMatch(s->!s.isEmpty()) && 
+            stmt.returnExpr != null) {
+            
+            //TypeInfo type = stmt.returnExpr.getResolvedType().getResolvedType();
+            TypeInfo type = this.currentFuncType.peek().returnType.getResolvedType();
             buf.out("{\n%s = ", typeDeclForC(type, "___result"));
             stmt.returnExpr.visit(this);
             buf.out(";\n");
@@ -1232,7 +1231,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         escapeChars.put('\t', "\\t");
         //escapeChars.put('\v', "\\v");
         escapeChars.put('\\', "\\\\");
-        //escapeChars.put('\'', "\\'");
+        escapeChars.put('\'', "\\'");
         escapeChars.put('\"', "\\\"");
         //escapeChars.put('\?', "\\?");
         escapeChars.put('\0', "\\0");

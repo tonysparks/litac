@@ -1,0 +1,842 @@
+import "mem" as mem;
+import "assert";
+import "io";
+import "string_buffer";
+import "map";
+import "array";
+
+@include("<ctype.h>");
+@include("<stdlib.h>");
+@include("<math.h>");
+
+@foreign const HUGE_VAL: f64;
+@foreign const ULLONG_MAX: i64;
+@foreign func isdigit(arg: i32) : i32;
+@foreign func tolower(arg: i32) : i32;
+@foreign func isalnum(arg: i32) : i32;
+@foreign func isspace(arg: i32) : i32;
+
+@foreign func strtod(str: char const*, end: char**) : f64;
+
+@foreign struct va_list;
+@foreign func va_start(args: va_list, format: char const*);
+@foreign func va_end(args: va_list);
+@foreign const stderr : FILE*;
+@foreign const stdout : FILE*;
+@foreign func vfprintf(f:FILE*, format: char const*, args: va_list);
+
+@asStr
+public enum JsonType {
+    NULL,
+    BOOLEAN,
+    NUMBER,
+    STRING,
+    OBJECT,
+    ARRAY,
+}
+
+
+public union JsonValue {
+    boolValue: bool
+    doubleValue: f64
+    strValue: char const*
+    len: i32
+
+    /*
+    struct objValue {
+        child: JsonNode*
+        len: i32
+    }*/
+}
+
+public struct JsonNode {
+    alloc: mem::Allocator const*
+    type: JsonType
+    value: using JsonValue
+    
+    name: char const*  // if this is an object entry, it will have a key name
+    next: JsonNode*    // if this is an Array or Obj, this denotes the next node in the list|map
+    union {            // used for start of obj or array children, also object key's map to their value
+        keyValue: JsonNode*   
+        array:    JsonNode*
+        obj:      JsonNode*
+    }
+}
+
+public func (node: JsonNode*) free() {
+    if(node) {
+        //printf("Deleting: %s\n", JsonTypeAsStr(node.type))
+        var alloc = node.alloc
+        switch(node.type) {
+            case JsonType.ARRAY: {
+                var n = node.array
+                while(n) {
+                    var x = n.next
+                    n.free()
+
+                    n = x
+                }
+                break;
+            }
+            case JsonType.OBJECT: {
+                var n = node.obj                
+                while(n) {
+                    n.keyValue.free()
+                    var x = n.next
+                    n.free()
+
+                    n = x
+                }
+                break;
+            }
+            case JsonType.STRING: {
+                alloc.free(node.value.strValue as (void*))
+                break;
+            }
+            default:
+        }
+
+        alloc.free(node as (void*))
+    }
+}
+
+/*
+public const JSON_NULL = &JsonNode {
+    .alloc: null,    
+    .type: JsonType.NULL,
+    .value: JsonValue {0},
+    .name: "null",
+    .next: null,
+    .obj: null
+}
+
+public const JSON_TRUE = &JsonNode {
+    .alloc: null,
+    .type: JsonType.BOOLEAN,
+    .value: JsonValue {.boolValue = true},
+    .name: "true",
+    .next: null,
+    .obj: null
+}
+
+public const JSON_FALSE = &JsonNode {
+    .alloc: null,    
+    .type: JsonType.BOOLEAN,
+    .value: JsonValue {.boolValue = false},
+    .name: "false",
+    .next: null,
+    .obj: null
+}*/
+
+
+
+enum TokenKind {
+    EOF,    
+    ERROR,
+    COMMA,
+    COLON,
+    LEFT_BRACE,
+    RIGHT_BRACE,
+    LEFT_BRACKET,
+    RIGHT_BRACKET,
+    NULL,
+    NUMBER,
+    TRUE,
+    FALSE,
+    STRING,
+}
+
+const tokenKindNames = []char const* {
+    [TokenKind.EOF] = "EOF",
+    [TokenKind.ERROR] = "ERROR",
+    [TokenKind.COMMA] = ",",
+    [TokenKind.COLON] = ":",
+    [TokenKind.LEFT_BRACE] = "{",
+    [TokenKind.RIGHT_BRACE] = "}",
+    [TokenKind.LEFT_BRACKET] = "[",
+    [TokenKind.RIGHT_BRACKET] = "]",
+    [TokenKind.NULL] = "null",
+    [TokenKind.NUMBER] = "number",
+    [TokenKind.TRUE] = "true",
+    [TokenKind.FALSE] = "false",
+    [TokenKind.STRING] = "string",
+}
+
+
+const charToDigit = [256]i32 {
+    ['0'] = 0,
+    ['1'] = 1,
+    ['2'] = 2,
+    ['3'] = 3,
+    ['4'] = 4,
+    ['5'] = 5,
+    ['6'] = 6,
+    ['7'] = 7,
+    ['8'] = 8,
+    ['9'] = 9,
+    ['a'] = 10, ['A'] = 10,
+    ['b'] = 11, ['B'] = 11,
+    ['c'] = 12, ['C'] = 12,
+    ['d'] = 13, ['D'] = 13,
+    ['e'] = 14, ['E'] = 14,
+    ['f'] = 15, ['F'] = 15,
+};
+
+const escapeToChar = [256]char {
+    ['0'] = '\0',
+    ['\''] = '\'',
+    ['"'] = '"', 
+    ['\\'] = '\\',
+    ['n'] = '\n',
+    ['r'] = '\r',
+    ['t'] = '\t',
+    //['v'] = '\v',
+  //  ['b'] = '\b',
+  //  ['a'] = '\a',
+};
+
+
+struct SrcPos {
+    name: char const*
+    line: i32
+}
+
+struct Token {
+    kind: TokenKind
+    pos: SrcPos
+    start: char const*
+    end: char const*
+
+    union {
+        numValue: f64
+        strValue: char const*
+        name: char const*
+    }
+}
+
+
+public enum ParserStatus {
+    OK = 0,
+    WARNING,
+    ERROR,
+}
+
+const MAX_MESSAGE_SIZE = 128
+
+public struct Parser {
+    alloc: mem::Allocator const*
+    status: ParserStatus
+    message: [MAX_MESSAGE_SIZE]char
+    token: Token
+    buffer: StringBuffer
+    stream: char const*
+    lineStart: char const*
+}
+
+public func Parse(buffer: char const*, alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+    var p = Parser{}
+    p.init(null, buffer, alloc)
+
+    var node = p.parseJson()
+    //printf("Type: %s\n", JsonTypeAsStr(node.type))
+    return node
+}
+
+public func PrintJson(node: JsonNode*, buf: StringBuffer*) {
+    if(!node) {
+        return;
+    }
+
+    //printf("Type: %s\n", JsonTypeAsStr(node.type))
+    //printf("Buf: '%s'\n", buf.cStr())
+
+    switch(node.type) {
+        case JsonType.NULL: {
+            buf.append("null")
+            break;
+        }
+        case JsonType.BOOLEAN: {
+            if(node.value.boolValue) buf.append("true")
+            else               buf.append("false")
+            break;
+        }
+        case JsonType.NUMBER: {
+            buf.append("%f", node.value.doubleValue)
+            break;
+        }
+        case JsonType.STRING: {
+            buf.append("\"%s\"", node.value.strValue)
+            break;
+        }
+        case JsonType.OBJECT: {
+            buf.append("{")
+            var n = node.obj
+            var isFirst = true
+            while(n) {
+                if(!isFirst) buf.append(",")
+
+                PrintJson(n, buf)
+                buf.append(":")
+                PrintJson(n.keyValue, buf)
+                isFirst = false
+
+                n = n.next
+            }
+            buf.append("}")
+            break;
+        }
+        case JsonType.ARRAY: {
+            buf.append("[")
+            var n = node.array
+            var isFirst = true
+            while(n) {
+                if(!isFirst) buf.append(",")
+                PrintJson(n, buf)                
+                isFirst = false
+
+                n = n.next
+            }
+            buf.append("]")
+            break;
+        }
+    }
+}
+
+func (p: Parser*) parseJson() : JsonNode* {    
+    switch(p.token.kind) {
+        case TokenKind.EOF: 
+            return null;
+        case TokenKind.ERROR:
+            // TODO
+            return null;
+        case TokenKind.TRUE:
+            p.nextToken()
+            return p.parseJsonTrue()
+        case TokenKind.FALSE:
+            p.nextToken()
+            return p.parseJsonFalse()
+        case TokenKind.NULL:
+            p.nextToken()
+            return p.parseJsonNull()                             
+        case TokenKind.NUMBER:
+            p.nextToken()
+            return p.parseJsonNumber()            
+        case TokenKind.STRING:
+            p.nextToken()
+            return p.parseJsonStr()
+        case TokenKind.LEFT_BRACE:
+            p.nextToken()
+            return p.parseJsonObject()
+        case TokenKind.LEFT_BRACKET:
+            p.nextToken()
+            return p.parseJsonArray()    
+        default:        
+    }
+
+    return null
+}
+
+func (p: using Parser*) parseJsonNull() : JsonNode* {
+    var node = mem::new<JsonNode>(p.alloc)
+    node.alloc = p.alloc
+    node.next = null
+    node.obj = null    
+    node.type = JsonType.NULL
+    node.value = JsonValue {0}
+
+    return node
+}
+
+
+func (p: using Parser*) parseJsonTrue() : JsonNode* {
+    var node = mem::new<JsonNode>(p.alloc)
+    node.alloc = p.alloc
+    node.next = null
+    node.obj = null    
+    node.type = JsonType.BOOLEAN
+    node.value = JsonValue {.boolValue = true}
+
+    return node
+}
+
+func (p: using Parser*) parseJsonFalse() : JsonNode* {
+    var node = mem::new<JsonNode>(p.alloc)
+    node.alloc = p.alloc
+    node.next = null
+    node.obj = null    
+    node.type = JsonType.BOOLEAN
+    node.value = JsonValue {.boolValue = false}
+
+    return node
+}
+
+func (p: using Parser*) parseJsonNumber() : JsonNode* {
+    var node = mem::new<JsonNode>(p.alloc)
+    node.alloc = p.alloc
+    node.next = null
+    node.obj = null
+    node.type = JsonType.NUMBER
+    node.value = JsonValue {
+        .doubleValue = token.numValue
+    }
+
+    return node
+}
+
+func (p: using Parser*) parseJsonStr() : JsonNode* {
+    var node = mem::new<JsonNode>(p.alloc)
+    node.alloc = p.alloc
+    node.next = null
+    node.obj = null
+    node.type = JsonType.STRING
+    node.value = JsonValue {
+        .strValue = token.strValue        
+    }
+
+    return node    
+}
+
+func (p: using Parser*) parseJsonArray() : JsonNode* {
+    var node = mem::new<JsonNode>(p.alloc)
+    node.alloc = p.alloc
+    node.next = null
+    node.array = null
+    node.type = JsonType.ARRAY
+    node.value = JsonValue {
+        .len = 0
+    }
+    
+    var current: JsonNode* = null
+
+    do {
+        if(p.check(TokenKind.RIGHT_BRACKET)) {
+            break;
+        }
+        var element = p.parseJson();
+        
+        if(!current) {
+            node.array = element
+            current = element
+        }
+        else {
+            current.next = element
+            current = element
+        }
+
+        node.value.len += 1;
+    }
+    while (p.match(TokenKind.COMMA));
+
+    p.expect(TokenKind.RIGHT_BRACKET)
+    return node     
+}
+func (p: using Parser*) parseJsonObject() : JsonNode* {
+    var node = mem::new<JsonNode>(p.alloc)
+    node.alloc = p.alloc
+    node.next = null
+    node.obj = null
+    node.type = JsonType.OBJECT
+    node.value = JsonValue { 
+        .len = 0        
+    }
+    
+    var current: JsonNode* = null
+
+    do {
+        if(p.check(TokenKind.RIGHT_BRACE)) {
+            break;
+        }
+
+        // TODO: Just parse text, and place on value
+        var key = p.parseJson();
+        p.expect(TokenKind.COLON)
+        var value = p.parseJson();
+        key.keyValue = value
+        
+        if(!current) {
+            node.obj = key
+            current = key
+        }
+        else {
+            current.next = key
+            current = key
+        }
+
+        node.value.len += 1;
+    }
+    while (p.match(TokenKind.COMMA));
+
+    p.expect(TokenKind.RIGHT_BRACE)
+    return node     
+}
+
+func TokenName(t: TokenKind) : char const* {
+    return tokenKindNames[t]
+}
+
+
+func error(format: char const*, ...) {
+    //printf("%s", format)
+    var args: va_list;
+    va_start(args, format);
+    
+    vfprintf(stdout, format, args);            
+    va_end(args);        
+}
+
+func fatalError(format: char const*, ...) {
+    var args: va_list;
+    va_start(args, format);
+    
+    vfprintf(stderr, format, args);            
+    va_end(args);        
+}
+
+func (p: using Parser*) scanInt() {
+    var base = 10;
+    var start_digits = stream;
+    if (*stream == '0') {
+        stream += 1;
+        if (tolower(*stream) == 'x') {
+            stream += 1;
+            //token.mod = MOD_HEX;
+            base = 16;
+            start_digits = stream;
+        } else if (tolower(*stream) == 'b') {
+            stream += 1;
+            //token.mod = MOD_BIN;
+            base = 2;
+            start_digits = stream;
+        } else if (isdigit(*stream)) {
+            //token.mod = MOD_OCT;
+            base = 8;
+            start_digits = stream;
+        }
+    }
+    var val: i64 = 0;
+    for (;;) {
+        if (*stream == '_') {
+            stream += 1;
+            continue;
+        }
+        var digit = charToDigit[(*stream) as (i32)];
+        if (digit == 0 && *stream != '0') {
+            break;
+        }
+        if (digit >= base) {
+            error("Digit '%c' out of range for base %d\n", *stream, base);
+            digit = 0;
+        }
+        if (val > (ULLONG_MAX - digit)/base) {
+            error("Integer literal overflow\n");
+            while (isdigit(*stream)) {
+                stream += 1;
+            }
+            val = 0;
+            break;
+        }
+        val = val*base + digit;
+        stream += 1;
+    }
+    if (stream == start_digits) {
+        error("Expected base %d digit, got '%c'\n", base, *stream);
+    }
+    token.kind = TokenKind.NUMBER; //TOKEN_INT;
+    token.numValue = val;
+
+    /*
+    if (tolower(*stream) == 'u') {
+        token.suffix = SUFFIX_U;
+        stream++;
+        if (tolower(*stream) == 'l') {
+            token.suffix = SUFFIX_UL;
+            stream++;
+            if (tolower(*stream) == 'l') {
+                token.suffix = SUFFIX_ULL;
+                stream++;
+            }
+        }
+    } else if (tolower(*stream) == 'l') {
+        token.suffix = SUFFIX_L;
+        stream++;
+        if (tolower(*stream) == 'l') {
+            token.suffix = SUFFIX_LL;
+            stream++;
+        }
+    }*/
+}
+
+func (p: using Parser*) scanFloat() {    
+    var start = p.stream;
+
+    while (isdigit(*stream)) {
+        stream+=1;
+    }
+    if (*stream == '.') {
+        stream+=1;
+    }
+    while (isdigit(*stream)) {
+        stream+=1;
+    }
+    if (tolower(*stream) == 'e') {
+        stream+=1;
+        if (*stream == '+' || *stream == '-') {
+            stream+=1;
+        }
+        if (!isdigit(*stream)) {
+            error("Expected digit after float literal exponent, found '%c'.\n", *stream);
+        }
+        while (isdigit(*stream)) {
+            stream+=1;
+        }
+    }
+    var val = strtod(start, null);
+    if (val == HUGE_VAL) {
+        error("Float literal overflow\n");
+    }
+    token.kind = TokenKind.NUMBER;
+    token.numValue = val;    
+}
+
+func (p: using Parser*) scanStr() {
+    //assert(*stream == '"');
+    stream+=1;
+    //var str: char* = null;
+    buffer.clear()
+
+    if (stream[0] == '"' && stream[1] == '"') {
+        stream += 2;
+        while (*stream) {
+            if (stream[0] == '"' && stream[1] == '"' && stream[2] == '"') {
+                stream += 3;
+                break;
+            }
+            if (*stream != '\r') {
+                // TODO: Should probably just read files in text mode instead.
+                //buf_push(str, *stream);
+                buffer.append("%c", *stream)
+            }
+            if (*stream == '\n') {
+                token.pos.line += 1;
+            }
+            stream += 1;
+        }
+        if (!*stream) {
+            error("Unexpected end of file within multi-line string literal\n");
+        }
+        //token.mod = MOD_MULTILINE;
+    } else {
+        while (*stream && *stream != '"' ) { //"
+            var val: char = *stream;
+            if (val == '\n') {
+                error("String literal cannot contain newline\n");
+                break;
+            } else if (val == '\\') {
+                stream += 1;
+                if (*stream == 'x') {
+                    //  TODO
+                    // val = scan_hex_escape();
+                } else {
+                    val = escapeToChar[(*stream) as (i32)];
+                    if (val == 0 && *stream != '0') {
+                        error("Invalid string literal escape '\\%c'\n", *stream);
+                    }
+                    stream += 1;
+                }
+            } else {
+                stream += 1;
+            }
+            //buf_push(str, val);
+            buffer.append("%c", val)
+        }
+        if (*stream) {
+            stream += 1;
+        } else {
+            error("Unexpected end of file within string literal\n");
+        }
+    }
+    //buf_push(str, 0);
+    token.kind = TokenKind.STRING;
+    token.strValue = mem::memduplicate(buffer.cStr() as (void const*), buffer.size() + 1, alloc) as (char const*);
+}
+
+
+func (p: using Parser*) nextToken() {    
+    //printf("nextToken: %s\n", TokenName(token.kind))
+repeat:
+    token.start = stream
+    switch(*stream) {
+        case ' ': 
+        case '\n': 
+        case '\r': 
+        case '\t': {
+      //  case '\v':
+            while (isspace(*stream)) {
+                if (*stream == '\n') {
+                    lineStart = stream;
+                    token.pos.line += 1;                    
+                }
+                stream += 1
+            }
+            goto repeat;        
+        }
+        case '"': { //"
+            p.scanStr();
+            break;
+        }
+        case '.':
+            if (isdigit(stream[1])) {
+                p.scanFloat();
+            } 
+            break;
+        case '0': 
+        case '1': 
+        case '2': 
+        case '3': 
+        case '4': 
+        case '5': 
+        case '6': 
+        case '7': 
+        case '8': 
+        case '9': {
+            while (isdigit(*stream)) {
+                stream += 1;
+            }
+            var c: char = *stream;
+            stream = token.start;
+            if (c == '.' || tolower(c) == 'e') {
+                p.scanFloat();
+            } else {
+                p.scanInt();
+            }
+            break;
+        }   
+        case 'n': {
+            stream += 1;
+            if(*stream == 'u') {
+                stream += 1            
+                if(*stream == 'l') {
+                    stream += 1            
+                    if(*stream == 'l') {
+                        stream += 1
+                        token.kind = TokenKind.NULL
+                        break
+                    }
+                }
+            }
+            token.kind = TokenKind.ERROR
+            break;
+        }
+        case 't': {
+            stream += 1;
+            if(*stream == 'r') {
+                stream += 1            
+                if(*stream == 'u') {
+                    stream += 1            
+                    if(*stream == 'e') {
+                        stream += 1
+                        token.kind = TokenKind.TRUE
+                        break
+                    }
+                }
+            }
+            token.kind = TokenKind.ERROR
+            break;
+        }
+        case 'f': {
+            stream += 1;
+            if(*stream == 'a') {
+                stream += 1            
+                if(*stream == 'l') {
+                    stream += 1            
+                    if(*stream == 's') {
+                        stream += 1            
+                        if(*stream == 'e') {
+                            stream += 1
+                            token.kind = TokenKind.FALSE
+                            break;
+                        }
+                    }
+                }
+            }
+            token.kind = TokenKind.ERROR
+            break;
+        }
+        case '\0':
+            token.kind = TokenKind.EOF
+            stream += 1;
+            break;
+        case '{':
+            token.kind = TokenKind.LEFT_BRACE
+            stream += 1;
+            break;
+        case '}':
+            token.kind = TokenKind.RIGHT_BRACE
+            stream += 1;
+            break;
+        case '[':
+            token.kind = TokenKind.LEFT_BRACKET
+            stream += 1;            
+            break;      
+        case ']':
+            token.kind = TokenKind.RIGHT_BRACKET
+            stream += 1;
+            break;
+        case ',':
+            token.kind = TokenKind.COMMA
+            stream += 1;
+            break;              
+        case ':':
+            token.kind = TokenKind.COLON
+            stream += 1;
+            break;
+        default:
+            error("Invalid '%c' token, skipping\n", *stream);
+            stream += 1;
+            token.kind = TokenKind.ERROR
+            //goto repeat;
+            break;
+        }
+        token.end = stream;
+}
+
+func (p: Parser*) init(name: char const*, buf: char const*, alloc: mem::Allocator const*) {
+    p.alloc = alloc
+    p.stream = buf
+    p.lineStart = p.stream
+    p.token.pos.name = name ? name : "<string>" as (char const*);
+    p.token.pos.line = 1
+    p.buffer.init(16)
+
+    p.nextToken()
+}
+
+func (p: Parser*) check(kind: TokenKind) : bool {
+    return p.token.kind == kind
+}
+
+func (p: Parser*) eof() : bool {
+    return p.token.kind == TokenKind.EOF
+}
+
+func (p: Parser*) match(kind: TokenKind) : bool {
+    if(!p.check(kind)) {
+        return false
+    }
+
+    p.nextToken()
+    return true    
+}
+
+
+func (p: Parser*) expect(kind: TokenKind) : bool {
+    if(!p.check(kind)) {
+        fatalError("Expected token %s, got %s\n", TokenName(kind), TokenName(p.token.kind));
+        return false
+    }
+
+    p.nextToken()
+    return true    
+}
+
+

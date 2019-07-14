@@ -1008,6 +1008,21 @@ public abstract class TypeInfo {
                 }
             }
             
+            if(target.isKind(TypeKind.Array)) {
+                ArrayTypeInfo arrayInfo = target.as();
+                if(arrayInfo.arrayOf.isKind(TypeKind.Char)) {
+                    if(arrayInfo.length > 0) {
+                        // TODO length check??
+                        if(arrayInfo.length < this.str.length() + 1) {
+                            // error?? 
+                        }
+                    }
+                    return true;
+                }
+                
+                return false;
+            }
+            
             if(target.isKind(TypeKind.Bool)) {
                 return true;
             }

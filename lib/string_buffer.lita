@@ -88,7 +88,7 @@ public func (b: StringBuffer*) append(format: char const*, ...) : i32 {
     const MAX_BUFFER_SIZE = 32;
 
     // ensure we have enough of a buffer initially
-    if(b.length + MAX_BUFFER_SIZE > b.capacity) {
+    if(b.length + MAX_BUFFER_SIZE >= b.capacity) {
         BufferGrow(b, MAX_BUFFER_SIZE)        
     }
 
@@ -105,6 +105,7 @@ public func (b: StringBuffer*) append(format: char const*, ...) : i32 {
     // fixed-size buffer just in case the final string fits in it
     var len = vsnprintf(&b.buffer[b.length], MAX_BUFFER_SIZE, format, args1);
     va_end(args1);
+
 
     // if it didn't fit, expand the buffer for the necessary length
     if (len >= MAX_BUFFER_SIZE) {        
@@ -232,7 +233,7 @@ public func (b: StringBuffer*) insert(index: i32, format: char const*, ...) : i3
     }
 
     // ensure we have enough of a buffer initially
-    if(b.length + MAX_BUFFER_SIZE > b.capacity) {
+    if(b.length + MAX_BUFFER_SIZE >= b.capacity) {
         BufferGrow(b, MAX_BUFFER_SIZE)        
     }
 

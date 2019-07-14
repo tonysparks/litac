@@ -32,3 +32,15 @@ public func new<T>(a: Allocator const* = null) : T* {
     
     return a.alloc(sizeof(T)) as (T*)
 }
+
+
+public func memduplicate(p: void const*, len: u64, a: Allocator const* = null) : void* {
+    if(!a) {
+        a = cAllocator
+    }
+
+    var copy = a.alloc(len)
+    memcpy(copy, p, len)
+
+    return copy
+}

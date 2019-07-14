@@ -480,6 +480,10 @@ public class Parser {
     private BlockStmt blockStatement() {
         List<Stmt> stmts = new ArrayList<>();
         
+        if(this.breakLevel > 0) {
+            this.breakLevel--;
+        }
+        
         do {
             if(check(RIGHT_BRACE)) {
                 break;
@@ -608,7 +612,7 @@ public class Parser {
         
         List<Stmt> stmts = new ArrayList<>();
         
-        int breakCount = this.breakLevel;
+//        int breakCount = this.breakLevel;
         while(!isAtEnd()) {
             if(check(RIGHT_BRACE) ||
                check(CASE) ||
@@ -617,6 +621,33 @@ public class Parser {
             }
             
             Stmt stmt = statement();
+            match(SEMICOLON);
+            
+            stmts.add(stmt);
+                       
+//            if(breakCount != this.breakLevel) {
+//                this.breakLevel--;
+//                break;
+//            }
+        }
+        
+        return node(new SwitchCaseStmt(cond, stmts.isEmpty() 
+                            ? new EmptyStmt() : new BlockStmt(stmts)));
+    }
+    
+    private Stmt defaultStmt() {
+        List<Stmt> stmts = new ArrayList<>();
+        
+        int breakCount = this.breakLevel;
+        while(!isAtEnd()) {
+            if(check(RIGHT_BRACE) ||
+               check(CASE)) {
+                break;
+            }
+            
+            Stmt stmt = statement();
+            match(SEMICOLON);
+            
             stmts.add(stmt);
                        
             if(breakCount != this.breakLevel) {
@@ -625,8 +656,7 @@ public class Parser {
             }
         }
         
-        return node(new SwitchCaseStmt(cond, stmts.isEmpty() 
-                            ? new EmptyStmt() : new BlockStmt(stmts)));
+        return node(new BlockStmt(stmts));
     }
     
     private SwitchStmt switchStmt() {
@@ -644,10 +674,14 @@ public class Parser {
         while(!isAtEnd()) {
             if(match(CASE)) {
                 caseStmts.add(switchCaseStmt());
+                
+                match(SEMICOLON);
             }
             else if(match(DEFAULT)) {
                 consume(COLON, ErrorCode.MISSING_COLON);
-                defaultStmt = statement();
+                defaultStmt = defaultStmt();
+                
+                match(SEMICOLON);
             }
             else {
                 break;
@@ -670,9 +704,9 @@ public class Parser {
         }
         
         if(this.switchLevel > 0 && this.loopLevel < 1) {
-            if(this.breakLevel > 0) {
-                throw error(previous(), ErrorCode.INVALID_BREAK);
-            }
+//            if(this.breakLevel > 0) {
+//                throw error(previous(), ErrorCode.INVALID_BREAK);
+//            }
             
             this.breakLevel++;
         }
@@ -1225,6 +1259,9 @@ public class Parser {
             Expr expr = expression();
             
             if(expr instanceof NumberExpr) {
+                lengthExpr = expr;
+            }
+            else if(expr instanceof CharExpr) {
                 lengthExpr = expr;
             }
             else if(expr instanceof IdentifierExpr) {

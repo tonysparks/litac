@@ -28,6 +28,26 @@
                 
                 assert(Test.A == 0)
                 assert(strcmp(TestAsStr(Test.A), "A") == 0)
+                assert(strcmp(TestAsStr(Test.B), "B") == 0)
+            ''',
+        },
+        {
+            name: "Enum Big asStr", 
+            definitions: '''
+                @include("<string.h>");
+                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                
+                @asStr
+                enum Test {
+                    A = 0,
+                    B = 1024
+                }
+            ''',                       
+            code: '''
+                
+                assert(Test.A == 0)
+                assert(strcmp(TestAsStr(Test.A), "A") == 0)
+                assert(strcmp(TestAsStr(Test.B), "B") == 0)
             ''',
         },
         {
@@ -46,6 +66,7 @@
                 
                 assert(Test.A == 0)
                 assert(strcmp(ToStr(Test.A), "A") == 0)
+                assert(strcmp(ToStr(Test.B), "B") == 0)
             ''',
         },
         {
@@ -66,6 +87,7 @@
                 
                 assert(Test.A == 0)
                 assert(strcmp(ToStr(Test.A), "A") == 0)
+                assert(strcmp(ToStr(Test.B), "B") == 0)
             ''',
         },
     ]

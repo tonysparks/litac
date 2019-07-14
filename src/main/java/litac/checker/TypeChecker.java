@@ -465,8 +465,30 @@ public class TypeChecker {
         public void visit(InitArgExpr expr) {
             expr.value.visit(this);
         }
+        
+        private boolean checkInitField(Expr expr, AggregateTypeInfo aggInfo, InitArgExpr arg) {
+            List<FieldInfo> fieldInfos = aggInfo.fieldInfos;
+            
+            for(int i = 0; i < fieldInfos.size(); i++) {
+                FieldInfo fieldInfo = fieldInfos.get(i);
                 
-        private void checkAggregateInitFields(InitExpr expr, TypeInfo aggInfo, List<FieldInfo> fieldInfos, List<InitArgExpr> arguments) {
+                if(fieldInfo.name.equals(arg.fieldName)) {
+                    addTypeCheck(arg, fieldInfo.type);
+                    return true;
+                }
+                else if(fieldInfo.type.isAnonymous()) {
+                    if(checkInitField(expr, fieldInfo.type.as(), arg)) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+                
+        private void checkAggregateInitFields(InitExpr expr, AggregateTypeInfo aggInfo, List<InitArgExpr> arguments) {
+            List<FieldInfo> fieldInfos = aggInfo.fieldInfos;
+            
             if(fieldInfos.size() < arguments.size()) {
                 // TODO should this be allowed??
                 this.result.addError(expr, "incorrect number of arguments");
@@ -489,18 +511,7 @@ public class TypeChecker {
                     }
                 }
                 else {
-                    boolean matchedField = false;
-                    for(int i = 0; i < fieldInfos.size(); i++) {
-                        FieldInfo fieldInfo = fieldInfos.get(i);
-                        
-                        if(fieldInfo.name.equals(arg.fieldName)) {
-                            addTypeCheck(arg, fieldInfo.type);
-                                       
-                            matchedField = true;
-                            break;
-                        }
-                    }
-                    
+                    boolean matchedField = checkInitField(expr, aggInfo, arg);                    
                     if(!matchedField) {
                         this.result.addError(arg, "'%s' is not defined in '%s'", arg.fieldName, aggInfo.getName());
                     }
@@ -518,16 +529,10 @@ public class TypeChecker {
             checkGenericArgs(expr, expr.genericArgs, type);
             
             switch(type.getKind()) {
+                case Union:
                 case Struct: {
-                    StructTypeInfo structInfo = expr.type.as();
-                    checkAggregateInitFields(expr, structInfo, structInfo.fieldInfos, expr.arguments);
-                    
-                    break;
-                }
-                case Union: {
-                    UnionTypeInfo unionInfo = expr.type.as();
-                    checkAggregateInitFields(expr, unionInfo, unionInfo.fieldInfos, expr.arguments);
-                    
+                    AggregateTypeInfo structInfo = expr.type.as();
+                    checkAggregateInitFields(expr, structInfo, expr.arguments);
                     break;
                 }
                 default: {
@@ -635,22 +640,27 @@ public class TypeChecker {
         @Override
         public void visit(TypeIdentifierExpr expr) {
         }
-                
-        private boolean typeCheckAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {            
+        
+        private boolean typeCheckAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {
+            return typeCheckAggregate(type, field, expr, value, true);
+        }
+        
+        private boolean typeCheckAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value, boolean error) {            
             switch(type.getKind()) {
                 case Ptr: {
                     PtrTypeInfo ptrInfo = type.as();
-                    return typeCheckAggregate(ptrInfo.ptrOf, field, expr, value);                    
+                    return typeCheckAggregate(ptrInfo.ptrOf, field, expr, value, error);                    
                 }
                 case Const: {
                     ConstTypeInfo constInfo = type.as();
-                    return typeCheckAggregate(constInfo.constOf, field, expr, value);
+                    return typeCheckAggregate(constInfo.constOf, field, expr, value, error);
                 }
+                case Union:
                 case Struct: {
-                    StructTypeInfo structInfo = type.as();
+                    AggregateTypeInfo structInfo = type.as();
                     for(FieldInfo fieldInfo : structInfo.fieldInfos) {  
                         if(fieldInfo.type.isAnonymous()) {
-                            if(typeCheckAggregate(fieldInfo.type, field, expr, value)) {
+                            if(typeCheckAggregate(fieldInfo.type, field, expr, value, false)) {
                                 return true;
                             }
                         }
@@ -678,7 +688,9 @@ public class TypeChecker {
                         FuncTypeInfo funcInfo = this.module.getFuncType(funcName);
                         if(funcInfo != null) {
                             if(funcInfo.parameterDecls.isEmpty()) {
-                                this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
+                                if(error) {
+                                    this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
+                                }
                                 break;
                             }
                             
@@ -689,7 +701,9 @@ public class TypeChecker {
                             }
                             
                             if(!baseType.strictEquals(structInfo)) {
-                                this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
+                                if(error) {
+                                    this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
+                                }
                                 break;
                             }
                             
@@ -697,31 +711,16 @@ public class TypeChecker {
                         }
                     }
                     
-                    this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);
-                    break;
-                }                
-                case Union: {
-                    UnionTypeInfo unionInfo = type.as();
-                    for(FieldInfo fieldInfo : unionInfo.fieldInfos) {
-                        if(fieldInfo.type.isAnonymous()) {
-                            if(typeCheckAggregate(fieldInfo.type, field, expr, value)) {
-                                return true;
-                            }
-                        }
-                        else if(fieldInfo.name.equals(field.getName())) {                            
-                            if(value != null) {
-                                addTypeCheck(expr, value.getResolvedType(), fieldInfo.type);
-                            }
-                            
-                            return true;
-                        }
+                    if(error) {
+                        this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);
                     }
-                    this.result.addError(expr, "'%s' does not have field '%s'", unionInfo.name, field.name);
                     break;
                 }
                 case Enum: {
                     if(value != null) {
-                        this.result.addError(expr, "'%s.%s' can not be reassigned", type.name, field.name);
+                        if(error) {
+                            this.result.addError(expr, "'%s.%s' can not be reassigned", type.name, field.name);
+                        }
                     }
                     else {
                         EnumTypeInfo enumInfo = type.as();
@@ -730,7 +729,10 @@ public class TypeChecker {
                                 return true;
                             }
                         }
-                        this.result.addError(expr, "'%s' does not have field '%s'", enumInfo.name, field.name);
+                        
+                        if(error) {
+                            this.result.addError(expr, "'%s' does not have field '%s'", enumInfo.name, field.name);
+                        }
                     }
                     break;
                 }

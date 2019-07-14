@@ -77,6 +77,7 @@ public class CharToken extends Token {
             case 'n':
             case 'r':
             case 'f':
+//            case 'v':
             case '\'':
             case '\"':
             case '0':

@@ -199,9 +199,16 @@ public class TypeResolver {
                                                               Arrays.asList(new ParameterDecl(d.type, "e", null, 0)), 
                                                               0, 
                                                               Collections.emptyList());
-                FuncDecl funcDecl = new FuncDecl(asStrFuncInfo.name, asStrFuncInfo, new ParametersStmt(asStrFuncInfo.parameterDecls, false), new EmptyStmt(), asStrFuncInfo.returnType);
+                FuncDecl funcDecl = new FuncDecl(asStrFuncInfo.name, 
+                                                 asStrFuncInfo, 
+                                                 new ParametersStmt(asStrFuncInfo.parameterDecls, false), 
+                                                 new EmptyStmt(), 
+                                                 asStrFuncInfo.returnType);
+                
                 // Name must match CGen.visit(EnumDecl)
                 funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + this.module.name() + "_" + d.name + "_AsStr")));
+                funcDecl.attributes.isGlobal = true;
+                funcDecl.attributes.isPublic = true;
                 
                 this.module.declareFunc(funcDecl, asStrFuncInfo.name, asStrFuncInfo);
             }
@@ -266,6 +273,7 @@ public class TypeResolver {
         private PhaseResult result;
         private CompilationUnit unit;
         private Stack<GenericTypeInfo> currentGenericType;
+        
         private Set<String> resolvedGenericTypes;
         private Set<String> resolvedModules;
         
@@ -610,7 +618,7 @@ public class TypeResolver {
         @Override
         public void visit(ReturnStmt stmt) {
             if(stmt.returnExpr != null) {
-                stmt.returnExpr.visit(this);                                                
+                stmt.returnExpr.visit(this);                
             }            
         }
 
@@ -778,6 +786,7 @@ public class TypeResolver {
             enterScope();
             {
                 FuncTypeInfo funcInfo = d.type.as();
+                
                 // must resolve types, even for generic functions
                 // otherwise the Generic.replacer will not work
                 if(funcInfo.hasGenerics()) {
@@ -1346,7 +1355,11 @@ public class TypeResolver {
             }
         }
         
-        private boolean resolveAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) { 
+        private boolean resolveAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {
+            return resolveAggregate(type, field, expr, value, true);
+        }
+        
+        private boolean resolveAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value, boolean error) { 
             if(type == null) {
                 this.result.addError(expr, "unknown type");
                 return false;
@@ -1357,17 +1370,18 @@ public class TypeResolver {
             switch(type.getKind()) {
                 case Ptr: {
                     PtrTypeInfo ptrInfo = type.as();
-                    return resolveAggregate(ptrInfo.ptrOf, field, expr, value);                    
+                    return resolveAggregate(ptrInfo.ptrOf, field, expr, value, error);                    
                 }
                 case Const: {
                     ConstTypeInfo constInfo = type.as();
-                    return resolveAggregate(constInfo.constOf, field, expr, value);
+                    return resolveAggregate(constInfo.constOf, field, expr, value, error);
                 }
+                case Union:
                 case Struct: {
-                    StructTypeInfo structInfo = type.as();
+                    AggregateTypeInfo structInfo = type.as();
                     for(FieldInfo fieldInfo : structInfo.fieldInfos) {  
                         if(fieldInfo.type.isAnonymous()) {
-                            if(resolveAggregate(fieldInfo.type, field, expr, value)) {
+                            if(resolveAggregate(fieldInfo.type, field, expr, value, false)) {
                                 return true;
                             }
                         }
@@ -1396,7 +1410,9 @@ public class TypeResolver {
                     FuncTypeInfo funcInfo = this.module.getFuncType(funcName);
                     if(funcInfo != null) {                        
                         if(funcInfo.parameterDecls.isEmpty()) {
-                            this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
+                            if(error) {
+                                this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
+                            }
                             break;
                         }              
                         
@@ -1417,33 +1433,16 @@ public class TypeResolver {
                             return true;
                         }
                     }
-
-                    this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);                    
-                    break;
-                }                
-                case Union: {
-                    UnionTypeInfo unionInfo = type.as();
-                    for(FieldInfo fieldInfo : unionInfo.fieldInfos) {
-                        if(fieldInfo.type.isAnonymous()) {
-                            if(resolveAggregate(fieldInfo.type, field, expr, value)) {
-                                return true;
-                            }
-                        }
-                        else if(fieldInfo.name.equals(field.getName())) {
-                            if(!field.isResolved()) {
-                                resolveType(expr, field, fieldInfo.type);
-                            }
-                            
-                            expr.resolveTo(fieldInfo.type);                            
-                            return true;
-                        }
+                    if(error) {
+                        this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);
                     }
-                    this.result.addError(expr, "'%s' does not have field '%s'", unionInfo.name, field.name);
                     break;
                 }
                 case Enum: {
                     if(value != null) {
-                        this.result.addError(expr, "'%s.%s' can not be reassigned", type.name, field.name);
+                        if(error) {
+                            this.result.addError(expr, "'%s.%s' can not be reassigned", type.name, field.name);
+                        }
                     }
                     else {
                         EnumTypeInfo enumInfo = type.as();
@@ -1460,7 +1459,9 @@ public class TypeResolver {
                             expr.resolveTo(enumInfo);
                             return true;
                         }
-                        this.result.addError(expr, "'%s' does not have field '%s'", enumInfo.name, field.name);
+                        if(error) {
+                            this.result.addError(expr, "'%s' does not have field '%s'", enumInfo.name, field.name);
+                        }
                     }
                     break;
                 }

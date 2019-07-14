@@ -24,10 +24,7 @@ public enum FileStatus {
     IOError,
 }
 
-public func readFile(fileName: char const*, data: char**, alloc: Allocator const* = null) : FileStatus { 
-    if(!alloc) {
-        alloc = cAllocator
-    }
+public func readFile(fileName: char const*, data: char**, alloc: Allocator const* = cAllocator) : FileStatus { 
 
     var fp = fopen(fileName, "r")
     if(fp == null) {

@@ -71,7 +71,8 @@
             ''',
         },
         {
-            name: "Switch with double break", 
+            name: "Switch with double break",
+            disabled: true, 
             definitions: '''
                                 
             ''',                       
