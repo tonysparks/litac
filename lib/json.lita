@@ -35,99 +35,212 @@ public enum JsonType {
     ARRAY,
 }
 
+public typedef Array<JsonNode*> as JsonArray;
+public typedef Map<char const*, JsonNode*> JsonObject;
 
 public union JsonValue {
     boolValue: bool
     doubleValue: f64
     strValue: char const*
-    len: i32
 
-    /*
-    struct objValue {
-        child: JsonNode*
-        len: i32
-    }*/
+    objValue: JsonObject*
+    arrayValue: JsonArray*
 }
 
 public struct JsonNode {
     alloc: mem::Allocator const*
     type: JsonType
-    value: using JsonValue
-    
-    name: char const*  // if this is an object entry, it will have a key name
-    next: JsonNode*    // if this is an Array or Obj, this denotes the next node in the list|map
-    union {            // used for start of obj or array children, also object key's map to their value
-        keyValue: JsonNode*   
-        array:    JsonNode*
-        obj:      JsonNode*
+    // The 'using' is broken, currently thinks node.free() maps to free(void*) 
+    value: /*using*/ JsonValue    
+}
+
+@inline
+public func (node: JsonNode*) isNull() : bool {
+    return node.type == JsonType.NULL
+}
+
+@inline
+public func (node: JsonNode*) isBool() : bool {
+    return node.type == JsonType.BOOLEAN
+}
+
+@inline
+public func (node: JsonNode*) isTrue() : bool {
+    return node.type == JsonType.BOOLEAN && node.value.boolValue
+}
+
+@inline
+public func (node: JsonNode*) isFalse() : bool {
+    return !node.isTrue()
+}
+
+@inline
+public func (node: JsonNode*) isNumber() : bool {
+    return node.type == JsonType.NUMBER
+}
+@inline
+public func (node: JsonNode*) isString() : bool {
+    return node.type == JsonType.STRING
+}
+
+@inline
+public func (node: JsonNode*) isArray() : bool {
+    return node.type == JsonType.ARRAY
+}
+
+@inline
+public func (node: JsonNode*) isObject() : bool {
+    return node.type == JsonType.OBJECT
+}
+
+@inline
+public func (node: JsonNode*) asString() : char const* {
+    return node.value.strValue
+}
+
+@inline
+public func (node: JsonNode*) asBool() : bool {
+    return node.value.boolValue
+}
+
+@inline
+public func (node: JsonNode*) asNumber() : f64 {
+    return node.value.doubleValue
+}
+
+@inline
+public func (node: JsonNode*) asArray() : JsonArray* {
+    return node.value.arrayValue
+}
+
+@inline
+public func (node: JsonNode*) asObject() : JsonObject* {
+    return node.value.objValue
+}
+
+public func CreateJsonNumber(value: f64, alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+    var node = mem::new<JsonNode>(alloc)
+    node.alloc = alloc
+    node.type = JsonType.NUMBER
+    node.value = JsonValue {
+        .doubleValue = value
     }
+
+    return node
+}
+
+public func CreateJsonString(str: char const*, len: i32, alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+    var node = mem::new<JsonNode>(alloc)
+    node.alloc = alloc
+    node.type = JsonType.NUMBER
+
+    var copy = mem::memduplicate(str as (void const*), len + 1, alloc) as (char*)
+    copy[len] = '\0'
+
+    node.value = JsonValue {
+        .strValue = copy
+    }
+
+    return node
+}
+
+public func CreateJsonArray(alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+    var node = mem::new<JsonNode>(alloc)
+    node.alloc = alloc
+    node.type = JsonType.ARRAY
+    node.value = JsonValue {
+        .arrayValue = mem::new<JsonArray>(alloc)
+    }
+    
+    node.value.arrayValue.init(16, alloc)
+
+    return node
+}
+
+public func CreateJsonObject(alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+    var node = mem::new<JsonNode>(alloc)
+    node.alloc = alloc
+    node.type = JsonType.OBJECT
+    node.value = JsonValue { 
+        .objValue = mem::new<JsonObject>(alloc)   
+    }
+
+    node.value.objValue.init(null, 16, null, null, alloc)
+
+    return node
 }
 
 public func (node: JsonNode*) free() {
-    if(node) {
-        //printf("Deleting: %s\n", JsonTypeAsStr(node.type))
-        var alloc = node.alloc
-        switch(node.type) {
-            case JsonType.ARRAY: {
-                var n = node.array
-                while(n) {
-                    var x = n.next
-                    n.free()
-
-                    n = x
-                }
-                break;
-            }
-            case JsonType.OBJECT: {
-                var n = node.obj                
-                while(n) {
-                    n.keyValue.free()
-                    var x = n.next
-                    n.free()
-
-                    n = x
-                }
-                break;
-            }
-            case JsonType.STRING: {
-                alloc.free(node.value.strValue as (void*))
-                break;
-            }
-            default:
-        }
-
-        alloc.free(node as (void*))
+    if(!node) {
+        return;
     }
+
+    var alloc = node.alloc
+
+    // null,true,false don't have an allocator, we don't want to deallocate them
+    // as they are globals
+    if(!alloc) { 
+        return;
+    }
+
+    switch(node.type) {
+        case JsonType.ARRAY: {
+            for(var i = 0; i < node.value.arrayValue.size(); i+=1) {
+                var n = node.value.arrayValue.get(i)
+                if(n) {
+                    n.free()
+                }
+            }
+
+            node.value.arrayValue.free()
+            alloc.free(node.value.arrayValue as (void*))                    
+            break;
+        }
+        case JsonType.OBJECT: {
+            var it = node.value.objValue.iter()
+            while(it.hasNext()) {
+                var entry = it.next()
+                var key = entry.key
+                alloc.free(key as (void*))
+
+                var n = entry.value
+                if(n) {
+                    n.free()
+                }
+            }
+            node.value.objValue.free()
+            alloc.free(node.value.objValue as (void*))                    
+            break;
+        }
+        case JsonType.STRING: {
+            alloc.free(node.value.strValue as (void*))
+            break;
+        }
+        default:
+    }
+
+    alloc.free(node as (void*))
 }
 
-/*
+
+
 public const JSON_NULL = &JsonNode {
     .alloc: null,    
     .type: JsonType.NULL,
-    .value: JsonValue {0},
-    .name: "null",
-    .next: null,
-    .obj: null
+    .value: JsonValue {0},    
 }
 
 public const JSON_TRUE = &JsonNode {
     .alloc: null,
     .type: JsonType.BOOLEAN,
-    .value: JsonValue {.boolValue = true},
-    .name: "true",
-    .next: null,
-    .obj: null
+    .value: JsonValue {.boolValue = true},    
 }
 
 public const JSON_FALSE = &JsonNode {
     .alloc: null,    
     .type: JsonType.BOOLEAN,
-    .value: JsonValue {.boolValue = false},
-    .name: "false",
-    .next: null,
-    .obj: null
-}*/
-
+    .value: JsonValue {.boolValue = false},    
+}
 
 
 enum TokenKind {
@@ -221,24 +334,49 @@ public enum ParserStatus {
     ERROR,
 }
 
+public typedef func(char const*, va_list) : void as PrintFn;
+
 const MAX_MESSAGE_SIZE = 128
 
 public struct Parser {
     alloc: mem::Allocator const*
     status: ParserStatus
-    message: [MAX_MESSAGE_SIZE]char
+    printFn: PrintFn
+
     token: Token
     buffer: StringBuffer
     stream: char const*
     lineStart: char const*
 }
 
-public func Parse(buffer: char const*, alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
-    var p = Parser{}
-    p.init(null, buffer, alloc)
+public func (p: Parser*) init(printFn: PrintFn, alloc: mem::Allocator const* = mem::cAllocator) {
+    p.alloc = alloc
+    p.status = ParserStatus.OK
+    p.printFn = printFn
 
-    var node = p.parseJson()
-    //printf("Type: %s\n", JsonTypeAsStr(node.type))
+    p.stream = null
+    p.lineStart = null
+    p.token.pos.name = "<string>";
+    p.token.pos.line = 1
+    p.buffer.init(16)
+
+   // p.nextToken()
+}
+
+public func (p: Parser*) free() {
+    p.buffer.free()
+    p.stream = null
+    p.lineStart = null
+}
+
+public func (p: Parser*) parseJson(buffer: char const*) : JsonNode* {    
+    p.stream = buffer
+    p.lineStart = p.stream
+
+    p.buffer.clear()
+    p.nextToken()
+
+    var node = p.parseJsonNode()    
     return node
 }
 
@@ -256,8 +394,8 @@ public func PrintJson(node: JsonNode*, buf: StringBuffer*) {
             break;
         }
         case JsonType.BOOLEAN: {
-            if(node.value.boolValue) buf.append("true")
-            else               buf.append("false")
+            (node.value.boolValue) ?
+                buf.append("true") : buf.append("false")
             break;
         }
         case JsonType.NUMBER: {
@@ -270,31 +408,29 @@ public func PrintJson(node: JsonNode*, buf: StringBuffer*) {
         }
         case JsonType.OBJECT: {
             buf.append("{")
-            var n = node.obj
+            var obj = node.value.objValue
+
             var isFirst = true
-            while(n) {
+            var it = obj.iter() 
+            while(it.hasNext()) {
+                var entry = it.next()
+
                 if(!isFirst) buf.append(",")
-
-                PrintJson(n, buf)
-                buf.append(":")
-                PrintJson(n.keyValue, buf)
+                buf.append("\"%s\":", entry.key)
+                PrintJson(entry.value, buf)
                 isFirst = false
-
-                n = n.next
             }
             buf.append("}")
             break;
         }
         case JsonType.ARRAY: {
             buf.append("[")
-            var n = node.array
+            var array = node.value.arrayValue
             var isFirst = true
-            while(n) {
+            for(var i = 0; i < array.size(); i+=1) {
                 if(!isFirst) buf.append(",")
-                PrintJson(n, buf)                
+                PrintJson(array.get(i), buf)                
                 isFirst = false
-
-                n = n.next
             }
             buf.append("]")
             break;
@@ -302,7 +438,9 @@ public func PrintJson(node: JsonNode*, buf: StringBuffer*) {
     }
 }
 
-func (p: Parser*) parseJson() : JsonNode* {    
+
+
+func (p: Parser*) parseJsonNode() : JsonNode* {    
     switch(p.token.kind) {
         case TokenKind.EOF: 
             return null;
@@ -311,13 +449,13 @@ func (p: Parser*) parseJson() : JsonNode* {
             return null;
         case TokenKind.TRUE:
             p.nextToken()
-            return p.parseJsonTrue()
+            return JSON_TRUE
         case TokenKind.FALSE:
             p.nextToken()
-            return p.parseJsonFalse()
+            return JSON_FALSE
         case TokenKind.NULL:
             p.nextToken()
-            return p.parseJsonNull()                             
+            return JSON_NULL
         case TokenKind.NUMBER:
             p.nextToken()
             return p.parseJsonNumber()            
@@ -336,45 +474,9 @@ func (p: Parser*) parseJson() : JsonNode* {
     return null
 }
 
-func (p: using Parser*) parseJsonNull() : JsonNode* {
-    var node = mem::new<JsonNode>(p.alloc)
-    node.alloc = p.alloc
-    node.next = null
-    node.obj = null    
-    node.type = JsonType.NULL
-    node.value = JsonValue {0}
-
-    return node
-}
-
-
-func (p: using Parser*) parseJsonTrue() : JsonNode* {
-    var node = mem::new<JsonNode>(p.alloc)
-    node.alloc = p.alloc
-    node.next = null
-    node.obj = null    
-    node.type = JsonType.BOOLEAN
-    node.value = JsonValue {.boolValue = true}
-
-    return node
-}
-
-func (p: using Parser*) parseJsonFalse() : JsonNode* {
-    var node = mem::new<JsonNode>(p.alloc)
-    node.alloc = p.alloc
-    node.next = null
-    node.obj = null    
-    node.type = JsonType.BOOLEAN
-    node.value = JsonValue {.boolValue = false}
-
-    return node
-}
-
 func (p: using Parser*) parseJsonNumber() : JsonNode* {
     var node = mem::new<JsonNode>(p.alloc)
     node.alloc = p.alloc
-    node.next = null
-    node.obj = null
     node.type = JsonType.NUMBER
     node.value = JsonValue {
         .doubleValue = token.numValue
@@ -386,8 +488,6 @@ func (p: using Parser*) parseJsonNumber() : JsonNode* {
 func (p: using Parser*) parseJsonStr() : JsonNode* {
     var node = mem::new<JsonNode>(p.alloc)
     node.alloc = p.alloc
-    node.next = null
-    node.obj = null
     node.type = JsonType.STRING
     node.value = JsonValue {
         .strValue = token.strValue        
@@ -399,31 +499,19 @@ func (p: using Parser*) parseJsonStr() : JsonNode* {
 func (p: using Parser*) parseJsonArray() : JsonNode* {
     var node = mem::new<JsonNode>(p.alloc)
     node.alloc = p.alloc
-    node.next = null
-    node.array = null
     node.type = JsonType.ARRAY
     node.value = JsonValue {
-        .len = 0
+        .arrayValue = mem::new<JsonArray>(p.alloc)
     }
     
-    var current: JsonNode* = null
+    node.value.arrayValue.init(16, p.alloc)
 
     do {
         if(p.check(TokenKind.RIGHT_BRACKET)) {
             break;
         }
-        var element = p.parseJson();
-        
-        if(!current) {
-            node.array = element
-            current = element
-        }
-        else {
-            current.next = element
-            current = element
-        }
-
-        node.value.len += 1;
+        var element = p.parseJsonNode();
+        node.value.arrayValue.add(element)    
     }
     while (p.match(TokenKind.COMMA));
 
@@ -433,36 +521,25 @@ func (p: using Parser*) parseJsonArray() : JsonNode* {
 func (p: using Parser*) parseJsonObject() : JsonNode* {
     var node = mem::new<JsonNode>(p.alloc)
     node.alloc = p.alloc
-    node.next = null
-    node.obj = null
     node.type = JsonType.OBJECT
     node.value = JsonValue { 
-        .len = 0        
+        .objValue = mem::new<JsonObject>(p.alloc)   
     }
-    
-    var current: JsonNode* = null
+
+    node.value.objValue.init(null, 16, null, null, p.alloc)
 
     do {
         if(p.check(TokenKind.RIGHT_BRACE)) {
             break;
         }
 
-        // TODO: Just parse text, and place on value
-        var key = p.parseJson();
-        p.expect(TokenKind.COLON)
-        var value = p.parseJson();
-        key.keyValue = value
-        
-        if(!current) {
-            node.obj = key
-            current = key
-        }
-        else {
-            current.next = key
-            current = key
-        }
+        var key = p.token.strValue
+        p.expect(TokenKind.STRING)
 
-        node.value.len += 1;
+        p.expect(TokenKind.COLON)        
+        var value = p.parseJsonNode();
+        
+        node.value.objValue.put(key, value)
     }
     while (p.match(TokenKind.COMMA));
 
@@ -543,27 +620,6 @@ func (p: using Parser*) scanInt() {
     }
     token.kind = TokenKind.NUMBER; //TOKEN_INT;
     token.numValue = val;
-
-    /*
-    if (tolower(*stream) == 'u') {
-        token.suffix = SUFFIX_U;
-        stream++;
-        if (tolower(*stream) == 'l') {
-            token.suffix = SUFFIX_UL;
-            stream++;
-            if (tolower(*stream) == 'l') {
-                token.suffix = SUFFIX_ULL;
-                stream++;
-            }
-        }
-    } else if (tolower(*stream) == 'l') {
-        token.suffix = SUFFIX_L;
-        stream++;
-        if (tolower(*stream) == 'l') {
-            token.suffix = SUFFIX_LL;
-            stream++;
-        }
-    }*/
 }
 
 func (p: using Parser*) scanFloat() {    
@@ -599,63 +655,39 @@ func (p: using Parser*) scanFloat() {
 }
 
 func (p: using Parser*) scanStr() {
-    //assert(*stream == '"');
-    stream+=1;
-    //var str: char* = null;
+    assert(*stream == '"'); // "
+    stream+=1;    
     buffer.clear()
 
-    if (stream[0] == '"' && stream[1] == '"') {
-        stream += 2;
-        while (*stream) {
-            if (stream[0] == '"' && stream[1] == '"' && stream[2] == '"') {
-                stream += 3;
-                break;
-            }
-            if (*stream != '\r') {
-                // TODO: Should probably just read files in text mode instead.
-                //buf_push(str, *stream);
-                buffer.append("%c", *stream)
-            }
-            if (*stream == '\n') {
-                token.pos.line += 1;
-            }
+    while (*stream && *stream != '"' ) { //"
+        var val: char = *stream;
+        if (val == '\n') {
+            error("String literal cannot contain newline\n");
+            break;
+        } else if (val == '\\') {
             stream += 1;
-        }
-        if (!*stream) {
-            error("Unexpected end of file within multi-line string literal\n");
-        }
-        //token.mod = MOD_MULTILINE;
-    } else {
-        while (*stream && *stream != '"' ) { //"
-            var val: char = *stream;
-            if (val == '\n') {
-                error("String literal cannot contain newline\n");
-                break;
-            } else if (val == '\\') {
-                stream += 1;
-                if (*stream == 'x') {
-                    //  TODO
-                    // val = scan_hex_escape();
-                } else {
-                    val = escapeToChar[(*stream) as (i32)];
-                    if (val == 0 && *stream != '0') {
-                        error("Invalid string literal escape '\\%c'\n", *stream);
-                    }
-                    stream += 1;
-                }
+            if (*stream == 'x') {
+                //  TODO
+                // val = scan_hex_escape();
             } else {
+                val = escapeToChar[(*stream) as (i32)];
+                if (val == 0 && *stream != '0') {
+                    error("Invalid string literal escape '\\%c'\n", *stream);
+                }
                 stream += 1;
             }
-            //buf_push(str, val);
-            buffer.append("%c", val)
-        }
-        if (*stream) {
-            stream += 1;
         } else {
-            error("Unexpected end of file within string literal\n");
+            stream += 1;
         }
+     
+        buffer.append("%c", val)
     }
-    //buf_push(str, 0);
+    if (*stream) {
+        stream += 1;
+    } else {
+        error("Unexpected end of file within string literal\n");
+    }
+
     token.kind = TokenKind.STRING;
     token.strValue = mem::memduplicate(buffer.cStr() as (void const*), buffer.size() + 1, alloc) as (char const*);
 }
@@ -712,52 +744,28 @@ repeat:
             break;
         }   
         case 'n': {
-            stream += 1;
-            if(*stream == 'u') {
-                stream += 1            
-                if(*stream == 'l') {
-                    stream += 1            
-                    if(*stream == 'l') {
-                        stream += 1
-                        token.kind = TokenKind.NULL
-                        break
-                    }
-                }
+            if(stream[1] == 'u' && stream[2] == 'l' && stream[3] == 'l') {                
+                stream += 4;
+                token.kind = TokenKind.NULL
+                break;
             }
             token.kind = TokenKind.ERROR
             break;
         }
         case 't': {
-            stream += 1;
-            if(*stream == 'r') {
-                stream += 1            
-                if(*stream == 'u') {
-                    stream += 1            
-                    if(*stream == 'e') {
-                        stream += 1
-                        token.kind = TokenKind.TRUE
-                        break
-                    }
-                }
+            if(stream[1] == 'r' && stream[2] == 'u' && stream[3] == 'e') {
+                stream += 4;
+                token.kind = TokenKind.TRUE
+                break;
             }
             token.kind = TokenKind.ERROR
             break;
         }
         case 'f': {
-            stream += 1;
-            if(*stream == 'a') {
-                stream += 1            
-                if(*stream == 'l') {
-                    stream += 1            
-                    if(*stream == 's') {
-                        stream += 1            
-                        if(*stream == 'e') {
-                            stream += 1
-                            token.kind = TokenKind.FALSE
-                            break;
-                        }
-                    }
-                }
+            if(stream[1] == 'a' && stream[2] == 'l' && stream[3] == 's' && stream[4] == 'e') {                
+                stream += 5;
+                token.kind = TokenKind.FALSE
+                break;
             }
             token.kind = TokenKind.ERROR
             break;
@@ -800,23 +808,8 @@ repeat:
         token.end = stream;
 }
 
-func (p: Parser*) init(name: char const*, buf: char const*, alloc: mem::Allocator const*) {
-    p.alloc = alloc
-    p.stream = buf
-    p.lineStart = p.stream
-    p.token.pos.name = name ? name : "<string>" as (char const*);
-    p.token.pos.line = 1
-    p.buffer.init(16)
-
-    p.nextToken()
-}
-
 func (p: Parser*) check(kind: TokenKind) : bool {
     return p.token.kind == kind
-}
-
-func (p: Parser*) eof() : bool {
-    return p.token.kind == TokenKind.EOF
 }
 
 func (p: Parser*) match(kind: TokenKind) : bool {
@@ -827,7 +820,6 @@ func (p: Parser*) match(kind: TokenKind) : bool {
     p.nextToken()
     return true    
 }
-
 
 func (p: Parser*) expect(kind: TokenKind) : bool {
     if(!p.check(kind)) {

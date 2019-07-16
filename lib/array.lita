@@ -11,11 +11,7 @@ public struct Array<T> {
     alloc: mem::Allocator const*
 }
 
-public func (a: Array<T>*) init<T>(initialSize: i32 = 16, alloc: mem::Allocator const* = null) {
-    if(!alloc) {
-        alloc = mem::cAllocator
-    }
-    
+public func (a: Array<T>*) init<T>(initialSize: i32 = 16, alloc: mem::Allocator const* = mem::cAllocator) {    
     a.alloc = alloc;
     a.length = 0;
     a.capacity = initialSize;    

@@ -684,8 +684,12 @@ public class TypeChecker {
 
                     // do not allow method call syntax for Set operations
                     if(value == null) {
-                        String funcName = FuncTypeInfo.getMethodName(type, field.getName());
-                        FuncTypeInfo funcInfo = this.module.getFuncType(funcName);
+                        TypeInfo resolvedType = field.getResolvedType();
+                        FuncTypeInfo funcInfo = null;
+                        if(resolvedType.isKind(TypeKind.Func)) {
+                            funcInfo = resolvedType.as();
+                        }
+                        
                         if(funcInfo != null) {
                             if(funcInfo.parameterDecls.isEmpty()) {
                                 if(error) {

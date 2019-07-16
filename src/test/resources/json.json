@@ -24,25 +24,30 @@
                 import "io";
                 
             ''',                       
-            code: '''
-                var data: char*;                
-                var status = readFile("C:/Users/antho/git/mini/assets/mini_city.json", &data)
-                if(status) {
-                    printf("Failed to open\n")
-                    return 1;
-                }
-                
+            code: '''               
                 var buf : StringBuffer;
                 buf.init(16)
                 
-                var n = Parse(data)
-               // buf.clear()
+                var parser = Parser{}
+                parser.init(null)
+                defer parser.free()
+                
+                /*
+                var data: char*;                                
+                var status = readFile("C:/Users/antho/git/mini/assets/mini_city.json", &data)                
+                if(status) {
+                    printf("Failed to open\n")
+                    return 1;
+                }                                
+                var n = ParseJson(data)
+               
                 PrintJson(n, &buf)
                 printf("%s\n", buf.cStr())
-                 /*
-                var node = Parse("""
+                */
+                
+                var node = parser.parseJson("""
                     [
-                         true, 4, "hi", 34343, null, [5],
+                         true, 4, false, "hi", 34343, null, [5],
                          {
                             "k" : "v"
                          }
@@ -51,12 +56,12 @@
                 """)
                 
                 
-                buf.append("\n")
-                //buf.clear()
+                buf.clear()
+                buf.append("\n")               
                 PrintJson(node, &buf)
                 
                 printf("%s\n", buf.cStr())
-                node.free()*/
+                node.free()
             ''',
         },
     ]

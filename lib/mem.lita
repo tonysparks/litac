@@ -25,22 +25,69 @@ public const cAllocator : Allocator const* = (&Allocator {
 }) as (Allocator const*);
 
 
-public func new<T>(a: Allocator const* = null) : T* {
-    if(!a) {
-        a = cAllocator
-    }
-    
+public func new<T>(a: Allocator const* = cAllocator) : T* {        
     return a.alloc(sizeof(T)) as (T*)
 }
 
 
-public func memduplicate(p: void const*, len: u64, a: Allocator const* = null) : void* {
-    if(!a) {
-        a = cAllocator
-    }
-
+public func memduplicate(p: void const*, len: u64, a: Allocator const* = cAllocator) : void* {    
     var copy = a.alloc(len)
     memcpy(copy, p, len)
 
     return copy
+}
+
+const PAGE_SIZE = 4096_u64
+
+// Arena allocator
+public struct Arena {
+    alloc: Allocator const*
+    region: u8*
+    size: u64
+    current: u64
+    next: Arena*
+}
+
+public func (arena: Arena*) init(size: u64 = PAGE_SIZE, alloc: Allocator const* = cAllocator) {
+    arena.alloc = alloc
+    arena.region = alloc.calloc(size, sizeof(u8)) as (u8*)
+    arena.size = size
+}
+
+public func (arena: Arena*) free() {
+    var alloc = arena.alloc
+
+    var next: Arena* = null
+    var last = arena;
+
+    do {
+        next = last.next
+        alloc.free(last.region)
+        alloc.free(last)
+        last = next
+    }
+    while(next != null)
+}
+
+public func (arena: Arena*) malloc(size: u64) : void* {
+    var a = arena
+    var last = arena
+
+    do {
+        if((a.size - a.current) > size) {
+            a.current += size
+            return a.region + (a.current - size)
+        }
+
+        last = a
+    }
+    while((a = a.next) != null);
+
+    var asize = size > PAGE_SIZE ? size : PAGE_SIZE    
+    var next = new<Arena>(arena.alloc)
+    next.init(asize, arena.alloc)
+
+    last.next = next
+    next.current += size
+    return next.region
 }

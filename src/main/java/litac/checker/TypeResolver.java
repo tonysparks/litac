@@ -658,6 +658,11 @@ public class TypeResolver {
                 if(d.type == null) {
                     d.type = d.expr.getResolvedType();
                     
+                    if(d.type.isKind(TypeKind.Null)) {
+                        this.result.addError(d, "unable to infer type from null");
+                        return;
+                    }
+                    
                     if(d.type == null) {
                         return;
                     }
@@ -712,6 +717,11 @@ public class TypeResolver {
                 // infer the type from the expression
                 if(d.type == null) {
                     d.type = d.expr.getResolvedType();
+                    
+                    if(d.type.isKind(TypeKind.Null)) {
+                        this.result.addError(d, "unable to infer type from null");
+                        return;
+                    }
                     
                     if(d.type == null) {
                         return;
@@ -1196,7 +1206,7 @@ public class TypeResolver {
             }
             
             boolean isMethod = false;
-            
+                        
             FuncPtrTypeInfo funcPtr = null;
             if(type.isKind(TypeKind.Func)) {
                 FuncTypeInfo funcInfo = type.as();
@@ -1433,6 +1443,7 @@ public class TypeResolver {
                             return true;
                         }
                     }
+                    
                     if(error) {
                         this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);
                     }
