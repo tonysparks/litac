@@ -77,6 +77,7 @@
             ''',                      
         },
         */
+        /*
         { 
             name: "Anon Union",
             definitions: '''
@@ -104,6 +105,34 @@
                 var w = t.w
                 assert(w.method() == 4)
             ''',                      
+        },*/
+        {
+            name: "UsingStructDeep",
+            definitions: '''
+                struct X {
+                    x:f32
+                }
+                
+                struct Vec {
+                    e: using X
+                    y: f32
+                }
+                struct Entity {
+                    type: i32
+                    pos: using Vec
+                }
+            ''',                       
+            code: '''   
+                var e = Entity{.pos: Vec{ .e: X{1.0f} ,2.0f}, .type: 1};
+                assert(e.x == 1.0f);
+                assert(e.y == 2.0f);
+                
+                e.x = 3.0f;
+                e.y = 4.0f;
+                
+                assert(e.x == 3.0f);
+                assert(e.y == 4.0f);
+            ''',            
         },
     ]
 }

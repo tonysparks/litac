@@ -50,8 +50,7 @@ public union JsonValue {
 public struct JsonNode {
     alloc: mem::Allocator const*
     type: JsonType
-    // The 'using' is broken, currently thinks node.free() maps to free(void*) 
-    value: /*using*/ JsonValue    
+    value: using JsonValue    
 }
 
 @inline
@@ -185,19 +184,19 @@ public func (node: JsonNode*) free() {
 
     switch(node.type) {
         case JsonType.ARRAY: {
-            for(var i = 0; i < node.value.arrayValue.size(); i+=1) {
-                var n = node.value.arrayValue.get(i)
+            for(var i = 0; i < node.arrayValue.size(); i+=1) {
+                var n = node.arrayValue.get(i)
                 if(n) {
                     n.free()
                 }
             }
 
-            node.value.arrayValue.free()
-            alloc.free(node.value.arrayValue as (void*))                    
+            node.arrayValue.free()
+            alloc.free(node.arrayValue as (void*))                    
             break;
         }
         case JsonType.OBJECT: {
-            var it = node.value.objValue.iter()
+            var it = node.objValue.iter()
             while(it.hasNext()) {
                 var entry = it.next()
                 var key = entry.key
@@ -208,12 +207,12 @@ public func (node: JsonNode*) free() {
                     n.free()
                 }
             }
-            node.value.objValue.free()
-            alloc.free(node.value.objValue as (void*))                    
+            node.objValue.free()
+            alloc.free(node.objValue as (void*))                    
             break;
         }
         case JsonType.STRING: {
-            alloc.free(node.value.strValue as (void*))
+            alloc.free(node.strValue as (void*))
             break;
         }
         default:
@@ -359,8 +358,6 @@ public func (p: Parser*) init(printFn: PrintFn, alloc: mem::Allocator const* = m
     p.token.pos.name = "<string>";
     p.token.pos.line = 1
     p.buffer.init(16)
-
-   // p.nextToken()
 }
 
 public func (p: Parser*) free() {
@@ -394,21 +391,21 @@ public func PrintJson(node: JsonNode*, buf: StringBuffer*) {
             break;
         }
         case JsonType.BOOLEAN: {
-            (node.value.boolValue) ?
+            (node.boolValue) ?
                 buf.append("true") : buf.append("false")
             break;
         }
         case JsonType.NUMBER: {
-            buf.append("%f", node.value.doubleValue)
+            buf.append("%f", node.doubleValue)
             break;
         }
         case JsonType.STRING: {
-            buf.append("\"%s\"", node.value.strValue)
+            buf.append("\"%s\"", node.strValue)
             break;
         }
         case JsonType.OBJECT: {
             buf.append("{")
-            var obj = node.value.objValue
+            var obj = node.objValue
 
             var isFirst = true
             var it = obj.iter() 
@@ -425,7 +422,7 @@ public func PrintJson(node: JsonNode*, buf: StringBuffer*) {
         }
         case JsonType.ARRAY: {
             buf.append("[")
-            var array = node.value.arrayValue
+            var array = node.arrayValue
             var isFirst = true
             for(var i = 0; i < array.size(); i+=1) {
                 if(!isFirst) buf.append(",")
@@ -553,7 +550,6 @@ func TokenName(t: TokenKind) : char const* {
 
 
 func error(format: char const*, ...) {
-    //printf("%s", format)
     var args: va_list;
     va_start(args, format);
     
@@ -576,16 +572,13 @@ func (p: using Parser*) scanInt() {
         stream += 1;
         if (tolower(*stream) == 'x') {
             stream += 1;
-            //token.mod = MOD_HEX;
             base = 16;
             start_digits = stream;
         } else if (tolower(*stream) == 'b') {
             stream += 1;
-            //token.mod = MOD_BIN;
             base = 2;
             start_digits = stream;
         } else if (isdigit(*stream)) {
-            //token.mod = MOD_OCT;
             base = 8;
             start_digits = stream;
         }
@@ -694,7 +687,7 @@ func (p: using Parser*) scanStr() {
 
 
 func (p: using Parser*) nextToken() {    
-    //printf("nextToken: %s\n", TokenName(token.kind))
+
 repeat:
     token.start = stream
     switch(*stream) {

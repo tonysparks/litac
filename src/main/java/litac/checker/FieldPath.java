@@ -20,11 +20,14 @@ public class FieldPath {
     public static class FieldPathNode {
         public final AggregateTypeInfo ownerInfo;
         public final FieldInfo field;
+        private boolean isRoot;
         
         public FieldPathNode(AggregateTypeInfo ownerInfo, 
-                             FieldInfo field) {
+                             FieldInfo field,
+                             boolean isRoot) {
             this.ownerInfo = ownerInfo;
             this.field = field;
+            this.isRoot = isRoot;
         }
         
         @Override
@@ -51,8 +54,24 @@ public class FieldPath {
                 AggregateTypeInfo aggInfo = field.type.isKind(TypeKind.Ptr) ? 
                                                 ((PtrTypeInfo)field.type).getBaseType().as()
                                                 : field.type.as();
-                for(FieldInfo f : aggInfo.fieldInfos) {
-                    edges.add(new FieldPathNode(aggInfo, f));
+                                                
+                List<FieldInfo> fieldInfos = isRoot ? aggInfo.fieldInfos : aggInfo.usingInfos;
+                if(fieldInfos == null) {
+                    return edges;
+                }
+                
+                for(FieldInfo f : fieldInfos) {
+                    if(f.type.strictEquals(this.ownerInfo)) {
+                        continue;
+                    }
+                    if(TypeInfo.isPtrAggregate(f.type)) {
+                        PtrTypeInfo ptrInfo = f.type.as();
+                        if(ptrInfo.getBaseType().strictEquals(this.ownerInfo)) {
+                            continue;
+                        }
+                    }
+                    edges.add(new FieldPathNode(aggInfo, f, aggInfo.usingInfos != null));
+                    
                 }
             }
             
@@ -85,7 +104,7 @@ public class FieldPath {
     private List<FieldPathNode> findPath(AggregateTypeInfo ownerInfo, String field) {
         FieldInfo f = ownerInfo.getField(field);
         if(f != null) {
-            return Arrays.asList(new FieldPathNode(ownerInfo, f));
+            return Arrays.asList(new FieldPathNode(ownerInfo, f, true));
         }
         
         if(!ownerInfo.hasUsingFields()) {
@@ -93,7 +112,7 @@ public class FieldPath {
         }
         
         for(FieldInfo usingInfo : ownerInfo.usingInfos) {
-            List<FieldPathNode> result = aStar(new FieldPathNode(ownerInfo, usingInfo), field);
+            List<FieldPathNode> result = aStar(new FieldPathNode(ownerInfo, usingInfo, true), field);
             if(result != null) {
                 return result;
             }
