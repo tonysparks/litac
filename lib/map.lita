@@ -2,6 +2,9 @@ import "mem" as mem;
 import "io";
 import "assert";
 
+@include("<string.h>");
+@foreign func strcmp(a:char const*, b:char const*) : i32;
+
 public typedef func<K>(K) : u32 as HashFn;
 public typedef func<K>(K, K) : bool as EqualFn;
 
@@ -17,6 +20,10 @@ public func StrHashFn(str: char const*) : u32 {
 
 public func PtrEqualFn<K>(a: K, b: K) : bool {
     return a == b;
+}
+
+public func StrEqualFn(a: char const*, b: char const*) : bool {
+    return strcmp(a, b) == 0
 }
 
 public struct Map<K, V> {

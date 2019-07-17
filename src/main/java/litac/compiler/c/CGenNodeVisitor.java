@@ -9,18 +9,14 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import litac.LitaC;
-import litac.ast.Decl;
-import litac.ast.Expr;
-import litac.ast.NodeVisitor;
-import litac.ast.Stmt;
+import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
 import litac.checker.*;
 import litac.checker.TypeInfo.*;
-import litac.checker.FieldPath.FieldPathNode;
-import litac.compiler.Buf;
-import litac.compiler.CompilationUnit;
+import litac.compiler.*;
+import litac.compiler.FieldPath.FieldPathNode;
 import litac.compiler.c.CTranspiler.COptions;
 import litac.util.Names;
 import litac.util.Stack;
@@ -126,6 +122,8 @@ public class CGenNodeVisitor implements NodeVisitor {
                 if(funcInfo.hasGenerics()) {
                     return;
                 }
+                
+                visitNotes(funcInfo.sym.decl.attributes.notes);
                 
                 if(funcInfo.returnType.isKind(TypeKind.FuncPtr)) {
                     FuncPtrTypeInfo funcPtr = funcInfo.returnType.as();
@@ -484,41 +482,8 @@ public class CGenNodeVisitor implements NodeVisitor {
         for(ImportStmt i : stmt.imports) {
             i.visit(this);
         }
-        
-//        for(NoteStmt n : stmt.notes) {
-//            n.visit(this);
-//        }
                 
         this.declarations.addAll(stmt.declarations);
-        
-        //
-        // TODO: Do proper dependency ordering from all modules
-        //
-//        stmt.declarations
-//            .stream()    
-//            .filter(d -> d.kind != DeclKind.ENUM)
-//            .sorted((a,b) -> {
-//                if(a.equals(b)) {
-//                    return 0;
-//                }
-//                
-//                TypeKind aKind = a.type.getKind();
-//                TypeKind bKind = b.type.getKind();
-//                
-//                if(aKind == TypeKind.Func) {
-//                    if(bKind == TypeKind.Func) {
-//                        return 0;
-//                    }
-//                    return 1;
-//                }
-//                else {
-//                    if(bKind == TypeKind.Func) {
-//                        return -1;
-//                    }
-//                }
-//                return 0;
-//            })
-//            .forEach(d -> d.visit(this));        
     }
 
     @Override
@@ -548,6 +513,12 @@ public class CGenNodeVisitor implements NodeVisitor {
                 break;
             }
             case "foreign": {
+                break;
+            }
+            case "cc": { // Calling Conventions
+                if(note.attributes != null) {
+                    buf.out("%s ", note.getAttr(0, ""));
+                }
                 break;
             }
             case "raw": {
@@ -594,14 +565,8 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(VarFieldStmt stmt) {
-//        if(stmt.type.isKind(TypeKind.FuncPtr)) {
-//            buf.out("%s;\n", typeDeclForC(stmt.type, stmt.name));
-//        }
-//        else {
-//            buf.out("%s %s;\n", getTypeNameForC(stmt.type), stmt.name);
-//        }
-        
-        buf.out("%s;\n", typeDeclForC(stmt.type, stmt.name));
+        String name = name(stmt.name, stmt.attributes);
+        buf.out("%s;\n", typeDeclForC(stmt.type, name));
     }
 
     @Override
@@ -703,7 +668,23 @@ public class CGenNodeVisitor implements NodeVisitor {
         d.expr.visit(this);
         buf.out(";\n");
     }
-    
+
+    private String name(String name, Attributes attributes) {
+        NoteStmt note = attributes.getNote("alias");
+        if(note == null) {
+            return name;
+        }
+        
+        String alias = note.getAttr(0, null);
+        if(alias == null) {
+            this.main.getPhaseResult().addError(note, "'alias' note must define an alias name");
+            return "";
+        }
+        
+        return alias;
+        
+    }
+
     private void writeEnumStrFunc(String name, EnumDecl d) {
         NoteStmt asStr = d.attributes.getNote("asStr");
         if(asStr != null) {            
@@ -1140,8 +1121,18 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(InitArgExpr expr) {
-        if(expr.fieldName != null) {
-            buf.out(".%s = ", expr.fieldName);
+        String fieldName = expr.fieldName;
+        
+        Node parent = expr.getParentNode();
+        if(fieldName != null && parent instanceof InitExpr) {
+            InitExpr initExpr = (InitExpr)parent;
+            AggregateTypeInfo type = initExpr.getResolvedType().getResolvedType().as();
+            FieldInfo field = type.getFieldWithAnonymous(expr.fieldName);
+            fieldName = fieldName(field);           
+        }
+        
+        if(fieldName != null) {
+            buf.out(".%s = ", fieldName);
         }                
         expr.value.visit(this);
     }
@@ -1408,20 +1399,8 @@ public class CGenNodeVisitor implements NodeVisitor {
     }
     
     
-    // TODO: replace below calls with this
-    private String fieldName(FieldInfo field) {
-        NoteStmt note = field.attributes.getNote("alias");
-        if(note == null) {
-            return field.type.name;
-        }
-        
-        String alias = note.getAttr(0, null);
-        if(alias == null) {
-            this.main.getPhaseResult().addError(note, "'alias' note must define an alias name");
-            return "";
-        }
-        
-        return alias;
+    private String fieldName(FieldInfo field) {        
+        return name(field.name, field.attributes);
     }
     
     @Override
@@ -1460,7 +1439,9 @@ public class CGenNodeVisitor implements NodeVisitor {
             FieldPath path = aggInfo.getFieldPath(expr.field.type.name);
             if(!path.hasPath()) {
                 buf.out((objectInfo.isKind(TypeKind.Ptr)) ? "->" : ".");
-                buf.out("%s", expr.field.type.name);
+                
+                FieldInfo field = aggInfo.getFieldWithAnonymous(expr.field.type.name);
+                buf.out("%s", fieldName(field));
             }
             else {
                 for(FieldPathNode n : path.getPath()) {                
@@ -1471,7 +1452,7 @@ public class CGenNodeVisitor implements NodeVisitor {
                         buf.out(".");
                     }
                     
-                    buf.out("%s", n.field.name);
+                    buf.out("%s", fieldName(n.field));
                     objectInfo = n.field.type;
                 }
             }
@@ -1499,7 +1480,9 @@ public class CGenNodeVisitor implements NodeVisitor {
         FieldPath path = aggInfo.getFieldPath(expr.field.type.name);
         if(!path.hasPath()) {
             buf.out((objectInfo.isKind(TypeKind.Ptr)) ? "->" : ".");
-            buf.out("%s %s ", expr.field.type.name, expr.operator.getText());
+            
+            FieldInfo field = aggInfo.getFieldWithAnonymous(expr.field.type.name);
+            buf.out("%s %s", fieldName(field), expr.operator.getText());            
         }
         else {
             for(FieldPathNode n : path.getPath()) {
@@ -1509,7 +1492,8 @@ public class CGenNodeVisitor implements NodeVisitor {
                 else {
                     buf.out(".");
                 }
-                buf.out("%s", n.field.name);
+                
+                buf.out("%s", fieldName(n.field));
                 objectInfo = n.field.type;
             }
             

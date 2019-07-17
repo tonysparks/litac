@@ -8,11 +8,19 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import litac.ast.Decl.ParameterDecl;
+import litac.compiler.*;
+import litac.generics.GenericParam;
+import litac.generics.Generics;
+import litac.ast.Attributes;
 import litac.ast.Expr;
 import litac.util.Names;
 
 
 /**
+ * Information about a type.  Most of these are fairly obvious in their nature, the one interesting one
+ * is the "IdentifierTypeInfo" structure which represents an unresolved type at parse time.  It is up to
+ * the TypeResolver to resolve the IdentifierTypeInfo into the approtate concrete TypeInfo.
+ * 
  * @author Tony
  *
  */
@@ -554,6 +562,23 @@ public abstract class TypeInfo {
             for(FieldInfo f : this.fieldInfos) {
                 if(f.name.equals(field)) {
                     return f;
+                }                
+            }
+            return null;
+        }
+        
+        public FieldInfo getFieldWithAnonymous(String field) {
+            for(FieldInfo f : this.fieldInfos) {
+                if(f.name.equals(field)) {
+                    return f;
+                }
+                
+                if(f.type.isAnonymous()) {
+                    AggregateTypeInfo aggInfo = f.type.as();
+                    FieldInfo result = aggInfo.getFieldWithAnonymous(field);
+                    if(result != null) {
+                        return result;
+                    }
                 }
             }
             return null;
@@ -741,7 +766,7 @@ public abstract class TypeInfo {
             this.parameterDecls = parameterDecls;
             this.flags = flags;
         }
-                
+        
         public static String getMethodName(TypeInfo recvInfo, String funcName) {            
             return Names.methodName(recvInfo, funcName);
         }

@@ -8,11 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
 import litac.Errors;
-import litac.checker.*;
-import litac.checker.PhaseResult.PhaseError;
-import litac.compiler.BackendOptions;
-import litac.compiler.Buf;
-import litac.compiler.CompilationUnit;
+import litac.compiler.*;
+import litac.compiler.PhaseResult.PhaseError;
 import litac.util.Exec;
 
 /**

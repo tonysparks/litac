@@ -1,9 +1,10 @@
 /*
  * see license.txt
  */
-package litac.checker;
+package litac.compiler;
 
 import litac.ast.Decl;
+import litac.checker.TypeInfo;
 
 /**
  * @author Tony

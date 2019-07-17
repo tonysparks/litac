@@ -1,14 +1,23 @@
 /*
  * see license.txt
  */
-package litac.checker;
+package litac.compiler;
 
 import java.util.*;
 
 import litac.ast.Decl;
+import litac.checker.*;
 import litac.checker.TypeInfo.*;
 
 /**
+ * Sorts the programs declarations so that the CGen compiler can output them
+ * in an order that allows the C program to compile.
+ * 
+ * The sort order:
+ * 1) sorted aggregates (attempts to order based on dependency order)
+ * 2) Global declarations
+ * 3) Functions/Typedefs
+ * 
  * @author Tony
  *
  */

@@ -1,10 +1,11 @@
 /*
  * see license.txt
  */
-package litac.checker;
+package litac.compiler;
 
 import java.util.*;
 
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 
 /**

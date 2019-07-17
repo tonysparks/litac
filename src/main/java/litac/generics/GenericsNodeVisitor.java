@@ -1,4 +1,4 @@
-package litac.checker;
+package litac.generics;
 
 import java.util.List;
 
@@ -6,7 +6,9 @@ import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.compiler.Module;
 
 
 /**
@@ -17,7 +19,7 @@ import litac.checker.TypeInfo.*;
  * @author Tony
  *
  */
-public class TypeReplacerNodeVisitor implements NodeVisitor {
+public class GenericsNodeVisitor implements NodeVisitor {
 
     private List<FieldInfo> fieldInfos;
     
@@ -25,7 +27,7 @@ public class TypeReplacerNodeVisitor implements NodeVisitor {
     private List<GenericParam> genericParams; 
     private List<TypeInfo> genericArgs;
     
-    public TypeReplacerNodeVisitor(List<FieldInfo> fieldInfos, 
+    public GenericsNodeVisitor(List<FieldInfo> fieldInfos, 
                                    Module module,                       
                                    List<GenericParam> genericParams, 
                                    List<TypeInfo> genericArgs) {

@@ -1,12 +1,13 @@
 /*
  * see license.txt
  */
-package litac.checker;
+package litac.compiler;
 
 import java.util.*;
 
 import litac.ast.Decl;
 import litac.ast.Decl.*;
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.TypeKind;
 import litac.util.Names;
 

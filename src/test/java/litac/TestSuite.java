@@ -15,9 +15,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.junit.Assert.*;
 
-import litac.checker.PhaseResult;
-import litac.checker.PhaseResult.PhaseError;
 import litac.compiler.BackendOptions;
+import litac.compiler.PhaseResult;
+import litac.compiler.PhaseResult.PhaseError;
 
 /**
  * Runs a set of tests

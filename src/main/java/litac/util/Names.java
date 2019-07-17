@@ -141,7 +141,7 @@ public class Names {
             }
         }
         
-        recvName = escapeName(baseTypeName(recvName));        
+        recvName = baseTypeName(recvName);
         return String.format("%s_%s", recvName, funcName);
     }
 }

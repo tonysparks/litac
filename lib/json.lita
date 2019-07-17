@@ -15,15 +15,14 @@ import "array";
 @foreign func tolower(arg: i32) : i32;
 @foreign func isalnum(arg: i32) : i32;
 @foreign func isspace(arg: i32) : i32;
+@foreign func strlen(str: char const*) : u64;
 
 @foreign func strtod(str: char const*, end: char**) : f64;
 
 @foreign struct va_list;
 @foreign func va_start(args: va_list, format: char const*);
 @foreign func va_end(args: va_list);
-@foreign const stderr : FILE*;
-@foreign const stdout : FILE*;
-@foreign func vfprintf(f:FILE*, format: char const*, args: va_list);
+@foreign func vsprintf_s(ptr: void*, len: u64, format: char const*, args: va_list) : i32;
 
 @asStr
 public enum JsonType {
@@ -128,16 +127,33 @@ public func CreateJsonNumber(value: f64, alloc: mem::Allocator const* = mem::cAl
     return node
 }
 
-public func CreateJsonString(str: char const*, len: i32, alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
-    var node = mem::new<JsonNode>(alloc)
-    node.alloc = alloc
-    node.type = JsonType.NUMBER
+
+/**
+    Duplicates the supplied string, and JsonNode manages the memory.  The supplied str will NOT be managed (i.e., free'd) upon
+    JsonNode.free().
+*/    
+public func CreateJsonString(str: char const*, len: i32 = -1, alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+    if(len < 0) {
+        len = strlen(str);
+    }
 
     var copy = mem::memduplicate(str as (void const*), len + 1, alloc) as (char*)
     copy[len] = '\0'
 
+    return CreateJsonStringNoDup(copy, alloc)
+}
+
+/**
+    The JsonNode will own the memory of str and deallocate it upon JsonNode.free()
+    call
+*/    
+public func CreateJsonStringNoDup(str: char const*,
+                                  alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+    var node = mem::new<JsonNode>(alloc)
+    node.alloc = alloc
+    node.type = JsonType.STRING
     node.value = JsonValue {
-        .strValue = copy
+        .strValue = str
     }
 
     return node
@@ -164,10 +180,59 @@ public func CreateJsonObject(alloc: mem::Allocator const* = mem::cAllocator) : J
         .objValue = mem::new<JsonObject>(alloc)   
     }
 
-    node.value.objValue.init(null, 16, null, null, alloc)
+    node.value.objValue.init(null, 16, &StrHashFn, &StrEqualFn, alloc)
 
     return node
 }
+
+public func (node: JsonNode*) put(key: char const*, n: JsonNode*, len: i32 = -1) {
+    if(node.type != JsonType.OBJECT) {
+        return;
+    }
+
+    if(len < 0) {
+        len = strlen(key);
+    }
+
+    var copy = mem::memduplicate(key as (void const*), len + 1, node.alloc) as (char*)
+    copy[len] = '\0'
+
+    node.objValue.put(copy, n)
+}
+
+public func (node: JsonNode*) get(key: char const*) : JsonNode* {
+    if(node.type != JsonType.OBJECT) {
+        return null;
+    }
+
+    return node.objValue.get(key)
+}
+
+public func (node: JsonNode*) add(n: JsonNode*) {
+    if(node.type == JsonType.ARRAY) {
+        node.arrayValue.add(n)
+    }
+}
+
+public func (node: JsonNode*) at(index: i32) : JsonNode* {
+    if(node.type != JsonType.ARRAY) {
+        return null;
+    }
+
+    return node.arrayValue.get(index)
+}
+
+public func (node: JsonNode*) size() : i32 {
+    if(node.type == JsonType.ARRAY) {
+        return node.arrayValue.size()
+    }
+    else if(node.type == JsonType.OBJECT) {
+        return node.objValue.size()
+    }
+
+    return 0
+}
+
 
 public func (node: JsonNode*) free() {
     if(!node) {
@@ -335,12 +400,12 @@ public enum ParserStatus {
 
 public typedef func(char const*, va_list) : void as PrintFn;
 
-const MAX_MESSAGE_SIZE = 128
+const MAX_MESSAGE_SIZE = 256
 
 public struct Parser {
     alloc: mem::Allocator const*
     status: ParserStatus
-    printFn: PrintFn
+    errorMsg: [MAX_MESSAGE_SIZE]char
 
     token: Token
     buffer: StringBuffer
@@ -348,10 +413,10 @@ public struct Parser {
     lineStart: char const*
 }
 
-public func (p: Parser*) init(printFn: PrintFn, alloc: mem::Allocator const* = mem::cAllocator) {
+public func (p: Parser*) init(alloc: mem::Allocator const* = mem::cAllocator) {
     p.alloc = alloc
     p.status = ParserStatus.OK
-    p.printFn = printFn
+    mem::memset(p.errorMsg, 0, MAX_MESSAGE_SIZE)
 
     p.stream = null
     p.lineStart = null
@@ -374,17 +439,24 @@ public func (p: Parser*) parseJson(buffer: char const*) : JsonNode* {
     p.nextToken()
 
     var node = p.parseJsonNode()    
+    if(p.hasError()) {        
+        if(node) {
+            node.free()
+        }
+        return null;
+    }
+
     return node
+}
+
+public func (p: Parser*) hasError() : bool {
+    return p.status == ParserStatus.ERROR
 }
 
 public func PrintJson(node: JsonNode*, buf: StringBuffer*) {
     if(!node) {
         return;
     }
-
-    //printf("Type: %s\n", JsonTypeAsStr(node.type))
-    //printf("Buf: '%s'\n", buf.cStr())
-
     switch(node.type) {
         case JsonType.NULL: {
             buf.append("null")
@@ -438,11 +510,13 @@ public func PrintJson(node: JsonNode*, buf: StringBuffer*) {
 
 
 func (p: Parser*) parseJsonNode() : JsonNode* {    
+    if(p.hasError()) {        
+        return null;
+    }
+
     switch(p.token.kind) {
         case TokenKind.EOF: 
-            return null;
         case TokenKind.ERROR:
-            // TODO
             return null;
         case TokenKind.TRUE:
             p.nextToken()
@@ -472,36 +546,15 @@ func (p: Parser*) parseJsonNode() : JsonNode* {
 }
 
 func (p: using Parser*) parseJsonNumber() : JsonNode* {
-    var node = mem::new<JsonNode>(p.alloc)
-    node.alloc = p.alloc
-    node.type = JsonType.NUMBER
-    node.value = JsonValue {
-        .doubleValue = token.numValue
-    }
-
-    return node
+    return CreateJsonNumber(token.numValue, p.alloc)    
 }
 
 func (p: using Parser*) parseJsonStr() : JsonNode* {
-    var node = mem::new<JsonNode>(p.alloc)
-    node.alloc = p.alloc
-    node.type = JsonType.STRING
-    node.value = JsonValue {
-        .strValue = token.strValue        
-    }
-
-    return node    
+    return CreateJsonStringNoDup(token.strValue, p.alloc)
 }
 
 func (p: using Parser*) parseJsonArray() : JsonNode* {
-    var node = mem::new<JsonNode>(p.alloc)
-    node.alloc = p.alloc
-    node.type = JsonType.ARRAY
-    node.value = JsonValue {
-        .arrayValue = mem::new<JsonArray>(p.alloc)
-    }
-    
-    node.value.arrayValue.init(16, p.alloc)
+    var node = CreateJsonArray(p.alloc)
 
     do {
         if(p.check(TokenKind.RIGHT_BRACKET)) {
@@ -516,14 +569,7 @@ func (p: using Parser*) parseJsonArray() : JsonNode* {
     return node     
 }
 func (p: using Parser*) parseJsonObject() : JsonNode* {
-    var node = mem::new<JsonNode>(p.alloc)
-    node.alloc = p.alloc
-    node.type = JsonType.OBJECT
-    node.value = JsonValue { 
-        .objValue = mem::new<JsonObject>(p.alloc)   
-    }
-
-    node.value.objValue.init(null, 16, null, null, p.alloc)
+    var node = CreateJsonObject(p.alloc)
 
     do {
         if(p.check(TokenKind.RIGHT_BRACE)) {
@@ -549,20 +595,15 @@ func TokenName(t: TokenKind) : char const* {
 }
 
 
-func error(format: char const*, ...) {
+func (p: Parser*) error(format: char const*, ...) {
     var args: va_list;
     va_start(args, format);
     
-    vfprintf(stdout, format, args);            
+    vsprintf_s(p.errorMsg, MAX_MESSAGE_SIZE, format, args);            
     va_end(args);        
-}
 
-func fatalError(format: char const*, ...) {
-    var args: va_list;
-    va_start(args, format);
-    
-    vfprintf(stderr, format, args);            
-    va_end(args);        
+    p.status = ParserStatus.ERROR
+    p.token.kind = TokenKind.ERROR
 }
 
 func (p: using Parser*) scanInt() {
@@ -594,11 +635,11 @@ func (p: using Parser*) scanInt() {
             break;
         }
         if (digit >= base) {
-            error("Digit '%c' out of range for base %d\n", *stream, base);
+            p.error("Digit '%c' out of range for base %d", *stream, base);
             digit = 0;
         }
         if (val > (ULLONG_MAX - digit)/base) {
-            error("Integer literal overflow\n");
+            p.error("Integer literal overflow");
             while (isdigit(*stream)) {
                 stream += 1;
             }
@@ -609,8 +650,13 @@ func (p: using Parser*) scanInt() {
         stream += 1;
     }
     if (stream == start_digits) {
-        error("Expected base %d digit, got '%c'\n", base, *stream);
+        p.error("Expected base %d digit, got '%c'", base, *stream);
     }
+
+    if(p.hasError()) {
+        return;
+    }
+
     token.kind = TokenKind.NUMBER; //TOKEN_INT;
     token.numValue = val;
 }
@@ -633,7 +679,7 @@ func (p: using Parser*) scanFloat() {
             stream+=1;
         }
         if (!isdigit(*stream)) {
-            error("Expected digit after float literal exponent, found '%c'.\n", *stream);
+            p.error("Expected digit after float literal exponent, found '%c'.", *stream);
         }
         while (isdigit(*stream)) {
             stream+=1;
@@ -641,8 +687,13 @@ func (p: using Parser*) scanFloat() {
     }
     var val = strtod(start, null);
     if (val == HUGE_VAL) {
-        error("Float literal overflow\n");
+        p.error("Float literal overflow");
     }
+
+    if(p.hasError()) {
+        return;
+    }
+
     token.kind = TokenKind.NUMBER;
     token.numValue = val;    
 }
@@ -655,7 +706,7 @@ func (p: using Parser*) scanStr() {
     while (*stream && *stream != '"' ) { //"
         var val: char = *stream;
         if (val == '\n') {
-            error("String literal cannot contain newline\n");
+            p.error("String literal cannot contain newline");
             break;
         } else if (val == '\\') {
             stream += 1;
@@ -665,7 +716,7 @@ func (p: using Parser*) scanStr() {
             } else {
                 val = escapeToChar[(*stream) as (i32)];
                 if (val == 0 && *stream != '0') {
-                    error("Invalid string literal escape '\\%c'\n", *stream);
+                    p.error("Invalid string literal escape '\\%c'", *stream);
                 }
                 stream += 1;
             }
@@ -678,7 +729,11 @@ func (p: using Parser*) scanStr() {
     if (*stream) {
         stream += 1;
     } else {
-        error("Unexpected end of file within string literal\n");
+        p.error("Unexpected end of file within string literal");
+    }
+
+    if(p.hasError()) {
+        return;
     }
 
     token.kind = TokenKind.STRING;
@@ -689,6 +744,10 @@ func (p: using Parser*) scanStr() {
 func (p: using Parser*) nextToken() {    
 
 repeat:
+    if(p.hasError()) {        
+        return;
+    }
+
     token.start = stream
     switch(*stream) {
         case ' ': 
@@ -742,7 +801,7 @@ repeat:
                 token.kind = TokenKind.NULL
                 break;
             }
-            token.kind = TokenKind.ERROR
+            p.error("invalid identifier, did you mean 'null'?")            
             break;
         }
         case 't': {
@@ -751,7 +810,7 @@ repeat:
                 token.kind = TokenKind.TRUE
                 break;
             }
-            token.kind = TokenKind.ERROR
+            p.error("invalid identifier, did you mean 'true'?")
             break;
         }
         case 'f': {
@@ -760,7 +819,7 @@ repeat:
                 token.kind = TokenKind.FALSE
                 break;
             }
-            token.kind = TokenKind.ERROR
+            p.error("invalid identifier, did you mean 'false'?")
             break;
         }
         case '\0':
@@ -792,7 +851,7 @@ repeat:
             stream += 1;
             break;
         default:
-            error("Invalid '%c' token, skipping\n", *stream);
+            p.error("Invalid '%c' token", *stream);
             stream += 1;
             token.kind = TokenKind.ERROR
             //goto repeat;
@@ -816,7 +875,11 @@ func (p: Parser*) match(kind: TokenKind) : bool {
 
 func (p: Parser*) expect(kind: TokenKind) : bool {
     if(!p.check(kind)) {
-        fatalError("Expected token %s, got %s\n", TokenName(kind), TokenName(p.token.kind));
+        if(p.hasError()) {
+            return false
+        }
+        
+        p.error("Expected token %s, got %s", TokenName(kind), TokenName(p.token.kind));
         return false
     }
 

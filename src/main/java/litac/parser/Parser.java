@@ -12,6 +12,7 @@ import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
 import litac.checker.*;
 import litac.checker.TypeInfo.*;
+import litac.generics.GenericParam;
 import litac.parser.tokens.*;
 import litac.util.Names;
 
@@ -407,7 +408,7 @@ public class Parser {
                 if(match(LEFT_PAREN)) {                    
                     do {
                         if(match(STRING)) {                            
-                            attributes.add(previous().getValue().toString());
+                            attributes.add(previous().getValue().toString());                        
                         }
                     }
                     while(match(COMMA));

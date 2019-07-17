@@ -1,7 +1,7 @@
 /*
  * see license.txt
  */
-package litac.checker;
+package litac.compiler;
 
 import java.util.ArrayList;
 import java.util.List;

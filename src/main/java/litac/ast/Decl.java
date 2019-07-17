@@ -7,6 +7,7 @@ import java.util.List;
 
 import litac.checker.*;
 import litac.checker.TypeInfo.EnumFieldInfo;
+import litac.compiler.Symbol;
 
 /**
  * @author Tony

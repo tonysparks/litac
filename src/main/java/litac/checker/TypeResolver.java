@@ -13,7 +13,8 @@ import litac.ast.Expr.*;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.*;
-import litac.compiler.CompilationUnit;
+import litac.compiler.*;
+import litac.generics.GenericParam;
 import litac.parser.tokens.TokenType;
 import litac.util.Stack;
 import litac.util.Tuple;
@@ -59,7 +60,13 @@ public class TypeResolver {
     }
     
     private Module resolveModule(ModuleStmt moduleStmt) {        
-        // First phase, build up an inventory of all declarations
+        
+        // First build up an inventory of all declarations
+        // Now that we have all of the type declarations, we can now resolve
+        // any global declarations (we know their types).
+        // Finally, we are able to traverse thru functions and resolve the sub
+        // expressions
+        
         DeclNodeVisitor declVisitor = new DeclNodeVisitor(moduleStmt);
         declVisitor.visit(moduleStmt);
         
@@ -67,7 +74,6 @@ public class TypeResolver {
         Set<String> resolvedModules = new HashSet<>();
         Module module = declVisitor.module;
         
-        // resolve globals
         resolveGlobals(resolvedModules);
         
         // Second phase, resolve all types, visiting function/type bodies
@@ -88,7 +94,6 @@ public class TypeResolver {
             return resolvedModules.get(moduleName);
         }
         
-        // First build up an inventory of all declarations
         DeclNodeVisitor declVisitor = new DeclNodeVisitor(moduleStmt);
         declVisitor.visit(moduleStmt);
                 
@@ -813,7 +818,7 @@ public class TypeResolver {
                     Scope scope = peekScope();
                     scope.addSymbol(this.module, p, p.name, p.type);
                     
-                    if((p.attributes.modifiers & Attributes.USING_MODIFIER) > 0) {
+                    if(p.attributes.isUsing()) {
                         if(!TypeInfo.isAggregate(p.type) &&
                            !TypeInfo.isPtrAggregate(p.type)) {
                             this.result.addError(d, "'%s' is not an aggregate type (or pointer to an aggregate), can't use 'using'", p.name);
@@ -1416,8 +1421,7 @@ public class TypeResolver {
                         return true;
                     }
                     
-                    String funcName = FuncTypeInfo.getMethodName(type, field.getName());
-                    FuncTypeInfo funcInfo = this.module.getFuncType(funcName);
+                    FuncTypeInfo funcInfo = this.module.getMethodType(type, field.getName());
                     if(funcInfo != null) {                        
                         if(funcInfo.parameterDecls.isEmpty()) {
                             if(error) {

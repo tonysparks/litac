@@ -5,11 +5,11 @@ package litac;
 
 import java.io.File;
 
-import litac.checker.PhaseResult;
-import litac.checker.PhaseResult.PhaseError;
 import litac.compiler.BackendOptions;
 import litac.compiler.BackendOptions.BackendType;
+import litac.compiler.PhaseResult.PhaseError;
 import litac.compiler.Compiler;
+import litac.compiler.PhaseResult;
 
 /**
  * @author Tony

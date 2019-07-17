@@ -1,7 +1,7 @@
 /*
  * see license.txt
  */
-package litac.checker;
+package litac.compiler;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -12,8 +12,9 @@ import java.util.Map.Entry;
 
 import litac.ast.Decl;
 import litac.ast.Decl.*;
-import litac.checker.Scope.ScopeType;
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.compiler.Scope.ScopeType;
 import litac.util.Names;
 import litac.util.Tuple;
 import litac.ast.Stmt;
@@ -389,8 +390,31 @@ public class Module {
             }
         }
         
-        return null;
+        return null;        
+    }
+    
+    public FuncTypeInfo getMethodType(TypeInfo recv, String methodName) {
         
+        // First try non-generic type name
+        String funcName = FuncTypeInfo.getMethodName(recv, methodName);
+        FuncTypeInfo funcInfo = getFuncType(funcName);
+        if(funcInfo != null) {
+            return funcInfo;
+        }
+        
+        // Now try with generic names included
+        Tuple<Module, Decl> genericRecv = this.genericTypes.get(recv.getResolvedType().getName());
+        if(genericRecv == null) {
+            return null;
+        }
+        
+        
+        funcInfo = genericRecv.getFirst().getFuncType(funcName);
+        if(funcInfo != null) {
+            return funcInfo;
+        }
+        
+        return null;
     }
     
     public TypeInfo getType(String typeName) {
@@ -428,7 +452,7 @@ public class Module {
     public List<Tuple<Module, Decl>> getGenericTypes() {
         return new ArrayList<>(this.genericTypes.values());
     }
-            
+             
     public Scope pushScope() {
         this.currentScope = this.currentScope.pushLocalScope();
         return this.currentScope;

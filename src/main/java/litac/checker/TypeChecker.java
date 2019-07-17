@@ -12,6 +12,7 @@ import litac.ast.Expr.*;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.*;
+import litac.compiler.*;
 import litac.util.Tuple;
 
 /**
@@ -69,6 +70,7 @@ public class TypeChecker {
             }
         }
         
+        @SuppressWarnings("unused")
         private Module module;
         private PhaseResult result;
         private List<TypeCheck> pendingChecks;
@@ -553,6 +555,32 @@ public class TypeChecker {
                 }
             }
         }
+        
+        private void checkNumberOfArgs(FuncCallExpr expr, String funcName, FuncPtrTypeInfo funcInfo, int numberOfSuppliedArgs, int numberOfDefaultArgs) {
+            int maxNumOfArgs = funcInfo.params.size();
+            if(maxNumOfArgs == numberOfSuppliedArgs) {
+                return;
+            }
+            
+            int minNumOfArgs = maxNumOfArgs - numberOfDefaultArgs;
+            
+            if(numberOfSuppliedArgs == minNumOfArgs) {
+                return;
+            }
+            
+            if(minNumOfArgs > numberOfSuppliedArgs) {
+                this.result.addError(expr, "'%s' called with too few arguments", funcName);
+                return;
+            }
+            
+            if(funcInfo.isVararg) {
+                return;
+            }
+            
+            if(maxNumOfArgs < numberOfSuppliedArgs) {            
+                this.result.addError(expr, "'%s' called with too many arguments", funcName);
+            }
+        }
 
         @Override
         public void visit(FuncCallExpr expr) {
@@ -588,24 +616,12 @@ public class TypeChecker {
                     }
                 }
                 
-                if(funcInfo.params.size() != suppliedArguments.size()) {
-                    int numberOfSupplied = suppliedArguments.size() + numberOfDefaultArgs;
-                    boolean correctArgs = funcInfo.params.size() <= numberOfSupplied; 
-                    if(!correctArgs) {
-                        if(funcInfo.params.size() > numberOfSupplied || !funcInfo.isVararg) {                    
-                            this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
-                        }
-                    }
-                }
+                checkNumberOfArgs(expr, type.getName(), funcInfo, suppliedArguments.size(), numberOfDefaultArgs);
             }
             else {
                 funcInfo = type.as();
                 
-                if(funcInfo.params.size() != suppliedArguments.size()) {
-                    if(funcInfo.params.size() > suppliedArguments.size() || !funcInfo.isVararg) {                    
-                        this.result.addError(expr, "'%s' called with incorrect number of arguments", type.getName());
-                    }
-                }
+                checkNumberOfArgs(expr, type.getName(), funcInfo, suppliedArguments.size(), 0);
             }
             
             int i = 0;

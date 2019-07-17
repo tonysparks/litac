@@ -1,7 +1,7 @@
 /*
  * see license.txt
  */
-package litac.checker;
+package litac.compiler;
 
 import java.util.*;
 
@@ -9,6 +9,7 @@ import litac.ast.Decl;
 import litac.ast.Decl.*;
 import litac.ast.Expr;
 import litac.ast.Expr.*;
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.parser.tokens.TokenType;
 
@@ -119,7 +120,7 @@ public class Reflection {
         args.add(new InitArgExpr("name", argPosition++, new StringExpr(prim.getName())));
         args.add(new InitArgExpr("id", argPosition++, new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(prim.getTypeId()))));
         
-        String name = Character.isLowerCase(prim.kind.name().charAt(0)) ? prim.kind.name().toUpperCase() : prim.kind.name();
+        String name = Character.isLowerCase(prim.getKind().name().charAt(0)) ? prim.getKind().name().toUpperCase() : prim.getKind().name();
         
         TypeInfo kindName = new IdentifierTypeInfo(name, Collections.emptyList());
         args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(name, kindName))));

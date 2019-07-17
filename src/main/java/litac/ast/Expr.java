@@ -5,9 +5,9 @@ package litac.ast;
 
 import java.util.*;
 
-import litac.checker.Symbol;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.compiler.Symbol;
 import litac.parser.ErrorCode;
 import litac.parser.ParseException;
 import litac.parser.tokens.NumberToken;

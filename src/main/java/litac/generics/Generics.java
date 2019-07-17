@@ -1,11 +1,13 @@
 /*
  * see license.txt
  */
-package litac.checker;
+package litac.generics;
 
 import java.util.*;
 import litac.ast.Decl.*;
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.compiler.Module;
 
 /**
  * Handles creating new {@link TypeInfo}s based on generic types with generic arguments.
@@ -263,7 +265,7 @@ public class Generics {
         module.declareStruct(decl, newStructName, newStructInfo);
         module.addGenericType(declared, decl);
         
-        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(newStructInfo.fieldInfos, module, structInfo.genericParams, genericArgs);
+        GenericsNodeVisitor replacer = new GenericsNodeVisitor(newStructInfo.fieldInfos, module, structInfo.genericParams, genericArgs);
         decl.visit(replacer);
         
         return newStructInfo;
@@ -288,7 +290,7 @@ public class Generics {
         module.declareUnion(decl, newUnionName, newUnionInfo);
         module.addGenericType(declared, decl);
         
-        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(newUnionInfo.fieldInfos, module, unionInfo.genericParams, genericArgs);
+        GenericsNodeVisitor replacer = new GenericsNodeVisitor(newUnionInfo.fieldInfos, module, unionInfo.genericParams, genericArgs);
         decl.visit(replacer);
         
         return newUnionInfo;
@@ -324,7 +326,7 @@ public class Generics {
         module.addGenericType(declared, decl);
         
         
-        TypeReplacerNodeVisitor replacer = new TypeReplacerNodeVisitor(Collections.emptyList(), module, funcInfo.genericParams, genericArgs);
+        GenericsNodeVisitor replacer = new GenericsNodeVisitor(Collections.emptyList(), module, funcInfo.genericParams, genericArgs);
         decl.visit(replacer);
         
         return newFuncInfo;

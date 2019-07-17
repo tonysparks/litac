@@ -1,7 +1,7 @@
 /*
  * see license.txt
  */
-package litac.checker;
+package litac.generics;
 
 /**
  * @author Tony
