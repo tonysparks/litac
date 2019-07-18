@@ -107,6 +107,21 @@ public func (node: JsonNode*) asNumber() : f64 {
 }
 
 @inline
+public func (node: JsonNode*) asFloat() : f64 {
+    return node.value.doubleValue
+}
+
+@inline
+public func (node: JsonNode*) asInt() : i32 {
+    return node.value.doubleValue as (i32)
+}
+
+@inline
+public func (node: JsonNode*) asLong() : i64 {
+    return node.value.doubleValue as (i64)
+}
+
+@inline
 public func (node: JsonNode*) asArray() : JsonArray* {
     return node.value.arrayValue
 }
@@ -206,6 +221,69 @@ public func (node: JsonNode*) get(key: char const*) : JsonNode* {
     }
 
     return node.objValue.get(key)
+}
+
+public func (node: JsonNode*) getBool(key: char const*, defaultValue: bool = false) : bool {
+    var n = node.get(key) 
+    if(!n || !n.isBool()) {
+        return defaultValue
+    }
+
+    return n.boolValue 
+}
+
+public func (node: JsonNode*) getInt(key: char const*, defaultValue: i32 = 0) : i32 {
+    var n = node.get(key) 
+    if(!n || !n.isNumber()) {
+        return defaultValue
+    }
+
+    return n.doubleValue as (i32)
+}
+
+public func (node: JsonNode*) getLong(key: char const*, defaultValue: i64 = 0) : i64 {
+    var n = node.get(key) 
+    if(!n || !n.isNumber()) {
+        return defaultValue
+    }
+
+    return n.doubleValue as (i64)
+}
+
+public func (node: JsonNode*) getFloat(key: char const*, defaultValue: f64 = 0) : f64 {
+    var n = node.get(key) 
+    if(!n || !n.isNumber()) {
+        return defaultValue
+    }
+
+    return n.doubleValue
+}
+
+public func (node: JsonNode*) getStr(key: char const*, defaultValue: char const* = null) : char const* {
+    var n = node.get(key) 
+    if(!n || !n.isString()) {
+        return defaultValue
+    }
+
+    return n.strValue
+}
+
+public func (node: JsonNode*) getArray(key: char const*) : JsonNode* {
+    var n = node.get(key) 
+    if(!n || !n.isArray()) {
+        return null
+    }
+
+    return n
+}
+
+public func (node: JsonNode*) getObject(key: char const*) : JsonNode* {
+    var n = node.get(key) 
+    if(!n || !n.isObject()) {
+        return null
+    }
+
+    return n 
 }
 
 public func (node: JsonNode*) add(n: JsonNode*) {
@@ -362,11 +440,12 @@ const charToDigit = [256]i32 {
 const escapeToChar = [256]char {
     ['0'] = '\0',
     ['\''] = '\'',
-    ['"'] = '"', 
+    ['"'] = '"',  // "
     ['\\'] = '\\',
     ['n'] = '\n',
     ['r'] = '\r',
     ['t'] = '\t',
+    ['/'] = '/',
     //['v'] = '\v',
   //  ['b'] = '\b',
   //  ['a'] = '\a',

@@ -23,6 +23,8 @@ public func PtrEqualFn<K>(a: K, b: K) : bool {
 }
 
 public func StrEqualFn(a: char const*, b: char const*) : bool {
+    if(!a || !b) return false
+
     return strcmp(a, b) == 0
 }
 
