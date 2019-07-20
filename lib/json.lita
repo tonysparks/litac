@@ -1,28 +1,9 @@
 import "mem" as mem;
 import "assert";
-import "io";
 import "string_buffer";
 import "map";
 import "array";
-
-@include("<ctype.h>");
-@include("<stdlib.h>");
-@include("<math.h>");
-
-@foreign const HUGE_VAL: f64;
-@foreign const ULLONG_MAX: i64;
-@foreign func isdigit(arg: i32) : i32;
-@foreign func tolower(arg: i32) : i32;
-@foreign func isalnum(arg: i32) : i32;
-@foreign func isspace(arg: i32) : i32;
-@foreign func strlen(str: char const*) : u64;
-
-@foreign func strtod(str: char const*, end: char**) : f64;
-
-@foreign struct va_list;
-@foreign func va_start(args: va_list, format: char const*);
-@foreign func va_end(args: va_list);
-@foreign func vsprintf_s(ptr: void*, len: u64, format: char const*, args: va_list) : i32;
+import "clib";
 
 @asStr
 public enum JsonType {
@@ -266,6 +247,18 @@ public func (node: JsonNode*) getStr(key: char const*, defaultValue: char const*
     }
 
     return n.strValue
+}
+
+public func (node: JsonNode*) getStrCopy(key: char const*, str: char*, len: i32) : char* {
+    var n = node.get(key) 
+    if(!n || !n.isString()) {
+        return str;
+    }
+
+    var srcLen = strlen(n.strValue)
+    strncpy(str, n.strValue, MIN(srcLen, len));
+
+    return str;
 }
 
 public func (node: JsonNode*) getArray(key: char const*) : JsonNode* {
