@@ -1196,16 +1196,10 @@ public class CGenNodeVisitor implements NodeVisitor {
                 break;
             case u64:
                 buf.out("UL");
-                break;
-            case u128:
-                buf.out("ULL");
-                break;
+                break;            
             case i64:
                 buf.out("L");
-                break;
-            case i128:
-                buf.out("LL");
-                break;
+                break;            
             default:
         }
         

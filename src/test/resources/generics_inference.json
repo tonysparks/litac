@@ -296,5 +296,242 @@
             ''',  
             error: "'T' invalid generic argument type"
         },
+        
+        // aggregate initializer
+        
+        { 
+            name: "Generics Struct Init infer",
+            definitions: '''
+                         
+                struct X<T> {
+                    a: T
+                }
+                
+                func (x: X<T>*) method<T>() : T {
+                    return x.a
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X{4}
+                assert(x.method() == 4)
+            ''',           
+        },
+        { 
+            name: "Generics Struct Init infer multi arg",
+            definitions: '''
+                         
+                struct X<T, V> {
+                    tt: T
+                    vv: V
+                }
+                
+                func (x: X<T, V>*) methodT<T, V>() : T {
+                    return x.tt
+                }
+                
+                func (x: X<T, V>*) methodV<T, V>() : V {
+                    return x.vv
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X{4,5.6}
+                assert(x.methodT() == 4)
+                assert(x.methodV() == 5.6)
+            ''',           
+        },
+        
+        { 
+            name: "Generics Struct Init infer arg embedded",
+            definitions: '''
+                struct Y<Z> {
+                    zz: Z
+                }
+                         
+                struct X<V> {                    
+                    vv: Y<V>
+                }
+                
+                
+                func (x: X<V>*) methodV<V>() : V {
+                    return x.vv.zz
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X{ Y{5.6f} }                
+                assert(x.methodV() == 5.6f)
+            ''',           
+        },
+        { 
+            name: "Generics Struct Init infer arg partial embedded",
+            definitions: '''
+                struct Y<Z> {
+                    zz: Z
+                }
+                         
+                struct X<V> {                    
+                    vv: Y<V>
+                }
+                
+                
+                func (x: X<V>*) methodV<V>() : V {
+                    return x.vv.zz
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X{ Y<f32>{5.6f} }                
+                assert(x.methodV() == 5.6f)
+            ''',           
+        },
+        { 
+            name: "Generics Struct Init infer arg partial2 embedded",
+            definitions: '''
+                struct Y<Z> {
+                    zz: Z
+                }
+                         
+                struct X<V> {                    
+                    vv: Y<V>
+                }
+                
+                
+                func (x: X<V>*) methodV<V>() : V {
+                    return x.vv.zz
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X<f32>{ Y{5.6f} }                
+                assert(x.methodV() == 5.6f)
+            ''',           
+        },
+        { 
+            name: "Generics Struct Init infer multi arg embedded",
+            definitions: '''
+                struct Y<Z> {
+                    zz: Z
+                }
+                         
+                struct X<T, V> {
+                    tt: T
+                    vv: Y<V>
+                }
+                
+                func (x: X<T, V>*) methodT<T, V>() : T {
+                    return x.tt
+                }
+                
+                func (x: X<T, V>*) methodV<T, V>() : V {
+                    return x.vv.zz
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X{4,Y{5.6}}
+                assert(x.methodT() == 4)
+                assert(x.methodV() == 5.6)
+            ''',           
+        },
+        
+        // UNION
+        
+        { 
+            name: "Generics Union Init infer",
+            definitions: '''
+                         
+                union X<T> {
+                    a: T
+                }
+                
+                func (x: X<T>*) method<T>() : T {
+                    return x.a
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X{4}
+                assert(x.method() == 4)
+            ''',           
+        },        
+        { 
+            name: "Generics Union Init infer arg embedded",
+            definitions: '''
+                union Y<Z> {
+                    zz: Z
+                }
+                         
+                union X<V> {                    
+                    vv: Y<V>
+                }
+                
+                
+                func (x: X<V>*) methodV<V>() : V {
+                    return x.vv.zz
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X{ Y{5.6f} }                
+                assert(x.methodV() == 5.6f)
+            ''',           
+        },
+        { 
+            name: "Generics Union Init infer arg partial embedded",
+            definitions: '''
+                union Y<Z> {
+                    zz: Z
+                }
+                         
+                union X<V> {                    
+                    vv: Y<V>
+                }
+                
+                
+                func (x: X<V>*) methodV<V>() : V {
+                    return x.vv.zz
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X{ Y<f32>{5.6f} }                
+                assert(x.methodV() == 5.6f)
+            ''',           
+        },
+        { 
+            name: "Generics Union Init infer arg partial2 embedded",
+            definitions: '''
+                union Y<Z> {
+                    zz: Z
+                }
+                         
+                union X<V> {                    
+                    vv: Y<V>
+                }
+                
+                
+                func (x: X<V>*) methodV<V>() : V {
+                    return x.vv.zz
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X<f32>{ Y{5.6f} }                
+                assert(x.methodV() == 5.6f)
+            ''',           
+        },
+        
     ]
 }

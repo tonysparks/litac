@@ -973,7 +973,39 @@ public class TypeResolver {
             expr.value.visit(this);
             expr.resolveTo(expr.value.getResolvedType());
         }
-                
+        
+        private TypeInfo inferInitExpr(InitExpr expr, AggregateTypeInfo aggInfo) {
+            expr.genericArgs = new ArrayList<>(aggInfo.genericParams.size());
+            
+            List<TypeInfo> suppliedArguments = new ArrayList<>();
+            for(Expr arg : expr.arguments) {
+                suppliedArguments.add(arg.getResolvedType());
+            }
+            
+            for(GenericParam p : aggInfo.genericParams) {                
+                for(int j = 0; j < aggInfo.fieldInfos.size(); j++) {
+                    TypeInfo paramType = aggInfo.fieldInfos.get(j).type;
+                    
+                    if(j >= suppliedArguments.size()) {
+                        break;
+                    }
+                    
+                    TypeInfo inferredType = inferredType(p.name, paramType, suppliedArguments.get(j).getResolvedType());
+                    if(inferredType != null) {
+                        expr.genericArgs.add(inferredType);
+                        break;
+                    }
+                }
+            }
+            
+            if(expr.type instanceof IdentifierTypeInfo) {
+                IdentifierTypeInfo idInfo = (IdentifierTypeInfo) expr.type;
+                idInfo.genericArgs = expr.genericArgs;
+            }
+            
+            return aggInfo;
+        }
+        
         @Override
         public void visit(InitExpr expr) {
             for(InitArgExpr e : expr.arguments) {
@@ -998,13 +1030,18 @@ public class TypeResolver {
                 
                 expr.type = parentExpr.getResolvedType();
             }
-            
+                        
             if(!expr.type.isResolved()) {
                 TypeInfo type = getAggregateFieldTypeInfo(expr);          
                 if(type == null) {
                     this.result.addError(expr, "'%s' is an unknown type", expr.type);
                     return;
                 }
+                
+                // type inference for generic type
+                if(type.hasGenerics() && expr.genericArgs.isEmpty()) {
+                   type = inferInitExpr(expr, type.as()); 
+                }    
             
                 IdentifierTypeInfo idInfo = expr.type.as();
                 idInfo.resolve(this.module, type, !isResolvingGenericDecl());

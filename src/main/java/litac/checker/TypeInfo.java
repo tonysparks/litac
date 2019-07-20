@@ -37,8 +37,6 @@ public abstract class TypeInfo {
     public static final TypeInfo U32_TYPE  = new PrimitiveTypeInfo("u32", TypeKind.u32);
     public static final TypeInfo I64_TYPE  = new PrimitiveTypeInfo("i64", TypeKind.i64);
     public static final TypeInfo U64_TYPE  = new PrimitiveTypeInfo("u64", TypeKind.u64);
-    public static final TypeInfo I128_TYPE = new PrimitiveTypeInfo("i128", TypeKind.i128);
-    public static final TypeInfo U128_TYPE = new PrimitiveTypeInfo("u128", TypeKind.u128);
     public static final TypeInfo F32_TYPE  = new PrimitiveTypeInfo("f32", TypeKind.f32);
     public static final TypeInfo F64_TYPE  = new PrimitiveTypeInfo("f64", TypeKind.f64);
     public static final TypeInfo NULL_TYPE = new NullTypeInfo();
@@ -76,8 +74,6 @@ public abstract class TypeInfo {
             case "u32":  return U32_TYPE;
             case "i64":  return I64_TYPE;
             case "u64":  return U64_TYPE;
-            case "i128": return I128_TYPE;
-            case "u128": return U128_TYPE;
             case "f32":  return F32_TYPE;
             case "f64":  return F64_TYPE;
             case "null":   return NULL_TYPE;
@@ -107,7 +103,6 @@ public abstract class TypeInfo {
                 return isUnsignedInteger(idType.getResolvedType());
             }
             case Bool:
-            case u128:
             case u16:
             case u32:
             case u64:
@@ -128,7 +123,6 @@ public abstract class TypeInfo {
             case Bool:
             case Char:
             case Enum:
-            case i128:
             case i16:
             case i32:
             case i64:
@@ -152,13 +146,11 @@ public abstract class TypeInfo {
             case Bool:
             case Char:
             case Enum:
-            case i128:
             case i16:
             case i32:
             case i64:
             case i8:
 
-            case u128:
             case u16:
             case u32:
             case u64:
@@ -178,13 +170,11 @@ public abstract class TypeInfo {
             case Bool:
             case Char:
             case Enum:
-            case i128:
             case i16:
             case i32:
             case i64:
             case i8:
 
-            case u128:
             case u16:
             case u32:
             case u64:
@@ -266,7 +256,6 @@ public abstract class TypeInfo {
         i16, u16,
         i32, u32,
         i64, u64,
-        i128,u128,
         f32, f64,
         
         Str,

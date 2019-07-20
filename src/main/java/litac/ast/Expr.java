@@ -46,12 +46,6 @@ public abstract class Expr extends Stmt {
             case U64: {
                 return TypeKind.u64;
             }
-            case I128: {
-                return TypeKind.i128;
-            }
-            case U128: {
-                return TypeKind.u128;
-            }
             case F32: {
                 return TypeKind.f32;
             }

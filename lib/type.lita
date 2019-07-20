@@ -8,7 +8,6 @@ public enum TypeKind {
     I16, U16,
     I32, U32,
     I64, U64,
-    //    i128,u128,
     F32, F64,
         
     Str,

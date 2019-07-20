@@ -80,7 +80,7 @@ public class Generics {
     
     public static TypeInfo createGenericTypeInfo(Module module, TypeInfo type, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
         
-        type = normalizeType(module, type);
+        type = normalizeType(module, type);        
         module = module.getRoot();
         
         switch(type.getKind()) {
@@ -98,7 +98,9 @@ public class Generics {
                         // First check and see if there are Generic Parameters that should be substituted with
                         // the parents generic arguments
                         if(type.getGenericArgs().stream().anyMatch(p -> parent.name.equals(p.getName()))) {
-                            narrowedGenericArgs.add(genericArgs.get(i));
+                            if(i < genericArgs.size()) {
+                                narrowedGenericArgs.add(genericArgs.get(i));
+                            }
                         }
                         else {
                             
@@ -170,8 +172,12 @@ public class Generics {
                     for(int i = 0; i < genericParams.size(); i++) {
                         GenericParam p = genericParams.get(i);
                         if(p.name.equals(type.getName())) {
+                            if(i >= genericArgs.size()) {
+                                break;
+                            }
+                            
                             TypeInfo genericArg = genericArgs.get(i);
-                            if(genericArg.isGenericParam()) {
+                            if(genericArg.isGenericParam() || genericArg.getName().equals(p.name)) {
                                 continue;
                             }
                             

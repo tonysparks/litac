@@ -470,14 +470,11 @@ struct Token {
     }
 }
 
-
 public enum ParserStatus {
     OK = 0,
     WARNING,
     ERROR,
 }
-
-public typedef func(char const*, va_list) : void as PrintFn;
 
 const MAX_MESSAGE_SIZE = 256
 
@@ -933,7 +930,6 @@ repeat:
             p.error("Invalid '%c' token", *stream);
             stream += 1;
             token.kind = TokenKind.ERROR
-            //goto repeat;
             break;
         }
         token.end = stream;
@@ -957,7 +953,7 @@ func (p: Parser*) expect(kind: TokenKind) : bool {
         if(p.hasError()) {
             return false
         }
-        
+
         p.error("Expected token %s, got %s", TokenName(kind), TokenName(p.token.kind));
         return false
     }

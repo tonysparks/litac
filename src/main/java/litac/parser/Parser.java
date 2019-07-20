@@ -1344,14 +1344,6 @@ public class Parser {
                 TypeInfo type = TypeInfo.U64_TYPE;
                 return chainableType(type);
             }
-            case I128: {
-                TypeInfo type = TypeInfo.I128_TYPE;
-                return chainableType(type);
-            }
-            case U128: {
-                TypeInfo type = TypeInfo.U128_TYPE;
-                return chainableType(type);
-            }
             case F32: {
                 TypeInfo type = TypeInfo.F32_TYPE;
                 return chainableType(type);

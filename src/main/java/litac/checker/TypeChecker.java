@@ -978,8 +978,6 @@ public class TypeChecker {
                 case u32:
                 case i64:
                 case u64:
-                case i128:
-                case u128:
                 case Enum:
                     break;
                 default: {
@@ -1028,8 +1026,6 @@ public class TypeChecker {
                 case u32:
                 case i64:
                 case u64:
-                case i128:
-                case u128:
                 case Enum:
                     break;
                 default: {

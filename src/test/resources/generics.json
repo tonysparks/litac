@@ -454,5 +454,57 @@
                 assert(test<i32>(&z, 4) == 4)
             ''',
         },
+        
+        { 
+            name: "TypeCheck struct ptr",
+            definitions: '''
+                
+                         
+                struct X {
+                    a: i32
+                }
+                
+                struct Y {
+                    b: i32
+                }
+                
+                func (x: X*) method(y: Y) {
+                    call(y)
+                }
+                
+                func call(y: Y*) {
+                }
+                                              
+            ''',                       
+            code: '''        
+                var x = X{4}
+                var y = &Y{8}
+                
+                //x.method(y)
+            ''',    
+            error: "'struct Y*' is not of type 'struct Y'"                  
+        },
+        { 
+            name: "Generics Test missing generics",
+            definitions: '''
+                
+                         
+                struct X<T> {
+                    a: T
+                }
+                
+                func (x: X<T>*) method(t: T) : T {
+                    return x.a
+                }
+                
+                                              
+            ''',                       
+            code: '''        
+                var x = X<i32>{4}
+                x.method(8)
+            ''',           
+            error: "'T' is an unknown type"       
+        },
+ 
     ]
 }

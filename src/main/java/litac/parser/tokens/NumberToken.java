@@ -192,15 +192,7 @@ public class NumberToken extends Token {
                         case u64: {
                             result = TypeInfo.U64_TYPE;
                             break;
-                        }
-                        case i128: {
-                            result = TypeInfo.I128_TYPE;
-                            break;
-                        }
-                        case u128: {
-                            result = TypeInfo.U128_TYPE;
-                            break;
-                        }
+                        }                        
                         default: {
                             type = ERROR;
                             break;

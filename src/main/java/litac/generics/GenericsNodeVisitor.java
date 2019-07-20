@@ -261,8 +261,6 @@ public class GenericsNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(TypedefDecl d) {
-        // TODO Auto-generated method stub
-        System.out.println("here!" + d.alias);
     }
 
     @Override

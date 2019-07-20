@@ -3,3 +3,11 @@ import "io";
 import "assert";
 
 // TODO
+/*
+public func Length(str: char const*) : i32 {
+}
+
+public func StartsWith(str: char const*, s: char const*) : bool {
+
+}
+*/

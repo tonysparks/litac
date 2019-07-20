@@ -25,9 +25,7 @@ public enum TokenType {
         I16, U16,
         I32, U32,
         I64, U64,
-        I128,U128,
-        F32, F64, //STRING, 
-        ///ARRAY, 
+        F32, F64,
         IMPORT, AS, TYPEDEF, SIZEOF, TYPEOF, PUBLIC,
     UNION,
     // end Reserved words

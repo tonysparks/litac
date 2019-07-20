@@ -104,9 +104,7 @@ public class TestSuite {
                 if(result.hasErrors()) {
                     assertNotNull(test.error);
                     
-                    for(PhaseError error : result.getErrors()) {                        
-                        assertTrue(error.message.contains(test.error));        
-                    }            
+                    assertTrue(result.getErrors().get(0).message.contains(test.error));
                 }
                 else {
                     assertNull(test.error);
