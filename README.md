@@ -261,7 +261,7 @@ If you include the following command line option to the litaC compiler, this wil
 litac -test ".*" ...
 ```
 
-If you only want to run a subset of unit tests, you can define a Regular Expression to pick up the test names you want to run.  It is recommended to name you test with a prefix standard (such as appName.module.test, which would allow you to run full application tests via `appName.*` or module specific tests via `appName.module.*`).
+If you only want to run a subset of unit tests, you can define a Regular Expression to pick up the test names you want to run.  It is recommended to name your tests with a prefix standard (such as `appName.module.testName`, which would allow you to run full application tests via `appName.*` or module specific tests via `appName.module.*`).
 
 
 # Building
