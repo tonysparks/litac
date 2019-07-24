@@ -18,6 +18,13 @@ public class BackendOptions {
         C,        
     }
     
+    public static enum OutputType {
+        Test,
+        Executable,
+        StaticLib,
+        DynamicLib
+    }
+    
     public BackendType backendType;
     
     public File srcDir;
@@ -28,6 +35,8 @@ public class BackendOptions {
     public OsType targetOS;
     public boolean run;
     public boolean typeInfo;
+    public OutputType outputType;
+    public String testRegex;
     
     public CTranspiler.COptions cOptions;
     
@@ -37,6 +46,8 @@ public class BackendOptions {
     
     public BackendOptions(BackendType type) {
         this.backendType = type;
+        this.outputType = OutputType.Executable;
+        this.testRegex = ".*";
         
         File wd = new File(System.getProperty("user.dir"));
         

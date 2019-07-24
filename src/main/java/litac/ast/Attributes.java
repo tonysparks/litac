@@ -39,7 +39,15 @@ public class Attributes {
     }
     
     public boolean isForeign() {
-        return this.notes != null && this.notes.stream().anyMatch(n -> n.name.equals("foreign"));
+        return hasNote("foreign");
+    }
+    
+    public boolean isTest() {
+        return hasNote("test");
+    }
+    
+    public boolean hasNote(String note) {
+        return this.notes != null && this.notes.stream().anyMatch(n -> n.name.equals(note));
     }
     
     public NoteStmt getNote(String name) {

@@ -36,7 +36,8 @@ public class TypeResolver {
     
     private Module root;
     
-    public TypeResolver(PhaseResult result, CompilationUnit unit) {
+    public TypeResolver(PhaseResult result, 
+                        CompilationUnit unit) {
         this.result = result;
         this.unit = unit;
         

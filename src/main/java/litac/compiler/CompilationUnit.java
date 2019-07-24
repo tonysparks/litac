@@ -13,6 +13,7 @@ import java.util.Map;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.ImportStmt;
 import litac.ast.Stmt.ModuleStmt;
+import litac.compiler.BackendOptions.OutputType;
 import litac.parser.Parser;
 import litac.parser.Scanner;
 import litac.parser.Source;
@@ -70,6 +71,11 @@ public class CompilationUnit {
         ModuleStmt builtin = readModule(new File(options.libDir, "builtins.lita"));
         ModuleStmt main = readModule(moduleFile);
         main.imports.add(new ImportStmt("builtins", null));
+     
+        if(options.outputType == OutputType.Test) {
+            importAssertModule(main);
+        }
+        
         
         CompilationUnit unit = new CompilationUnit(builtin, main);
         
@@ -78,6 +84,12 @@ public class CompilationUnit {
         visitor.visit(builtin);
         
         return unit;
+    }
+    
+    private static void importAssertModule(ModuleStmt main) {
+        if(!main.imports.stream().anyMatch(imp -> imp.moduleName.equals("assert"))) {
+            main.imports.add(new ImportStmt("assert", null));
+        }
     }
     
     private static ModuleStmt readModule(File moduleFile) throws IOException {            

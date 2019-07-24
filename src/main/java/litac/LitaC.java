@@ -7,6 +7,7 @@ import java.io.File;
 
 import litac.compiler.BackendOptions;
 import litac.compiler.BackendOptions.BackendType;
+import litac.compiler.BackendOptions.OutputType;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.compiler.Compiler;
 import litac.compiler.PhaseResult;
@@ -37,6 +38,7 @@ public class LitaC {
         System.out.println("  -v, -version         Displays the LitaC version");
         System.out.println("  -h, -help            Displays this help");
         System.out.println("  -t, -types           Does not include TypeInfo for reflection");
+        System.out.println("  -test <arg>          Runs functions annotated with @test.  'arg' is a regex of which tests should be run");
         System.out.println("  -buildCmd            The underlying C compiler build and compile command.  Variables will ");
         System.out.println("                       be substituted if found: ");
         System.out.println("                          %output%         The executable name ");
@@ -100,6 +102,12 @@ public class LitaC {
                 case "-t":
                 case "-types": {                    
                     options.typeInfo = false;
+                    break;
+                }
+                case "-test": {
+                    checkArg(args, i, "-test");
+                    options.outputType = OutputType.Test;
+                    options.testRegex = args[++i];
                     break;
                 }
                 default:                    

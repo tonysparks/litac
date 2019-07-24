@@ -7,6 +7,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 import litac.LitaC;
 import litac.ast.*;
@@ -16,6 +17,7 @@ import litac.ast.Stmt.*;
 import litac.checker.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
+import litac.compiler.BackendOptions.OutputType;
 import litac.compiler.FieldPath.FieldPathNode;
 import litac.compiler.c.CTranspiler.COptions;
 import litac.util.Names;
@@ -42,6 +44,7 @@ public class CGenNodeVisitor implements NodeVisitor {
     private Stack<FuncTypeInfo> currentFuncType;
     private Stack<Stack<DeferStmt>> defers;
     private int aggregateLevel;
+    private Pattern testPattern;
     
     private List<Decl> declarations;
     
@@ -50,6 +53,10 @@ public class CGenNodeVisitor implements NodeVisitor {
         this.program = program;
         this.options = options;
         this.buf = buf;
+                
+        if(this.options.options.testRegex != null) {
+            this.testPattern = Pattern.compile(this.options.options.testRegex);
+        }
         
         this.main = program.getMainModule();
         this.declarations = new ArrayList<>();
@@ -67,9 +74,38 @@ public class CGenNodeVisitor implements NodeVisitor {
         List<Decl> typeInfos = Reflection.createTypeInfos(this.declarations, this.program, this.options.options.typeInfo);
         this.declarations.addAll(0, typeInfos); 
         
+        List<Decl> tests = new ArrayList<>();
+        
         this.declarations = graph.sort(this.declarations);
         for(Decl d : this.declarations) {
-            d.visit(this);
+            
+            // ignore test procedures if we are not testing
+            if(d.attributes.hasNote("test")) {
+                
+                // only include tests that match our input regex
+                if(isTestIncluded(d.attributes.getNote("test"))) {
+                    tests.add(d);
+                }
+                
+                // if we are not testing, don't include test procedures
+                // in the final output
+                if(!isTesting()) {
+                    continue;
+                }
+            }
+    
+            // do not write out main if we are testing
+            if(d.name.equals("main") && 
+               d.kind == DeclKind.FUNC && 
+               isTesting()) {
+                continue;                                    
+            }
+            
+            d.visit(this);            
+        }
+        
+        if(isTesting()) {
+            writeTestMain(buf, tests);
         }
     }
     
@@ -112,6 +148,10 @@ public class CGenNodeVisitor implements NodeVisitor {
     private void writeForwardDecl(Buf buf, String backendName, TypeInfo type) {
         
         if(isForeign(type)) {
+            return;
+        }
+        
+        if(isTest(type)) {
             return;
         }
         
@@ -291,6 +331,20 @@ public class CGenNodeVisitor implements NodeVisitor {
         
     }
     
+    private void writeTestMain(Buf buf, List<Decl> tests) {
+        buf.outln();
+        buf.out("// Tests").outln();
+        buf.out("int main(int argn, char** args) {");
+        for(Decl d : tests) {
+            if(d.kind == DeclKind.FUNC) {
+                String testName = d.attributes.getNote("test").getAttr(0, "");
+                buf.out("printf(\"Testing '%%s'\\n\", \"%s\");\n", testName);
+                buf.out("%s();\n", cName(d.sym));
+            }
+        }
+        buf.out("}");
+    }
+    
     private String typeDeclForC(TypeInfo type, String declName) {
         switch (type.getKind()) {
             case Ptr: {
@@ -393,6 +447,27 @@ public class CGenNodeVisitor implements NodeVisitor {
                 return cTypeName(type);
             }
         }
+    }
+    
+    public boolean isTestIncluded(NoteStmt note) {        
+        if(this.testPattern == null) {
+            return true;
+        }
+        
+        String name = note.getAttr(0, "");
+        return this.testPattern.matcher(name).matches();        
+    }
+    
+    public boolean isTesting() {
+        return this.options.options.outputType.equals(OutputType.Test);
+    }
+    
+    private boolean isTest(TypeInfo type) {
+        if(type.sym == null) {
+            return false;
+        }
+        
+        return type.sym.decl.attributes.isTest() && !isTesting();
     }
     
     private boolean isForeign(TypeInfo type) {
