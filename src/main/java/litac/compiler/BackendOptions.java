@@ -38,6 +38,7 @@ public class BackendOptions {
     public boolean cOnly;
     public boolean typeInfo;
     public boolean profile;
+    public boolean disableLines;
     public OutputType outputType;
     public String testRegex;
     
@@ -66,6 +67,7 @@ public class BackendOptions {
         this.checkerOnly = false;
         this.cOnly = false;
         this.profile = false;
+        this.disableLines = false;
         
         this.cOptions = type == BackendType.C ? new CTranspiler.COptions(this) : null;
     }

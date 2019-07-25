@@ -3,6 +3,8 @@
  */
 package litac.compiler;
 
+import java.util.Formatter;
+
 /**
  * @author Tony
  *
@@ -14,6 +16,9 @@ public class Buf {
     private final String tabSpaces;
     private final boolean useTabs;
     
+    private StringBuilder formatSb;
+    private Formatter formatter;
+    
     public Buf(int indentWidth, boolean useTabs) {
         String tabSpaces = "";
         for(int i = 0; i < indentWidth; i++) {
@@ -23,7 +28,10 @@ public class Buf {
         this.tabSpaces = tabSpaces;
         this.useTabs = useTabs;
         
-        this.sb = new StringBuilder(4096);
+        this.formatSb = new StringBuilder();
+        this.formatter = new Formatter(this.formatSb);
+        
+        this.sb = new StringBuilder(4096 * 2);
         this.indent = 0;
     }
     
@@ -56,9 +64,11 @@ public class Buf {
     }
     
     public Buf out(String message, Object ... args) {
-        String str = String.format(message, args);
-        for(int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
+        this.formatSb.setLength(0);
+        this.formatter.format(message, args);
+        
+        for(int i = 0; i < this.formatSb.length(); i++) {
+            char c = formatSb.charAt(i);
             if(c == '\n') {
                 outln();
             }

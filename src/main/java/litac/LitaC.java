@@ -38,6 +38,7 @@ public class LitaC {
         System.out.println("  -checkerOnly         Only runs the type checker, does not compile");
         System.out.println("  -cOnly               Only creates the C output file, does not compile the generated C code");
         System.out.println("  -profile             Reports profile metrics of the compiler");
+        System.out.println("  -disableLine         Disables #line directive in C output");
         System.out.println("  -o, -output <arg>    The name of the compiled binary");
         System.out.println("  -outpuDir <arg>      The directory in which the C output files are stored");
         System.out.println("  -v, -version         Displays the LitaC version");

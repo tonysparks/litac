@@ -47,6 +47,8 @@ public class CGenNodeVisitor implements NodeVisitor {
     private Pattern testPattern;
     
     private List<Decl> declarations;
+    private int currentLine;
+    private String currentFile;
     
     public CGenNodeVisitor(CompilationUnit unit, Program program, COptions options, Buf buf) {
         this.unit = unit;
@@ -540,6 +542,29 @@ public class CGenNodeVisitor implements NodeVisitor {
         return prefix(Names.backendName(sym.declared.name(), declName));
     }
     
+    private void checkLine(Stmt stmt) {
+        if(options.options.disableLines) {
+            return;
+        }
+        
+        String sourceFile = stmt.getSourceFile();
+        int line = stmt.getLineNumber();
+        
+        if(this.currentLine != line ||
+           (sourceFile != null && !this.currentFile.equals(sourceFile))) {
+            
+            this.currentFile = sourceFile;
+            this.currentLine = line;
+            
+            if(this.currentFile != null) {
+                buf.out("\n#line %d \"%s\"\n", this.currentLine, this.currentFile);
+            }
+            else {
+                buf.out("\n#line %d\n", this.currentLine);
+            }
+        }
+    }
+    
     private void visitNotes(List<NoteStmt> notes) {
         if(notes != null) {
             notes.forEach(n -> n.visit(this));
@@ -640,6 +665,8 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(VarFieldStmt stmt) {
+        checkLine(stmt);
+        
         String name = name(stmt.name, stmt.attributes);
         buf.out("%s;\n", typeDeclForC(stmt.type, name));
     }
@@ -669,6 +696,8 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(StructFieldStmt stmt) {
+        checkLine(stmt);
+        
         buf.outln();
         if(stmt.decl.type.isAnonymous()) {
             buf.out("struct {");
@@ -689,6 +718,8 @@ public class CGenNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(UnionFieldStmt stmt) {
+        checkLine(stmt);
+        
         buf.outln();
         if(stmt.decl.type.isAnonymous()) {
             buf.out("union {");            
@@ -710,25 +741,12 @@ public class CGenNodeVisitor implements NodeVisitor {
     @Override
     public void visit(EnumFieldStmt stmt) {
         buf.outln();
-        
-//        buf.out("enum %s {", cTypeName(stmt.decl.type));  
-//        boolean isFirst = true;
-//        for(EnumFieldInfo f : stmt.decl.fields) {
-//            if(!isFirst) buf.out(",\n");
-//            isFirst = false;
-//            buf.out("%s", f.name);
-//            if(f.value != null) {
-//                buf.out(" = ");
-//                f.value.visit(this);
-//            }
-//        }                    
-//        buf.out("} %s;\n", stmt.decl.name);
         buf.out("enum %s %s;\n", cTypeName(stmt.decl.type), stmt.decl.name);
         buf.outln();
     }
     
     @Override
-    public void visit(ConstDecl d) {        
+    public void visit(ConstDecl d) {       
         String name = cName(d.sym);
         
         if(isForeign(d)) {
@@ -736,6 +754,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         }
         visitNotes(d.attributes.notes);
         
+        checkLine(d);
         if(d.type.isPrimitive()) {
             buf.out("const ");
         }
@@ -787,8 +806,10 @@ public class CGenNodeVisitor implements NodeVisitor {
         }
         
         visitNotes(d.attributes.notes);
-        
+
         buf.outln();
+        checkLine(d);
+        
         buf.out("typedef enum %s {", name);
         boolean isFirst = true;
         for(EnumFieldInfo f : d.fields) {
@@ -824,7 +845,9 @@ public class CGenNodeVisitor implements NodeVisitor {
         visitNotes(d.attributes.notes);
         
         currentFuncType.add(funcInfo);
+        
         buf.outln();
+        checkLine(d);
         
         if(d.returnType.isKind(TypeKind.FuncPtr)) {
             FuncPtrTypeInfo funcPtr = d.returnType.as();
@@ -908,6 +931,8 @@ public class CGenNodeVisitor implements NodeVisitor {
         
         aggregateLevel++;
         buf.outln();
+        checkLine(d);
+        
         buf.out("struct %s {", name);
         for(FieldStmt f : d.fields) {
             f.visit(this);
@@ -937,6 +962,8 @@ public class CGenNodeVisitor implements NodeVisitor {
         
         aggregateLevel++;
         buf.outln();
+        checkLine(d);
+        
         buf.out("union %s {", name);
         for(FieldStmt f : d.fields) {
             f.visit(this);
@@ -962,7 +989,8 @@ public class CGenNodeVisitor implements NodeVisitor {
                 return;
             }
             visitNotes(d.attributes.notes);
-        
+            checkLine(d);
+            
             buf.out("typedef %s;\n", typeDeclForC(d.type, cName(d.sym)));
         }
     }
@@ -978,6 +1006,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         }
         visitNotes(d.attributes.notes);
                 
+        checkLine(d);
         buf.out("%s", typeDeclForC(d.type, name));
         
         if(d.expr != null) {
@@ -990,6 +1019,8 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(IfStmt stmt) {
+        checkLine(stmt);
+        
         buf.out("if (");
         stmt.condExpr.visit(this);
         buf.out(") \n");            
@@ -1007,6 +1038,8 @@ public class CGenNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(WhileStmt stmt) {
+        checkLine(stmt);
+        
         buf.out("while (");
         stmt.condExpr.visit(this);
         buf.out(")\n");
@@ -1018,6 +1051,8 @@ public class CGenNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(DoWhileStmt stmt) {
+        checkLine(stmt);
+        
         buf.out("do {");
         stmt.bodyStmt.visit(this);
         buf.out("}\n while (");
@@ -1028,6 +1063,8 @@ public class CGenNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(ForStmt stmt) {
+        checkLine(stmt);
+        
         buf.out("for(");
         if(stmt.initStmt != null) {
             stmt.initStmt.visit(this);
@@ -1048,6 +1085,8 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(SwitchCaseStmt stmt) {
+        checkLine(stmt);
+        
         buf.out("case ");
         stmt.cond.visit(this);
         buf.out(": ");
@@ -1057,6 +1096,8 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(SwitchStmt stmt) {
+        checkLine(stmt);
+        
         buf.out("switch(");
         stmt.cond.visit(this);
         buf.out(") {");
@@ -1092,18 +1133,22 @@ public class CGenNodeVisitor implements NodeVisitor {
     @Override
     public void visit(BreakStmt stmt) {
         outputDefer();
+        checkLine(stmt);
         buf.out("break;\n");
     }
 
     @Override
     public void visit(ContinueStmt stmt) {
         outputDefer();
+        checkLine(stmt);
         buf.out("continue;\n");
     }
 
 
     @Override
     public void visit(ReturnStmt stmt) {
+        checkLine(stmt);
+        
         if(!this.defers.isEmpty() && 
             this.defers.stream().anyMatch(s->!s.isEmpty()) && 
             stmt.returnExpr != null) {
@@ -1136,12 +1181,19 @@ public class CGenNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(BlockStmt stmt) {
+        checkLine(stmt);
         buf.out("{");
         
         int deferCount = this.defers.size();
         for(Stmt s : stmt.stmts) {
+            boolean isExpr = s instanceof Expr;
+            if(isExpr) {
+                checkLine(s);
+            }
+            
             s.visit(this);
-            if(s instanceof Expr) {
+            
+            if(isExpr) {
                 buf.out(";\n");
             }
         }
@@ -1155,6 +1207,8 @@ public class CGenNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(DeferStmt stmt) {
+        checkLine(stmt);
+        
         if(this.defers.isEmpty()) {
             this.defers.add(new Stack<>());
         }
@@ -1164,20 +1218,25 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(GotoStmt stmt) {
+        checkLine(stmt);
+        
         buf.out("goto %s;\n", stmt.label);
     }
     
     @Override
     public void visit(LabelStmt stmt) {
+        checkLine(stmt);
+        
         buf.out("%s:\n", stmt.label);
     }
 
     @Override
     public void visit(EmptyStmt stmt) {
+        checkLine(stmt);
     }
     
     @Override
-    public void visit(CastExpr expr) {
+    public void visit(CastExpr expr) {                
         buf.out("(%s)", getTypeNameForC(expr.castTo));
         expr.expr.visit(this);
     }
