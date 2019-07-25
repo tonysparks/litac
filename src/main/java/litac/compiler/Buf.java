@@ -23,7 +23,7 @@ public class Buf {
         this.tabSpaces = tabSpaces;
         this.useTabs = useTabs;
         
-        this.sb = new StringBuilder();
+        this.sb = new StringBuilder(4096);
         this.indent = 0;
     }
     

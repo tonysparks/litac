@@ -3,10 +3,7 @@
  */
 package litac.compiler;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,9 +11,7 @@ import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.ImportStmt;
 import litac.ast.Stmt.ModuleStmt;
 import litac.compiler.BackendOptions.OutputType;
-import litac.parser.Parser;
-import litac.parser.Scanner;
-import litac.parser.Source;
+import litac.parser.*;
 
 /**
  * @author Tony
@@ -67,7 +62,7 @@ public class CompilationUnit {
      * @param main
      * @return
      */
-    public static CompilationUnit modules(BackendOptions options, File moduleFile) throws IOException {
+    public static CompilationUnit modules(BackendOptions options, File moduleFile) throws IOException {       
         ModuleStmt builtin = readModule(new File(options.libDir, "builtins.lita"));
         ModuleStmt main = readModule(moduleFile);
         main.imports.add(new ImportStmt("builtins", null));
@@ -82,7 +77,6 @@ public class CompilationUnit {
         CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(options, unit);
         visitor.visit(main);
         visitor.visit(builtin);
-        
         return unit;
     }
     

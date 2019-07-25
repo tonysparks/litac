@@ -8,6 +8,8 @@ import java.io.*;
 import litac.ast.Stmt;
 import litac.checker.*;
 import litac.compiler.c.CTranspiler;
+import litac.util.Profiler;
+import litac.util.Profiler.Segment;
 
 /**
  * @author Tony
@@ -30,10 +32,10 @@ public class Compiler {
         PhaseResult result = new PhaseResult();
         
         try {
-            CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
+            CompilationUnit unit = parse(this.options, rootModule);
             Program program = typeCheck(options, result, unit);
             
-            if(!result.hasErrors()) {
+            if(!result.hasErrors() && !options.checkerOnly) {
                 compile(options, result, unit, program);
             }
         }
@@ -47,22 +49,32 @@ public class Compiler {
         return result;
     }
     
-    private Program typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
-        TypeResolver resolver = new TypeResolver(result, unit);        
-        TypeChecker checker = new TypeChecker(result);
-                
-        Program program = resolver.resolveTypes();
-        if(!result.hasErrors()) {
-            checker.typeCheck(program.getMainModule());
+    private CompilationUnit parse(BackendOptions options, File rootModule) throws IOException {
+        try(Segment s = Profiler.startSegment("Lexing/Parsing")) {
+            CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
+            return unit;
         }
-        
-        return program;
+    }
+    
+    private Program typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
+        try(Segment s = Profiler.startSegment("Type Checker")) {
+            TypeResolver resolver = new TypeResolver(result, unit);        
+            TypeChecker checker = new TypeChecker(result);
+                    
+            Program program = resolver.resolveTypes();
+            if(!result.hasErrors()) {
+                checker.typeCheck(program.getMainModule());
+            }
+            
+            return program;
+        }
     }
     
     private static void compile(BackendOptions options, 
                                 PhaseResult checkerResult, 
                                 CompilationUnit unit,
                                 Program program) throws Exception {
+        
         switch(options.backendType) {            
             case C: {
                 CTranspiler.transpile(checkerResult, unit, program, options);
@@ -71,7 +83,8 @@ public class Compiler {
             default: {
                 throw error(null, "unsupported backend type '%s'", options.backendType.toString());
             }
-        }        
+        }      
+        
     }
 
 }

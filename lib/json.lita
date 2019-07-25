@@ -305,6 +305,11 @@ public func (node: JsonNode*) size() : i32 {
 }
 
 
+public func (node: JsonNode*) print(buf: StringBuffer*) : char const* {
+    PrintJson(node, buf)
+    return buf.cStr()
+}
+
 public func (node: JsonNode*) free() {
     if(!node) {
         return;

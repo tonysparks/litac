@@ -111,15 +111,8 @@ public func (b: StringBuffer*) append(format: char const*, ...) : i32 {
     if (len >= MAX_BUFFER_SIZE) {        
         BufferGrow(b, (len + 1) - MAX_BUFFER_SIZE);
 
-        var n = vsnprintf(&b.buffer[b.length], len + 1, format, args2);
+        len = vsnprintf(&b.buffer[b.length], len + 1, format, args2);
         va_end(args2);
-
-        if(n < 0) {
-            return n;
-        }
-
-        b.length += n
-        return len
     }
     
     if(len < 0) {

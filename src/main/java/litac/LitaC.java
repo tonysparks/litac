@@ -9,6 +9,8 @@ import litac.compiler.BackendOptions;
 import litac.compiler.BackendOptions.BackendType;
 import litac.compiler.BackendOptions.OutputType;
 import litac.compiler.PhaseResult.PhaseError;
+import litac.util.Profiler;
+import litac.util.Profiler.Segment;
 import litac.compiler.Compiler;
 import litac.compiler.PhaseResult;
 
@@ -28,11 +30,14 @@ public class LitaC {
     }
     
     private static void printHelp() {
-        System.out.println("<usage> litac.exe [options] [source file to compile]");
+        System.out.println("<usage> litac [options] [source file to compile]");
         System.out.println("OPTIONS:");
         System.out.println("  -lib <arg>           The LitaC library path");
         System.out.println("  -cPrefix <arg>       The symbol prefix to use on the generated C code output");
         System.out.println("  -run                 Runs the program after a successful compile");
+        System.out.println("  -checkerOnly         Only runs the type checker, does not compile");
+        System.out.println("  -cOnly               Only creates the C output file, does not compile the generated C code");
+        System.out.println("  -profile             Reports profile metrics of the compiler");
         System.out.println("  -o, -output <arg>    The name of the compiled binary");
         System.out.println("  -outpuDir <arg>      The directory in which the C output files are stored");
         System.out.println("  -v, -version         Displays the LitaC version");
@@ -43,6 +48,30 @@ public class LitaC {
         System.out.println("                       be substituted if found: ");
         System.out.println("                          %output%         The executable name ");
         System.out.println("                          %input%          The C file(s) generated ");
+    }
+    
+    
+    private static void printProfileResults() {
+        long totalTime = 0;
+        for(Segment s : Profiler.profiledSegments()) {
+            totalTime += s.getDeltaTimeNSec();                                     
+        }
+        
+        System.out.printf("\n");
+        System.out.printf("%-20s %-20s %10s\n", "Segment", "Time (NanoSec)", "% of Total");
+        System.out.printf("======================================================\n");
+        for(Segment s : Profiler.profiledSegments()) {
+            long delta = s.getDeltaTimeNSec();
+            int percentage = 0;
+            if(totalTime > 0) {
+                percentage = (int) (((double)delta / (double)totalTime) * 100);
+            }
+            
+            System.out.printf("%-20s %15d %10d%%\n", s.name, delta, percentage);
+            
+        }
+        
+        System.out.printf("%20s %15d ns (%d ms)\n", "Total Time:", totalTime, totalTime / 1_000_000);
     }
     
     /**
@@ -69,6 +98,10 @@ public class LitaC {
                     System.out.printf("%s\n", VERSION);
                     break;
                 }
+                case "-profile": {
+                    options.profile = true;
+                    break;
+                }
                 case "-buildCmd": {
                     checkArg(args, i, "-buildCmd");
                     options.cOptions.compileCmd = args[++i];
@@ -86,6 +119,14 @@ public class LitaC {
                 }
                 case "-run": {
                     options.run = true;
+                    break;
+                }
+                case "-checkerOnly": {
+                    options.checkerOnly = true;
+                    break;
+                }
+                case "-cOnly": {
+                    options.cOnly = true;
                     break;
                 }
                 case "-o": 
@@ -129,6 +170,10 @@ public class LitaC {
                     Errors.typeCheckError(error.stmt, error.message);
                 }            
             }  
+            
+            if(options.profile) {
+                printProfileResults();
+            }
 //        }
 //        catch(Exception e) {
 //            System.err.println(e.getMessage());
@@ -142,5 +187,6 @@ public class LitaC {
         Compiler compiler = new Compiler(options);
         return compiler.compile(moduleFile);        
     }
+
     
 }

@@ -11,6 +11,8 @@ import litac.Errors;
 import litac.compiler.*;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.util.Exec;
+import litac.util.Profiler;
+import litac.util.Profiler.Segment;
 
 /**
  * @author Tony
@@ -72,42 +74,51 @@ public class CTranspiler {
             System.exit(23);
         }
         
-        compileC(cOutput, options);        
-        runProgram(options);
+        if(!options.cOnly) {
+            compileC(cOutput, options);   
+            
+            if(options.run) {
+                runProgram(options);
+            }
+        }
     }
     
     private static Buf toC(CompilationUnit unit, Program program, COptions options) throws Exception {
-        Buf buf = new Buf(options.indentWidth, options.useTabs);        
-        
-        CGenNodeVisitor cWriter = new CGenNodeVisitor(unit, program, options, buf);                
-        cWriter.write();
-        
-        return buf;
+        try(Segment s = Profiler.startSegment("C Genaration")) {
+            Buf buf = new Buf(options.indentWidth, options.useTabs);        
+            
+            CGenNodeVisitor cWriter = new CGenNodeVisitor(unit, program, options, buf);                
+            cWriter.write();
+            
+            return buf;
+        }
     }
     
     
     private static File writeCFile(Buf buf, BackendOptions options) throws Exception {
-        options.outputDir.mkdirs();
-        
-        File cOutput = new File(options.outputDir, options.outputFileName + ".c");
-        Files.write(cOutput.toPath(), buf.toString().getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
-        return cOutput;
+        try(Segment s = Profiler.startSegment("C Write")) {
+            options.outputDir.mkdirs();
+            
+            File cOutput = new File(options.outputDir, options.outputFileName + ".c");
+            Files.write(cOutput.toPath(), buf.toString().getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
+            return cOutput;
+        }
     }
     
     private static void compileC(File cOutput, BackendOptions options) throws Exception {
-        String compileCmd = options.cOptions.getCompileCmd(cOutput);
-        int status = Exec.run(options.outputDir, compileCmd);
-        if(status != 0) {
-            System.exit(status);
+        try(Segment s = Profiler.startSegment("C Compile")) {
+            String compileCmd = options.cOptions.getCompileCmd(cOutput);
+            int status = Exec.run(options.outputDir, compileCmd);
+            if(status != 0) {
+                System.exit(status);
+            }
         }
     }
     
     private static void runProgram(BackendOptions options) throws Exception {
-        if(options.run) {
-            int status = Exec.run(options.outputDir, options.cOptions.getBinaryOutputFile());
-            if(status != 0) {
-                System.exit(status);
-            }
+        int status = Exec.run(options.outputDir, options.cOptions.getBinaryOutputFile());
+        if(status != 0) {
+            System.exit(status);
         }
     }
 }

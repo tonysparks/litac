@@ -34,7 +34,10 @@ public class BackendOptions {
     public String outputFileName;
     public OsType targetOS;
     public boolean run;
+    public boolean checkerOnly;
+    public boolean cOnly;
     public boolean typeInfo;
+    public boolean profile;
     public OutputType outputType;
     public String testRegex;
     
@@ -60,6 +63,9 @@ public class BackendOptions {
         this.targetOS = OsType.WINDOWS;
         this.run = false;
         this.typeInfo = true;
+        this.checkerOnly = false;
+        this.cOnly = false;
+        this.profile = false;
         
         this.cOptions = type == BackendType.C ? new CTranspiler.COptions(this) : null;
     }

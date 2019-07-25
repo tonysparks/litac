@@ -321,7 +321,7 @@ public class TypeChecker {
         @Override
         public void visit(ConstDecl d) {
             if(!d.attributes.isForeign() && d.expr == null) {
-                this.result.addError(d, "const declaration must have an assignment (unless it is 'foreign')");
+                this.result.addError(d, "const declaration must have an assignment (unless it is '@foreign')");
                 return;
             }
             
@@ -430,15 +430,10 @@ public class TypeChecker {
                 s.visit(this);
             }
             
-            Map<String, FieldInfo> definedFields = new HashMap<>();
+            Map<String, Tuple<AggregateTypeInfo, FieldInfo>> definedFields = new HashMap<>();
             AggregateTypeInfo aggInfo = d.type.as();
-            for(FieldInfo field : aggInfo.fieldInfos) {
-                if(definedFields.containsKey(field.name)) {
-                    this.result.addError(d, "duplicate member '%s'", field.name);
-                }
-                
-                definedFields.put(field.name, field);
-            }
+            
+            checkDuplicateFields(d, aggInfo, definedFields);
         }
         
         @Override
