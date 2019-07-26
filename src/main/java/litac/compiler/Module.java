@@ -395,7 +395,8 @@ public class Module {
     
     public FuncTypeInfo getMethodType(TypeInfo recv, String methodName) {
         
-        // First try non-generic type name
+        // First try non-generic type name, which may have a module alias
+        // with it
         String funcName = FuncTypeInfo.getMethodName(recv, methodName);
         FuncTypeInfo funcInfo = getFuncType(funcName);
         if(funcInfo != null) {
@@ -408,7 +409,9 @@ public class Module {
             return null;
         }
         
-        
+        // we want to remove any module alias, as this is looking directly in the
+        // declared module
+        funcName = FuncTypeInfo.getMethodName(recv.getResolvedType(), methodName);
         funcInfo = genericRecv.getFirst().getFuncType(funcName);
         if(funcInfo != null) {
             return funcInfo;

@@ -22,7 +22,7 @@ import "clib" as c;
 =========================================================
 */
 public func new<T>(a: Allocator const* = cAllocator) : T* {        
-    return a.alloc(a, sizeof(T)) as (T*)
+    return a.alloc(sizeof(T)) as (T*)
 }
 
 /**
@@ -31,7 +31,7 @@ public func new<T>(a: Allocator const* = cAllocator) : T* {
 =========================================================
 */
 public func memduplicate(p: void const*, len: u64, a: Allocator const* = cAllocator) : void* {    
-    var copy = a.alloc(a, len)
+    var copy = a.alloc(len)
     memcpy(copy, p, len)
 
     return copy
@@ -44,11 +44,36 @@ public func memduplicate(p: void const*, len: u64, a: Allocator const* = cAlloca
 =========================================================
 */
 public struct Allocator {
-    alloc:   func(Allocator const*, u64): void*
-    calloc:  func(Allocator const*, u64, u64): void*
-    realloc: func(Allocator const*, void*, u64, u64) : void*
-    free:    func(Allocator const*, void*) : void
+    allocFn:   func(Allocator const*, u64): void*
+    callocFn:  func(Allocator const*, u64, u64): void*
+    reallocFn: func(Allocator const*, void*, u64, u64) : void*
+    freeFn:    func(Allocator const*, void*) : void
 }
+
+@inline
+public func (a: Allocator const*) alloc(size: u64) : void* {
+    return a.allocFn(a, size)
+}
+
+@inline
+public func (a: Allocator const*) calloc(num: u64, size: u64) : void* {
+    return a.callocFn(a, num, size)
+}
+
+@inline
+public func (a: Allocator const*) realloc(ptr: void*, oldsize: u64, newsize: u64) : void* {
+    return a.reallocFn(a, ptr, oldsize, newsize)
+}
+
+@inline
+public func (a: Allocator const*) free(ptr: void*) {
+    return a.freeFn(a, ptr)
+}
+
+
+
+
+
 
 
 /**
@@ -57,10 +82,10 @@ public struct Allocator {
 =========================================================
 */
 public const cAllocator : Allocator const* = (&Allocator {
-    .alloc:   &cMalloc,
-    .calloc:  &cCalloc,
-    .realloc: &cRealloc,
-    .free:    &cFree
+    .allocFn:   &cMalloc,
+    .callocFn:  &cCalloc,
+    .reallocFn: &cRealloc,
+    .freeFn:    &cFree
 }) as (Allocator const*);
 
 func cMalloc(a: Allocator const*, size: u64) : void* {
@@ -99,13 +124,13 @@ const PAGE_SIZE = 4096_u64
 
 public func (arena: Arena*) init(size: u64 = PAGE_SIZE, alloc: Allocator const* = cAllocator) {
     arena.decorated = alloc
-    arena.region = alloc.calloc(alloc, size, sizeof(u8)) as (u8*)
+    arena.region = alloc.calloc(size, sizeof(u8)) as (u8*)
     arena.size = size
     arena.alloc = Allocator {
-        .alloc:   &ArenaMalloc,
-        .calloc:  &ArenaCalloc,
-        .realloc: &ArenaRealloc,
-        .free:    &ArenaFree
+        .allocFn:   &ArenaMalloc,
+        .callocFn:  &ArenaCalloc,
+        .reallocFn: &ArenaRealloc,
+        .freeFn:    &ArenaFree
     }
 }
 
@@ -117,8 +142,8 @@ public func (arena: Arena*) free() {
 
     do {
         next = last.next
-        alloc.free(alloc, last.region as (void*))
-        alloc.free(alloc, last as (void*))
+        alloc.free(last.region as (void*))
+        alloc.free(last as (void*))
         last = next
     }
     while(next != null)

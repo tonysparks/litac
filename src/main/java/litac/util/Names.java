@@ -114,7 +114,7 @@ public class Names {
         
         String recvName = null;
         
-        recvInfo = recvInfo.getResolvedType();
+        //recvInfo = recvInfo.getResolvedType();
         switch(recvInfo.getKind()) {
             case Ptr: {
                 PtrTypeInfo ptrInfo = recvInfo.as();

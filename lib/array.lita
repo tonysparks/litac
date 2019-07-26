@@ -17,12 +17,12 @@ public func (a: Array<T>*) init<T>(initialSize: i32 = 16, alloc: mem::Allocator 
     a.capacity = initialSize;    
     
     var length = (sizeof(T) * initialSize as (u64));    
-    a.elements = alloc.alloc(alloc, length) as (T*)
+    a.elements = alloc.alloc(length) as (T*)
 }
 
 public func (a: Array<T>*) free<T>() {
     if(a && a.elements) {
-        a.alloc.free(a.alloc, a.elements as (void*))
+        a.alloc.free(a.elements as (void*))
         a.elements = null
         a.length = 0
         a.capacity = 0
@@ -131,6 +131,6 @@ func ArrayGrow<T>(a: Array<T>*, increment: i32) {
     
     var newlength = (sizeof(T) * n as (u64));     
     var oldlength = (sizeof(T) * a.capacity as(u64));
-    a.elements = a.alloc.realloc(a.alloc, a.elements as (void*), oldlength, newlength) as (T*)
+    a.elements = a.alloc.realloc(a.elements as (void*), oldlength, newlength) as (T*)
     a.capacity = n;    
 }

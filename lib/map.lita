@@ -85,8 +85,8 @@ public func (m: Map<K, V>*) free<K, V>() {
     if(m) {
         m.capacity = 0;
         m.length = 0;
-        m.alloc.free(m.alloc, m.keys as (void*));
-        m.alloc.free(m.alloc, m.values as (void*));    
+        m.alloc.free(m.keys as (void*));
+        m.alloc.free(m.values as (void*));    
 
         m.keys = null;
         m.values = null;    
@@ -202,8 +202,8 @@ func MapGrow<K, V>(m: Map<K, V>*, newlength: i32) {
     var newMap = Map<K, V> {
         .length: 0,
         .capacity: newlength,
-        .keys: m.alloc.calloc(m.alloc, newlength, sizeof(K)) as (K*),
-        .values: m.alloc.alloc(m.alloc, newlength * sizeof(V)) as (V*),
+        .keys: m.alloc.calloc(newlength, sizeof(K)) as (K*),
+        .values: m.alloc.alloc(newlength * sizeof(V)) as (V*),
         .hashFn: m.hashFn,
         .equalFn: m.equalFn,
         .alloc: m.alloc
