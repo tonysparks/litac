@@ -29,8 +29,8 @@
 @foreign public var SEEK_END : i32;
 
 // Math operations
-@foreign public func MAX(a: i32, b: i32) : i32;
-@foreign public func MIN(a: i32, b: i32) : i32;
+@foreign public func MAX<T>(a: T, b: T) : T;
+@foreign public func MIN<T>(a: T, b: T) : T;
 @foreign public func ABS(a: f32) : f32;
 @foreign public func sqrt(v: f64) : f64;
 @foreign public func cos(v: f64) : f64;

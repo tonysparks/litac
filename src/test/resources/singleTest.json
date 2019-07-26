@@ -106,7 +106,25 @@
                 assert(w.method() == 4)
             ''',                      
         },*/
-               
+        { 
+            name: "Arena Allocator",
+            definitions: '''
+                import "mem";
+                import "array";
+            ''',                       
+            code: '''        
+                var arena = Arena{}
+                arena.init()
+                var array = Array<i32>{}
+                array.init(2, &arena.alloc)
+                array.add(3)
+                array.add(4)
+                array.add(5)
+                array.add(6)
+                
+                assert(array.size() == 4)
+            ''',                      
+        },       
                 
     ]
 }

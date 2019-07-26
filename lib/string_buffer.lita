@@ -32,12 +32,12 @@ public func (b: StringBuffer*) init(initialSize: i32 = 16,
     b.capacity = initialSize;    
     
     var length = (sizeof(char) * initialSize as (u64));    
-    b.buffer = alloc.calloc(0, length) as (char*)
+    b.buffer = alloc.calloc(alloc, 0, length) as (char*)
 }
 
 public func (b: StringBuffer*) free() {
     if(b && b.buffer) {
-        b.alloc.free(b.buffer as (void*))
+        b.alloc.free(b.alloc, b.buffer as (void*))
         b.buffer = null
         b.length = 0
         b.capacity = 0
@@ -341,7 +341,8 @@ func BufferGrow(b: StringBuffer*, increment: i32) {
         n = doubleCurrent        
     }
     
-    var newlength = (sizeof(char) * n as (u64));     
-    b.buffer = b.alloc.realloc(b.buffer as (void*), newlength) as (char*)
+    var newlength = (sizeof(char) * n as (u64));
+    var oldlength = (sizeof(char) * b.capacity as (u64));     
+    b.buffer = b.alloc.realloc(b.alloc, b.buffer as (void*), oldlength, newlength) as (char*)
     b.capacity = n;    
 }

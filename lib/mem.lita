@@ -1,6 +1,10 @@
 @include("<stdlib.h>");
 @include("<string.h>");
 
+import "clib" as c;
+
+
+// TODO: should we remove this, there is clib now...
 @foreign public func malloc(size: u64) : void*;
 @foreign public func realloc(ptr:void*, size: u64) : void*;
 @foreign public func calloc(num: u64, size: u64) : void*;
@@ -10,60 +14,111 @@
 @foreign public func memcpy (dest: void*, src: void const*, num: u64) : void*;
 @foreign public func memmove (dest: void*, src: void const*, num: u64) : void*;
 
-public struct Allocator {
-    alloc:   func(u64): void*
-    calloc:  func(u64,u64): void*
-    realloc: func(void*, u64) : void*
-    free:    func(void*) : void
-}
-
-public const cAllocator : Allocator const* = (&Allocator {
-    .alloc:   &malloc,
-    .calloc:  &calloc,
-    .realloc: &realloc,
-    .free:    &free
-}) as (Allocator const*);
 
 
+/**
+=========================================================
+// new allocates a type T
+=========================================================
+*/
 public func new<T>(a: Allocator const* = cAllocator) : T* {        
-    return a.alloc(sizeof(T)) as (T*)
+    return a.alloc(a, sizeof(T)) as (T*)
 }
 
-
+/**
+=========================================================
+// Duplicates the supplied memory
+=========================================================
+*/
 public func memduplicate(p: void const*, len: u64, a: Allocator const* = cAllocator) : void* {    
-    var copy = a.alloc(len)
+    var copy = a.alloc(a, len)
     memcpy(copy, p, len)
 
     return copy
 }
 
-const PAGE_SIZE = 4096_u64
 
+/**
+=========================================================
+// Allocator interface
+=========================================================
+*/
+public struct Allocator {
+    alloc:   func(Allocator const*, u64): void*
+    calloc:  func(Allocator const*, u64, u64): void*
+    realloc: func(Allocator const*, void*, u64, u64) : void*
+    free:    func(Allocator const*, void*) : void
+}
+
+
+/**
+=========================================================
+// Default C Library allocator
+=========================================================
+*/
+public const cAllocator : Allocator const* = (&Allocator {
+    .alloc:   &cMalloc,
+    .calloc:  &cCalloc,
+    .realloc: &cRealloc,
+    .free:    &cFree
+}) as (Allocator const*);
+
+func cMalloc(a: Allocator const*, size: u64) : void* {
+    return malloc(size);
+}
+
+func cCalloc(a: Allocator const*, num: u64, size: u64) : void* {
+    return calloc(num, size);
+}
+
+func cRealloc(a: Allocator const*, ptr: void*, oldSize: u64, size: u64) : void* {
+    return realloc(ptr, size);
+}
+
+func cFree(a: Allocator const*, ptr: void*) {
+    return free(ptr)
+}
+
+
+
+/**
+=========================================================
 // Arena allocator
+=========================================================
+*/
 public struct Arena {
-    alloc: Allocator const*
+    alloc: Allocator
+    decorated: Allocator const*
     region: u8*
     size: u64
     current: u64
     next: Arena*
 }
 
+const PAGE_SIZE = 4096_u64
+
 public func (arena: Arena*) init(size: u64 = PAGE_SIZE, alloc: Allocator const* = cAllocator) {
-    arena.alloc = alloc
-    arena.region = alloc.calloc(size, sizeof(u8)) as (u8*)
+    arena.decorated = alloc
+    arena.region = alloc.calloc(alloc, size, sizeof(u8)) as (u8*)
     arena.size = size
+    arena.alloc = Allocator {
+        .alloc:   &ArenaMalloc,
+        .calloc:  &ArenaCalloc,
+        .realloc: &ArenaRealloc,
+        .free:    &ArenaFree
+    }
 }
 
 public func (arena: Arena*) free() {
-    var alloc = arena.alloc
+    var alloc = arena.decorated
 
     var next: Arena* = null
     var last = arena;
 
     do {
         next = last.next
-        alloc.free(last.region)
-        alloc.free(last)
+        alloc.free(alloc, last.region as (void*))
+        alloc.free(alloc, last as (void*))
         last = next
     }
     while(next != null)
@@ -72,11 +127,11 @@ public func (arena: Arena*) free() {
 public func (arena: Arena*) malloc(size: u64) : void* {
     var a = arena
     var last = arena
-
+    
     do {
         if((a.size - a.current) > size) {
             a.current += size
-            return a.region + (a.current - size)
+            return (a.region + (a.current - size)) as (void*)
         }
 
         last = a
@@ -84,10 +139,45 @@ public func (arena: Arena*) malloc(size: u64) : void* {
     while((a = a.next) != null);
 
     var asize = size > PAGE_SIZE ? size : PAGE_SIZE    
-    var next = new<Arena>(arena.alloc)
-    next.init(asize, arena.alloc)
+    var next = new<Arena>(arena.decorated)
+    next.init(asize, arena.decorated)
 
     last.next = next
     next.current += size
-    return next.region
+    return next.region as (void*)
+}
+
+func ArenaMalloc(alloc: Allocator const*, size: u64) : void* {
+    var arena = alloc as (Arena*);
+    return arena.malloc(size);
+}
+
+func ArenaCalloc(alloc: Allocator const*, num: u64, size: u64) : void* {
+    var arena = alloc as (Arena*);
+    var result = arena.malloc(size * num);
+    if(result) {
+        memset(result, 0, size * num)
+    }
+
+    return result
+}
+
+func ArenaRealloc(alloc: Allocator const*, ptr: void*, oldSize: u64, size: u64) : void* {
+    if(ptr == null) {
+        return ArenaMalloc(alloc, size)
+    }
+
+    var arena = alloc as (Arena*);
+    var result = arena.malloc(size);
+    if(result) {
+        var len = c::MIN(oldSize, size)
+        memcpy(result, ptr, len)
+    }
+
+    return result
+
+}
+
+func ArenaFree(alloc: Allocator const*, ptr: void*) {
+    // do nothing
 }

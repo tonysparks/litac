@@ -1131,15 +1131,22 @@ public abstract class TypeInfo {
             
             if(target.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = target.as();
+                TypeInfo targetPtrOf = ptrInfo.ptrOf;
+                boolean isTargetConst = targetPtrOf.isKind(TypeKind.Const); 
                 
                 // target must be a const pointer too, if this is a const ptr
-                if(isConstPtr) {
-                    if(!ptrInfo.ptrOf.isKind(TypeKind.Const)) {
-                        return false;
+                if(isConstPtr && !isTargetConst) {
+                    return false;
+                }
+                else {
+                    if(isTargetConst) {
+                        // target is const, which is fine
+                        ConstTypeInfo constInfo = targetPtrOf.as();
+                        targetPtrOf = constInfo.constOf;
                     }
                 }
                                 
-                return this.ptrOf.getResolvedType().canCastTo(ptrInfo.ptrOf.getResolvedType());
+                return this.ptrOf.getResolvedType().canCastTo(targetPtrOf.getResolvedType());
             }
             
             if(target.isKind(TypeKind.Str)) {

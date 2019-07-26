@@ -516,7 +516,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         
         Symbol sym = type.sym;
         if(sym.isForeign()) {            
-            return getForeignName(sym.decl, typeName);
+            return getForeignName(sym.decl, Names.baseTypeName(type.getName()));
         }
         
         return prefix(Names.backendName(sym.declared.name(), typeName));
@@ -530,7 +530,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         }
         
         if(sym.isForeign()) {
-            return getForeignName(sym.decl, declName);
+            return getForeignName(sym.decl, Names.baseTypeName(sym.decl.name));
         }
         
         if(sym.decl.kind == DeclKind.FUNC) {

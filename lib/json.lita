@@ -333,7 +333,7 @@ public func (node: JsonNode*) free() {
             }
 
             node.arrayValue.free()
-            alloc.free(node.arrayValue as (void*))                    
+            alloc.free(alloc, node.arrayValue as (void*))                    
             break;
         }
         case JsonType.OBJECT: {
@@ -341,7 +341,7 @@ public func (node: JsonNode*) free() {
             while(it.hasNext()) {
                 var entry = it.next()
                 var key = entry.key
-                alloc.free(key as (void*))
+                alloc.free(alloc, key as (void*))
 
                 var n = entry.value
                 if(n) {
@@ -349,17 +349,17 @@ public func (node: JsonNode*) free() {
                 }
             }
             node.objValue.free()
-            alloc.free(node.objValue as (void*))                    
+            alloc.free(alloc, node.objValue as (void*))                    
             break;
         }
         case JsonType.STRING: {
-            alloc.free(node.strValue as (void*))
+            alloc.free(alloc, node.strValue as (void*))
             break;
         }
         default:
     }
 
-    alloc.free(node as (void*))
+    alloc.free(alloc, node as (void*))
 }
 
 
