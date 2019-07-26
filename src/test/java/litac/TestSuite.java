@@ -92,7 +92,10 @@ public class TestSuite {
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = "";
                 options.run = true;
-                options.typeInfo = suite.includeTypeInfos;
+                options.typeInfo = suite.includeTypeInfos;                
+                options.cOptions.compileCmd =
+                        "clang.exe -g -fsanitize=undefined,address -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
+                //+= " -g -fsanitize=undefined,address ";
                 
                 PhaseResult result = LitaC.compile(options);
                 if(result.hasErrors()) {

@@ -106,26 +106,137 @@
                 assert(w.method() == 4)
             ''',                      
         },*/
-        { 
+        /*{ 
             name: "Arena Allocator",
             definitions: '''
                 import "mem";
                 import "array";
+                import "io";           
+                import "map";
+                import "json";
+                import "string_buffer"
+                
             ''',                       
             code: '''        
+                debugAllocator.init()
+                defer { 
+                    debugAllocator.report(); 
+                    debugAllocator.free(); 
+                }
+                
                 var arena = Arena{}
-                arena.init()
+                arena.init(4096, &debugAllocator.alloc)
+                defer {
+                    arena.free()                    
+                    assert(debugAllocator.allocations.empty())
+                }
+                
                 var array = Array<i32>{}
                 array.init(2, &arena.alloc)
-                array.add(3)
-                array.add(4)
-                array.add(5)
-                array.add(6)
                 
-                assert(array.size() == 4)
-                arena.free()
+                const size = 1024
+                for(var i = 0; i < size; i+=1) {
+                    array.add(i)
+                }
+                
+                assert(array.size() == size)
+                
+                var map = Map<char const*, i32>{}
+                map.init(0, 1, &StrHashFn, &StrEqualFn, &arena.alloc)
+                
+                map.put("hi1", 421)
+                map.put("hi2", 422)
+                map.put("hi3", 423)
+                map.put("hi4", 424)
+                map.put("hi5", 425)
+                
+                assert(map.size() == 5)
+                
+                var parser = Parser{}
+                parser.init(&arena.alloc)
+                
+                var node = parser.parseJson("""
+                    {
+                        "x" : true,
+                        "y" : false,
+                        "z" : [1,2,3]
+                    }
+                """);
+                
+                var buf = StringBuffer{}
+                buf.init(1, &arena.alloc)
+                node.print(&buf)
+                
+                printf("%s\n", buf.cStr())
+                
             ''',                      
-        },       
+        },*/       
+        { 
+            name: "Arena Allocator with Default",
+            definitions: '''
+                import "mem";
+                import "array";
+                import "io";           
+                import "map";
+                import "json";
+                import "string_buffer"
                 
+            ''',                       
+            code: '''        
+                debugAllocator.init(cAllocator)
+                defer { 
+                    debugAllocator.report(); 
+                    debugAllocator.free(); 
+                }
+                
+                var arena = Arena{}
+                arena.init(4096, &debugAllocator.alloc)
+                defer {
+                    arena.free()                    
+                    assert(debugAllocator.allocations.empty())
+                }
+                
+                defaultAllocator = (&arena.alloc) as (Allocator const*)
+                
+                var array = Array<i32>{}
+                array.init(2)
+                
+                const size = 1024
+                for(var i = 0; i < size; i+=1) {
+                    array.add(i)
+                }
+                
+                assert(array.size() == size)
+                
+                var map = Map<char const*, i32>{}
+                map.init(0, 1, &StrHashFn, &StrEqualFn)
+                
+                map.put("hi1", 421)
+                map.put("hi2", 422)
+                map.put("hi3", 423)
+                map.put("hi4", 424)
+                map.put("hi5", 425)
+                
+                assert(map.size() == 5)
+                
+                var parser = Parser{}
+                parser.init()
+                
+                var node = parser.parseJson("""
+                    {
+                        "x" : true,
+                        "y" : false,
+                        "z" : [1,2,3]
+                    }
+                """);
+                
+                var buf = StringBuffer{}
+                buf.init(1)
+                node.print(&buf)
+                
+                printf("%s\n", buf.cStr())
+                
+            ''',                      
+        },                
     ]
 }

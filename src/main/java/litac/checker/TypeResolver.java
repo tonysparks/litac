@@ -276,6 +276,7 @@ public class TypeResolver {
     private static class TypeResolverNodeVisitor extends AbstractNodeVisitor {
         
         private Module module;
+        private Stack<Module> moduleStack;
         private PhaseResult result;
         private CompilationUnit unit;
         private Stack<GenericTypeInfo> currentGenericType;
@@ -295,8 +296,11 @@ public class TypeResolver {
             this.unit = unit;
             this.module = module;
             this.resolvedGenericTypes = resolvedGenericTypes;
-            this.currentGenericType = new Stack<>();
             this.resolvedModules = resolvedModules;
+            
+            this.currentGenericType = new Stack<>();
+            this.moduleStack = new Stack<>();
+            this.moduleStack.add(module);
         }
         
         private TypeInfo getType(String typeName) {
@@ -313,12 +317,20 @@ public class TypeResolver {
                 }
             }
             
-            TypeInfo type = this.module.getType(typeName);
+            TypeInfo type = this.moduleStack.peek().getType(typeName);
             if(type == null && this.genericModule != null) {
                 return this.genericModule.getType(typeName);
             }
             
             return type;
+        }
+        
+        private void pushModule(Module module) {
+            this.moduleStack.add(module);
+        }
+        
+        private void popModule() {
+            this.moduleStack.pop();
         }
         
         private boolean isResolvingGenericDecl() {
@@ -1469,7 +1481,9 @@ public class TypeResolver {
                         }              
                         
                         ParameterDecl objectParam = funcInfo.parameterDecls.get(0);
+                        pushModule(funcInfo.sym.declared);
                         resolveType(objectParam, objectParam.type);
+                        popModule();
                         
                         TypeInfo baseType = objectParam.type.getResolvedType();
                         if(TypeInfo.isPtrAggregate(baseType)) {
