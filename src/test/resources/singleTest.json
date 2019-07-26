@@ -123,6 +123,7 @@
                 array.add(6)
                 
                 assert(array.size() == 4)
+                arena.free()
             ''',                      
         },       
                 

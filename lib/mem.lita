@@ -138,8 +138,11 @@ public func (arena: Arena*) free() {
     var alloc = arena.decorated
 
     var next: Arena* = null
-    var last = arena;
-
+    var last = arena.next;
+    if(last == null) {
+        return;
+    }
+    
     do {
         next = last.next
         alloc.free(last.region as (void*))
