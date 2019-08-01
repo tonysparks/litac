@@ -506,7 +506,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         return String.format("%s%s", this.options.symbolPrefix, name);
     }
     
-    private String cTypeName(TypeInfo type) {
+    private String cTypeName(TypeInfo type) {        
         type = type.getResolvedType();
         String typeName = Names.escapeName(type);
         

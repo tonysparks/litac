@@ -65,7 +65,9 @@ public class GenericsNodeVisitor implements NodeVisitor {
     }
     
     private void replaceType(Decl decl) {
-        decl.type = replaceType(decl.type);
+        if(decl.type != null) {
+            decl.type = replaceType(decl.type);
+        }
     }
     
     private TypeInfo replaceType(TypeInfo oldType) {
@@ -302,6 +304,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
         expr.castTo = replaceType(expr.castTo);
         replaceType(expr.expr).visit(this);
         replaceType(expr);
+        expr.resolveTo(expr.castTo);
     }
 
     @Override

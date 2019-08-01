@@ -21,6 +21,7 @@ public enum ErrorCode {
     INVALID_VARARG_POSITION("Invalid variable argument position"),
     INVALID_NOTE_DECL("Invalid note declaration, must preceed either a 'var' or 'const' declaration"),
     INVALID_LABEL_STMT("Invalid label statement, goto labels are only valid in functions"),
+    INVALID_COMP_STMT("Invalid compile time statement"),
     
     MISSING_COMMA("Missing ,"),
     MISSING_SEMICOLON("Missing ;"),
@@ -36,6 +37,7 @@ public enum ErrorCode {
     MISSING_WHILE("Missing 'while'"),
     MISSING_AS("Missing 'as'"),
     MISSING_GENERIC_END("Missing >"),
+    MISSING_COMP_STMT_END("Missing #end"),
     
     
     RANGE_INTEGER("Integer literal out of range"),

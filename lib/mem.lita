@@ -357,3 +357,23 @@ public var defaultAllocator: Allocator const* = (&Allocator {
     .reallocFn: &cRealloc,
     .freeFn:    &cFree
 }) as (Allocator const*);
+
+
+/*
+#if (isDebugEnabled)
+
+@threadlocal // TODO: Compile time IF statements
+public var defaultAllocator: Allocator const* = debugAllocator
+
+#else
+
+@threadlocal // TODO: Compile time IF statements
+public var defaultAllocator: Allocator const* = (&Allocator {
+        .allocFn:   &cMalloc,
+        .callocFn:  &cCalloc,
+        .reallocFn: &cRealloc,
+        .freeFn:    &cFree
+    }) as (Allocator const*);
+
+#end
+*/

@@ -1,5 +1,5 @@
 {
-    description: "Single Test",
+    description: "Arena",
     disabled: false,
     program: '''                
         @include("assert.h");
@@ -11,73 +11,7 @@
             %test%
         }
     '''
-    tests: [                           
-        /*
-        { 
-            name: "Str assigned to array",
-            definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
-                                                
-                struct Test {
-                    name: [32]char
-                }
-            ''',                       
-            code: '''         
-                var t = Test{
-                    .name = "Brett"
-                }                 
-                           
-                assert(strcmp(t.name, "Brett") == 0)
-            ''',                      
-        },
-        { 
-            name: "array assigned to str",
-            definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
-                                                
-                struct Test {
-                    name: char*
-                    x: [32]char                    
-                }
-                
-                struct X {
-                    x: [32]char
-                }
-            ''',                       
-            code: '''        
-                var m : [32]char = "Brett"
-                var x = X{m}  
-                var t = Test{
-                    .name = m,
-                    .x = x.x
-                    
-                }                 
-                           
-                assert(strcmp(t.name, "Brett") == 0)
-            ''',                      
-        },
-        { 
-            name: "Const char index to char",
-            definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
-                                                
-                struct Test {
-                    name: char const*
-                                   
-                }                
-            ''',                       
-            code: '''        
-                var t = Test{"Brett"}                
-                var x = *t.name                 
-                           
-                assert(x == 'B')
-            ''',                      
-        },
-        */
-        /*
+    tests: [                                 
         { 
             name: "Anon Union",
             definitions: '''
@@ -105,8 +39,8 @@
                 var w = t.w
                 assert(w.method() == 4)
             ''',                      
-        },*/
-        /*{ 
+        },
+        { 
             name: "Arena Allocator",
             definitions: '''
                 import "mem";
@@ -170,8 +104,7 @@
                 printf("%s\n", buf.cStr())
                 
             ''',                      
-        },*/    
-        /*   
+        },              
         { 
             name: "Arena Allocator with Default",
             definitions: '''
@@ -238,20 +171,6 @@
                 printf("%s\n", buf.cStr())
                 
             ''',                      
-        },*/
-        
-        { 
-            name: "Simple",
-            definitions: '''
-                import "array"
-                struct X<T> {
-                    i:T
-                }
-            ''',                       
-            code: '''  
-                var x = X{4}
-                assert(x.i == 4)
-            '''
-        }                
+        },                
     ]
 }

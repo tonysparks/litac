@@ -93,8 +93,8 @@ public class TestSuite {
                 options.cOptions.symbolPrefix = "";
                 options.run = true;
                 options.typeInfo = suite.includeTypeInfos;                
-                options.cOptions.compileCmd =
-                        "clang.exe -g -fsanitize=undefined,address -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
+                //options.cOptions.compileCmd =
+                //        "clang.exe -g -fsanitize=undefined,address -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
                 //+= " -g -fsanitize=undefined,address ";
                 
                 PhaseResult result = LitaC.compile(options);
@@ -194,6 +194,6 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/json.json");        
+        singleFileTest("/arena.json");        
     }
 }

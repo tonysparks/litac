@@ -5,13 +5,15 @@ import static litac.parser.tokens.TokenType.*;
 
 import java.util.*;
 
+import leola.ast.ParameterList;
 import litac.Errors;
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
-import litac.checker.*;
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.compiler.Preprocessor;
 import litac.generics.GenericParam;
 import litac.parser.tokens.*;
 import litac.util.Names;
@@ -37,6 +39,7 @@ public class Parser {
     private int current;
         
     private Token startToken;
+    private Preprocessor pp;
     
     private final static Set<TokenType> GENERICS_AMBIGUITY = new HashSet<>();
     static {
@@ -64,14 +67,13 @@ public class Parser {
      * @param scanner
      *            the scanner to be used with this parser.
      */
-    public Parser(Scanner scanner) {
+    public Parser(Preprocessor pp, Scanner scanner) {
         this.scanner = scanner;
         this.tokens = scanner.getTokens();
         
         this.current = 0;    
+        this.pp = pp;
     }
-
-
 
     /**
      * Parses a module
@@ -88,6 +90,10 @@ public class Parser {
         while(!isAtEnd()) {
             if(match(IMPORT)) {
                 imports.add(importDeclaration());
+            }
+            else if(match(HASH)) {
+                CompStmt compStmt = compStmt();
+                executeCompStmt(compStmt, imports, moduleNotes, declarations);
             }
             else {
                 List<NoteStmt> notes = notes();
@@ -421,6 +427,148 @@ public class Parser {
         }
         
         return notes;
+    }
+    
+    private Stmt compileTimeStmt() {
+        if(match(IMPORT)) {
+            return importDeclaration();
+        }
+        else {
+            List<NoteStmt> notes = notes();
+            boolean isPublic = match(PUBLIC);
+            
+            Decl decl = null;
+            if(match(VAR))            decl = varDeclaration();
+            else if(match(CONST))     decl = constDeclaration();
+            else if(match(FUNC))      decl = funcDeclaration();
+            else if(match(STRUCT))    decl = structDeclaration();
+            else if(match(UNION))     decl = unionDeclaration();
+            else if(match(ENUM))      decl = enumDeclaration();
+            else if(match(TYPEDEF))   decl = typedefDeclaration();            
+            else if(match(SEMICOLON)) {
+                if(notes != null) {
+                    return new BlockStmt(new ArrayList<>(notes));
+                }
+                return null;
+            }
+            else {
+                return statement();
+            }
+            
+            Attributes attrs = decl.attributes; 
+            attrs.isPublic = isPublic;
+            attrs.isGlobal = true;
+            attrs.notes = notes;
+            
+            return decl;
+        }
+    }
+    
+    private void executeCompStmt(CompStmt compStmt, List<ImportStmt> imports, List<NoteStmt> moduleNotes, List<Decl> declarations) {
+        if(compStmt.type.equals("if") || compStmt.type.equals("elseif") || compStmt.type.equals("else")) {
+            if(compStmt.type.equals("else") || this.pp.execute(compStmt.expr)) {
+                List<Stmt> stmts = compStmt.body;
+                for(Stmt s : stmts) {
+                    if(s instanceof Decl) {
+                        declarations.add((Decl)s);
+                    }
+                    else if(s instanceof ImportStmt) {
+                        imports.add((ImportStmt)s);
+                    }
+                    else if(s instanceof NoteStmt) {
+                        moduleNotes.add((NoteStmt)s);
+                    }
+                    else if(s instanceof BlockStmt) {
+                        BlockStmt b = (BlockStmt)s;
+                        for(Stmt n : b.stmts) {
+                            if(n instanceof NoteStmt) {
+                                moduleNotes.add((NoteStmt)n);
+                            }
+                        }
+                    }
+                    else {
+                        throw error(peek(), ErrorCode.INVALID_COMP_STMT);
+                    }
+                }
+            }
+            else {
+                if(compStmt.end != null) {
+                    executeCompStmt(compStmt.end, imports, moduleNotes, declarations);
+                }
+            }
+        }
+    }
+    
+    private CompStmt compStmt() {
+        String type = "";
+        
+        if(match(IF)) {
+            type = "if";
+        }
+        else if(match(ELSE)) {
+            type = "else";
+        }
+        else {
+            Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+            type = identifier.getText().toLowerCase();
+        }
+        
+        switch(type) {
+            case "if": 
+            case "elseif": {
+                consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
+                StringBuilder sb = new StringBuilder();
+                while(!isAtEnd()) {
+                    if(check(RIGHT_PAREN)) {
+                        break;
+                    }
+                    
+                    sb.append(" ").append(advance().getText());                    
+                }
+                consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+               
+                List<Stmt> body = new ArrayList<>();
+                while(!isAtEnd()) {
+                    if(check(HASH)) {
+                        break;
+                    }
+                    
+                    Stmt stmt = compileTimeStmt();
+                    if(stmt != null) {
+                        body.add(stmt);
+                    }
+                }
+                
+                consume(HASH, ErrorCode.MISSING_COMP_STMT_END);
+                
+                CompStmt end = compStmt();
+                return new CompStmt(type, sb.toString(), body, end);
+            }
+            case "else": {
+                List<Stmt> body = new ArrayList<>();
+                while(!isAtEnd()) {
+                    if(check(HASH)) {
+                        break;
+                    }
+                    
+                    Stmt stmt = compileTimeStmt();
+                    if(stmt != null) {
+                        body.add(stmt);
+                    }
+                }
+                
+                consume(HASH, ErrorCode.MISSING_COMP_STMT_END);
+                
+                CompStmt end = compStmt();
+                return new CompStmt(type, "", body, end);
+            }
+            case "end": {
+                return new CompStmt(type, "", Collections.emptyList(), null);
+            }
+            default: {
+                throw error(peek(), ErrorCode.INVALID_COMP_STMT);
+            }
+        }
     }
     
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
