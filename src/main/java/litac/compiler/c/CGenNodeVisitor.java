@@ -51,6 +51,7 @@ public class CGenNodeVisitor implements NodeVisitor {
     private String currentFile;
     
     private List<Decl> moduleInitFunc;
+    private List<Decl> moduleDestroyFunc;
     private Decl mainFunc;
     
     public CGenNodeVisitor(CompilationUnit unit, Program program, COptions options, Buf buf) {
@@ -66,6 +67,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         this.main = program.getMainModule();
         this.declarations = new ArrayList<>();
         this.moduleInitFunc = new ArrayList<>();
+        this.moduleDestroyFunc = new ArrayList<>();
         this.currentFuncType = new Stack<>();
         
         this.writtenModules = new HashSet<>();
@@ -103,6 +105,9 @@ public class CGenNodeVisitor implements NodeVisitor {
             // allow for module init functions
             if(d.attributes.hasNote("module_init") && d.kind == DeclKind.FUNC) {
                 this.moduleInitFunc.add(d);
+            }
+            else if(d.attributes.hasNote("module_destroy") && d.kind == DeclKind.FUNC) {
+                this.moduleDestroyFunc.add(d);
             }
     
             // do not write out main if we are testing
@@ -363,13 +368,20 @@ public class CGenNodeVisitor implements NodeVisitor {
         buf.outln();
         buf.out("// Main").outln();
         buf.out("int main(int argn, char** args) {");
+        
         for(Decl d : this.moduleInitFunc) {
             buf.out("%s();\n", cName(d.sym));
         }
+        
         if(main instanceof FuncDecl) {
             FuncDecl funcDecl = (FuncDecl)main;
             funcDecl.bodyStmt.visit(this);
         }
+        
+        for(Decl d : this.moduleDestroyFunc) {
+            buf.out("%s();\n", cName(d.sym));
+        }
+        
         buf.out("}");
     }
     
