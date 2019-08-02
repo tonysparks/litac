@@ -4,6 +4,7 @@
 package litac.generics;
 
 import java.util.*;
+
 import litac.ast.Decl.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
@@ -22,6 +23,22 @@ import litac.compiler.Module;
  */
 public class Generics {
     
+    private static boolean isGenericParam(TypeInfo type, List<TypeInfo> genericArgs) {
+        if(!(type instanceof GenericTypeInfo)) {
+            return false;
+        }
+        
+        GenericTypeInfo genInfo = type.as();
+        
+        for(TypeInfo arg: genericArgs) {
+            if(genInfo.genericParams.stream().anyMatch(p -> p.name.equals(arg.getName()))) {                
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     /**
      * Creates a resolved {@link TypeInfo} if one doesn't exist and if the supplied type has generics
      * 
@@ -31,10 +48,10 @@ public class Generics {
      * @return the new {@link TypeInfo}
      */
     public static TypeInfo createFromGenericTypeInfo(Module module, TypeInfo type, List<TypeInfo> genericArgs) {
-        if(genericArgs.isEmpty() || type.isPrimitive() || !type.hasGenerics()) {
+        if(genericArgs.isEmpty() || type.isPrimitive() || !type.hasGenerics() || isGenericParam(type, genericArgs)) {
             return type;
         }
-        
+                
         type = normalizeType(module, type);
         
         // All generics are defined in the root module

@@ -22,6 +22,7 @@ public class Symbol {
     public final Decl decl;
     public final String name;
     public final Module declared;
+    public Module genericDeclaration;
     private      TypeInfo type;
     private      int flags;
     
@@ -106,5 +107,13 @@ public class Symbol {
         
         this.flags &= ~IS_INCOMPLETE;
         this.type = this.decl.type;
+    }
+    
+    public Module getDeclaredModule() {
+        if(this.genericDeclaration != null) {
+            return this.genericDeclaration;
+        }
+        
+        return this.declared;
     }
 }

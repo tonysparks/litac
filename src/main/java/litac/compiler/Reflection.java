@@ -11,6 +11,7 @@ import litac.ast.Expr;
 import litac.ast.Expr.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.compiler.BackendOptions.TypeInfoOption;
 import litac.parser.tokens.TokenType;
 
 /**
@@ -22,7 +23,7 @@ import litac.parser.tokens.TokenType;
  */
 public class Reflection {
     
-    public static List<Decl> createTypeInfos(List<Decl> declarations, Program program, boolean includeTypeInfos) {
+    public static List<Decl> createTypeInfos(List<Decl> declarations, Program program, TypeInfoOption option) {
         Module typeModule = program.getModule("type");
         if(typeModule == null) {
             return Arrays.asList();
@@ -32,7 +33,7 @@ public class Reflection {
         long numOfTypeInfos = 0;
         
         List<Symbol> symbols = program.getSymbols();
-        if(includeTypeInfos) {
+        if(!option.equals(TypeInfoOption.None)) {
             numOfTypeInfos = symbols.stream()
                                     .mapToLong(s -> s.getType().getTypeId())
                                     .max()
@@ -47,7 +48,7 @@ public class Reflection {
         
         ArrayTypeInfo arrayInfo = new ArrayTypeInfo(typeInfo, numOfTypeInfos, null);
         
-        List<Expr> infos = includeTypeInfos ? addTypeInfos(symbols, typeModule) : Arrays.asList();
+        List<Expr> infos = addTypeInfos(symbols, typeModule, option);
         ArrayInitExpr initExpr = new ArrayInitExpr(arrayInfo, infos);
 
         Decl typeTable = new ConstDecl("typeTable", new ArrayTypeInfo(new PtrTypeInfo(typeInfo), numOfTypeInfos, null), initExpr, 0);
@@ -77,7 +78,13 @@ public class Reflection {
         return Arrays.asList(typeTable);
     }
 
-    private static List<Expr> addTypeInfos(List<Symbol> symbols, Module main) {
+    private static List<Expr> addTypeInfos(List<Symbol> symbols, Module main, TypeInfoOption option) {
+        if(option.equals(TypeInfoOption.None)) {
+            return Collections.emptyList();
+        }
+        
+        boolean filter = option.equals(TypeInfoOption.Tagged);
+        
         List<Expr> exprs = new ArrayList<>();
         for(Symbol s : symbols) {
             switch(s.decl.kind) {            
@@ -86,6 +93,11 @@ public class Reflection {
                 case UNION:
                 //case TYPEDEF:
                 case ENUM:
+                    // allow for only defining TypeInfo's that are annotated with @typeinfo
+                    if(filter && !s.decl.attributes.hasNote("typeinfo")) {
+                        continue;                        
+                    }
+                    
                     exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(s.getType().getTypeId())), toExpr(s.decl, main)));
                     break;
                 default:

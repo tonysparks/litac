@@ -15,5 +15,7 @@
 """);
 
 
-//import "type";
+#if(options.typeInfo)
+    import "type";
+#end
 

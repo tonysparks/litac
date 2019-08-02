@@ -449,6 +449,7 @@ public class Module {
     }
     
     public void addGenericType(Module root, Decl decl) {
+        decl.sym.genericDeclaration = root;
         this.genericTypes.put(decl.name, new Tuple<>(root, decl));
     }
     

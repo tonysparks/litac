@@ -24,7 +24,7 @@ public struct StringBuffer {
 public func (b: StringBuffer*) init(initialSize: i32 = 16, 
                                     alloc: mem::Allocator const* = null) {
     if(!alloc) {
-        alloc = mem::cAllocator
+        alloc = mem::defaultAllocator
     }
     
     b.alloc = alloc;
@@ -32,7 +32,7 @@ public func (b: StringBuffer*) init(initialSize: i32 = 16,
     b.capacity = initialSize;    
     
     var length = (sizeof(char) * initialSize as (u64));    
-    b.buffer = alloc.calloc(0, length) as (char*)
+    b.buffer = alloc.calloc(1, length) as (char*)
 }
 
 public func (b: StringBuffer*) free() {

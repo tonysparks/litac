@@ -112,7 +112,7 @@ public func (node: JsonNode*) asObject() : JsonObject* {
     return node.value.objValue
 }
 
-public func CreateJsonNumber(value: f64, alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+public func CreateJsonNumber(value: f64, alloc: mem::Allocator const* = mem::defaultAllocator) : JsonNode* {    
     var node = mem::new<JsonNode>(alloc)
     node.alloc = alloc
     node.type = JsonType.NUMBER
@@ -128,7 +128,7 @@ public func CreateJsonNumber(value: f64, alloc: mem::Allocator const* = mem::cAl
     Duplicates the supplied string, and JsonNode manages the memory.  The supplied str will NOT be managed (i.e., free'd) upon
     JsonNode.free().
 */    
-public func CreateJsonString(str: char const*, len: i32 = -1, alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+public func CreateJsonString(str: char const*, len: i32 = -1, alloc: mem::Allocator const* = mem::defaultAllocator) : JsonNode* {    
     if(len < 0) {
         len = strlen(str);
     }
@@ -144,7 +144,7 @@ public func CreateJsonString(str: char const*, len: i32 = -1, alloc: mem::Alloca
     call
 */    
 public func CreateJsonStringNoDup(str: char const*,
-                                  alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+                                  alloc: mem::Allocator const* = mem::defaultAllocator) : JsonNode* {    
     var node = mem::new<JsonNode>(alloc)
     node.alloc = alloc
     node.type = JsonType.STRING
@@ -155,7 +155,7 @@ public func CreateJsonStringNoDup(str: char const*,
     return node
 }
 
-public func CreateJsonArray(alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+public func CreateJsonArray(alloc: mem::Allocator const* = mem::defaultAllocator) : JsonNode* {    
     var node = mem::new<JsonNode>(alloc)
     node.alloc = alloc
     node.type = JsonType.ARRAY
@@ -168,7 +168,7 @@ public func CreateJsonArray(alloc: mem::Allocator const* = mem::cAllocator) : Js
     return node
 }
 
-public func CreateJsonObject(alloc: mem::Allocator const* = mem::cAllocator) : JsonNode* {    
+public func CreateJsonObject(alloc: mem::Allocator const* = mem::defaultAllocator) : JsonNode* {    
     var node = mem::new<JsonNode>(alloc)
     node.alloc = alloc
     node.type = JsonType.OBJECT
@@ -487,7 +487,7 @@ public struct Parser {
     lineStart: char const*
 }
 
-public func (p: Parser*) init(alloc: mem::Allocator const* = mem::cAllocator) {
+public func (p: Parser*) init(alloc: mem::Allocator const* = mem::defaultAllocator) {
     p.alloc = alloc
     p.status = ParserStatus.OK
     mem::memset(p.errorMsg, 0, MAX_MESSAGE_SIZE)

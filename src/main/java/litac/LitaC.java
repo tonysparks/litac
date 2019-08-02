@@ -6,8 +6,7 @@ package litac;
 import java.io.File;
 
 import litac.compiler.BackendOptions;
-import litac.compiler.BackendOptions.BackendType;
-import litac.compiler.BackendOptions.OutputType;
+import litac.compiler.BackendOptions.*;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.util.Profiler;
 import litac.util.Profiler.Segment;
@@ -39,11 +38,15 @@ public class LitaC {
         System.out.println("  -cOnly               Only creates the C output file, does not compile the generated C code");
         System.out.println("  -profile             Reports profile metrics of the compiler");
         System.out.println("  -disableLine         Disables #line directive in C output");
+        System.out.println("  -debug               Enables debug mode");
         System.out.println("  -o, -output <arg>    The name of the compiled binary");
         System.out.println("  -outpuDir <arg>      The directory in which the C output files are stored");
         System.out.println("  -v, -version         Displays the LitaC version");
         System.out.println("  -h, -help            Displays this help");
-        System.out.println("  -t, -types           Does not include TypeInfo for reflection");
+        System.out.println("  -t, -types <arg>     Includes TypeInfo for reflection");
+        System.out.println("                       <arg> can be:");
+        System.out.println("                         all         Means all types will have reflection values");
+        System.out.println("                         tagged      Means only basic types and types annoted with @typeinfo will have reflection values");        
         System.out.println("  -test <arg>          Runs functions annotated with @test.  'arg' is a regex of which tests should be run");
         System.out.println("  -buildCmd            The underlying C compiler build and compile command.  Variables will ");
         System.out.println("                       be substituted if found: ");
@@ -130,6 +133,10 @@ public class LitaC {
                     options.cOnly = true;
                     break;
                 }
+                case "-debug": {
+                    options.debugMode = true;
+                    break;
+                }
                 case "-o": 
                 case "-output": {
                     checkArg(args, i, "-output");
@@ -142,8 +149,9 @@ public class LitaC {
                     break;
                 }
                 case "-t":
-                case "-types": {                    
-                    options.typeInfo = false;
+                case "-types": {
+                    checkArg(args, i, "-types");
+                    options.typeInfo = TypeInfoOption.fromString(args[++i]);
                     break;
                 }
                 case "-test": {

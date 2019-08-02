@@ -50,6 +50,10 @@ public class CGenNodeVisitor implements NodeVisitor {
     private int currentLine;
     private String currentFile;
     
+    private List<Decl> moduleInitFunc;
+    private List<Decl> moduleDestroyFunc;
+    private Decl mainFunc;
+    
     public CGenNodeVisitor(CompilationUnit unit, Program program, COptions options, Buf buf) {
         this.unit = unit;
         this.program = program;
@@ -62,6 +66,8 @@ public class CGenNodeVisitor implements NodeVisitor {
         
         this.main = program.getMainModule();
         this.declarations = new ArrayList<>();
+        this.moduleInitFunc = new ArrayList<>();
+        this.moduleDestroyFunc = new ArrayList<>();
         this.currentFuncType = new Stack<>();
         
         this.writtenModules = new HashSet<>();
@@ -95,12 +101,20 @@ public class CGenNodeVisitor implements NodeVisitor {
                     continue;
                 }
             }
+            
+            // allow for module init functions
+            if(d.attributes.hasNote("module_init") && d.kind == DeclKind.FUNC) {
+                this.moduleInitFunc.add(d);
+            }
+            else if(d.attributes.hasNote("module_destroy") && d.kind == DeclKind.FUNC) {
+                this.moduleDestroyFunc.add(d);
+            }
     
             // do not write out main if we are testing
             if(d.name.equals("main") && 
-               d.kind == DeclKind.FUNC && 
-               isTesting()) {
-                continue;                                    
+               d.kind == DeclKind.FUNC) {
+                this.mainFunc = d;
+                continue;
             }
             
             d.visit(this);            
@@ -108,6 +122,9 @@ public class CGenNodeVisitor implements NodeVisitor {
         
         if(isTesting()) {
             writeTestMain(buf, tests);
+        }
+        else {
+            writeMain(buf, mainFunc);
         }
     }
     
@@ -347,6 +364,27 @@ public class CGenNodeVisitor implements NodeVisitor {
         buf.out("}");
     }
     
+    private void writeMain(Buf buf, Decl main) {
+        buf.outln();
+        buf.out("// Main").outln();
+        buf.out("int main(int argn, char** args) {");
+        
+        for(Decl d : this.moduleInitFunc) {
+            buf.out("%s();\n", cName(d.sym));
+        }
+        
+        if(main instanceof FuncDecl) {
+            FuncDecl funcDecl = (FuncDecl)main;
+            funcDecl.bodyStmt.visit(this);
+        }
+        
+        for(Decl d : this.moduleDestroyFunc) {
+            buf.out("%s();\n", cName(d.sym));
+        }
+        
+        buf.out("}");
+    }
+    
     private String typeDeclForC(TypeInfo type, String declName) {
         switch (type.getKind()) {
             case Ptr: {
@@ -506,7 +544,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         return String.format("%s%s", this.options.symbolPrefix, name);
     }
     
-    private String cTypeName(TypeInfo type) {
+    private String cTypeName(TypeInfo type) {        
         type = type.getResolvedType();
         String typeName = Names.escapeName(type);
         

@@ -50,7 +50,6 @@ public struct MapEntry<K, V> {
     value: V
 }
 
-
 public func (m: Map<K, V>*) init<K, V>(emptyValue: V,
                                        initialSize: i32 = 16,
                                        hashFn: HashFn<K> = null,
@@ -66,7 +65,7 @@ public func (m: Map<K, V>*) init<K, V>(emptyValue: V,
     }
 
     if(!alloc) {
-        alloc = mem::cAllocator 
+        alloc = mem::defaultAllocator 
     }    
     
     m.length = 0;
@@ -218,7 +217,6 @@ func MapGrow<K, V>(m: Map<K, V>*, newlength: i32) {
     m.free<K,V>();
     
     *m = newMap;
-    //printf("New length %d!\n", m.capacity)
 }
 
 

@@ -17,6 +17,7 @@ import static org.junit.Assert.*;
 
 import litac.compiler.BackendOptions;
 import litac.compiler.PhaseResult;
+import litac.compiler.BackendOptions.TypeInfoOption;
 import litac.compiler.PhaseResult.PhaseError;
 
 /**
@@ -38,6 +39,7 @@ public class TestSuite {
         public String definitions = "";
         public String error;
         public boolean disabled;
+        public Boolean debug;
         public TestModule[] modules;
     }
     
@@ -45,6 +47,7 @@ public class TestSuite {
     public String program;
     public boolean includeTypeInfos;
     public boolean disabled;
+    public Boolean debug;
     public List<TestCase> tests;
     
     
@@ -92,7 +95,14 @@ public class TestSuite {
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = "";
                 options.run = true;
-                options.typeInfo = suite.includeTypeInfos;
+                options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;        
+                options.debugMode = test.debug != null  
+                                         ? test.debug  
+                                         : suite.debug != null ? suite.debug : false;
+                
+                //options.cOptions.compileCmd =
+                //        "clang.exe -g -fsanitize=undefined,address -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
+                //+= " -g -fsanitize=undefined,address ";
                 
                 PhaseResult result = LitaC.compile(options);
                 if(result.hasErrors()) {
@@ -191,6 +201,6 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/json.json");        
+        singleFileTest("/arena.json");        
     }
 }

@@ -1145,6 +1145,10 @@ public abstract class TypeInfo {
                         targetPtrOf = constInfo.constOf;
                     }
                 }
+                
+                if(targetPtrOf.isKind(TypeKind.Void)) {
+                    return true;
+                }
                                 
                 return this.ptrOf.getResolvedType().canCastTo(targetPtrOf.getResolvedType());
             }

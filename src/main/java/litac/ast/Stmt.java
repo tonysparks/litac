@@ -534,4 +534,25 @@ public abstract class Stmt extends Node {
             return new ConstDeclsStmt(copy(this.consts));
         }
     }
+    
+    public static class CompStmt {
+        public String type;
+        public String expr;
+        public List<Stmt> body;
+        public CompStmt end;
+        
+        public CompStmt(String type, String expr, List<Stmt> body, CompStmt end) {
+            this.type = type;
+            this.expr = expr;
+            this.body = body;
+            this.end = end;
+            //this.body = becomeParentOf(body);
+            //this.end = becomeParentOf(end);
+        }
+        
+//        @Override
+//        protected Node doCopy() {            
+//            return new CompStmt(this.type, this.expr, copy(body), copy(end));
+//        }
+    }
 }

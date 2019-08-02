@@ -54,7 +54,7 @@ public class CompilationUnit {
     public ModuleStmt getMain() {
         return main;
     }
-
+    
     /**
      * Loads all {@link ModuleStmt}s.
      * 
@@ -62,9 +62,9 @@ public class CompilationUnit {
      * @param main
      * @return
      */
-    public static CompilationUnit modules(BackendOptions options, File moduleFile) throws IOException {       
-        ModuleStmt builtin = readModule(new File(options.libDir, "builtins.lita"));
-        ModuleStmt main = readModule(moduleFile);
+    public static CompilationUnit modules(BackendOptions options, File moduleFile) throws IOException {   
+        ModuleStmt builtin = readModule(options.preprocessor(), new File(options.libDir, "builtins.lita"));
+        ModuleStmt main = readModule(options.preprocessor(), moduleFile);
         main.imports.add(new ImportStmt("builtins", null));
      
         if(options.outputType == OutputType.Test) {
@@ -86,13 +86,13 @@ public class CompilationUnit {
         }
     }
     
-    private static ModuleStmt readModule(File moduleFile) throws IOException {            
+    private static ModuleStmt readModule(Preprocessor pp, File moduleFile) throws IOException {            
         if(!moduleFile.exists()) {
             throw new FileNotFoundException();
         }
         
         Source source = new Source(moduleFile.getName(), new FileReader(moduleFile));                                    
-        Parser parser = new Parser(new Scanner(source));
+        Parser parser = new Parser(pp, new Scanner(source));
         ModuleStmt module = parser.parseModule();
         
         return module;                       
@@ -131,7 +131,7 @@ public class CompilationUnit {
             }
             
             try {
-                ModuleStmt module = readModule(importFile);
+                ModuleStmt module = readModule(this.options.preprocessor(), importFile);
                 this.unit.imports.put(moduleName, module);
                 return module;
             }

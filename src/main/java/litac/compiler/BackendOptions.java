@@ -25,6 +25,27 @@ public class BackendOptions {
         DynamicLib
     }
     
+    public static enum TypeInfoOption {
+        None,
+        All,
+        Tagged,
+        ;
+        
+        public static TypeInfoOption fromString(String option) {
+            if(option == null) {
+                return None;
+            }
+            
+            for(TypeInfoOption op : values()) {
+                if(op.name().equalsIgnoreCase(option)) {
+                    return op;
+                }
+            }
+            
+            return None;
+        }
+    }
+    
     public BackendType backendType;
     
     public File srcDir;
@@ -33,16 +54,19 @@ public class BackendOptions {
     public File outputDir;        
     public String outputFileName;
     public OsType targetOS;
+    public TypeInfoOption typeInfo;
     public boolean run;
     public boolean checkerOnly;
     public boolean cOnly;
-    public boolean typeInfo;
     public boolean profile;
     public boolean disableLines;
+    public boolean debugMode;
     public OutputType outputType;
     public String testRegex;
     
     public CTranspiler.COptions cOptions;
+    
+    private Preprocessor preprocessor;
     
     public BackendOptions() {
         this(BackendType.C);
@@ -62,13 +86,23 @@ public class BackendOptions {
         this.libDir = new File("./lib");
         
         this.targetOS = OsType.WINDOWS;
+        this.typeInfo = TypeInfoOption.None;
+        
         this.run = false;
-        this.typeInfo = true;
         this.checkerOnly = false;
         this.cOnly = false;
         this.profile = false;
         this.disableLines = false;
+        this.debugMode = false;
         
         this.cOptions = type == BackendType.C ? new CTranspiler.COptions(this) : null;
+    }
+    
+    public Preprocessor preprocessor() {
+        if(this.preprocessor == null) {
+            this.preprocessor = new LeolaPreprocessor(this);
+        }
+        
+        return this.preprocessor;
     }
 }
