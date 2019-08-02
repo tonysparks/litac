@@ -39,6 +39,7 @@ public class TestSuite {
         public String definitions = "";
         public String error;
         public boolean disabled;
+        public Boolean debug;
         public TestModule[] modules;
     }
     
@@ -46,6 +47,7 @@ public class TestSuite {
     public String program;
     public boolean includeTypeInfos;
     public boolean disabled;
+    public Boolean debug;
     public List<TestCase> tests;
     
     
@@ -93,7 +95,11 @@ public class TestSuite {
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = "";
                 options.run = true;
-                options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;                
+                options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;        
+                options.debugMode = test.debug != null  
+                                         ? test.debug  
+                                         : suite.debug != null ? suite.debug : false;
+                
                 //options.cOptions.compileCmd =
                 //        "clang.exe -g -fsanitize=undefined,address -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
                 //+= " -g -fsanitize=undefined,address ";

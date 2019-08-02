@@ -5,10 +5,7 @@ package litac.compiler;
 
 import java.io.File;
 
-import leola.vm.Leola;
-import leola.vm.types.LeoObject;
 import litac.compiler.c.CTranspiler;
-import litac.util.OS;
 import litac.util.OS.OsType;
 
 /**
@@ -63,6 +60,7 @@ public class BackendOptions {
     public boolean cOnly;
     public boolean profile;
     public boolean disableLines;
+    public boolean debugMode;
     public OutputType outputType;
     public String testRegex;
     
@@ -95,38 +93,14 @@ public class BackendOptions {
         this.cOnly = false;
         this.profile = false;
         this.disableLines = false;
+        this.debugMode = false;
         
         this.cOptions = type == BackendType.C ? new CTranspiler.COptions(this) : null;
     }
     
     public Preprocessor preprocessor() {
         if(this.preprocessor == null) {
-            this.preprocessor = new Preprocessor() {
-                
-                // TODO: This is bringing a missle to a fist fight. We
-                // don't need a full on scripting engine for the preprocessor.
-                // Eventually clean this up to be a simple expr evaluator
-                Leola runtime = Leola.builder()
-                            .setBarebones(true)
-                            .setSandboxed(true)
-                            .setAllowThreadLocals(false)
-                            .newRuntime();
-                
-                {
-                    runtime.put("options", BackendOptions.this);
-                    runtime.put("OS", OS.getOS().name());
-                }
-                
-                @Override
-                public boolean execute(String stmt) {
-                    try {
-                        return LeoObject.isTrue(this.runtime.eval("return " + stmt));
-                    }
-                    catch (Exception e) {
-                        throw new CompileException(e.getMessage());
-                    }
-                }
-            };
+            this.preprocessor = new LeolaPreprocessor(this);
         }
         
         return this.preprocessor;

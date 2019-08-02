@@ -1,6 +1,7 @@
 {
     description: "Single Test",
     disabled: false,
+    debug: true,
     program: '''                
         @include("assert.h");
         @foreign func assert(e:bool):void;

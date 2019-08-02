@@ -350,30 +350,27 @@ func DebugFree(alloc: Allocator const*, ptr: void*) {
 // Default allocator
 =========================================================
 */
-@threadlocal // TODO: Compile time IF statements
-public var defaultAllocator: Allocator const* = (&Allocator {
-    .allocFn:   &cMalloc,
-    .callocFn:  &cCalloc,
-    .reallocFn: &cRealloc,
-    .freeFn:    &cFree
-}) as (Allocator const*);
 
+#if (options.debugMode)
 
-/*
-#if (isDebugEnabled)
+    @threadlocal 
+    public var defaultAllocator: Allocator const* = (&Allocator {}) as (Allocator const*);
 
-@threadlocal // TODO: Compile time IF statements
-public var defaultAllocator: Allocator const* = debugAllocator
+    @module_init
+    func ModuleInit() {
+        var debug = defaultAllocator as (DebugAllocator*)
+        debug.init(cAllocator);
+        c::printf("Module Init!")
+    }
 
 #else
 
-@threadlocal // TODO: Compile time IF statements
-public var defaultAllocator: Allocator const* = (&Allocator {
-        .allocFn:   &cMalloc,
-        .callocFn:  &cCalloc,
-        .reallocFn: &cRealloc,
-        .freeFn:    &cFree
-    }) as (Allocator const*);
+    @threadlocal 
+    public var defaultAllocator: Allocator const* = (&Allocator {
+            .allocFn:   &cMalloc,
+            .callocFn:  &cCalloc,
+            .reallocFn: &cRealloc,
+            .freeFn:    &cFree
+        }) as (Allocator const*);
 
 #end
-*/
