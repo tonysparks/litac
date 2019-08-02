@@ -346,15 +346,14 @@ public class TypeResolver {
         
         private void enterScope() {
             this.module.pushScope();
-            
         }
         
         private void exitScope() {            
-            module.popScope();
+            this.module.popScope();
         }
         
         private Scope peekScope() {
-            return module.currentScope();
+            return this.module.currentScope();
         }
         
         private TypeInfo getType(Stmt stmt, List<TypeInfo> genericArgs, List<GenericParam> genericParams, TypeInfo expectedType) {
@@ -511,18 +510,7 @@ public class TypeResolver {
             return null;
         }
         
-        
-        @Override
-        public void visit(ModuleStmt stmt) {
-            
-            for(ImportStmt i : stmt.imports) {
-                i.visit(this);
-            }
-            
-            for(Decl d : stmt.declarations) {
-                d.visit(this);
-            } 
-            
+        private void visitGenericTypes() {
             Module current = this.module;
             
             List<Tuple<Module,Decl>> newTypes = new ArrayList<>();
@@ -550,6 +538,20 @@ public class TypeResolver {
             
             this.module = current;
             this.genericModule = null;
+        }
+        
+        @Override
+        public void visit(ModuleStmt stmt) {
+            
+            for(ImportStmt i : stmt.imports) {
+                i.visit(this);
+            }
+            
+            for(Decl d : stmt.declarations) {
+                d.visit(this);
+            } 
+            
+            visitGenericTypes();
         }
         
         
@@ -1057,13 +1059,7 @@ public class TypeResolver {
                     return;
                 }
                 
-                Expr parentExpr = (Expr)parent;
-                if(parentExpr instanceof InitArgExpr) {
-                  InitArgExpr arg = (InitArgExpr)parentExpr;
-                  
-                }
-                //else if(parentExpr instanceof Pa)
-                
+                Expr parentExpr = (Expr)parent;                
                 expr.type = parentExpr.getResolvedType();
             }
                         

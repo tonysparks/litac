@@ -17,6 +17,7 @@ import static org.junit.Assert.*;
 
 import litac.compiler.BackendOptions;
 import litac.compiler.PhaseResult;
+import litac.compiler.BackendOptions.TypeInfoOption;
 import litac.compiler.PhaseResult.PhaseError;
 
 /**
@@ -92,7 +93,7 @@ public class TestSuite {
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = "";
                 options.run = true;
-                options.typeInfo = suite.includeTypeInfos;                
+                options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;                
                 //options.cOptions.compileCmd =
                 //        "clang.exe -g -fsanitize=undefined,address -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
                 //+= " -g -fsanitize=undefined,address ";
