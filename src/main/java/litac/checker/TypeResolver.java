@@ -14,6 +14,7 @@ import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
+import litac.compiler.Symbol.ResolveState;
 import litac.generics.GenericParam;
 import litac.parser.tokens.TokenType;
 import litac.util.Stack;
@@ -387,85 +388,136 @@ public class TypeResolver {
                 return;
             }
             
-            if(type.isKind(TypeKind.Ptr)) {
-                PtrTypeInfo ptrInfo = type.as();
-                resolveType(stmt, ptrInfo.ptrOf, resolvedType);
-            }
-            else if(type.isKind(TypeKind.Const)) {
-                ConstTypeInfo constInfo = type.as();
-                resolveType(stmt, constInfo.constOf, resolvedType);
-            }
-            else if(type.isKind(TypeKind.Array)) {
-                ArrayTypeInfo arrayInfo = type.as();
-                resolveType(stmt, arrayInfo.arrayOf, resolvedType);
-                
-                if(arrayInfo.lengthExpr != null) {                    
-                    arrayInfo.lengthExpr.visit(this);
+            switch(type.getKind()) {
+                case Ptr: {
+                    PtrTypeInfo ptrInfo = type.as();
+                    resolveType(stmt, ptrInfo.ptrOf, resolvedType);
+                    break;
+                }
+                case Const: {
+                    ConstTypeInfo constInfo = type.as();
+                    resolveType(stmt, constInfo.constOf, resolvedType);
+                    break;
+                }
+                case Array: {
+                    ArrayTypeInfo arrayInfo = type.as();
+                    resolveType(stmt, arrayInfo.arrayOf, resolvedType);
                     
-                    Integer len = asInt(arrayInfo.lengthExpr);
-                    if(len == null) {
-                        this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
+                    if(arrayInfo.lengthExpr != null) {    
+                        Module m = this.module;
+                        try {
+                            // TODO: Fix this hack, should change to not rely on 'module' at 
+                            // all and solely do everything via the moduleStack
+                            // We might be resolving this array in a different module than the one
+                            // we are visiting at this time, so we must use the moduleStack to 
+                            // use the correct module for scope.getSymbol() to be the correct scope
+                            this.module = this.moduleStack.peek();                        
+                            arrayInfo.lengthExpr.visit(this);
+                            
+                            Integer len = asInt(arrayInfo.lengthExpr);
+                            if(len == null) {
+                                this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
+                                return;
+                            }
+                            
+                            arrayInfo.length = len;
+                        }
+                        finally {
+                            this.module = m;                           
+                        }
+                    }
+                    break;
+                }
+                case FuncPtr: {
+                    FuncPtrTypeInfo funcInfo = type.as();
+                    if(funcInfo.hasGenerics()) {
                         return;
                     }
                     
-                    arrayInfo.length = len;
+                    resolveType(stmt, funcInfo.returnType);
+                    for(TypeInfo p : funcInfo.params) {
+                        resolveType(stmt, p);
+                    }
+                    break;
                 }
-            }
-            else if(type.isKind(TypeKind.FuncPtr)) {
-                FuncPtrTypeInfo funcInfo = type.as();
-                if(funcInfo.hasGenerics()) {
-                    return;
+                case Func: {
+                    FuncTypeInfo funcInfo = type.as();
+                    if(funcInfo.hasGenerics()) {
+                        return;
+                    }
+                    
+                    if(funcInfo.sym.state == ResolveState.RESOLVED ||
+                       funcInfo.sym.state == ResolveState.RESOLVING) {
+                        return;
+                    }
+                    
+                    funcInfo.sym.state = ResolveState.RESOLVING; 
+                    pushModule(funcInfo.sym.getDeclaredModule());
+                    
+                    resolveType(stmt, funcInfo.returnType);
+                    for(ParameterDecl p : funcInfo.parameterDecls) {
+                        resolveType(stmt, p.type);
+                    }
+                    popModule();
+                    funcInfo.sym.state = ResolveState.RESOLVED;
+                    break;
                 }
-                
-                resolveType(stmt, funcInfo.returnType);
-                for(TypeInfo p : funcInfo.params) {
-                    resolveType(stmt, p);
+                case Union:
+                case Struct: {
+                    AggregateTypeInfo aggInfo = type.as();
+                    if(aggInfo.hasGenerics()) {
+                        return;
+                    }
+                    
+                    if(aggInfo.sym.state == ResolveState.RESOLVED ||
+                       aggInfo.sym.state == ResolveState.RESOLVING) {
+                        return;
+                    }
+                    
+                    aggInfo.sym.state = ResolveState.RESOLVING; 
+                    pushModule(aggInfo.sym.getDeclaredModule());
+                    
+                    for(FieldInfo field : aggInfo.fieldInfos) {
+                        resolveType(stmt, field.type);
+                    }                
+                    popModule();
+                    aggInfo.sym.state = ResolveState.RESOLVED; 
+                    break;
                 }
-            }
-            else if(type.isKind(TypeKind.Func)) {
-                FuncTypeInfo funcInfo = type.as();
-                if(funcInfo.hasGenerics()) {
-                    return;
-                }
-                
-                pushModule(funcInfo.sym.getDeclaredModule());
-                resolveType(stmt, funcInfo.returnType);
-                for(ParameterDecl p : funcInfo.parameterDecls) {
-                    resolveType(stmt, p.type);
-                }
-                popModule();
-            }
-            else if(!type.isResolved()) {
-                if(resolvedType == null) {
-                    resolvedType = getType(type.getName());
-                    if(resolvedType == null) {                        
-                        if(isResolvingGenericDecl()) {
-                            if(this.currentGenericType.peek().isGenericParam(type.getName())) {
-                                IdentifierTypeInfo idType = type.as();
-                                idType.makeGenericParam();
+                default: { 
+                    if(!type.isResolved()) {
+                        if(resolvedType == null) {
+                            resolvedType = getType(type.getName());
+                            if(resolvedType == null) {                        
+                                if(isResolvingGenericDecl()) {
+                                    if(this.currentGenericType.peek().isGenericParam(type.getName())) {
+                                        IdentifierTypeInfo idType = type.as();
+                                        idType.makeGenericParam();
+                                    }
+                                    return;
+                                }
+                                
+                                if(!type.isGenericParam()) {
+                                    this.result.addError(stmt, "'%s' is an unknown type", type.getName());
+                                }
+                                return;                        
                             }
-                            return;
+                        }
+                        else if(!resolvedType.isResolved()) {
+                            resolveType(stmt, resolvedType);
                         }
                         
-                        if(!type.isGenericParam()) {
-                            this.result.addError(stmt, "'%s' is an unknown type", type.getName());
+                        if(resolvedType.hasGenericArgs() && !resolvedType.hasGenerics()) {
+                            List<TypeInfo> args = resolvedType.getGenericArgs();
+                            for(TypeInfo t : args) {
+                                resolveType(stmt, t);
+                            }
                         }
-                        return;                        
+                                        
+                        IdentifierTypeInfo idType = type.as();
+                        idType.resolve(this.module, resolvedType, !isResolvingGenericDecl());
                     }
                 }
-                else if(!resolvedType.isResolved()) {
-                    resolveType(stmt, resolvedType);
-                }
-                
-                if(resolvedType.hasGenericArgs() && !resolvedType.hasGenerics()) {
-                    List<TypeInfo> args = resolvedType.getGenericArgs();
-                    for(TypeInfo t : args) {
-                        resolveType(stmt, t);
-                    }
-                }
-                                
-                IdentifierTypeInfo idType = type.as();
-                idType.resolve(this.module, resolvedType, !isResolvingGenericDecl());
             }
         }
         
@@ -478,6 +530,7 @@ public class TypeResolver {
                 IdentifierExpr iExpr = (IdentifierExpr)expr;
                 if(iExpr.sym != null && iExpr.sym.decl instanceof ConstDecl) {
                     ConstDecl cExpr = (ConstDecl)iExpr.sym.decl;
+                    // TODO: Constant folding
                     if(cExpr.expr instanceof NumberExpr) {
                         NumberExpr nExpr = (NumberExpr)cExpr.expr;
                         
@@ -495,6 +548,7 @@ public class TypeResolver {
                     EnumTypeInfo enumInfo = objectInfo.as();
                     EnumFieldInfo field = enumInfo.getField(getExpr.field.variable);
                     if(field != null) {
+                        // TODO: Constant folding of Enum values 
                         if(field.value != null) {
                             return asInt(field.value);
                         }
@@ -506,6 +560,7 @@ public class TypeResolver {
                     }    
                 }                
             }
+            
             
             return null;
         }
@@ -527,10 +582,13 @@ public class TypeResolver {
                     resolvedGenericTypes.add(decl.name);
                     
                     this.genericModule = current;
+                    // this.genericModule = current.getRoot(); ?? What's going 
                     this.module = d.getFirst();
                     
                     pushModule(d.getFirst());
+                    pushModule(decl.sym.declared);
                     decl.visit(this);
+                    popModule();
                     popModule();
                 }
             }
@@ -740,7 +798,7 @@ public class TypeResolver {
             
             resolveType(d, d.type);
             
-            if(d.attributes.isGlobal && d.attributes.isPublic) {
+            if(d.attributes.isGlobal) {
                 Symbol sym = peekScope().getSymbol(d.name);
                 sym.markComplete();
             }
@@ -794,7 +852,7 @@ public class TypeResolver {
             
             resolveType(d, d.type);
             
-            if(d.attributes.isGlobal && d.attributes.isPublic) {
+            if(d.attributes.isGlobal) {
                 Symbol sym = peekScope().getSymbol(d.name);
                 sym.markComplete();
             }
@@ -853,7 +911,7 @@ public class TypeResolver {
                     
                     Scope scope = peekScope();
                     scope.addSymbol(this.module, p, p.name, p.type);
-                    
+
                     if(p.attributes.isUsing()) {
                         if(!TypeInfo.isAggregate(p.type) &&
                            !TypeInfo.isPtrAggregate(p.type)) {

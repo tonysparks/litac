@@ -688,6 +688,7 @@ public class Parser {
     }
     
     private EnumFieldInfo enumFieldStatement() {
+        List<NoteStmt> notes = notes();
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         
         Expr expr = null;
@@ -695,7 +696,10 @@ public class Parser {
             expr = constExpression();
         }
         
-        return new EnumFieldInfo(identifier.getText(), expr);
+        Attributes attrs = new Attributes();
+        attrs.notes = notes;
+        
+        return new EnumFieldInfo(identifier.getText(), expr, attrs);
     }
     
     private IfStmt ifStmt() {     

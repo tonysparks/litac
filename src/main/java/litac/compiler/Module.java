@@ -358,7 +358,7 @@ public class Module {
     }
     
     public boolean addIncomplete(Decl decl) {
-        if(!decl.attributes.isPublic) {
+        if(!decl.attributes.isGlobal) {
             return false;
         }
         
@@ -448,9 +448,10 @@ public class Module {
         return this.typedefTypes.get(typeName);
     }
     
-    public void addGenericType(Module root, Decl decl) {
-        decl.sym.genericDeclaration = root;
-        this.genericTypes.put(decl.name, new Tuple<>(root, decl));
+    public void addGenericType(Module genericTypeModule, Module declared, Decl decl) {
+        decl.sym.genericDeclaration = genericTypeModule;
+        decl.sym.declared = declared;
+        this.genericTypes.put(decl.name, new Tuple<>(genericTypeModule, decl));
     }
     
     public List<Tuple<Module, Decl>> getGenericTypes() {

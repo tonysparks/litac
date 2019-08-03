@@ -823,8 +823,9 @@ public class CGenNodeVisitor implements NodeVisitor {
             buf.outln();
             buf.out("const char* __%s_%s_AsStr(%s __e) {", d.sym.declared.name(), d.name, name);            
             buf.out("switch(__e) {");            
-            for(EnumFieldInfo f : d.fields) {                                
-                buf.out("case %s_%s: return \"%s\";\n", name, f.name, f.name);                
+            for(EnumFieldInfo f : d.fields) {      
+                String strValue = f.attributes.hasNote("asStr") ? f.attributes.getNote("asStr").getAttr(0, f.name) : f.name;
+                buf.out("case %s_%s: return \"%s\";\n", name, f.name, strValue);
             }
             buf.out("default: return \"\";");
             buf.out("}\n");            

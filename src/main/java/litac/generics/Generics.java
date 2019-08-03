@@ -8,7 +8,7 @@ import java.util.*;
 import litac.ast.Decl.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
-import litac.compiler.Module;
+import litac.compiler.*;
 
 /**
  * Handles creating new {@link TypeInfo}s based on generic types with generic arguments.
@@ -56,11 +56,11 @@ public class Generics {
         
         // All generics are defined in the root module
         // so we want to ensure we are comparing types from the root module
-        module = module.getRoot();
+        Module root = module.getRoot();
         
         
         String genericImplTypeName = newDeclGenericName(type, genericArgs);
-        TypeInfo resultType = module.getType(genericImplTypeName);
+        TypeInfo resultType = root.getType(genericImplTypeName);
         if(resultType != null) {
             return resultType;
         }
@@ -98,7 +98,6 @@ public class Generics {
     public static TypeInfo createGenericTypeInfo(Module module, TypeInfo type, List<GenericParam> genericParams, List<TypeInfo> genericArgs) {
         
         type = normalizeType(module, type);        
-        module = module.getRoot();
         
         switch(type.getKind()) {
             case Func: 
@@ -284,9 +283,9 @@ public class Generics {
                                               structInfo.genericParams,
                                               genericArgs);
 
-        Module declared = structInfo.sym.declared;
-        module.declareStruct(decl, newStructName, newStructInfo);
-        module.addGenericType(declared, decl);
+        Module root = module.getRoot();
+        root.declareStruct(decl, newStructName, newStructInfo);
+        root.addGenericType(structInfo.sym.declared, module, decl);
         
         GenericsNodeVisitor replacer = new GenericsNodeVisitor(newStructInfo.fieldInfos, module, structInfo.genericParams, genericArgs);
         decl.visit(replacer);
@@ -309,9 +308,9 @@ public class Generics {
                                             unionInfo.genericParams,
                                             genericArgs);
 
-        Module declared = unionInfo.sym.declared;
-        module.declareUnion(decl, newUnionName, newUnionInfo);
-        module.addGenericType(declared, decl);
+        Module root = module.getRoot();        
+        root.declareUnion(decl, newUnionName, newUnionInfo);
+        root.addGenericType(unionInfo.sym.declared, module, decl);
         
         GenericsNodeVisitor replacer = new GenericsNodeVisitor(newUnionInfo.fieldInfos, module, unionInfo.genericParams, genericArgs);
         decl.visit(replacer);
@@ -344,10 +343,9 @@ public class Generics {
                                           funcInfo.genericParams,
                                           genericArgs);
 
-        Module declared = funcInfo.sym.declared;
-        module.declareFunc(decl, newFuncName, newFuncInfo);
-        module.addGenericType(declared, decl);
-        
+        Module root = module.getRoot();
+        root.declareFunc(decl, newFuncName, newFuncInfo);
+        root.addGenericType(funcInfo.sym.declared, module, decl);
         
         GenericsNodeVisitor replacer = new GenericsNodeVisitor(Collections.emptyList(), module, funcInfo.genericParams, genericArgs);
         decl.visit(replacer);

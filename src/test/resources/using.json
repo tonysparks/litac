@@ -1,0 +1,106 @@
+{
+    description: "Using",
+    disabled: false,
+    program: '''                
+        @include("assert.h");
+        @foreign func assert(e:bool):void;
+        
+        %definitions%
+        
+        func main(len:i32, args:char**):i32 {
+            %test%
+        }
+    '''
+    tests: [           
+		/*{
+            name: "Using in struct",
+            definitions: '''                
+                struct Child {
+                    b: i32
+                }
+                
+                struct Parent {
+                    child: using Child
+                    a: f32
+                }
+                
+                            
+            ''',            
+            code: '''
+                // TODO Allow for constructors to use using
+                // var p = Parent {.b = 4, .a = 4.4}
+                var p = Parent {.child = Child{4}, .a = 4.4f}    
+                assert(p.b == 4)
+                assert(p.child.b == 4)
+                assert(p.a == 4.4f)
+                  
+            '''
+        },*/
+        {
+            name: "Using in struct child in different module",
+            modules: [
+                {
+                    name: "child",
+                    program: '''                                                
+                        public struct Child {
+                            b: i32
+                        }
+                    '''
+                },
+            ], 
+            definitions: '''
+                import "child"
+                
+                struct Parent {
+                    child: using Child
+                    a: f32
+                }
+            ''',                       
+            code: '''  
+                // TODO Allow for constructors to use using
+                // var p = Parent {.b = 4, .a = 4.4}
+                var p = Parent {.child = Child{4}, .a = 4.4f}    
+                assert(p.b == 4)
+                assert(p.child.b == 4)
+                assert(p.a == 4.4f)            
+            ''',
+        },
+        {
+            name: "Using in struct child in different module two layers",
+            modules: [
+                {
+                    name: "child",
+                    program: '''                                                
+                        public struct Child {
+                            b: i32
+                        }
+                        
+                        public struct GrandChild {
+                            child: using Child
+                            c: i32
+                        }
+                    '''
+                },
+            ], 
+            definitions: '''
+                import "child"
+                
+                struct Parent {
+                    grand: using GrandChild
+                    a: f32
+                }
+            ''',                       
+            code: '''  
+                // TODO Allow for constructors to use using
+                // var p = Parent {.b = 4, .a = 4.4}
+                var p = Parent {.grand = GrandChild{.child = Child{4}, .c = 64}, .a = 4.4f}    
+                assert(p.b == 4)
+                assert(p.c == 64)
+                assert(p.grand.c == 64)
+                assert(p.grand.b == 4)
+                assert(p.grand.child.b == 4)
+                assert(p.a == 4.4f)            
+            ''',
+        },
+    ]
+}

@@ -32,6 +32,28 @@
             ''',
         },
         {
+            name: "Enum asStr with custom name", 
+            definitions: '''
+                @include("<string.h>");
+                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                
+                @asStr
+                enum Test {
+                    @asStr("Brett")
+                    A,
+                    
+                    @asStr("Favre")
+                    B
+                }
+            ''',                       
+            code: '''
+                
+                assert(Test.A == 0)
+                assert(strcmp(TestAsStr(Test.A), "Brett") == 0)
+                assert(strcmp(TestAsStr(Test.B), "Favre") == 0)
+            ''',
+        },
+        {
             name: "Enum Big asStr", 
             definitions: '''
                 @include("<string.h>");

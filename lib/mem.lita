@@ -529,6 +529,7 @@ func DebugFree(alloc: Allocator const*, ptr: void*) {
 #if (options.debugMode)
 
    // @threadlocal 
+    // TODO: This isn't thread safe :(
     public var defaultAllocator: Allocator const* = (&DebugAllocator {
     }) as (Allocator const*);
 
@@ -536,7 +537,7 @@ func DebugFree(alloc: Allocator const*, ptr: void*) {
     func ModuleInit() {
         var debugAllocator = defaultAllocator as (DebugAllocator*)
         debugAllocator.init(cAllocator);
-        c::printf("Module Init!\n")
+        //c::printf("Module Init!\n")
     }
 
     @module_destroy
@@ -544,7 +545,7 @@ func DebugFree(alloc: Allocator const*, ptr: void*) {
         var debugAllocator = defaultAllocator as (DebugAllocator*)
         debugAllocator.report(); 
         debugAllocator.free(); 
-        c::printf("Module Destroy!\n")
+        //c::printf("Module Destroy!\n")
     }
 
 #else

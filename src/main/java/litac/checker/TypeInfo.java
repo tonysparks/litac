@@ -432,15 +432,16 @@ public abstract class TypeInfo {
     public static class EnumFieldInfo {        
         public String name;
         public Expr value;
-        
+        public Attributes attributes;
         
         /**
          * @param name
          * @param value
          */
-        public EnumFieldInfo(String name, Expr value) {            
+        public EnumFieldInfo(String name, Expr value, Attributes attributes) {            
             this.name = name;
             this.value = value;
+            this.attributes = attributes;
         }
     }
     
