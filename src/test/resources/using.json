@@ -12,7 +12,7 @@
         }
     '''
     tests: [           
-		/*{
+		{
             name: "Using in struct",
             definitions: '''                
                 struct Child {
@@ -35,7 +35,59 @@
                 assert(p.a == 4.4f)
                   
             '''
-        },*/
+        },
+        {
+            name: "Using in func param",
+            definitions: '''                
+                struct Child {
+                    b: i32
+                }
+                
+                struct Parent {
+                    child: using Child
+                    a: f32
+                }
+                
+                func test(p: using Parent) : i32 {
+                    return p.b
+                }
+                
+                            
+            ''',            
+            code: '''
+                var p = Parent {.child = Child{4}, .a = 4.4f}    
+                assert(test(p) == 4)
+                  
+            '''
+        },
+        {
+            name: "Using in method func param",
+            definitions: '''                
+                struct Child {
+                    b: i32
+                }
+                
+                struct Parent {
+                    child: using Child
+                    a: f32
+                }
+                
+                func (p: using Parent) test() : i32 {
+                    return p.b
+                }
+                
+                func (p: using Parent*) test2() : i32 {
+                    return p.b
+                }            
+            ''',            
+            code: '''
+                // TODO Allow for constructors to use using
+                // var p = Parent {.b = 4, .a = 4.4}
+                var p = Parent {.child = Child{4}, .a = 4.4f}    
+                assert(p.test() == 4)
+                assert(p.test2() == 4)
+            '''
+        },
         {
             name: "Using in struct child in different module",
             modules: [
@@ -101,6 +153,27 @@
                 assert(p.grand.child.b == 4)
                 assert(p.a == 4.4f)            
             ''',
+        },
+        {
+            name: "Using in struct with generics",
+            definitions: '''                
+                struct Child<T> {
+                    b: T
+                }
+                
+                struct Parent<T> {
+                    child: using Child<T>
+                    a: f32
+                }
+                
+                            
+            ''',            
+            code: '''
+                var p = Parent {.child = Child{4}, .a = 4.4f}    
+                assert(p.b == 4)
+                assert(p.child.b == 4)
+                assert(p.a == 4.4f)
+            '''
         },
     ]
 }

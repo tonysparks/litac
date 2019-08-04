@@ -19,7 +19,7 @@ import litac.compiler.PhaseResult;
  */
 public class LitaC {
 
-    public static final String VERSION = "v0.2.0";
+    public static final String VERSION = "v0.3.0";
     
     private static void checkArg(String[] args, int index, String paramName) {
         if(index + 1 >= args.length) {
@@ -47,7 +47,7 @@ public class LitaC {
         System.out.println("                       <arg> can be:");
         System.out.println("                         all         Means all types will have reflection values");
         System.out.println("                         tagged      Means only basic types and types annoted with @typeinfo will have reflection values");        
-        System.out.println("  -test <arg>          Runs functions annotated with @test.  'arg' is a regex of which tests should be run");
+        System.out.println("  -test <arg>          Runs functions annotated with @test.  <arg> is a regex of which tests should be run");
         System.out.println("  -buildCmd            The underlying C compiler build and compile command.  Variables will ");
         System.out.println("                       be substituted if found: ");
         System.out.println("                          %output%         The executable name ");

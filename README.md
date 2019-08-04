@@ -1,5 +1,5 @@
 # LitaC
-LitaC (pronounced Lee-ta-see) is a C like language.  In fact, its main goal is to be C with some minor syntax sugar.  It compiles to ISO-C99 (C11 for some features) which has the benefits of being fairly easy to use existing C libraries and code.
+LitaC (pronounced Lee-ta-see) is a C like language.  In fact, its main goal is to be C with some minor syntax sugar.  It compiles to ISO-C99 (C11 for some features) which has the benefits of being fairly easy to use existing C libraries and code, and can target any platform with a C99 compiler.
 
 # Goals & Purpose
 First what's not a goal: LitaC is not meant to replace any existing languages.  It isn't trying to conquer the programming world.
@@ -31,6 +31,7 @@ func main(len:i32, args:char**):i32 {
 * reflection (i.e., introspection of types, this is still a WIP)
 * inline tests (enabled/run thru compiler command line argument) 
 * multi-line strings
+
 
 # Types
 
@@ -152,8 +153,8 @@ func main(len:i32, args:char**):i32 {
        printf("%d\n", j)
     }
     
-   var x = 2
-   switch(x) {
+    var x = 2
+    switch(x) {
       case 0: printf("it's 0\n")
          break;
       case 1: printf("it's 1\n")
@@ -161,14 +162,14 @@ func main(len:i32, args:char**):i32 {
       default:
          printf("I give up!\n")
          
-   }
+    }
     
-   printf("The Packers are ")
-   goto end;  // jump over this lie
-   prinf("not ")
+    printf("The Packers are ")
+    goto end;  // jump over this lie
+    prinf("not ")
     
 end:
-   printf("the best\n");
+    printf("the best\n");
 }
 ```
 
@@ -293,12 +294,20 @@ OPTIONS:
   -lib <arg>           The LitaC library path
   -cPrefix <arg>       The symbol prefix to use on the generated C code output
   -run                 Runs the program after a successful compile
+  -checkerOnly         Only runs the type checker, does not compile
+  -cOnly               Only creates the C output file, does not compile the generated C code
+  -profile             Reports profile metrics of the compiler
+  -disableLine         Disables #line directive in C output
+  -debug               Enables debug mode
   -o, -output <arg>    The name of the compiled binary
   -outpuDir <arg>      The directory in which the C output files are stored
   -v, -version         Displays the LitaC version
   -h, -help            Displays this help
-  -t, -types           Does not include TypeInfo for reflection
-  -test <arg>          Runs functions annotated with @test.  'arg' is a regex of which tests should be run
+  -t, -types <arg>     Includes TypeInfo for reflection
+                       <arg> can be:
+                         all         Means all types will have reflection values
+                         tagged      Means only basic types and types annoted with @typeinfo will have reflection values                         
+  -test <arg>          Runs functions annotated with @test.  <arg> is a regex of which tests should be run
   -buildCmd            The underlying C compiler build and compile command.  Variables will
                        be substituted if found:
                           %output%         The executable name

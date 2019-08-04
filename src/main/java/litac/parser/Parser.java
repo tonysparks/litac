@@ -1528,43 +1528,45 @@ public class Parser {
                 return type;
             }            
             case FUNC: {
-                advance();
-                
-                List<GenericParam> genericParams = Collections.emptyList();
-                if(match(LESS_THAN)) {
-                    genericParams = genericParameters();
-                }
-                
-                consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
-                List<TypeInfo> params = new ArrayList<>();
-                boolean isVarargs = false;
-                
-                if(!check(RIGHT_PAREN)) {
-                    do {
-                        if(match(VAR_ARGS)) {
-                            isVarargs = true;
-                            if(!check(RIGHT_PAREN)) {
-                                throw error(peek(), ErrorCode.INVALID_VARARG_POSITION);
-                            }
-                        }
-                        else {
-                            params.add(type(false));
-                        }
-                    }
-                    while(match(COMMA));
-                }
-                
-                consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-                
-                consume(COLON, ErrorCode.MISSING_COLON);
-                
-                TypeInfo returnType = type(false);
-                
-                return new FuncPtrTypeInfo(returnType, params, isVarargs, genericParams);
+                advance();                
+                return funcPtrType();
             }
             default:
                 throw error(t, ErrorCode.UNEXPECTED_TOKEN);
         }
+    }
+    
+    private FuncPtrTypeInfo funcPtrType() {
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
+        }
+        
+        consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
+        List<TypeInfo> params = new ArrayList<>();
+        boolean isVarargs = false;
+        
+        if(!check(RIGHT_PAREN)) {
+            do {
+                if(match(VAR_ARGS)) {
+                    isVarargs = true;
+                    if(!check(RIGHT_PAREN)) {
+                        throw error(peek(), ErrorCode.INVALID_VARARG_POSITION);
+                    }
+                }
+                else {
+                    params.add(type(false));
+                }
+            }
+            while(match(COMMA));
+        }
+        
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        consume(COLON, ErrorCode.MISSING_COLON);
+        
+        TypeInfo returnType = type(false);
+        
+        return new FuncPtrTypeInfo(returnType, params, isVarargs, genericParams);
     }
     
     private IdentifierTypeInfo identifierType(boolean disambiguate) {
