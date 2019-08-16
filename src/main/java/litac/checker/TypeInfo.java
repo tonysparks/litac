@@ -7,12 +7,12 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import litac.ast.Attributes;
 import litac.ast.Decl.ParameterDecl;
+import litac.ast.Expr;
 import litac.compiler.*;
 import litac.generics.GenericParam;
 import litac.generics.Generics;
-import litac.ast.Attributes;
-import litac.ast.Expr;
 import litac.util.Names;
 
 
@@ -44,6 +44,10 @@ public abstract class TypeInfo {
     
     public static final int FUNC_ISVARARG_FLAG = (1<<0);
     public static final int FUNC_ISMETHOD_FLAG = (1<<1);
+    
+    public static TypeInfo newForeignPrimitive(String name) {
+        return new PrimitiveTypeInfo(name, TypeKind.Void);
+    }
     
     public static TypeInfo copy(TypeInfo type) {
         if(type != null) {
@@ -1493,7 +1497,8 @@ public abstract class TypeInfo {
         
         @Override
         public boolean isResolved() {
-            return this.resolvedType != null && this.resolvedType.isResolved();
+            return this.resolvedType != null &&                    
+                   this.resolvedType.isResolved();
         }
         
         @Override
@@ -1584,7 +1589,10 @@ public abstract class TypeInfo {
                     }
                     
                 }
-                this.resolvedType = resolvedTo;
+                
+                if(resolvedTo != this) {
+                    this.resolvedType = resolvedTo;
+                }
             }
         }
         

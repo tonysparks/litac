@@ -135,6 +135,11 @@ public class Parser {
         
         String aliasName = null;
         String moduleName = null;
+        boolean isUsing = false;
+        
+        if(match(USING)) {
+            isUsing = true;
+        }
         
         Token library = consume(STRING, ErrorCode.MISSING_IDENTIFIER);
         if(match(AS)) {
@@ -146,7 +151,7 @@ public class Parser {
         String libTxt = library.getText();
         moduleName = libTxt.substring(1, libTxt.length() - 1);
         
-        return node(new ImportStmt(moduleName, aliasName));
+        return node(new ImportStmt(moduleName, aliasName, isUsing));
     }
         
     private VarDecl varDeclaration() {

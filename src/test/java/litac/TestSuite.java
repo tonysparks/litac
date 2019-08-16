@@ -30,7 +30,7 @@ public class TestSuite {
 
     public static class TestModule {
         public String name;
-        public String program;
+        public String program;        
     }
     
     public static class TestCase {
@@ -40,6 +40,7 @@ public class TestSuite {
         public String error;
         public boolean disabled;
         public Boolean debug;
+        public String symbolPrefix = "";
         public TestModule[] modules;
     }
     
@@ -93,7 +94,7 @@ public class TestSuite {
             try {                
                 BackendOptions options = new BackendOptions();
                 options.buildFile = tmp;
-                options.cOptions.symbolPrefix = "";
+                options.cOptions.symbolPrefix = test.symbolPrefix;
                 options.run = true;
                 options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;        
                 options.debugMode = test.debug != null  
@@ -201,6 +202,6 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/using.json");        
+        singleFileTest("/foreign_type.json");        
     }
 }

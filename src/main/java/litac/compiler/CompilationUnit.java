@@ -65,7 +65,7 @@ public class CompilationUnit {
     public static CompilationUnit modules(BackendOptions options, File moduleFile) throws IOException {   
         ModuleStmt builtin = readModule(options.preprocessor(), new File(options.libDir, "builtins.lita"));
         ModuleStmt main = readModule(options.preprocessor(), moduleFile);
-        main.imports.add(new ImportStmt("builtins", null));
+        main.imports.add(new ImportStmt("builtins", null, false));
      
         if(options.outputType == OutputType.Test) {
             importAssertModule(main);
@@ -82,7 +82,7 @@ public class CompilationUnit {
     
     private static void importAssertModule(ModuleStmt main) {
         if(!main.imports.stream().anyMatch(imp -> imp.moduleName.equals("assert"))) {
-            main.imports.add(new ImportStmt("assert", null));
+            main.imports.add(new ImportStmt("assert", null, false));
         }
     }
     

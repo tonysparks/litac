@@ -3,23 +3,17 @@
  */
 package litac.compiler;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import litac.ast.Decl;
 import litac.ast.Decl.*;
+import litac.ast.Stmt.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.compiler.Scope.ScopeType;
 import litac.util.Names;
 import litac.util.Tuple;
-import litac.ast.Stmt;
-import litac.ast.Stmt.ModuleStmt;
-import litac.ast.Stmt.NoteStmt;
 
 /**
  * Keeps track of a modules defined types.
@@ -144,7 +138,7 @@ public class Module {
                this.importedFuncTypes.containsKey(name);
     }
     
-    public void importModule(Stmt stmt, Module module, String alias) {
+    public void importModule(ImportStmt stmt, Module module, String alias) {
         if(module == null) {
             this.result.addError(stmt, "unable to import module '%s' ", alias);
             return;
@@ -176,8 +170,7 @@ public class Module {
             module.currentScope().getSymbols()
                                  .stream()
                                  .filter(s -> s.decl.attributes.isPublic &&
-                                              s.declared == module /*&&
-                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR)*/)
+                                              s.declared == module)
                                  .forEach(s -> currentScope().addSymbol(alias, s));
         }
         else {
@@ -211,8 +204,7 @@ public class Module {
             module.currentScope().getSymbols()
                                  .stream()
                                  .filter(s -> s.decl.attributes.isPublic &&
-                                              s.declared == module /*&&
-                                              (s.decl.kind == DeclKind.CONST || s.decl.kind == DeclKind.VAR)*/)
+                                              s.declared == module)
                                  .forEach(s -> currentScope().addSymbol(s));
             
             for(Entry<String, TypeInfo> typeEntry: module.foreignTypes.entrySet()) {
@@ -223,6 +215,16 @@ public class Module {
                 else {
                     this.importedAggregateTypes.put(Names.litaName(alias, typeEntry.getKey()), type);
                 }
+            }
+        }
+        
+        if(stmt.isUsing) {
+            for(Entry<String, FuncTypeInfo> funcType: module.publicFuncTypes.entrySet()) {
+                this.publicFuncTypes.put(funcType.getKey(), funcType.getValue());
+            }
+            
+            for(Entry<String, TypeInfo> aggType: module.publicTypes.entrySet()) {
+                this.publicTypes.put(aggType.getKey(), aggType.getValue());
             }
         }
         
@@ -352,9 +354,15 @@ public class Module {
             return previousType.sym;
         }
 
+        // Allow foreign types to be aliased and referenced
+        // in our type system
+        if(stmt.attributes.isForeign()) {            
+            aliasedType = TypeInfo.newForeignPrimitive(alias);
+        }
+        
         this.typedefTypes.put(alias, aliasedType);
         
-        return addPublicDecl(stmt, alias, aliasedType);
+        return addPublicDecl(stmt, alias, aliasedType);        
     }
     
     public boolean addIncomplete(Decl decl) {

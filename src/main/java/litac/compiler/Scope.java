@@ -74,6 +74,13 @@ public class Scope {
         
         if(isForeign(decl)) {
             flags |= Symbol.IS_FOREIGN;
+            
+            // if this is a foreign primitive declaration
+            // we want the symbol information associated with this
+            // type, so that the CGen knows it is a foreign type
+            if(decl.kind == DeclKind.TYPEDEF) {
+                isNewType = true;
+            }
         }
         
         if(isNewType) {

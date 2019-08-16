@@ -80,10 +80,14 @@ public abstract class Stmt extends Node {
     public static class ImportStmt extends Stmt {
         public String moduleName;
         public String alias;
+        public boolean isUsing;
         
-        public ImportStmt(String moduleName, String alias) {
+        public ImportStmt(String moduleName, 
+                          String alias,
+                          boolean isUsing) {
             this.moduleName = moduleName;
             this.alias = alias;
+            this.isUsing = isUsing;
         }
         
         @Override
@@ -93,7 +97,7 @@ public abstract class Stmt extends Node {
         
         @Override
         protected Node doCopy() {            
-            return new ImportStmt(this.moduleName, this.alias);
+            return new ImportStmt(this.moduleName, this.alias, this.isUsing);
         }
     }
     
