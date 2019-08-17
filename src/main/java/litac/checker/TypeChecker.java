@@ -100,7 +100,7 @@ public class TypeChecker {
         
         private void checkType(Stmt stmt, TypeInfo a, TypeInfo b, boolean isCasted) {
             if(isCasted) {
-                if(!a.isKind(TypeKind.Ptr) || !b.isKind(TypeKind.Ptr)) {
+                if(!TypeInfo.isPtrLike(a) || !TypeInfo.isPtrLike(b)) {
                     if(!a.canCastTo(b) && !b.canCastTo(a)) {
                         result.addError(stmt,
                                 "'%s' can't be casted to '%s'", b, a);    

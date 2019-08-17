@@ -78,7 +78,7 @@ public class Scope {
             // if this is a foreign primitive declaration
             // we want the symbol information associated with this
             // type, so that the CGen knows it is a foreign type
-            if(decl.kind == DeclKind.TYPEDEF) {
+            if(decl.kind == DeclKind.TYPEDEF && !type.isKind(TypeKind.FuncPtr)) {
                 isNewType = true;
             }
         }

@@ -356,7 +356,7 @@ public class Module {
 
         // Allow foreign types to be aliased and referenced
         // in our type system
-        if(stmt.attributes.isForeign()) {            
+        if(stmt.attributes.isForeign() && !aliasedType.isKind(TypeKind.FuncPtr)) {            
             aliasedType = TypeInfo.newForeignPrimitive(alias);
         }
         

@@ -13,7 +13,7 @@
         }
     '''
     tests: [           
-        {
+        /*{
             name: "Foreign Primitive",
             definitions: '''
                 @raw("""
@@ -162,6 +162,74 @@
                 
                 var t = X{.x = y}
                 assert(t.x == 4)    
+            ''',
+        },*/
+        {
+            name: "Foreign funcPtr",
+            symbolPrefix: "litaC__",
+            definitions: '''
+                @raw("""
+                typedef int (*SomeFunc)(int x);      
+                
+                int nativeFn(SomeFunc aFn) {
+                    return aFn(4);
+                }
+                          
+                """);
+                
+                @foreign
+                func nativeFn(aFn: SomeFunc) : i32;
+                
+                @foreign
+                typedef func(i32) : i32 as SomeFunc;
+                
+                func test(x: i32) : i32 {
+                    return x
+                }
+                
+                func testFn(aFn: SomeFunc) : i32 {
+                    return aFn(4)
+                }
+            ''',                       
+            code: '''  
+                var fn = &test
+                
+                assert(fn(4)== 4)
+                assert(testFn(fn) == 4)
+                assert(nativeFn(fn) == 4)
+                    
+            ''',
+        }, 
+        {
+            name: "Foreign struct",
+            symbolPrefix: "litaC__",
+            definitions: '''
+                @raw("""
+                typedef struct Test {
+                    int x;
+                } Test;
+                
+                int nativeFn(Test t) {
+                    return t.x;
+                }
+                          
+                """);
+                
+                @foreign
+                func nativeFn(t: Test) : i32;
+                
+                @foreign
+                struct Test {x:i32};
+                
+                //@foreign (won't work!!)
+                typedef Test as Test2;                
+            ''',                       
+            code: '''  
+                var test = Test{4}
+                var test2 = Test2{8}
+                assert(nativeFn(test) == 4)
+                assert(nativeFn(test2) == 8)
+                    
             ''',
         }, 
     ]
