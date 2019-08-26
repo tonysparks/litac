@@ -14,7 +14,7 @@ import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
-import litac.checker.*;
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
 import litac.compiler.BackendOptions.OutputType;
@@ -365,16 +365,34 @@ public class CGenNodeVisitor implements NodeVisitor {
     }
     
     private void writeMain(Buf buf, Decl main) {
+        FuncDecl funcDecl = null;
+        if(main instanceof FuncDecl) {
+            funcDecl = (FuncDecl)main;
+        }
+        
         buf.outln();
         buf.out("// Main").outln();
-        buf.out("int main(int argn, char** args) {");
+        
+        boolean hasArgs = false;
+        if(funcDecl != null) {
+            if(funcDecl.params.params.size() > 1) {
+                ParameterDecl lenDecl = funcDecl.params.params.get(0);
+                ParameterDecl argDecl = funcDecl.params.params.get(1);
+                
+                buf.out("int main(int %s, char** %s) {", cName(lenDecl.sym), cName(argDecl.sym));
+                hasArgs = true;
+            }            
+        }
+        
+        if(!hasArgs) {
+            buf.out("int main(int argn, char** args) {");
+        }
         
         for(Decl d : this.moduleInitFunc) {
             buf.out("%s();\n", cName(d.sym));
         }
-        
-        if(main instanceof FuncDecl) {
-            FuncDecl funcDecl = (FuncDecl)main;
+
+        if(funcDecl != null) {
             funcDecl.bodyStmt.visit(this);
         }
         
