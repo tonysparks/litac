@@ -27,6 +27,14 @@ public func StrEqualFn(a: char const*, b: char const*) : bool {
 
     return strcmp(a, b) == 0
 }
+/*
+public func StrMap<V>(initialSize: i32 = 16,
+                      alloc: mem::Allocator const* = null) : Map<char const*, V> {
+
+    var m = Map<char const*, V>;
+    m.init<char const*, V>("", initialSize, StrHashFn, StrEqualFn, alloc);
+    return m;
+}*/
 
 public struct Map<K, V> {
     length: i32

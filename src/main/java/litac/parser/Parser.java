@@ -10,7 +10,9 @@ import litac.Errors;
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
+import litac.ast.Node.SrcPos;
 import litac.ast.Stmt.*;
+import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.compiler.Preprocessor;
@@ -38,6 +40,7 @@ public class Parser {
     private final List<Token> tokens;
     private int current;
         
+    private SrcPos pos;
     private Token startToken;
     private Preprocessor pp;
     
@@ -157,7 +160,7 @@ public class Parser {
     private VarDecl varDeclaration() {
         source();
         
-        TypeInfo type = null;
+        TypeSpec type = null;
         Expr expr = null;
         int modifiers = 0;
         
@@ -186,7 +189,7 @@ public class Parser {
     private ConstDecl constDeclaration() {
         source();
         
-        TypeInfo type = null;
+        TypeSpec type = null;
         int modifiers = 0;
         
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
@@ -213,7 +216,6 @@ public class Parser {
         source();
         this.funcLevel++;
         
-
         ParameterDecl objectParam = null;
         if(match(LEFT_PAREN)) {
             objectParam = parameterDecl(false);
@@ -233,7 +235,7 @@ public class Parser {
             parameters.params.add(0, objectParam);
         }
         
-        TypeInfo returnType = TypeInfo.VOID_TYPE;
+        TypeSpec returnType = TypeSpec.newVoid(peek().getPos());
         if(match(COLON)) {
             returnType = type(false);
         }
@@ -246,13 +248,7 @@ public class Parser {
         if(objectParam != null) {
             flags |= TypeInfo.FUNC_ISMETHOD_FLAG;
         }
-        
-        TypeInfo type = new FuncTypeInfo(identifier.getText(), 
-                                         returnType, 
-                                         parameters.params, 
-                                         flags,
-                                         genericParams);
-        
+                
         Stmt body;
         if(match(SEMICOLON)) {
             body = emptyStmt();
@@ -263,13 +259,12 @@ public class Parser {
         
         this.funcLevel--;
         
-        return node(new FuncDecl(identifier.getText(), type, parameters, body, returnType));
+        return node(new FuncDecl(identifier.getText(), parameters, body, returnType, genericParams, flags));
     }
     
     private StructDecl structDeclaration() {
         source();
         
-        Token start = peek();
         int flags = 0;
         if(this.aggregateLevel > 0) {
             flags |= AggregateTypeInfo.IS_EMBEDDED;
@@ -310,17 +305,13 @@ public class Parser {
             consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         }
         this.aggregateLevel--;
-        
-        List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new StructTypeInfo(structName, genericParams, typeFields, flags);
-        
-        return node(new StructDecl(structName, type, fields));
+                                       
+        return node(new StructDecl(structName, fields, genericParams, flags));
     }
     
     private UnionDecl unionDeclaration() {
         source();
         
-        Token start = peek();
         int flags = 0;
         if(this.aggregateLevel > 0) {
             flags |= AggregateTypeInfo.IS_EMBEDDED;
@@ -362,11 +353,7 @@ public class Parser {
         }
         this.aggregateLevel--;
         
-        List<FieldInfo> typeFields = Stmt.fromFieldStmt(start, fields);
-        TypeInfo type = new UnionTypeInfo(unionName, genericParams, typeFields, flags);
-        
-        
-        return node(new UnionDecl(unionName, type, fields));
+        return node(new UnionDecl(unionName, fields, genericParams, flags));
     }
     
     private EnumDecl enumDeclaration() {
@@ -388,18 +375,16 @@ public class Parser {
             fields.add(field);
         }
         while(match(COMMA));
-                
-        TypeInfo type = new EnumTypeInfo(enumName, fields);
-        
+                        
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
-        return node(new EnumDecl(enumName, type, fields));
+        return node(new EnumDecl(enumName, fields));
     }
 
     private TypedefDecl typedefDeclaration() {
         source();
         
-        TypeInfo aliasedType = type(false);        
+        TypeSpec aliasedType = type(false);        
         match(AS);
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         String name = identifier.getText();
@@ -662,7 +647,7 @@ public class Parser {
                 Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
                 consume(COLON, ErrorCode.MISSING_COLON);
                 int modifiers = modifiers();
-                TypeInfo type = type(false);
+                TypeSpec type = type(false);
                 
                 return node(new VarFieldStmt(identifier.getText(), type, modifiers).addNotes(notes));
             }                
@@ -967,8 +952,8 @@ public class Parser {
     }
     
     private ArrayInitExpr arrayInitExpr() {
-        TypeInfo array = type(false);
-        if(!array.isKind(TypeKind.Array)) {
+        TypeSpec array = type(false);
+        if(array.kind != TypeSpecKind.ARRAY) {
             throw error(previous(), ErrorCode.MISSING_LEFT_BRACE);
         }
         
@@ -1175,7 +1160,7 @@ public class Parser {
     
     private Expr cast(Expr expr) {
         consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
-        TypeInfo castTo = type(false);
+        TypeSpec castTo = type(false);
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         return node(new CastExpr(castTo, expr));
     }
@@ -1188,7 +1173,7 @@ public class Parser {
         int backtrack = this.current;
         
         if(hasParen) {            
-            TypeInfo type = type();
+            TypeSpec type = type();
             
             // check to see if this is an enum type (or a field expression)
             if(check(DOT)) {
@@ -1196,7 +1181,7 @@ public class Parser {
                 expr = unary();
             }
             else {
-                expr = new IdentifierExpr(type.getName(), type);
+                expr = new IdentifierExpr(type.toString(), type);
             }
         }
         else {
@@ -1217,8 +1202,8 @@ public class Parser {
         
         Token t = peek();        
         if(t.getType().isPrimitiveToken() || t.getType().equals(LEFT_BRACKET)) {            
-            TypeInfo type = type();
-            expr = new IdentifierExpr(type.getName(), type);
+            TypeSpec type = type();
+            expr = new IdentifierExpr(type.toString(), type);
         }
         else {
             expr = expression();
@@ -1255,8 +1240,8 @@ public class Parser {
                 expr = node(new SubscriptGetExpr(expr, index));
             }
             else if(match(DOT)) {
-                IdentifierTypeInfo identifier = identifierType(true);
-                expr = node(new GetExpr(expr, node(new IdentifierExpr(identifier.identifier, identifier))));
+                NameTypeSpec identifier = identifierType(true);
+                expr = node(new GetExpr(expr, node(new IdentifierExpr(identifier.name, identifier))));
             }
             else if(match(AS)) {
                 expr = cast(expr);
@@ -1287,8 +1272,8 @@ public class Parser {
         if(match(TYPEOF))       return typeofExpr();
         
         if(check(IDENTIFIER)) {
-            IdentifierTypeInfo identifier = identifierType(true);
-            return node(new IdentifierExpr(identifier.identifier, identifier));
+            NameTypeSpec name = identifierType(true);
+            return node(new IdentifierExpr(name.name, name));
         }
                 
         throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
@@ -1329,12 +1314,12 @@ public class Parser {
         match(SEMICOLON);
     }
     
-    private List<TypeInfo> tryGenericArguments(boolean disambiguiate) {
+    private List<TypeSpec> tryGenericArguments(boolean disambiguiate) {
         int backtrack = this.current;
         
         advance(); // eat <
         
-        List<TypeInfo> arguments = null;
+        List<TypeSpec> arguments = null;
         try {
             arguments = genericArguments();
             
@@ -1380,23 +1365,23 @@ public class Parser {
         return null;
     }
     
-    private TypeInfo chainableType(TypeInfo type) {
+    private TypeSpec chainableType(TypeSpec type) {
         do {
             advance();
         
             Token n = peek();
             if(n.getType().equals(STAR)) {
-                type = new PtrTypeInfo(type);
+                type = new PtrTypeSpec(pos(), type);
             }
             else if(n.getType().equals(LEFT_BRACKET)) {
                 type = arrayType(type);
             }
             else if(n.getType().equals(CONST)) {
-                if(type instanceof ConstTypeInfo) {
+                if(type.kind == TypeSpecKind.CONST) {
                     throw error(n, ErrorCode.INVALID_CONST_EXPR);
                 }
                 
-                type = new ConstTypeInfo(type);
+                type = new ConstTypeSpec(pos(), type);
             }
             else {
                 break;
@@ -1406,8 +1391,8 @@ public class Parser {
         return type;
     }
         
-    private ArrayTypeInfo arrayType(TypeInfo type) {
-        TypeInfo arrayOf = type;
+    private ArrayTypeSpec arrayType(TypeSpec type) {
+        TypeSpec arrayOf = type;
         int length = -1;
     
         advance(); // eat [
@@ -1433,7 +1418,7 @@ public class Parser {
             }            
         }
         
-        return new ArrayTypeInfo(arrayOf, length, lengthExpr);                    
+        return new ArrayTypeSpec(pos(), arrayOf, length, lengthExpr);                    
     }
     
     private int modifiers() {
@@ -1454,82 +1439,42 @@ public class Parser {
         return modifiers;
     }
     
-    private TypeInfo type() {
+    private TypeSpec type() {
         return type(true);
     }
-    
-    private TypeInfo type(boolean disambiguiate) {
+        
+    private TypeSpec type(boolean disambiguiate) {
         Token t = peek();
         switch(t.getType()) {
-            case BOOL: {
-                TypeInfo type = TypeInfo.BOOL_TYPE;
-                return chainableType(type);
-            }
-            case CHAR: {
-                TypeInfo type = TypeInfo.CHAR_TYPE;
-                return chainableType(type);
-            }
-            case I8: {
-                TypeInfo type = TypeInfo.I8_TYPE;
-                return chainableType(type);
-            }
-            case U8: {
-                TypeInfo type = TypeInfo.U8_TYPE;
-                return chainableType(type);
-            }
-            case I16: {
-                TypeInfo type = TypeInfo.I16_TYPE;
-                return chainableType(type);
-            }
-            case U16: {
-                TypeInfo type = TypeInfo.U16_TYPE;
-                return chainableType(type);
-            }
-            case I32: {
-                TypeInfo type = TypeInfo.I32_TYPE;
-                return chainableType(type);
-            }
-            case U32: {
-                TypeInfo type = TypeInfo.U32_TYPE;
-                return chainableType(type);
-            }
-            case I64: {
-                TypeInfo type = TypeInfo.I64_TYPE;
-                return chainableType(type);
-            }
-            case U64: {
-                TypeInfo type = TypeInfo.U64_TYPE;
-                return chainableType(type);
-            }
-            case F32: {
-                TypeInfo type = TypeInfo.F32_TYPE;
-                return chainableType(type);
-            }
-            case F64: {
-                TypeInfo type = TypeInfo.F64_TYPE;
-                return chainableType(type);
-            }
+            case BOOL: 
+            case CHAR: 
+            case I8: 
+            case U8: 
+            case I16: 
+            case U16: 
+            case I32: 
+            case U32: 
+            case I64: 
+            case U64: 
+            case F32: 
+            case F64: 
             case VOID: {
-                TypeInfo type = TypeInfo.VOID_TYPE;
+                TypeSpec type = new NameTypeSpec(t.getPos(), t.getText());
                 return chainableType(type);
             }
             case IDENTIFIER: {
-                TypeInfo type = identifierType(disambiguiate);
+                TypeSpec type = identifierType(disambiguiate);
 
                 // identifier() consumes multiple tokens, 
                 // account for advance in ptr check
                 rewind();
                 return chainableType(type);
             }
-            case STRING: {
-                TypeInfo type = new StrTypeInfo(t.getText());
-                return chainableType(type);
-            }
             case LEFT_BRACKET: {                
-                ArrayTypeInfo type = arrayType(null);
+                ArrayTypeSpec type = arrayType(null);
                 advance();
                 
-                type.arrayOf = type(disambiguiate);
+                type.base = type(disambiguiate);
                 return type;
             }            
             case FUNC: {
@@ -1541,14 +1486,16 @@ public class Parser {
         }
     }
     
-    private FuncPtrTypeInfo funcPtrType() {
+    private FuncPtrTypeSpec funcPtrType() {
+        Token token = peek();
+        
         List<GenericParam> genericParams = Collections.emptyList();
         if(match(LESS_THAN)) {
             genericParams = genericParameters();
         }
         
         consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
-        List<TypeInfo> params = new ArrayList<>();
+        List<TypeSpec> params = new ArrayList<>();
         boolean isVarargs = false;
         
         if(!check(RIGHT_PAREN)) {
@@ -1569,22 +1516,22 @@ public class Parser {
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         consume(COLON, ErrorCode.MISSING_COLON);
         
-        TypeInfo returnType = type(false);
+        TypeSpec returnType = type(false);
         
-        return new FuncPtrTypeInfo(returnType, params, isVarargs, genericParams);
+        return new FuncPtrTypeSpec(token.getPos(), params, returnType, isVarargs, genericParams);
     }
     
-    private IdentifierTypeInfo identifierType(boolean disambiguate) {
+    private NameTypeSpec identifierType(boolean disambiguate) {
         Token token = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         String identifier = token.getText();
         
         // imported module type
         if(match(COLON_COLON)) {            
-            Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+            Token name = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);            
             identifier = String.format("%s::%s", identifier, name.getText());
         }
         
-        List<TypeInfo> arguments = null;
+        List<TypeSpec> arguments = null;
         if(check(LESS_THAN)) {
             arguments = tryGenericArguments(disambiguate);
         }
@@ -1593,7 +1540,7 @@ public class Parser {
             arguments = Collections.emptyList();
         }
         
-        return new IdentifierTypeInfo(identifier, arguments);
+        return new NameTypeSpec(token.getPos(), identifier, arguments);
     }
     
     /**
@@ -1686,8 +1633,8 @@ public class Parser {
         return arguments;
     }
     
-    private List<TypeInfo> genericArguments() {
-        List<TypeInfo> arguments = new ArrayList<>();
+    private List<TypeSpec> genericArguments() {
+        List<TypeSpec> arguments = new ArrayList<>();
         if(!check(GREATER_THAN)) {        
             do {
                 arguments.add(type(false));
@@ -1785,7 +1732,15 @@ public class Parser {
      * source line and number information
      */
     private void source() {
-        this.startToken = peek();
+        this.startToken = peek();        
+    }
+    
+    private SrcPos pos() {
+        if(this.startToken != null) {
+            source();
+        }
+        
+        return this.startToken.getPos();
     }
     
     /**

@@ -1615,7 +1615,8 @@ public class CGenNodeVisitor implements NodeVisitor {
                     return;
                 }
                 
-                aggInfo = ((PtrTypeInfo)objectInfo).getBaseType().as();
+                PtrTypeInfo ptrInfo = objectInfo.as();
+                aggInfo = ptrInfo.getBaseType().as();
             }
             else {
                 aggInfo = objectInfo.as();
@@ -1656,7 +1657,8 @@ public class CGenNodeVisitor implements NodeVisitor {
                 return;
             }
             
-            aggInfo = ((PtrTypeInfo)objectInfo).getBaseType().as();
+            PtrTypeInfo ptrInfo = objectInfo.as();
+            aggInfo = ptrInfo.getBaseType().as();
         }
         else {
             aggInfo = objectInfo.as();

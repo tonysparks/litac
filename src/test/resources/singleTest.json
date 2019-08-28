@@ -239,7 +239,7 @@
                 printf("%s\n", buf.cStr())
                 
             ''',                      
-        },*/
+        },
         
         { 
             name: "Simple",
@@ -253,6 +253,50 @@
                 var x = X{4}
                 assert(x.i == 4)
             '''
-        }                
+        }*/
+        
+        { 
+            name: "Generics Type Inference from Struct of Struct Generic Type multiple",
+            definitions: '''                
+                struct B<Z> {
+                    b: Z
+                }
+                struct Test<X, Y> {
+                    t : B<X>
+                    v : B<Y>
+                }
+                func test<T, V>(a:Test<T, V>):T {
+                    return a.t.b
+                }
+            ''',                       
+            code: '''         
+                var t = Test<i32, char*> { B<i32>{4}, B<char*>{"hi"} }                                 
+                assert(test(t) == 4)
+            ''',                      
+        },
+        { 
+            name: "Generics Partial",
+            definitions: '''                
+                struct Test<X, Y> {
+                    x: X
+                    y: Y
+                }
+                
+                func test<Y>() : Test<i32, Y> {
+                    var t = Test<i32, Y> {        
+                    }
+                    
+                    return t
+                }
+            ''',                       
+            code: '''         
+                var t: Test<i32, f32> = test<f32>()
+                t.x = 10_i32
+                t.y = 22_f32
+                                
+                assert(t.x == 10_i32)
+                assert(t.y == 22_f32)
+            ''',                      
+        },                
     ]
 }

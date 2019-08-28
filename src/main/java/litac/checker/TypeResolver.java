@@ -302,18 +302,30 @@ public class TypeResolver {
             this.moduleStack.add(module);
         }
         
+        private boolean isGenericParam(String typeName) {
+            if(this.currentGenericType.isEmpty()) {
+                return false;
+            }
+            
+            for(GenericTypeInfo genType: this.currentGenericType) {
+                for(GenericParam p : genType.genericParams) {
+                    if(p.name.equals(typeName)) {
+                        return true;
+                    }
+                }
+            }
+            
+         //   return this.currentGenericType.peek().isGenericParam(typeName);
+            
+            return false;
+        }
+        
         private TypeInfo getType(String typeName) {
             // This type could actually be a generic parameter, if so
             // make sure not to attempt to get an actual defined type, 
             // as the generic parameter takes precedence
-            if(!this.currentGenericType.isEmpty()) {
-                for(GenericTypeInfo genType: this.currentGenericType) {
-                    for(GenericParam p : genType.genericParams) {
-                        if(p.name.equals(typeName)) {
-                            return null;
-                        }
-                    }
-                }
+            if(isGenericParam(typeName)) {
+                return null;
             }
             
             if(this.genericModule != null) {
@@ -486,17 +498,18 @@ public class TypeResolver {
                 }
                 default: { 
                     if(!type.isResolved()) {
-                        if(resolvedType == null) {
+                        if(resolvedType == null) {                                                        
                             resolvedType = getType(type.getName());
                             if(resolvedType == null) {                        
                                 if(isResolvingGenericDecl()) {
-                                    if(this.currentGenericType.peek().isGenericParam(type.getName())) {
+                                    //if(this.currentGenericType.peek().isGenericParam(type.getName())) {
+                                    if(isGenericParam(type.getName())) {
                                         IdentifierTypeInfo idType = type.as();
                                         idType.makeGenericParam();
                                     }
                                     return;
                                 }
-                                
+                                                                
                                 if(!type.isGenericParam()) {
                                     this.result.addError(stmt, "'%s' is an unknown type", type.getName());
                                 }

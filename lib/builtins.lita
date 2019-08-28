@@ -15,7 +15,7 @@
 """);
 
 
-#if(options.typeInfo)
+#if(!options.typeInfo.value == "none")
     import "type";
 #end
 

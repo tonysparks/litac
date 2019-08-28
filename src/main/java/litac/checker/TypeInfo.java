@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import litac.ast.Attributes;
-import litac.ast.Decl.ParameterDecl;
 import litac.ast.Expr;
 import litac.compiler.*;
 import litac.generics.GenericParam;
@@ -419,6 +418,16 @@ public abstract class TypeInfo {
     public abstract boolean canCastTo(TypeInfo target);
     protected abstract TypeInfo doCopy();
     
+    public static class ParamInfo {
+        public TypeInfo type;
+        public String name;
+        
+        public ParamInfo(TypeInfo type, String name) {
+            this.type = type;
+            this.name = name;
+        }
+    }
+    
     public static class FieldInfo {
         public TypeInfo type;
         public String name;
@@ -747,12 +756,12 @@ public abstract class TypeInfo {
     
     public static class FuncTypeInfo extends GenericTypeInfo {
         public TypeInfo returnType;
-        public List<ParameterDecl> parameterDecls;
+        public List<ParamInfo> parameterDecls;
         public int flags;
         
         public FuncTypeInfo(String name, 
                             TypeInfo returnType, 
-                            List<ParameterDecl> parameterDecls, 
+                            List<ParamInfo> parameterDecls, 
                             int flags,
                             List<GenericParam> genericParams) {
             super(TypeKind.Func, name, genericParams);
@@ -852,7 +861,7 @@ public abstract class TypeInfo {
             
             isFirst = true;
             StringBuilder params = new StringBuilder();
-            for(ParameterDecl p : this.parameterDecls) {
+            for(ParamInfo p : this.parameterDecls) {
                 if(!isFirst) params.append(", ");
                 params.append(p);
                 isFirst = false;
@@ -1502,8 +1511,15 @@ public abstract class TypeInfo {
         }
         
         @Override
-        public boolean hasGenericArgs() {
-            return this.genericArgs != null && !this.genericArgs.isEmpty();
+        public boolean hasGenericArgs() {            
+            if(this.genericArgs != null && !this.genericArgs.isEmpty()) {
+                return true;
+            }
+            if(this.resolvedType != null && this.resolvedType instanceof IdentifierTypeInfo) {
+                return this.resolvedType.hasGenericArgs();
+            }
+            
+            return false;
         }
         
         @Override
@@ -1517,6 +1533,14 @@ public abstract class TypeInfo {
         
         @Override
         public List<TypeInfo> getGenericArgs() {
+            if(this.genericArgs != null && !this.genericArgs.isEmpty()) {
+                return this.genericArgs;
+            }
+            
+            if(this.resolvedType != null && this.resolvedType instanceof IdentifierTypeInfo) {
+                return this.resolvedType.getGenericArgs();
+            }
+            
             return this.genericArgs;
         }
         

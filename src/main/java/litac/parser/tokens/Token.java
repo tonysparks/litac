@@ -1,5 +1,6 @@
 package litac.parser.tokens;
 
+import litac.ast.Node.SrcPos;
 import litac.parser.Source;
 
 /**
@@ -16,6 +17,7 @@ public class Token {
     protected int lineNum; // line number of the token's source line
     protected int position; // position of the first token character
 
+    protected SrcPos pos;
     /**
      * Constructor.
      * 
@@ -27,9 +29,20 @@ public class Token {
         this.lineNum = source.getLineNum();
         this.position = source.getPosition();
 
+        this.pos = new SrcPos(source.getSourceName(), 
+                              source.getCurrentLine(), 
+                              this.lineNum);
+        
         extract();
     }
 
+    /**
+     * @return the pos
+     */
+    public SrcPos getPos() {
+        return pos;
+    }
+    
     /*
      * (non-Javadoc)
      * 

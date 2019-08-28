@@ -108,31 +108,64 @@ public class Generics {
                 List<TypeInfo> narrowedGenericArgs = genericArgs;
                 if(type.hasGenericArgs()) {
                     narrowedGenericArgs = new ArrayList<>();
-                    for(int i = 0; i < genericParams.size(); i++) {
-                        GenericParam parent = genericParams.get(i);
-                        
-                        // First check and see if there are Generic Parameters that should be substituted with
-                        // the parents generic arguments
-                        if(type.getGenericArgs().stream().anyMatch(p -> parent.name.equals(p.getName()))) {
-                            if(i < genericArgs.size()) {
-                                narrowedGenericArgs.add(genericArgs.get(i));
-                            }
-                        }
-                        else {
+                    
+                    boolean isNew = false;
+                    
+                    if(isNew) {
+                    
+                        List<TypeInfo> args = type.getGenericArgs();
+                        for(int j = 0; j < args.size(); j++) {
+                            TypeInfo arg = args.get(j);
                             
-                            // Otherwise, this type might already have generic definitions itself; if 
-                            // so, populate it with its supplied generic arguments
-                            if(type.isResolved() && type.hasGenerics()) {
-                                GenericTypeInfo genInfo = type.as();
-                                for(int j = 0; j < genInfo.genericParams.size(); j++) {
-                                    GenericParam genParam = genInfo.genericParams.get(j);
-                                    if(genParam.name.equals(parent.name)) {
-                                        narrowedGenericArgs.add(type.getGenericArgs().get(j));
-                                    }                                    
+                            boolean isGenericArg = false;
+                            for(int i = 0; i < genericParams.size(); i++) {
+                                GenericParam parent = genericParams.get(i);
+                                if(arg.name.equals(parent.name)) {
+                                    if(i < genericArgs.size()) {
+                                        narrowedGenericArgs.add(genericArgs.get(i));
+                                        isGenericArg = true;
+                                        break;
+                                    }
                                 }
                             }
+                            
+                            if(!isGenericArg) {
+                                narrowedGenericArgs.add(arg);
+                            }
                         }
-                    }                
+                    }
+                    else {
+                        for(int i = 0; i < genericParams.size(); i++) {
+                            GenericParam parent = genericParams.get(i);
+                            
+                            // First check and see if there are Generic Parameters that should be substituted with
+                            // the parents generic arguments
+                            if(type.getGenericArgs().stream().anyMatch(p -> parent.name.equals(p.getName()))) {
+                                if(i < genericArgs.size()) {
+                                    narrowedGenericArgs.add(genericArgs.get(i));
+                                }
+                            }
+                            else {
+                                
+                                // Otherwise, this type might already have generic definitions itself; if 
+                                // so, populate it with its supplied generic arguments
+                                if(type.isResolved() && type.hasGenerics()) {
+                                    GenericTypeInfo genInfo = type.as();
+                                    for(int j = 0; j < genInfo.genericParams.size(); j++) {
+                                        GenericParam genParam = genInfo.genericParams.get(j);
+                                        if(genParam.name.equals(parent.name)) {
+                                            narrowedGenericArgs.add(type.getGenericArgs().get(j));
+                                        }                                    
+                                    }
+                                }
+                            }
+                        }     
+                    }
+                    
+                    if(type.getGenericArgs().size() != narrowedGenericArgs.size()) {
+                        System.out.println("here!");
+                    }
+                    System.out.println("Type Args: " + type.getGenericArgs() + " vs. Narrowed: " + narrowedGenericArgs);
                 }
                 
                 return createFromGenericTypeInfo(module, type, narrowedGenericArgs);                

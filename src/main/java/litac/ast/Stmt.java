@@ -171,10 +171,10 @@ public abstract class Stmt extends Node {
     
     public static class VarFieldStmt extends FieldStmt {
         public String name;
-        public TypeInfo type;
+        public TypeSpec type;
         public Attributes attributes;
         
-        public VarFieldStmt(String name, TypeInfo type, int modifiers) {
+        public VarFieldStmt(String name, TypeSpec type, int modifiers) {
             this.name = name;
             this.type = type;
             this.attributes = new Attributes();
@@ -198,7 +198,7 @@ public abstract class Stmt extends Node {
         
         @Override
         protected Node doCopy() {            
-            VarFieldStmt v = new VarFieldStmt(this.name, this.type.copy(), this.attributes.modifiers);
+            VarFieldStmt v = new VarFieldStmt(this.name, TypeSpec.copy(this.type), this.attributes.modifiers);
             v.attributes = this.attributes;
             return v;
         }

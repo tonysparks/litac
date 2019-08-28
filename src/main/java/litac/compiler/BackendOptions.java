@@ -31,6 +31,8 @@ public class BackendOptions {
         Tagged,
         ;
         
+        public String value = name();
+        
         public static TypeInfoOption fromString(String option) {
             if(option == null) {
                 return None;
@@ -43,7 +45,7 @@ public class BackendOptions {
             }
             
             return None;
-        }
+        }        
     }
     
     public BackendType backendType;
