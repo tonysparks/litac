@@ -84,6 +84,16 @@ public abstract class TypeInfo {
             default: return null;
         }
     }
+    
+    public static boolean isBooleanable(TypeInfo type) {
+        switch(type.getKind()) {
+            case Struct:
+            case Union:
+                return false;
+            default:
+                return true;
+        }
+    }
 
     public static boolean isFloat(TypeInfo type) {
         switch(type.getKind()) {
@@ -421,10 +431,19 @@ public abstract class TypeInfo {
     public static class ParamInfo {
         public TypeInfo type;
         public String name;
+        public Expr defaultValue;
+        public Attributes attributes;
         
-        public ParamInfo(TypeInfo type, String name) {
+        public ParamInfo(TypeInfo type, String name, Expr defaultValue, Attributes attributes) {
             this.type = type;
             this.name = name;
+            this.defaultValue = defaultValue;
+            this.attributes = attributes;
+        }
+        
+        @Override
+        public String toString() {        
+            return String.format("%s: %s", this.name, this.type);
         }
     }
     
@@ -720,6 +739,10 @@ public abstract class TypeInfo {
             }
             
             return -1;
+        }
+        
+        public TypeInfo getFieldType() {
+            return TypeInfo.I32_TYPE;
         }
         
         @Override

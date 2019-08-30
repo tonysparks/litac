@@ -3,15 +3,9 @@
  */
 package litac.ast;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import litac.ast.Decl.*;
-import litac.checker.*;
-import litac.checker.TypeInfo.FieldInfo;
-import litac.parser.ErrorCode;
-import litac.parser.ParseException;
-import litac.parser.tokens.Token;
 
 /**
  * @author Tony
@@ -105,6 +99,10 @@ public abstract class Stmt extends Node {
     public static class NoteStmt extends Stmt {
         public final String name;
         public final List<String> attributes;
+        
+        public NoteStmt(String name) {
+            this(name, Collections.emptyList());
+        }
         
         public NoteStmt(String name, List<String> attributes) {
             this.name = name;

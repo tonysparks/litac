@@ -5,6 +5,7 @@ package litac.compiler;
 
 import java.io.*;
 
+import litac.ast.Node.SrcPos;
 import litac.ast.Stmt;
 import litac.checker.*;
 import litac.compiler.c.CTranspiler;
@@ -43,7 +44,7 @@ public class Compiler {
             StringWriter writer = new StringWriter();
             PrintWriter printWriter = new PrintWriter(writer);
             e.printStackTrace(printWriter);
-            result.addError(null, "internal compiler error: %s", writer.toString());
+            result.addError((SrcPos)null, "internal compiler error: %s", writer.toString());
         }
                 
         return result;
@@ -58,12 +59,13 @@ public class Compiler {
     
     private Program typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
         try(Segment s = Profiler.startSegment("Type Checker")) {
-            TypeResolver resolver = new TypeResolver(result, unit);        
-            TypeChecker checker = new TypeChecker(result);
+//            TypeResolver resolver = new TypeResolver(result, unit);        
+//            TypeChecker checker = new TypeChecker(result);
+            Resolver resolver = new Resolver(result, unit);
                     
             Program program = resolver.resolveTypes();
             if(!result.hasErrors()) {
-                checker.typeCheck(program.getMainModule());
+                //checker.typeCheck(program.getMainModule());
             }
             
             return program;

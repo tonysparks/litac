@@ -35,7 +35,7 @@ public class Symbol {
     
     public SymbolKind kind;
     public ResolveState state;
-    public final Decl decl;
+    public Decl decl;
     public final String name;
     
     /** the module in which this symbol is defined in */

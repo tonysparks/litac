@@ -6,6 +6,7 @@ import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
+import litac.checker.Resolver.Operand;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.compiler.Module;
@@ -56,28 +57,29 @@ public class GenericsNodeVisitor implements NodeVisitor {
     }
     
     private Expr replaceType(Expr expr) {
-        TypeInfo oldType = expr.getResolvedType();
-        if(oldType != null) {            
-            expr.resolveTo(replaceType(oldType));
-        }
+//        Operand oldType = expr.getResolvedType();
+//        if(oldType != null) {            
+//            expr.resolveTo(replaceType(oldType));
+//        }
         
         return expr;
     }
     
     private void replaceType(Decl decl) {
-        if(decl.type != null) {
-            decl.type = replaceType(decl.type);
-        }
+//        if(decl.type != null) {
+//            decl.type = replaceType(decl.type);
+//        }
     }
     
-    private TypeInfo replaceType(TypeInfo oldType) {
-        return Generics.createGenericTypeInfo(module, oldType, genericParams, genericArgs);
+    private Operand replaceType(TypeInfo oldType) {
+        //return Generics.createGenericTypeInfo(module, oldType, genericParams, genericArgs);
+        return null;
     }
     
     private void replaceGenericArgs(List<TypeInfo> genericArgs) {
-        for(int i = 0; i < genericArgs.size(); i++) {
-            genericArgs.set(i, replaceType(genericArgs.get(i)));
-        }
+//        for(int i = 0; i < genericArgs.size(); i++) {
+//            genericArgs.set(i, replaceType(genericArgs.get(i)));
+//        }
     }
     
 
@@ -95,7 +97,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(VarFieldStmt stmt) {
-        stmt.type = replaceType(stmt.type);
+//        stmt.type = replaceType(stmt.type);
     }
 
     @Override
@@ -108,7 +110,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
             }
         }
         
-        stmt.decl.type = replaceType(stmt.decl.type);
+//        stmt.decl.type = replaceType(stmt.decl.type);
         stmt.decl.visit(this);
     }
 
@@ -122,7 +124,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
             }
         }
         
-        stmt.decl.type = replaceType(stmt.decl.type);
+//        stmt.decl.type = replaceType(stmt.decl.type);
         stmt.decl.visit(this);
     }
     
@@ -251,7 +253,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
         d.bodyStmt.visit(this);
         
         replaceType(d.bodyStmt);
-        d.returnType = replaceType(d.returnType);
+//        d.returnType = replaceType(d.returnType);
     }
 
     @Override
@@ -301,10 +303,10 @@ public class GenericsNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(CastExpr expr) {
-        expr.castTo = replaceType(expr.castTo);
+//        expr.castTo = replaceType(expr.castTo);
         replaceType(expr.expr).visit(this);
         replaceType(expr);
-        expr.resolveTo(expr.castTo);
+//        expr.resolveTo(expr.castTo);
     }
 
     @Override
@@ -325,7 +327,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(InitExpr expr) {
-        replaceGenericArgs(expr.genericArgs);
+//        replaceGenericArgs(expr.genericArgs);
         replaceType(expr);        
         for(Expr arg : expr.arguments) {
             replaceType(arg).visit(this);
@@ -360,7 +362,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(FuncCallExpr expr) {
-        replaceGenericArgs(expr.genericArgs);
+//        replaceGenericArgs(expr.genericArgs);
         replaceType(expr);
         replaceType(expr.object).visit(this);
         replaceType(expr.arguments);
@@ -369,7 +371,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
     @Override
     public void visit(IdentifierExpr expr) {
         replaceType(expr);
-        
+        /*
         if(expr.sym != null && expr.sym.isType()) {
             TypeInfo newType = replaceType(expr.type).getResolvedType();
             expr.type = newType;
@@ -392,7 +394,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
                 expr.resolveTo(newType);
                 expr.sym = newType.sym;
             }
-        }
+        }*/
     }
 
     @Override

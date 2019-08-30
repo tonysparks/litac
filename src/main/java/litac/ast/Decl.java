@@ -5,6 +5,7 @@ package litac.ast;
 
 import java.util.List;
 
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
 import litac.compiler.Symbol;
 import litac.generics.GenericParam;
@@ -24,6 +25,7 @@ public abstract class Decl extends Stmt {
         ENUM,
         UNION,
         TYPEDEF,
+        NATIVE,
     }
     
     public Symbol sym;
@@ -227,6 +229,25 @@ public abstract class Decl extends Stmt {
         @Override
         protected Node doCopy() {            
             return new TypedefDecl(this.name, TypeSpec.copy(this.type), this.alias);
+        }
+    }
+    
+    public static class NativeDecl extends Decl {
+        public TypeInfo type;
+        
+        public NativeDecl(TypeInfo type) {
+            super(DeclKind.NATIVE, type.name);
+            this.type = type;
+            this.attributes.addNote(new NoteStmt("foreign"));
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+        }
+        
+        @Override
+        protected Node doCopy() {        
+            return this;
         }
     }
 }

@@ -3,6 +3,12 @@
  */
 package litac.util;
 
+import java.util.Collections;
+import java.util.List;
+
+import litac.ast.TypeSpec;
+import litac.ast.TypeSpec.NameTypeSpec;
+import litac.ast.TypeSpec.TypeSpecKind;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 
@@ -143,5 +149,33 @@ public class Names {
         
         recvName = baseTypeName(recvName);
         return String.format("%s_%s", recvName, funcName);
+    }
+    
+    
+    public static String genericsName(TypeSpec type) {        
+        if(type.kind != TypeSpecKind.NAME) {
+            return type.toString();
+        }
+        
+        NameTypeSpec name = type.as();
+        StringBuilder newName = new StringBuilder(name.name);
+        
+        List<TypeSpec> genericArgs = name.hasGenericArgs() ? name.genericArgs : Collections.emptyList();
+        
+        if(!genericArgs.isEmpty()) {
+            newName.append("<");
+        }
+        for(int i = 0; i < genericArgs.size(); i++) {
+            if(i > 0) newName.append(",");
+            
+            TypeSpec argInfo = genericArgs.get(i);            
+            newName.append(genericsName(argInfo));
+        }
+        
+        if(!genericArgs.isEmpty()) {
+            newName.append(">");
+        }
+        
+        return newName.toString();
     }
 }

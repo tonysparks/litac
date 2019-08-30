@@ -255,7 +255,7 @@
             '''
         }*/
         
-        { 
+        /*{ 
             name: "Generics Type Inference from Struct of Struct Generic Type multiple",
             definitions: '''                
                 struct B<Z> {
@@ -296,6 +296,18 @@
                                 
                 assert(t.x == 10_i32)
                 assert(t.y == 22_f32)
+            ''',                      
+        },*/
+        { 
+            name: "Simple",
+            definitions: '''                
+                struct Test {
+                    x: i32
+                }
+                
+            ''',                       
+            code: '''         
+                
             ''',                      
         },                
     ]

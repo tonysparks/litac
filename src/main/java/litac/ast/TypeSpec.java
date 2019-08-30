@@ -3,10 +3,12 @@
  */
 package litac.ast;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
 import litac.ast.Node.SrcPos;
 import litac.generics.GenericParam;
+import litac.util.Names;
 
 /**
  * Describes a Type Specification.
@@ -74,8 +76,16 @@ public abstract class TypeSpec {
         
         @Override
         public String toString() {
-            return this.name;
+            return Names.genericsName(this);
         }
+        
+        public String toGenericsName() {
+            return Names.genericsName(this);
+        }
+        
+        public boolean hasGenericArgs() {
+            return this.genericArgs != null && !this.genericArgs.isEmpty();
+        }        
     }
     
     public static class ArrayTypeSpec extends TypeSpec {
@@ -85,11 +95,21 @@ public abstract class TypeSpec {
             super(TypeSpecKind.ARRAY, pos, base);            
             this.numElements = numElements;
         }
+        
+        @Override
+        public String toString() {        
+            return this.base.toString() + "[]";
+        }
     }
     
     public static class PtrTypeSpec extends TypeSpec {     
         public PtrTypeSpec(SrcPos pos, TypeSpec base) {
             super(TypeSpecKind.PTR, pos, base);
+        }
+        
+        @Override
+        public String toString() {        
+            return this.base.toString() + "*";
         }
     }
     
@@ -97,20 +117,59 @@ public abstract class TypeSpec {
         public ConstTypeSpec(SrcPos pos, TypeSpec base) {
             super(TypeSpecKind.CONST, pos, base);
         }
+        
+        @Override
+        public String toString() {        
+            return this.base.toString() + "const";
+        }
     }
     
     public static class FuncPtrTypeSpec extends TypeSpec {     
         public List<TypeSpec> args;
         public TypeSpec ret;
         public boolean hasVarargs;
-        public List<GenericParam> genericParam;
+        public List<GenericParam> genericParams;
         
-        public FuncPtrTypeSpec(SrcPos pos, List<TypeSpec> args, TypeSpec ret, boolean hasVarargs, List<GenericParam> genericParam) {
+        public FuncPtrTypeSpec(SrcPos pos, List<TypeSpec> args, TypeSpec ret, boolean hasVarargs, List<GenericParam> genericParams) {
             super(TypeSpecKind.FUNC_PTR, pos, null);
             this.args = args;
             this.ret = ret;
             this.hasVarargs = hasVarargs;
-            this.genericParam = genericParam;
+            this.genericParams = genericParams;
+        }
+        
+        @Override
+        public String toString() {
+            StringBuilder genParams = new StringBuilder();
+            
+            boolean isFirst = true;
+            if(!this.genericParams.isEmpty()) {
+                genParams.append("<");
+                for(GenericParam p: this.genericParams) {
+                    if(!isFirst) genParams.append(", ");
+                    genParams.append(p.name);
+                    isFirst = false;
+                }
+                genParams.append(">");
+            }
+            
+            
+            isFirst = true;
+            StringBuilder params = new StringBuilder();
+            for(TypeSpec p : this.args) {
+                if(!isFirst) params.append(", ");
+                params.append(p);
+                isFirst = false;
+            }
+            
+            if(this.hasVarargs) {
+                if(!isFirst) {
+                    params.append(",");
+                }
+                params.append("...");
+            }
+            
+            return String.format("func%s(%s) : %s", genParams, params, this.ret);
         }
     }
     

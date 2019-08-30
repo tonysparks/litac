@@ -24,12 +24,13 @@ import litac.parser.tokens.TokenType;
 public class Reflection {
     
     public static List<Decl> createTypeInfos(List<Decl> declarations, Program program, TypeInfoOption option) {
-        Module typeModule = program.getModule("type");
+        return Arrays.asList();
+        /*Module typeModule = program.getModule("type");
         if(typeModule == null) {
             return Arrays.asList();
         }
         
-        TypeInfo typeInfo = typeModule.getType("TypeInfo");
+        TypeInfo typeInfo = typeModule.getType("TypeInfo").type;
         long numOfTypeInfos = 0;
         
         List<Symbol> symbols = program.getSymbols();
@@ -75,11 +76,11 @@ public class Reflection {
             size.removeForeign();
         }
                 
-        return Arrays.asList(typeTable);
+        return Arrays.asList(typeTable);*/
     }
 
     private static List<Expr> addTypeInfos(List<Symbol> symbols, Module main, TypeInfoOption option) {
-        if(option.equals(TypeInfoOption.None)) {
+        /*if(option.equals(TypeInfoOption.None)) {
             return Collections.emptyList();
         }
         
@@ -119,11 +120,12 @@ public class Reflection {
         exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.NULL_TYPE.getTypeId())), toExpr(TypeInfo.NULL_TYPE, main)));
         exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.VOID_TYPE.getTypeId())), toExpr(TypeInfo.VOID_TYPE, main)));
         
-        return exprs;
+        return exprs;*/
+        return null;
     }
     
     private static Expr toExpr(TypeInfo prim, Module main) {
-        StructTypeInfo typeInfo = main.getType("TypeInfo").as();
+        /*StructTypeInfo typeInfo = main.getType("TypeInfo").as();
         EnumTypeInfo typeKind = main.getType("TypeKind").as();
         
 
@@ -137,11 +139,12 @@ public class Reflection {
         TypeInfo kindName = new IdentifierTypeInfo(name, Collections.emptyList());
         args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(name, kindName))));
         
-        return new UnaryExpr(TokenType.BAND, new InitExpr(typeInfo, args));
+        return new UnaryExpr(TokenType.BAND, new InitExpr(typeInfo, args));*/
+        return null;
     }
     
     private static Expr toExpr(Decl d, Module main) {
-        StructTypeInfo typeInfo = main.getType("TypeInfo").as();
+        /*StructTypeInfo typeInfo = main.getType("TypeInfo").as();
         EnumTypeInfo typeKind = main.getType("TypeKind").as();
         
         UnionTypeInfo anonInfo = typeInfo.fieldInfos.stream()
@@ -187,11 +190,12 @@ public class Reflection {
         
         }
         
-        return new UnaryExpr(TokenType.BAND, new InitExpr(typeInfo, args));
+        return new UnaryExpr(TokenType.BAND, new InitExpr(typeInfo, args));*/
+        return null;
     }
     
     private static Expr newEnum(EnumDecl d, Module main, StructTypeInfo enumType) {
-        int argPosition = 0;
+        /*int argPosition = 0;
         List<InitArgExpr> args = new ArrayList<>();
         args.add(new InitArgExpr("name", argPosition++, new StringExpr(d.name)));
         args.add(new InitArgExpr("numOfFields", argPosition++, new NumberExpr(TypeInfo.I32_TYPE, String.valueOf(d.fields.size()))));
@@ -215,11 +219,12 @@ public class Reflection {
         
         args.add(new InitArgExpr("fields", argPosition++, new CastExpr(new ArrayTypeInfo(enumFieldInfo, i, null), new ArrayInitExpr(enumFieldInfo, arrayValues))));
         
-        return new InitExpr(enumType, args);
+        return new InitExpr(enumType, args);*/
+        return null;
     }
     
     private static Expr newFunc(FuncDecl d, Module main, StructTypeInfo funcType) {
-        int argPosition = 0;
+        /*int argPosition = 0;
         List<InitArgExpr> args = new ArrayList<>();
         args.add(new InitArgExpr("name", argPosition++, new StringExpr(d.name)));
         args.add(new InitArgExpr("numOfParams", argPosition++, new NumberExpr(TypeInfo.I32_TYPE, String.valueOf(d.params.params.size()))));
@@ -244,6 +249,7 @@ public class Reflection {
 //        
 //        args.add(new InitArgExpr("fields", argPosition++, new CastExpr(new ArrayTypeInfo(enumFieldInfo, i, null), new ArrayInitExpr(enumFieldInfo, arrayValues))));
         
-        return new InitExpr(funcType, args);
+        return new InitExpr(funcType, args);*/
+        return null;
     }
 }

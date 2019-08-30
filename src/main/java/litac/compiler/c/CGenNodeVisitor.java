@@ -54,7 +54,13 @@ public class CGenNodeVisitor implements NodeVisitor {
     private List<Decl> moduleDestroyFunc;
     private Decl mainFunc;
     
-    public CGenNodeVisitor(CompilationUnit unit, Program program, COptions options, Buf buf) {
+    private Map<TypeSpec, TypeInfo> resolvedTypeMap;
+    
+    public CGenNodeVisitor(CompilationUnit unit, 
+                           Program program, 
+                           COptions options, 
+                           Buf buf) {
+        
         this.unit = unit;
         this.program = program;
         this.options = options;
@@ -65,6 +71,8 @@ public class CGenNodeVisitor implements NodeVisitor {
         }
         
         this.main = program.getMainModule();
+        this.resolvedTypeMap = program.getResolvedTypeMap();
+        
         this.declarations = new ArrayList<>();
         this.moduleInitFunc = new ArrayList<>();
         this.moduleDestroyFunc = new ArrayList<>();
@@ -192,7 +200,7 @@ public class CGenNodeVisitor implements NodeVisitor {
                     buf.out("%s %s(", getTypeNameForC(funcInfo.returnType), typeName);
                 }
                 boolean isFirst = true;                
-                for(ParameterDecl p : funcInfo.parameterDecls) {
+                for(ParamInfo p : funcInfo.parameterDecls) {
                     if(!isFirst) buf.out(",");
                                         
                     buf.out("%s", getTypeNameForC(p.type));
@@ -346,7 +354,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         
 
         module.getDeclaredTypes()
-              .forEach(type -> types.put(getTypeNameForC(type), type));
+              .forEach(type -> types.put(getTypeNameForC(type.type), type.type));
         
     }
     
@@ -375,11 +383,12 @@ public class CGenNodeVisitor implements NodeVisitor {
         
         boolean hasArgs = false;
         if(funcDecl != null) {
-            if(funcDecl.params.params.size() > 1) {
-                ParameterDecl lenDecl = funcDecl.params.params.get(0);
-                ParameterDecl argDecl = funcDecl.params.params.get(1);
+            FuncTypeInfo funcInfo = funcDecl.sym.type.as();
+            if(funcInfo.parameterDecls.size() > 1) {
+                String len = funcInfo.parameterDecls.get(0).name;
+                String arg = funcInfo.parameterDecls.get(1).name;
                 
-                buf.out("int main(int %s, char** %s) {", cName(lenDecl.sym), cName(argDecl.sym));
+                buf.out("int main(int %s, char** %s) {", prefix(len), prefix(arg));
                 hasArgs = true;
             }            
         }
@@ -401,6 +410,15 @@ public class CGenNodeVisitor implements NodeVisitor {
         }
         
         buf.out("}");
+    }
+    
+    private String typeDeclForC(TypeSpec typeSpec, String declName) {
+        TypeInfo type = this.resolvedTypeMap.get(typeSpec);
+        if(type == null) {
+            // TODO
+        }
+        
+        return typeDeclForC(type, declName);
     }
     
     private String typeDeclForC(TypeInfo type, String declName) {
@@ -469,6 +487,15 @@ public class CGenNodeVisitor implements NodeVisitor {
     }
     
     //private String funcPtr(FuncPtrTypeInfo funcInfo,)
+    
+    private String getTypeNameForC(TypeSpec typeSpec) {
+        TypeInfo type = this.resolvedTypeMap.get(typeSpec);
+        if(type == null) {
+            // TODO
+        }
+        
+        return getTypeNameForC(type);
+    }
     
     private String getTypeNameForC(TypeInfo type) {
         switch (type.getKind()) {
@@ -755,7 +782,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         checkLine(stmt);
         
         buf.outln();
-        if(stmt.decl.type.isAnonymous()) {
+        if(stmt.decl.sym.type.isAnonymous()) {
             buf.out("struct {");
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
@@ -763,7 +790,7 @@ public class CGenNodeVisitor implements NodeVisitor {
             buf.out("};\n");
         }
         else {
-            buf.out("struct %s {", cTypeName(stmt.decl.type));
+            buf.out("struct %s {", cTypeName(stmt.decl.sym.type));
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
             }
@@ -777,7 +804,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         checkLine(stmt);
         
         buf.outln();
-        if(stmt.decl.type.isAnonymous()) {
+        if(stmt.decl.sym.type.isAnonymous()) {
             buf.out("union {");            
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
@@ -785,7 +812,7 @@ public class CGenNodeVisitor implements NodeVisitor {
             buf.out("};\n");
         }
         else {
-            buf.out("union %s {", cTypeName(stmt.decl.type));            
+            buf.out("union %s {", cTypeName(stmt.decl.sym.type));            
             for(FieldStmt f : stmt.decl.fields) {
                 f.visit(this);
             }            
@@ -797,7 +824,7 @@ public class CGenNodeVisitor implements NodeVisitor {
     @Override
     public void visit(EnumFieldStmt stmt) {
         buf.outln();
-        buf.out("enum %s %s;\n", cTypeName(stmt.decl.type), stmt.decl.name);
+        buf.out("enum %s %s;\n", cTypeName(stmt.decl.sym.type), stmt.decl.name);
         buf.outln();
     }
     
@@ -811,7 +838,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         visitNotes(d.attributes.notes);
         
         checkLine(d);
-        if(d.type.isPrimitive()) {
+        if(d.sym.type.isPrimitive()) {
             buf.out("const ");
         }
         buf.out("%s = ", typeDeclForC(d.type, name));
@@ -857,7 +884,7 @@ public class CGenNodeVisitor implements NodeVisitor {
     public void visit(EnumDecl d) {
         String name = cName(d.sym);
         
-        if(isForeign(d.type)) {
+        if(isForeign(d.sym.type)) {
             writeEnumStrFunc(name, d);
             return;
         }
@@ -890,11 +917,11 @@ public class CGenNodeVisitor implements NodeVisitor {
     public void visit(FuncDecl d) {
         String name = cName(d.sym);
         
-        if(isForeign(d.type)) {
+        if(isForeign(d.sym.type)) {
             return;
         }
         
-        FuncTypeInfo funcInfo = d.type.as();
+        FuncTypeInfo funcInfo = d.sym.type.as();
         if(funcInfo.hasGenerics()) {
             return;
         }
@@ -906,12 +933,12 @@ public class CGenNodeVisitor implements NodeVisitor {
         buf.outln();
         checkLine(d);
         
-        if(d.returnType.isKind(TypeKind.FuncPtr)) {
-            FuncPtrTypeInfo funcPtr = d.returnType.as();
+        if(funcInfo.returnType.isKind(TypeKind.FuncPtr)) {
+            FuncPtrTypeInfo funcPtr = funcInfo.returnType.as();
             buf.out("%s (*%s(", getTypeNameForC(funcPtr.returnType), name);
         }
         else {
-            buf.out("%s %s(", getTypeNameForC(d.returnType), name);
+            buf.out("%s %s(", getTypeNameForC(funcInfo.returnType), name);
         }
         
         boolean isFirst = true;
@@ -936,9 +963,9 @@ public class CGenNodeVisitor implements NodeVisitor {
         
         buf.out(")");
         
-        if(d.returnType.isKind(TypeKind.FuncPtr)) {
+        if(funcInfo.returnType.isKind(TypeKind.FuncPtr)) {
             buf.out(") (");
-            FuncPtrTypeInfo funcPtr = d.returnType.as();
+            FuncPtrTypeInfo funcPtr = funcInfo.returnType.as();
             
             isFirst = true;
             for(TypeInfo p : funcPtr.params) {
@@ -972,11 +999,11 @@ public class CGenNodeVisitor implements NodeVisitor {
     public void visit(StructDecl d) {
         String name = cName(d.sym);
         
-        if(isForeign(d.type)) {
+        if(isForeign(d.sym.type)) {
             return;
         }
         
-        StructTypeInfo structInfo = d.type.as();
+        StructTypeInfo structInfo = d.sym.type.as();
         if(structInfo.hasGenerics()) {
             return;
         }
@@ -1003,11 +1030,11 @@ public class CGenNodeVisitor implements NodeVisitor {
     public void visit(UnionDecl d) {
         String name = cName(d.sym);
         
-        if(isForeign(d.type)) {
+        if(isForeign(d.sym.type)) {
             return;
         }
         
-        UnionTypeInfo unionInfo = d.type.as();
+        UnionTypeInfo unionInfo = d.sym.type.as();
         if(unionInfo.hasGenerics()) {
             return;
         }
@@ -1040,8 +1067,8 @@ public class CGenNodeVisitor implements NodeVisitor {
             return;
         }
         
-        if(d.type.isKind(TypeKind.FuncPtr)) {
-            FuncPtrTypeInfo funcInfo = d.type.as();
+        if(d.sym.type.isKind(TypeKind.FuncPtr)) {
+            FuncPtrTypeInfo funcInfo = d.sym.type.as();
             if(funcInfo.hasGenerics()) {
                 return;
             }
@@ -1307,7 +1334,7 @@ public class CGenNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(TypeOfExpr expr) {
-        buf.out("(%s)", expr.expr.getResolvedType().getResolvedType().getTypeId());
+        buf.out("(%s)", expr.expr.getResolvedType().type.getTypeId());
     }
     
     @Override
@@ -1317,7 +1344,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         Node parent = expr.getParentNode();
         if(fieldName != null && parent instanceof InitExpr) {
             InitExpr initExpr = (InitExpr)parent;
-            AggregateTypeInfo type = initExpr.getResolvedType().getResolvedType().as();
+            AggregateTypeInfo type = initExpr.getResolvedType().type.as();
             FieldInfo field = type.getFieldWithAnonymous(expr.fieldName);
             fieldName = fieldName(field);           
         }
@@ -1373,7 +1400,8 @@ public class CGenNodeVisitor implements NodeVisitor {
         String n = expr.number; 
         buf.out(n);
         
-        switch(expr.type.getKind()) {
+        TypeInfo type = expr.getResolvedType().type;
+        switch(type.getKind()) {
             case f32:
                 if(!n.contains(".")) {
                     buf.out(".");
@@ -1457,9 +1485,9 @@ public class CGenNodeVisitor implements NodeVisitor {
     public void visit(FuncCallExpr expr) {
         expr.object.visit(this);
         
-        List<ParameterDecl> params = null;
-        if(expr.object.getResolvedType().isKind(TypeKind.Func)) {
-            FuncTypeInfo funcInfo = expr.object.getResolvedType().as();
+        List<ParamInfo> params = null;
+        if(expr.object.getResolvedType().type.isKind(TypeKind.Func)) {
+            FuncTypeInfo funcInfo = expr.object.getResolvedType().type.as();
             params = funcInfo.parameterDecls;
         }
         
@@ -1487,7 +1515,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         if(params != null) {
             if(i < params.size()) {
                 for(; i < params.size(); i++) {
-                    ParameterDecl p = params.get(i);
+                    ParamInfo p = params.get(i);
                     if(p.defaultValue != null) {
                         if(!isFirst) buf.out(",");
                         p.defaultValue.visit(this);
@@ -1505,14 +1533,14 @@ public class CGenNodeVisitor implements NodeVisitor {
         Symbol sym = expr.sym;
         if(sym != null) {
             if(sym.isUsing()) {
-                TypeInfo paramInfo = sym.decl.type;
+                TypeInfo paramInfo = sym.type;
                 AggregateTypeInfo aggInfo = null;
                 if(paramInfo.isKind(TypeKind.Ptr)) {
                     PtrTypeInfo ptrInfo = paramInfo.as();
                     aggInfo = ptrInfo.getBaseType().as();
                 }
                 else {
-                    aggInfo = sym.decl.type.as();
+                    aggInfo = sym.type.as();
                 }
                 
                 FieldPath path = aggInfo.getFieldPath(sym.name);
@@ -1547,7 +1575,7 @@ public class CGenNodeVisitor implements NodeVisitor {
             }
         }
         else {
-            buf.out("%s", prefix(expr.type.getName()));
+            buf.out("%s", prefix(expr.type.toString()));
         }
     }
 
@@ -1596,13 +1624,13 @@ public class CGenNodeVisitor implements NodeVisitor {
             return;
         }
         
-        TypeInfo objectInfo = expr.object.getResolvedType();
+        TypeInfo objectInfo = expr.object.getResolvedType().type;
         if(objectInfo.isKind(TypeKind.Enum)) {
             if(isForeign(objectInfo.getResolvedType())) {
-                buf.out("%s", expr.field.type.name);
+                buf.out("%s", expr.field.variable);
             }
             else {
-                buf.out("%s_%s", cName(objectInfo.getResolvedType().sym), expr.field.type.name);
+                buf.out("%s_%s", cName(objectInfo.getResolvedType().sym), expr.field.variable);
             }
         }
         else {
@@ -1611,7 +1639,7 @@ public class CGenNodeVisitor implements NodeVisitor {
             AggregateTypeInfo aggInfo = null;
             if(objectInfo.isKind(TypeKind.Ptr)) {
                 if(!TypeInfo.isPtrAggregate(objectInfo)) {
-                    buf.out("->%s", expr.field.type.name);
+                    buf.out("->%s", expr.field.variable);
                     return;
                 }
                 
@@ -1622,11 +1650,11 @@ public class CGenNodeVisitor implements NodeVisitor {
                 aggInfo = objectInfo.as();
             }
             
-            FieldPath path = aggInfo.getFieldPath(expr.field.type.name);
+            FieldPath path = aggInfo.getFieldPath(expr.field.variable);
             if(!path.hasPath()) {
                 buf.out((objectInfo.isKind(TypeKind.Ptr)) ? "->" : ".");
                 
-                FieldInfo field = aggInfo.getFieldWithAnonymous(expr.field.type.name);
+                FieldInfo field = aggInfo.getFieldWithAnonymous(expr.field.variable);
                 buf.out("%s", fieldName(field));
             }
             else {
@@ -1648,12 +1676,12 @@ public class CGenNodeVisitor implements NodeVisitor {
     @Override
     public void visit(SetExpr expr) {
         expr.object.visit(this);
-        TypeInfo objectInfo = expr.object.getResolvedType();
+        TypeInfo objectInfo = expr.object.getResolvedType().type;
             
         AggregateTypeInfo aggInfo = null;
         if(objectInfo.isKind(TypeKind.Ptr)) {
             if(!TypeInfo.isPtrAggregate(objectInfo)) {
-                buf.out("->%s %s ", expr.field.type.name, expr.operator.getText());
+                buf.out("->%s %s ", expr.field.variable, expr.operator.getText());
                 return;
             }
             
@@ -1664,11 +1692,11 @@ public class CGenNodeVisitor implements NodeVisitor {
             aggInfo = objectInfo.as();
         }
         
-        FieldPath path = aggInfo.getFieldPath(expr.field.type.name);
+        FieldPath path = aggInfo.getFieldPath(expr.field.variable);
         if(!path.hasPath()) {
             buf.out((objectInfo.isKind(TypeKind.Ptr)) ? "->" : ".");
             
-            FieldInfo field = aggInfo.getFieldWithAnonymous(expr.field.type.name);
+            FieldInfo field = aggInfo.getFieldWithAnonymous(expr.field.variable);
             buf.out("%s %s", fieldName(field), expr.operator.getText());            
         }
         else {

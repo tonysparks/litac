@@ -10,8 +10,10 @@ import litac.ast.Decl;
 import litac.ast.Decl.*;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.*;
+import litac.checker.TypeInfo.FuncTypeInfo;
+import litac.checker.TypeInfo.TypeKind;
 import litac.compiler.Scope.ScopeType;
+import litac.compiler.Symbol.ResolveState;
 import litac.util.Names;
 import litac.util.Tuple;
 
@@ -44,6 +46,7 @@ public class Module {
     private Map<String, Symbol> importedAggregateTypes;
     
     private Map<String, Symbol> foreignTypes;
+    private Map<String, Symbol> builtins;
     
     private List<NoteStmt> notes;
     
@@ -74,6 +77,7 @@ public class Module {
         this.publicTypes = new HashMap<>();
         
         this.foreignTypes = new HashMap<>();
+        this.builtins = new HashMap<>();
         
         this.importedFuncTypes = new HashMap<>();
         this.importedAggregateTypes = new HashMap<>();
@@ -386,6 +390,20 @@ public class Module {
         return newSym;
     }
     
+    public Symbol addBuiltin(TypeInfo type) {
+        Symbol newSym = this.currentScope.addSymbol(this, new NativeDecl(type), type.name);
+        getSymbols().add(newSym);
+        
+        newSym.state = ResolveState.RESOLVED;
+        newSym.type = type;
+        //newSym.declared = null; /* built in's don't have a declared module */
+        type.sym = newSym;
+        
+        this.builtins.put(type.name, newSym);
+        
+        return newSym;
+    }
+    
     public Symbol getFuncType(String funcName) {
         if(funcName.contains("::")) {
             return this.importedFuncTypes.get(funcName);
@@ -453,13 +471,17 @@ public class Module {
             return this.funcTypes.get(typeName);
         }
         
-        return this.typedefTypes.get(typeName);
+        if(this.funcTypes.containsKey(typeName)) {
+            return this.typedefTypes.get(typeName);
+        }
+        
+        return this.builtins.get(typeName);
     }
     
     public Symbol getAliasedType(String typeName) {
         return this.typedefTypes.get(typeName);
     }
-    
+        
     public void addGenericType(Module genericTypeModule, Module declared, Decl decl) {
         decl.sym.genericDeclaration = genericTypeModule;
         decl.sym.declared = declared;
