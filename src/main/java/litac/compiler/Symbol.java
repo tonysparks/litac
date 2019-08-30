@@ -5,6 +5,7 @@ package litac.compiler;
 
 import litac.ast.Decl;
 import litac.checker.TypeInfo;
+import litac.checker.TypeInfo.TypeKind;
 
 /**
  * @author Tony
@@ -12,6 +13,13 @@ import litac.checker.TypeInfo;
  */
 public class Symbol {
 
+    public static enum SymbolKind {
+        TYPE,
+        VAR,
+        CONST,
+        FUNC,
+    }
+    
     public static enum ResolveState {
         UNRESOLVED,
         RESOLVING,
@@ -25,6 +33,7 @@ public class Symbol {
     public static final int IS_TYPE     = (1<<5);
     public static final int IS_INCOMPLETE = (1<<6);
     
+    public SymbolKind kind;
     public ResolveState state;
     public final Decl decl;
     public final String name;
@@ -37,21 +46,37 @@ public class Symbol {
      */
     public Module genericDeclaration;
     
-    private      TypeInfo type;
+    public TypeInfo type;
     private      int flags;
     
-    public Symbol(Decl decl, 
+    public Symbol(SymbolKind kind, 
+                  Decl decl, 
                   String name,
-                  TypeInfo type, 
                   Module declared, 
                   int flags) {
         
+        this.kind = kind;
         this.decl = decl;
         this.name = name;
-        this.type = type;
         this.declared = declared;
         this.flags = flags;
         this.state = ResolveState.UNRESOLVED;
+    }
+    
+    public boolean isKind(TypeKind kind) {
+        if(this.type == null) {
+            return false;
+        }
+        
+        return this.type.isKind(kind);
+    }
+    
+    public TypeKind getKind() {
+        if(this.type == null) {
+            return TypeKind.Void;
+        }
+        
+        return this.type.getKind();
     }
     
     /**
@@ -115,9 +140,9 @@ public class Symbol {
      * Marks the symbol as completed by definition (incomplete types are
      * defined as globals that need to be eventually resolved)
      */
-    public void markComplete() {        
+    public void markComplete(TypeInfo type) {        
         this.flags &= ~IS_INCOMPLETE;
-        this.type = this.decl.type;
+        this.type = type;
     }
     
     public Module getDeclaredModule() {

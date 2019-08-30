@@ -40,7 +40,6 @@ public class Parser {
     private final List<Token> tokens;
     private int current;
         
-    private SrcPos pos;
     private Token startToken;
     private Preprocessor pp;
     
@@ -1169,19 +1168,17 @@ public class Parser {
         boolean hasParen = match(TokenType.LEFT_PAREN);
         
         Expr expr = null;
+        TypeSpec type = null;
         
         int backtrack = this.current;
         
         if(hasParen) {            
-            TypeSpec type = type();
+            type = type();
             
             // check to see if this is an enum type (or a field expression)
             if(check(DOT)) {
                 this.current = backtrack;
                 expr = unary();
-            }
-            else {
-                expr = new IdentifierExpr(type.toString(), type);
             }
         }
         else {
@@ -1192,18 +1189,22 @@ public class Parser {
             consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         }
         
-        return node(new SizeOfExpr(expr));
+        if(expr != null) {
+            return node(new SizeOfExpr(expr));
+        }
+        
+        return node(new SizeOfExpr(type));
     }
     
     private Expr typeofExpr() {
         boolean hasParen = match(TokenType.LEFT_PAREN);
         
         Expr expr = null;
+        TypeSpec type = null;
         
         Token t = peek();        
         if(t.getType().isPrimitiveToken() || t.getType().equals(LEFT_BRACKET)) {            
-            TypeSpec type = type();
-            expr = new IdentifierExpr(type.toString(), type);
+            type = type();            
         }
         else {
             expr = expression();
@@ -1213,7 +1214,11 @@ public class Parser {
             consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         }
         
-        return node(new TypeOfExpr(expr));
+        if(expr != null) {
+            return node(new TypeOfExpr(expr));
+        }
+        
+        return node(new TypeOfExpr(type));
     }
     
     private Expr functionCall() {
@@ -1241,7 +1246,7 @@ public class Parser {
             }
             else if(match(DOT)) {
                 NameTypeSpec identifier = identifierType(true);
-                expr = node(new GetExpr(expr, node(new IdentifierExpr(identifier.name, identifier))));
+                expr = node(new GetExpr(expr, node(new IdentifierExpr(identifier.name))));
             }
             else if(match(AS)) {
                 expr = cast(expr);
@@ -1273,30 +1278,30 @@ public class Parser {
         
         if(check(IDENTIFIER)) {
             NameTypeSpec name = identifierType(true);
-            return node(new IdentifierExpr(name.name, name));
+            return node(new IdentifierExpr(name.name));
         }
                 
         throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
     }     
     
     private Expr finishFunctionCall(Expr callee) {
-        List<TypeInfo> genericArgs = Collections.emptyList();
+        List<TypeSpec> genericArgs = Collections.emptyList();
         
         List<Expr> arguments = arguments();
+        
+        // Convert the IdentifierExpr to a FuncIndentiferExpr
         if(callee instanceof IdentifierExpr) {
-            IdentifierExpr idExpr = (IdentifierExpr)callee;
-            genericArgs = idExpr.getGenericArgs();
-            
-            callee = node(new FuncIdentifierExpr(idExpr.variable, idExpr.type));
+            IdentifierExpr idExpr = (IdentifierExpr)callee;            
+            callee = node(new FuncIdentifierExpr(idExpr.variable, idExpr.genericArgs));
         }
         else if(callee instanceof GetExpr) {
             GetExpr getExpr = (GetExpr)callee;
             if(getExpr.field instanceof IdentifierExpr) {
                 IdentifierExpr idExpr = (IdentifierExpr)getExpr.field;
-                genericArgs = idExpr.getGenericArgs();    
+                genericArgs = idExpr.genericArgs;    
             }
             
-            IdentifierExpr newId = node(new FuncIdentifierExpr(getExpr.field.variable, getExpr.field.type));
+            IdentifierExpr newId = node(new FuncIdentifierExpr(getExpr.field.variable, getExpr.field.genericArgs));
             getExpr.setField(newId);
         }
             
@@ -1393,8 +1398,6 @@ public class Parser {
         
     private ArrayTypeSpec arrayType(TypeSpec type) {
         TypeSpec arrayOf = type;
-        int length = -1;
-    
         advance(); // eat [
         
         Expr lengthExpr = null;
@@ -1418,7 +1421,7 @@ public class Parser {
             }            
         }
         
-        return new ArrayTypeSpec(pos(), arrayOf, length, lengthExpr);                    
+        return new ArrayTypeSpec(pos(), arrayOf, lengthExpr);                    
     }
     
     private int modifiers() {
@@ -1585,7 +1588,7 @@ public class Parser {
         
         consume(COLON, ErrorCode.MISSING_COLON);
         int modifiers = modifiers();
-        TypeInfo type = type(false);
+        TypeSpec type = type(false);
         
         Expr defaultValue = null;
         if(match(EQUALS)) {

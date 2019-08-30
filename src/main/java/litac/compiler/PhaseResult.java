@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import litac.ast.Node.SrcPos;
 import litac.ast.Stmt;
 
 /**
@@ -31,12 +32,16 @@ public class PhaseResult {
     public static class PhaseError {
         public final ErrorType type;
         public final String message;
-        public final Stmt stmt;
+        public final SrcPos pos;
         
-        public PhaseError(ErrorType type, String message, Stmt stmt) {
+        public PhaseError(ErrorType type, String message, SrcPos pos) {
             this.type = type;
             this.message = message;
-            this.stmt = stmt;
+            this.pos = pos;
+        }
+        
+        public PhaseError(ErrorType type, String message, Stmt stmt) {
+            this(type, message, stmt != null ? stmt.getSrcPos() : null);
         }
         
         
@@ -71,6 +76,10 @@ public class PhaseResult {
     
     public void addErrors(List<PhaseError> errors) {
         this.errors.addAll(errors);
+    }
+
+    public void addError(SrcPos pos, String message, Object ... args) {
+        addError(new PhaseError(ErrorType.ERROR, String.format(message, args), pos));
     }
     
     public void addError(Stmt stmt, String message, Object ... args) {

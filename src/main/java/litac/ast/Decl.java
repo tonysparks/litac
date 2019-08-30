@@ -140,18 +140,23 @@ public abstract class Decl extends Stmt {
         }
     }
     
-    
-    
-    public static class StructDecl extends Decl {
+    public static abstract class AggregateDecl extends Decl {
         public List<FieldStmt> fields;
         public List<GenericParam> genericParams;
         public int flags;
         
-        public StructDecl(String name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
-            super(DeclKind.STRUCT, name);
+        
+        public AggregateDecl(DeclKind kind, String name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
+            super(kind, name);
             this.fields = becomeParentOf(fields);
             this.genericParams = genericParams;
             this.flags = flags;
+        }
+    }
+    
+    public static class StructDecl extends AggregateDecl {
+        public StructDecl(String name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
+            super(DeclKind.STRUCT, name, fields, genericParams, flags);
         }
         
         @Override
@@ -169,15 +174,9 @@ public abstract class Decl extends Stmt {
         }
     }       
     
-    public static class UnionDecl extends Decl {
-        public List<FieldStmt> fields;
-        public List<GenericParam> genericParams;
-        public int flags;
-        
+    public static class UnionDecl extends AggregateDecl {        
         public UnionDecl(String name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
-            super(DeclKind.UNION, name);
-            this.fields = becomeParentOf(fields);
-            this.genericParams = genericParams;
+            super(DeclKind.UNION, name, fields, genericParams, flags);
         }
         
         @Override

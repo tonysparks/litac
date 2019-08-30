@@ -12,13 +12,14 @@ import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
+import litac.ast.TypeSpec.NameTypeSpec;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
 import litac.compiler.Symbol.ResolveState;
 import litac.generics.GenericParam;
 import litac.parser.tokens.TokenType;
+import litac.util.*;
 import litac.util.Stack;
-import litac.util.Tuple;
 
 /**
  * Responsible for ensuring each Expr can be resolved down to a {@link TypeInfo}.
@@ -36,6 +37,8 @@ public class TypeResolver {
     private List<Decl> pendingGlobals;
     
     private Module root;
+    
+    private Module current;
     
     public TypeResolver(PhaseResult result, 
                         CompilationUnit unit) {
@@ -112,6 +115,81 @@ public class TypeResolver {
             d.visit(checker);
         }
     }
+    
+    
+    private Module enterModule(Module module) {
+        Module oldModule = this.current;
+        this.current = module;
+        return oldModule;
+    }
+    
+    private void resolveSymbol(Module module, Symbol sym) {
+        if(sym.state == ResolveState.RESOLVED) {
+            return;
+        }
+        
+        if(sym.state == ResolveState.RESOLVING) {
+            this.result.addError(sym.decl.getSrcPos(), "Cyclic dependency with '%s'", sym.name);
+            return;
+        }
+        
+        sym.state = ResolveState.RESOLVING;
+        Module old = enterModule(sym.declared);
+        switch(sym.kind) {
+            case TYPE:
+                //sym.type = 
+                break;
+            case CONST:
+                sym.type = 
+                break;
+            case FUNC:
+                break;
+            case VAR:
+                break;
+            default:
+                break;
+        
+        }
+    }
+    
+    private TypeInfo resolveTypespec(Module module, TypeSpec typeSpec) {
+        if(typeSpec == null) {
+            return TypeInfo.VOID_TYPE;
+        }
+        
+        switch(typeSpec.kind) {
+            case NAME: {
+                NameTypeSpec name = typeSpec.as();                
+                Symbol sym = module.getType(name.name);
+                if(sym == null) {
+                    result.addError(typeSpec.pos, "Unresolved type name '%s'", name.name);
+                    return null;
+                }
+                
+                if(!sym.isType()) {
+                    result.addError(typeSpec.pos, "'%s' must  be a type", name.name);
+                    return null;
+                }
+                
+                
+                
+                break;
+            }
+            case CONST: {
+                break;
+            }
+            case ARRAY: {
+                break;
+            }
+            case PTR: {
+                break;
+            }
+            case FUNC: {
+                break;
+            }
+        }
+        
+    }
    
     private class DeclDefinitionNodeVisitor extends AbstractNodeVisitor {
         Module module;
@@ -156,40 +234,43 @@ public class TypeResolver {
         
         @Override
         public void visit(StructFieldStmt stmt) {
-            Node parent = stmt.getParentNode();
-            if(parent instanceof StructDecl) {
-                StructDecl decl = (StructDecl)parent;
-                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
-            }
+//            Node parent = stmt.getParentNode();
+//            if(parent instanceof StructDecl) {
+//                StructDecl decl = (StructDecl)parent;
+//                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
+//            }
             
             stmt.decl.visit(this);      
         }
 
         @Override
         public void visit(UnionFieldStmt stmt) {
-            Node parent = stmt.getParentNode();
-            if(parent instanceof UnionDecl) {
-                UnionDecl decl = (UnionDecl)parent;
-                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
-            }
+//            Node parent = stmt.getParentNode();
+//            if(parent instanceof UnionDecl) {
+//                UnionDecl decl = (UnionDecl)parent;
+//                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
+//            }
             
             stmt.decl.visit(this);
         }
         
         @Override
         public void visit(EnumFieldStmt stmt) {
-            Node parent = stmt.getParentNode();
-            if(parent instanceof EnumDecl) {
-                EnumDecl decl = (EnumDecl)parent;
-                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
-            }
+//            Node parent = stmt.getParentNode();
+//            if(parent instanceof EnumDecl) {
+//                EnumDecl decl = (EnumDecl)parent;
+//                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
+//            }
             
             stmt.decl.visit(this);
         }
         
         @Override
         public void visit(EnumDecl d) {            
-            this.module.declareEnum(d, d.name, (EnumTypeInfo)d.type);    
+            Symbol sym = this.module.declareEnum(d, d.name);    
+            
+            NameTypeSpec enumTypeSpec = new NameTypeSpec(d.getSrcPos(), d.name);
+            resolveTypespec(this.module, enumTypeSpec);
             
             for(EnumFieldInfo f : d.fields) {                
                 if(f.value != null && !f.value.isResolved()) {
@@ -197,6 +278,7 @@ public class TypeResolver {
                 }
             }
             
+            /*
             NoteStmt asStr = d.attributes.getNote("asStr");
             if(asStr != null) {
                 String funcName = asStr.getAttr(0, d.name + "AsStr");
@@ -217,7 +299,7 @@ public class TypeResolver {
                 funcDecl.attributes.isPublic = true;
                 
                 this.module.declareFunc(funcDecl, asStrFuncInfo.name, asStrFuncInfo);
-            }
+            }*/
         }
 
 

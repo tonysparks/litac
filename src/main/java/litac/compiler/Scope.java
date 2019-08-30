@@ -7,8 +7,8 @@ import java.util.*;
 
 import litac.ast.Decl;
 import litac.ast.Decl.*;
-import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.TypeKind;
+import litac.ast.TypeSpec.TypeSpecKind;
+import litac.compiler.Symbol.SymbolKind;
 import litac.util.Names;
 
 /**
@@ -44,19 +44,19 @@ public class Scope {
         return this.parent;
     }
     
-    public Symbol addSymbol(Module module, Decl decl, String symbolName, TypeInfo type) {
-        return addSymbol(module, decl, symbolName, type, false);
+    public Symbol addSymbol(Module module, Decl decl, String symbolName) {
+        return addSymbol(module, decl, symbolName, false);
     }
     
-    public Symbol addSymbol(Module module, Decl decl, String symbolName, TypeInfo type, boolean isConstant) {
+    public Symbol addSymbol(Module module, Decl decl, String symbolName, boolean isConstant) {
         int flags = 0;
         if(isConstant) {
             flags |= Symbol.IS_CONSTANT;
         }
-        return addSymbol(module, decl, symbolName, type, flags);
+        return addSymbol(module, decl, symbolName, flags);
     }
     
-    public Symbol addSymbol(Module module, Decl decl, String symbolName, TypeInfo type, int flags) {
+    public Symbol addSymbol(Module module, Decl decl, String symbolName, int flags) {
         if(this.symbols.containsKey(symbolName)) {
             this.result.addError(decl, "symbol '%s' already defined", symbolName);
         }
@@ -78,25 +78,50 @@ public class Scope {
             // if this is a foreign primitive declaration
             // we want the symbol information associated with this
             // type, so that the CGen knows it is a foreign type
-            if(decl.kind == DeclKind.TYPEDEF && !type.isKind(TypeKind.FuncPtr)) {
-                isNewType = true;
+            if(decl.kind == DeclKind.TYPEDEF) {
+                TypedefDecl typedefDecl = (TypedefDecl) decl;
+                if(typedefDecl.type.kind != TypeSpecKind.FUNC_PTR) {
+                    isNewType = true;
+                }
             }
         }
         
         if(isNewType) {
-            flags |= Symbol.IS_TYPE;
+            flags |= Symbol.IS_TYPE;            
         }
         
-        Symbol sym = new Symbol(decl, symbolName, type, module, flags);
+        SymbolKind kind = SymbolKind.VAR;
+        switch(decl.kind) {
+            case CONST:
+                kind = SymbolKind.CONST;
+                break;
+            case ENUM:
+            case STRUCT:
+            case TYPEDEF:
+            case UNION:
+                kind = SymbolKind.TYPE;
+                break;
+            case FUNC:
+                kind = SymbolKind.FUNC;
+                break;
+            case PARAM:
+            case VAR:
+            default:
+                kind = SymbolKind.VAR;
+                break;
+        }
+                
+        Symbol sym = new Symbol(kind, decl, symbolName, module, flags);
         decl.sym = sym;
         
+        /*
         if(isNewType) {
             type.sym = sym;            
         }
         
         if(decl instanceof ParameterDecl && type.isKind(TypeKind.FuncPtr)) {
             type.name = symbolName;
-        }
+        }*/
         
         this.symbols.put(symbolName, sym);
         

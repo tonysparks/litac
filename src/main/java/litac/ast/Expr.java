@@ -133,19 +133,17 @@ public abstract class Expr extends Stmt {
     }
     
     public static class SizeOfExpr extends Expr {
+        public TypeSpec type;
         public Expr expr;
         
-        public SizeOfExpr(Expr expr) {
-            if(expr instanceof IdentifierExpr && !(expr instanceof TypeIdentifierExpr)) {
-                IdentifierExpr idExpr = (IdentifierExpr)expr;
-                expr = new TypeIdentifierExpr(idExpr.variable, idExpr.type);
-                expr.setLineNumber(idExpr.getLineNumber());
-                expr.setSourceLine(idExpr.getSourceLine());
-                expr.setSourceFile(idExpr.getSourceFile());
-            }
-            
+        public SizeOfExpr(Expr expr) {            
             this.expr = becomeParentOf(expr);
-            resolveTo(TypeInfo.U64_TYPE);
+            //resolveTo(TypeInfo.U64_TYPE);
+        }
+        
+        public SizeOfExpr(TypeSpec type) {            
+            this.type = type;
+            //resolveTo(TypeInfo.U64_TYPE);
         }
         
         @Override
@@ -154,8 +152,11 @@ public abstract class Expr extends Stmt {
         }
         
         @Override
-        protected Node doCopy() {            
-            return new SizeOfExpr(this.expr.copy());
+        protected Node doCopy() {
+            if(this.expr != null) {
+                return new SizeOfExpr(this.expr.copy());
+            }
+            return new SizeOfExpr(TypeSpec.copy(this.type));
         }
     }
     
@@ -183,7 +184,7 @@ public abstract class Expr extends Stmt {
             if(this.expr != null) {
                 return new TypeOfExpr(this.expr.copy());
             }
-            return new TypeOfExpr(this.type);
+            return new TypeOfExpr(TypeSpec.copy(this.type));
         }
     }
     
@@ -622,9 +623,15 @@ public abstract class Expr extends Stmt {
         public String variable;
         public TypeSpec type;
         public Symbol sym;
-                
+        
+        
         public IdentifierExpr(String variable) {
+            this(variable, Collections.emptyList());
+        }
+        
+        public IdentifierExpr(String variable, List<TypeSpec> genericArgs) {
             this.variable = variable;
+            this.genericArgs = genericArgs;
             
             //resolveTo(type);
         }
@@ -686,7 +693,7 @@ public abstract class Expr extends Stmt {
 
         @Override
         protected Node doCopy() {            
-            IdentifierExpr idExpr = new IdentifierExpr(this.variable);
+            IdentifierExpr idExpr = new IdentifierExpr(this.variable, TypeSpec.copy(this.genericArgs));
             idExpr.sym = sym;
             return idExpr;
         }
@@ -697,23 +704,8 @@ public abstract class Expr extends Stmt {
         public FuncIdentifierExpr(String variable) {
             super(variable);
         }
-
-        @Override
-        public void visit(NodeVisitor v) {
-            v.visit(this);
-        }
-
-        @Override
-        protected Node doCopy() {            
-            FuncIdentifierExpr idExpr = new FuncIdentifierExpr(this.variable);
-            idExpr.sym = this.sym;
-            return idExpr;
-        }
-    }
-    
-    public static class TypeIdentifierExpr extends IdentifierExpr {
         
-        public TypeIdentifierExpr(String variable) {
+        public FuncIdentifierExpr(String variable, List<TypeSpec> genericArgs) {
             super(variable);
         }
 
@@ -724,7 +716,30 @@ public abstract class Expr extends Stmt {
 
         @Override
         protected Node doCopy() {            
-            TypeIdentifierExpr idExpr = new TypeIdentifierExpr(this.variable);
+            FuncIdentifierExpr idExpr = new FuncIdentifierExpr(this.variable, TypeSpec.copy(this.genericArgs));
+            idExpr.sym = this.sym;
+            return idExpr;
+        }
+    }
+    
+    public static class TypeIdentifierExpr extends IdentifierExpr {
+        
+        public TypeIdentifierExpr(String variable) {
+            super(variable);
+        }
+        
+        public TypeIdentifierExpr(String variable, List<TypeSpec> genericArgs) {
+            super(variable);
+        }
+
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+
+        @Override
+        protected Node doCopy() {            
+            TypeIdentifierExpr idExpr = new TypeIdentifierExpr(this.variable, TypeSpec.copy(this.genericArgs));
             idExpr.sym = this.sym;
             return idExpr;
         }

@@ -176,7 +176,7 @@ public class LitaC {
             
             if(result.hasErrors()) {
                 for(PhaseError error : result.getErrors()) {
-                    Errors.typeCheckError(error.stmt, error.message);
+                    Errors.typeCheckError(error.pos, error.message);
                 }            
             }  
             

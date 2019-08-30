@@ -69,7 +69,7 @@ public class CTranspiler {
         // this allows me to debug the output C
         if(checkerResult.hasErrors()) {
             for(PhaseError error : checkerResult.getErrors()) {
-                Errors.typeCheckError(error.stmt, error.message);
+                Errors.typeCheckError(error.pos, error.message);
             } 
             System.exit(23);
         }

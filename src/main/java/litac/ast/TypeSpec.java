@@ -35,7 +35,7 @@ public abstract class TypeSpec {
         PTR,
         CONST,
         NAME,    
-        FUNC,
+        FUNC_PTR,
     }
     
     
@@ -49,6 +49,12 @@ public abstract class TypeSpec {
         this.base = base;
     }
 
+    @SuppressWarnings("unchecked")
+    public <T extends TypeSpec> T as() {
+        return (T) this;
+    }
+    
+    
     public static class NameTypeSpec extends TypeSpec {         
         public String name;
         public List<TypeSpec> genericArgs;
@@ -73,12 +79,10 @@ public abstract class TypeSpec {
     }
     
     public static class ArrayTypeSpec extends TypeSpec {
-        public long length;
         public Expr numElements;
         
-        public ArrayTypeSpec(SrcPos pos, TypeSpec base, long length, Expr numElements) {
-            super(TypeSpecKind.ARRAY, pos, base);
-            this.length = length;
+        public ArrayTypeSpec(SrcPos pos, TypeSpec base, Expr numElements) {
+            super(TypeSpecKind.ARRAY, pos, base);            
             this.numElements = numElements;
         }
     }
@@ -102,7 +106,7 @@ public abstract class TypeSpec {
         public List<GenericParam> genericParam;
         
         public FuncPtrTypeSpec(SrcPos pos, List<TypeSpec> args, TypeSpec ret, boolean hasVarargs, List<GenericParam> genericParam) {
-            super(TypeSpecKind.FUNC, pos, null);
+            super(TypeSpecKind.FUNC_PTR, pos, null);
             this.args = args;
             this.ret = ret;
             this.hasVarargs = hasVarargs;

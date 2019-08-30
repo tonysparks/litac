@@ -108,7 +108,7 @@ public class TestSuite {
                 PhaseResult result = LitaC.compile(options);
                 if(result.hasErrors()) {
                     for(PhaseError error : result.getErrors()) {
-                        Errors.typeCheckError(error.stmt, error.message);
+                        Errors.typeCheckError(error.pos, error.message);
                     }            
                 } 
                 
