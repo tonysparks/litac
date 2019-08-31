@@ -1246,7 +1246,7 @@ public class Parser {
             }
             else if(match(DOT)) {
                 NameTypeSpec identifier = identifierType(true);
-                expr = node(new GetExpr(expr, node(new IdentifierExpr(identifier.name))));
+                expr = node(new GetExpr(expr, node(new IdentifierExpr(identifier))));
             }
             else if(match(AS)) {
                 expr = cast(expr);
@@ -1278,7 +1278,7 @@ public class Parser {
         
         if(check(IDENTIFIER)) {
             NameTypeSpec name = identifierType(true);
-            return node(new IdentifierExpr(name.name));
+            return node(new IdentifierExpr(name));
         }
                 
         throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
@@ -1292,7 +1292,7 @@ public class Parser {
         // Convert the IdentifierExpr to a FuncIndentiferExpr
         if(callee instanceof IdentifierExpr) {
             IdentifierExpr idExpr = (IdentifierExpr)callee;            
-            callee = node(new FuncIdentifierExpr(idExpr.variable, idExpr.genericArgs));
+            callee = node(new FuncIdentifierExpr(idExpr.type));
         }
         else if(callee instanceof GetExpr) {
             GetExpr getExpr = (GetExpr)callee;
@@ -1301,7 +1301,7 @@ public class Parser {
                 genericArgs = idExpr.genericArgs;    
             }
             
-            IdentifierExpr newId = node(new FuncIdentifierExpr(getExpr.field.variable, getExpr.field.genericArgs));
+            IdentifierExpr newId = node(new FuncIdentifierExpr(getExpr.field.type));
             getExpr.setField(newId);
         }
             

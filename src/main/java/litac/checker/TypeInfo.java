@@ -229,6 +229,14 @@ public abstract class TypeInfo {
         return false;
     }
     
+    public static boolean isFieldAccessible(TypeInfo type) {
+        if(isAggregate(type) || isPtrAggregate(type)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
     public static boolean isPtrLike(TypeInfo type) {
         type = type.getResolvedType();
         if(type.isKind(TypeKind.Ptr) || 

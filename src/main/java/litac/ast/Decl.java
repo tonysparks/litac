@@ -126,6 +126,10 @@ public abstract class Decl extends Stmt {
             this.flags = flags;
         }
         
+        public boolean isMethod() {
+            return (this.flags & TypeInfo.FUNC_ISMETHOD_FLAG) != 0;
+        }
+        
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);  

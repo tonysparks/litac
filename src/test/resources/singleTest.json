@@ -305,9 +305,21 @@
                     x: i32
                 }
                 
+                //var y = 24
+                //const z = 66
+                
+                var w = Test{.x = 4}
+                
+                func (t: Test*) test(x: i32) : i32 {
+                    if(t.x > 0) {
+                        return -1
+                    }
+                    return t.x
+                }
+                
             ''',                       
             code: '''         
-                
+                w.test(24)
             ''',                      
         },                
     ]

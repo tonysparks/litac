@@ -7,8 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 import litac.ast.TypeSpec;
-import litac.ast.TypeSpec.NameTypeSpec;
-import litac.ast.TypeSpec.TypeSpecKind;
+import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 
@@ -151,6 +150,35 @@ public class Names {
         return String.format("%s_%s", recvName, funcName);
     }
     
+    public static String getBaseName(TypeSpec typeSpec) {
+        switch(typeSpec.kind) {
+            case PTR: {
+                PtrTypeSpec ptrInfo = typeSpec.as();
+                return getBaseName(ptrInfo.base);
+            }
+            case ARRAY: {
+                ArrayTypeSpec arrayInfo = typeSpec.as();
+                return getBaseName(arrayInfo.base);
+            }
+            case CONST: {
+                ConstTypeSpec constInfo = typeSpec.as();
+                return getBaseName(constInfo.base);
+            }
+            default: {
+                return typeSpec.toString();
+            }
+        }
+    }
+    
+    public static String methodName(TypeSpec recvInfo, String funcName) {
+        if(recvInfo == null) {
+            return funcName;
+        }
+        
+        String recvName = getBaseName(recvInfo);        
+        recvName = baseTypeName(recvName);
+        return String.format("%s_%s", recvName, funcName);
+    }
     
     public static String genericsName(TypeSpec type) {        
         if(type.kind != TypeSpecKind.NAME) {
