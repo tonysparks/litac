@@ -86,7 +86,7 @@ public abstract class Expr extends Stmt {
     }
     
     private Operand resolvedTo;
-    private ExprKind kind;
+    protected ExprKind kind;
     
     Expr(ExprKind kind) {
         this.kind = kind;
@@ -740,6 +740,7 @@ public abstract class Expr extends Stmt {
 //        public FuncIdentifierExpr(String variable, List<TypeSpec> genericArgs) {
         public FuncIdentifierExpr(NameTypeSpec typeSpec) {
             super(typeSpec);
+            this.kind = ExprKind.FUNC_IDENTIFIER;
         }
 
         @Override

@@ -3,7 +3,7 @@
  */
 package litac.ast;
 
-import java.util.List;
+import java.util.*;
 
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
@@ -110,19 +110,30 @@ public abstract class Decl extends Stmt {
         }
     }
     
-    public static class FuncDecl extends Decl {
+    public static abstract class GenericDecl extends Decl {
+        public List<GenericParam> genericParams;
+        
+        public GenericDecl(DeclKind kind, String name, List<GenericParam> genericParams) {
+            super(kind, name);
+            this.genericParams = genericParams;
+        }
+        
+        public boolean hasGenericParams() {
+            return this.genericParams != null && !this.genericParams.isEmpty();
+        }
+    }
+    
+    public static class FuncDecl extends GenericDecl {
         public ParametersStmt params;
         public Stmt bodyStmt;
         public TypeSpec returnType;
-        public List<GenericParam> genericParams;
         public int flags;        
         
         public FuncDecl(String name, ParametersStmt params, Stmt body, TypeSpec returnType, List<GenericParam> genericParams, int flags) {
-            super(DeclKind.FUNC, name);
+            super(DeclKind.FUNC, name, genericParams);
             this.params = becomeParentOf(params);
             this.bodyStmt = becomeParentOf(body);
-            this.returnType = returnType;
-            this.genericParams = genericParams;
+            this.returnType = returnType;            
             this.flags = flags;
         }
         
@@ -141,21 +152,19 @@ public abstract class Decl extends Stmt {
                                 copy(params), 
                                 copy(this.bodyStmt), 
                                 TypeSpec.copy(this.returnType), 
-                                genericParams, 
+                                new ArrayList<>(this.genericParams), 
                                 flags);
         }
     }
     
-    public static abstract class AggregateDecl extends Decl {
+    public static abstract class AggregateDecl extends GenericDecl {
         public List<FieldStmt> fields;
-        public List<GenericParam> genericParams;
         public int flags;
         
         
         public AggregateDecl(DeclKind kind, String name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
-            super(kind, name);
+            super(kind, name, genericParams);
             this.fields = becomeParentOf(fields);
-            this.genericParams = genericParams;
             this.flags = flags;
         }
     }
@@ -176,7 +185,10 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new StructDecl(this.name, copy(this.fields), this.genericParams, this.flags);
+            return new StructDecl(this.name, 
+                                  copy(this.fields), 
+                                  new ArrayList<>(this.genericParams), 
+                                  this.flags);
         }
     }       
     
@@ -192,7 +204,10 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new UnionDecl(this.name, copy(this.fields), this.genericParams, this.flags);
+            return new UnionDecl(this.name, 
+                                 copy(this.fields), 
+                                 new ArrayList<>(this.genericParams), 
+                                 this.flags);
         }
     }
     

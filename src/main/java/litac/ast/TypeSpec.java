@@ -32,6 +32,27 @@ public abstract class TypeSpec {
         return new NameTypeSpec(pos, "void");
     }
     
+    public static NameTypeSpec getBaseType(TypeSpec spec) {
+        if(spec == null) {
+            return null;
+        }
+        
+        switch(spec.kind) {
+            case ARRAY:
+                return getBaseType(spec.base);
+            case CONST:
+                return getBaseType(spec.base);
+            case PTR:
+                return getBaseType(spec.base);
+            case FUNC_PTR:
+                return null;
+            case NAME:
+                return spec.as();
+            default:
+                return null;        
+        }
+    }
+    
     public static enum TypeSpecKind {
         ARRAY,
         PTR,
@@ -72,6 +93,7 @@ public abstract class TypeSpec {
         public NameTypeSpec(SrcPos pos, TypeSpec base, String name, List<TypeSpec> genericArgs) {
             super(TypeSpecKind.NAME, pos, base);
             this.name = name;
+            this.genericArgs = genericArgs;
         }
         
         @Override

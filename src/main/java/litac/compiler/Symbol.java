@@ -32,6 +32,7 @@ public class Symbol {
     public static final int IS_USING    = (1<<4);
     public static final int IS_TYPE     = (1<<5);
     public static final int IS_INCOMPLETE = (1<<6);
+    public static final int IS_GENERIC_TEMPLATE = (1<<7);
     
     public SymbolKind kind;
     public ResolveState state;
@@ -87,6 +88,13 @@ public class Symbol {
     }
     
     /**
+     * @return true if this symbol is a generic template
+     */
+    public boolean isGenericTemplate() {
+        return (this.flags & IS_GENERIC_TEMPLATE) > 0;
+    }
+    
+    /**
      * @return true if this symbol is a local symbol (not module scoped)
      */
     public boolean isLocal() {
@@ -135,6 +143,9 @@ public class Symbol {
         this.flags &= ~IS_FOREIGN;
     }
     
+    public void markAsGenericTemplate() {
+        this.flags |= IS_GENERIC_TEMPLATE;
+    }
     
     /**
      * Marks the symbol as completed by definition (incomplete types are

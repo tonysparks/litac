@@ -7,11 +7,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import litac.ast.Attributes;
-import litac.ast.Expr;
+import litac.ast.*;
 import litac.compiler.*;
 import litac.generics.GenericParam;
-import litac.generics.Generics;
 import litac.util.Names;
 
 
@@ -1476,6 +1474,25 @@ public abstract class TypeInfo {
         }
     }
     
+    public static class GenericParamTypeInfo extends TypeInfo {
+        public String genericName;
+        
+        public GenericParamTypeInfo(String genericName) {
+            super(TypeKind.Identifier, genericName);
+            this.genericName = genericName;
+        }
+        
+        @Override
+        public boolean canCastTo(TypeInfo target) {        
+            return true;
+        }
+        
+        @Override
+        protected TypeInfo doCopy() {        
+            return this;
+        }
+    }
+    
     public static class IdentifierTypeInfo extends TypeInfo {
         public List<TypeInfo> genericArgs;
         public TypeInfo resolvedType;
@@ -1624,7 +1641,7 @@ public abstract class TypeInfo {
         public void resolve(Module module, TypeInfo resolvedTo, boolean resolveGenerics) {
             if(resolvedTo != null) {
                 if(resolveGenerics) {
-                    resolvedTo = Generics.createFromGenericTypeInfo(module, resolvedTo, this.genericArgs);
+    //                resolvedTo = Generics.createFromGenericTypeInfo(module, resolvedTo, this.genericArgs);
                 }
                 else {
                     // TODO: Need to replace Supplied Generic Args with defined Args if the type 
