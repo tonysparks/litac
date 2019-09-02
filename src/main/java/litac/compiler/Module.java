@@ -48,14 +48,12 @@ public class Module {
     
     private List<NoteStmt> notes;
     
-    //private Map<String, Tuple<Module,Decl>> genericTypes;
     private Map<String, Symbol> genericTypes;
     
     private PhaseResult result;
     private List<Symbol> symbols;
         
     public Module(Module root,
-                  //Map<String, Tuple<Module,Decl>> genericTypes,
                   Map<String, Symbol> genericTypes,
                   PhaseResult result, 
                   ModuleStmt moduleStmt, 
@@ -161,7 +159,7 @@ public class Module {
             
             for(Entry<String, Symbol> typeEntry: module.foreignTypes.entrySet()) {
                 Symbol sym = typeEntry.getValue();
-                if(sym.isKind(TypeKind.Func)) {
+                if(sym.isTypeKind(TypeKind.Func)) {
                     this.importedFuncTypes.put(Names.litaName(alias, typeEntry.getKey()), sym);
                 }
                 else {
@@ -185,7 +183,7 @@ public class Module {
             
             for(Entry<String, Symbol> aggType: module.publicTypes.entrySet()) {
                 Symbol type = aggType.getValue();
-                switch(type.getKind()) {
+                switch(type.getTypeKind()) {
                     case Union: {
                         this.unionTypes.put(aggType.getKey(), type);
                         break;
@@ -212,7 +210,7 @@ public class Module {
             
             for(Entry<String, Symbol> typeEntry: module.foreignTypes.entrySet()) {
                 Symbol type = typeEntry.getValue();
-                if(type.isKind(TypeKind.Func)) {
+                if(type.isTypeKind(TypeKind.Func)) {
                     this.importedFuncTypes.put(Names.litaName(alias, typeEntry.getKey()), type);
                 }
                 else {
@@ -414,7 +412,7 @@ public class Module {
         
         if(this.typedefTypes.containsKey(funcName)) {
             Symbol type = this.typedefTypes.get(funcName);
-            if(type.isKind(TypeKind.Func)) {
+            if(type.isTypeKind(TypeKind.Func)) {
                 return type;
             }
         }
@@ -478,17 +476,7 @@ public class Module {
     public Symbol getAliasedType(String typeName) {
         return this.typedefTypes.get(typeName);
     }
-        
-//    public void addGenericType(Module genericTypeModule, Module declared, Decl decl) {
-//        decl.sym.genericDeclaration = genericTypeModule;
-//        decl.sym.declared = declared;
-//        this.genericTypes.put(decl.name, new Tuple<>(genericTypeModule, decl));
-//    }
-//    
-//    public List<Tuple<Module, Decl>> getGenericTypes() {
-//        return new ArrayList<>(this.genericTypes.values());
-//    }
-             
+            
     public Scope pushScope() {
         this.currentScope = this.currentScope.pushLocalScope();
         return this.currentScope;

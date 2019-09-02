@@ -202,6 +202,6 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/alias.json");        
+        singleFileTest("/arena.json");        
     }
 }

@@ -91,7 +91,7 @@ public class Symbol {
         this.genericArgs = new ArrayList<>();
     }
     
-    public boolean isKind(TypeKind kind) {
+    public boolean isTypeKind(TypeKind kind) {
         if(this.type == null) {
             return false;
         }
@@ -99,7 +99,7 @@ public class Symbol {
         return this.type.isKind(kind);
     }
     
-    public TypeKind getKind() {
+    public TypeKind getTypeKind() {
         if(this.type == null) {
             return TypeKind.Void;
         }
@@ -171,6 +171,10 @@ public class Symbol {
         return (this.flags & IS_INCOMPLETE) > 0;
     }
     
+    public boolean isComplete() {
+        return !isIncomplete();
+    }
+    
     /**
      * Removes the foreign designation
      */
@@ -194,9 +198,12 @@ public class Symbol {
      * Marks the symbol as completed by definition (incomplete types are
      * defined as globals that need to be eventually resolved)
      */
-    public void markComplete(TypeInfo type) {        
-        this.flags &= ~IS_INCOMPLETE;
-        this.type = type;
+    public void markAsComplete() {        
+        this.flags &= ~IS_INCOMPLETE;        
+    }
+    
+    public void maskAsIncomplete() {
+        this.flags |= IS_INCOMPLETE;
     }
     
     public Module getDeclaredModule() {

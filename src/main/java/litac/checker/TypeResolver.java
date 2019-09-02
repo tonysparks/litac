@@ -224,6 +224,8 @@ public class TypeResolver {
             return;
         }
         
+        sym.markAsComplete();
+        
         funcDecl.visit(this.stmtVisitor);
         leaveModule();
     }
@@ -317,6 +319,8 @@ public class TypeResolver {
                         funcName = Names.methodName(funcDecl.params.params.get(0).type, funcName);
                     }
                     Symbol sym = module.declareFunc(funcDecl, funcName);
+                    sym.maskAsIncomplete();
+                    
                     sym.type = new FuncTypeInfo(funcName, null, new ArrayList<>(), funcDecl.flags, funcDecl.genericParams);
                     sym.type.sym = sym;
                     
@@ -341,6 +345,8 @@ public class TypeResolver {
                 case STRUCT: {
                     StructDecl structDecl = (StructDecl) decl;
                     Symbol sym = module.declareStruct(structDecl, structDecl.name);
+                    sym.maskAsIncomplete();
+                    
                     this.moduleSymbols.add(sym);
                     
                     if(!structDecl.hasGenericParams()) {
@@ -355,6 +361,8 @@ public class TypeResolver {
                 case UNION: {
                     UnionDecl unionDecl = (UnionDecl) decl;
                     Symbol sym = module.declareUnion(unionDecl, unionDecl.name);
+                    sym.maskAsIncomplete();
+                    
                     this.moduleSymbols.add(sym);
                     
                     if(!unionDecl.hasGenericParams()) {
@@ -545,12 +553,14 @@ public class TypeResolver {
                     ConstDecl constDecl = (ConstDecl) decl;
                     sym.type = resolveValueDecl(decl, constDecl.type, constDecl.expr, !sym.isForeign());
                     sym.state = ResolveState.RESOLVED;
+                    sym.markAsComplete();
                     break;
                 }
                 case VAR: {
                     VarDecl varDecl = (VarDecl) decl;
                     sym.type = resolveValueDecl(decl, varDecl.type, varDecl.expr, false);
                     sym.state = ResolveState.RESOLVED;
+                    sym.markAsComplete();
                     break;
                 }
                 default:
@@ -593,15 +603,17 @@ public class TypeResolver {
         switch(sym.decl.kind) {
             case STRUCT:
             case UNION: {
-                enterModule(sym.getDeclaredModule());
+                if(sym.isComplete()) {                    
+                    return;
+                }
                 
+                enterModule(sym.getDeclaredModule());
                 
                 AggregateDecl aggDecl = (AggregateDecl) sym.decl;
                 if(aggDecl.hasGenericParams()) {
                     this.genericStack.add(aggDecl.genericParams);
                 }
                 
-                // TODO: Mark TypeInfo as completed, otherwise we redo work!!
                 AggregateTypeInfo aggInfo = sym.type.as();        
                 for(FieldStmt field : aggDecl.fields) {
                     FieldInfo info = resolveFieldInfo(sym, field);
@@ -614,6 +626,7 @@ public class TypeResolver {
                     this.genericStack.pop();
                 }
                 
+                sym.markAsComplete();
                 
                 leaveModule();
                 break;
@@ -649,18 +662,24 @@ public class TypeResolver {
         if (stmt instanceof StructFieldStmt) {
             StructFieldStmt struct = (StructFieldStmt) stmt;
             Symbol sym = module.declareStruct(struct.decl, struct.decl.name);
+            sym.maskAsIncomplete();
+            
             this.moduleSymbols.add(sym);
             
-            resolveSym(sym);            
+            resolveSym(sym);        
+            finishResolveSym(sym);
             return new FieldInfo(sym.type, struct.decl.name, struct.decl.attributes, null);
         }
         
         if (stmt instanceof UnionFieldStmt) {
             UnionFieldStmt union = (UnionFieldStmt) stmt;
             Symbol sym = module.declareUnion(union.decl, union.decl.name);
+            sym.maskAsIncomplete();
+            
             this.moduleSymbols.add(sym);
             
             resolveSym(sym);
+            finishResolveSym(sym);
             return new FieldInfo(sym.type, union.decl.name, union.decl.attributes, null);
         }
         
@@ -670,6 +689,7 @@ public class TypeResolver {
             this.moduleSymbols.add(sym);
             
             resolveSym(sym);
+            finishResolveSym(sym);
             return new FieldInfo(sym.type, enm.decl.name, enm.decl.attributes, null);
         }
         
@@ -721,6 +741,7 @@ public class TypeResolver {
             genericSym.callsiteModule = current();
             genericSym.genericDeclaration = sym.getDeclaredModule();
             genericSym.markFromGenericTemplate();
+            genericSym.maskAsIncomplete();
             
             this.genericTypes.put(genericsName, genericSym);   
             
@@ -1191,7 +1212,7 @@ public class TypeResolver {
     private TypeInfo getAggregateField(SrcPos pos, AggregateTypeInfo aggInfo, NameTypeSpec name, boolean allowMethods, boolean error) {
         
         // Simple aggregate field access
-        FieldInfo field = aggInfo.getField(name.name);
+        FieldInfo field = aggInfo.getFieldWithAnonymous(name.name);
         if(field != null) {
             return field.type;
         }
@@ -1587,6 +1608,8 @@ public class TypeResolver {
         Operand operand = Operand.op(type);        
         expr.resolveTo(operand);
         
+        checkInitArguments(expr);
+        
         return operand;
     }
     
@@ -1657,6 +1680,26 @@ public class TypeResolver {
                 if(field.type.isKind(TypeKind.Struct) || field.type.isKind(TypeKind.Union)) {
                     checkDuplicateFields(stmt, field.type.as(), definedFields);
                 }                
+            }
+        }
+    }
+    
+    private void checkInitArguments(InitExpr expr) {
+        AggregateTypeInfo aggInfo = expr.getResolvedType().type.as();
+        
+        for(InitArgExpr arg : expr.arguments) {
+            if(arg.fieldName != null) {
+                TypeInfo fieldType = getAggregateField(arg.getSrcPos(), aggInfo, new NameTypeSpec(arg.getSrcPos(), arg.fieldName), false, true);
+                typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
+            }
+            else {
+                FieldInfo field = aggInfo.getFieldByPosition(arg.argPosition);
+                if(field == null) {
+                    error(arg.getSrcPos(), "'%s' does not have a field at index '%d'", aggInfo.name, arg.argPosition);
+                }
+                
+                TypeInfo fieldType = field.type;
+                typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
             }
         }
     }
@@ -2170,8 +2213,6 @@ public class TypeResolver {
             enterModule(sym.getDeclaredModule());       
             current().pushScope();
             
-            
-            
             for(ParameterDecl p : d.params.params) {
                 p.visit(this);
             }
@@ -2236,7 +2277,7 @@ public class TypeResolver {
 
         @Override
         public void visit(InitExpr expr) {
-            resolveInitExpr(expr);
+            resolveInitExpr(expr);            
         }
 
         @Override

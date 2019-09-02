@@ -587,6 +587,37 @@ public abstract class TypeInfo {
             return null;
         }
         
+        public FieldInfo getFieldByPosition(int index) {
+            int fieldCount = 0;
+            for(int i = 0; i < this.fieldInfos.size() && i <= fieldCount; i++) {
+                FieldInfo field = this.fieldInfos.get(i);
+                
+                if(field.type.isAnonymous()) {                    
+                    FieldInfo anonField = getFieldByPosition(index - fieldCount);
+                    if(anonField != null) {
+                        return anonField;
+                    }
+                    
+                    if(TypeInfo.isAggregate(field.type)) {
+                        AggregateTypeInfo anonAgg = field.type.as();
+                        fieldCount += anonAgg.fieldInfos.size();
+                    }
+                    else {
+                        fieldCount += 1;
+                    }
+                    
+                    continue;
+                }
+                else if(fieldCount == index) {
+                    return field;
+                }
+                
+                fieldCount++;
+            }
+            
+            return null;
+        }
+        
         public FieldInfo getFieldWithAnonymous(String field) {
             for(FieldInfo f : this.fieldInfos) {
                 if(f.name.equals(field)) {
