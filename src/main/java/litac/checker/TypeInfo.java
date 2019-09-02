@@ -8,6 +8,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import litac.ast.*;
+import litac.ast.Node.SrcPos;
+import litac.ast.TypeSpec.*;
 import litac.compiler.*;
 import litac.generics.GenericParam;
 import litac.util.Names;
@@ -80,6 +82,33 @@ public abstract class TypeInfo {
             case "null":   return NULL_TYPE;
             case "void":   return VOID_TYPE;
             default: return null;
+        }
+    }
+    
+    public static TypeInfo getBase(TypeInfo type) {
+        if(type == null) {
+            return null;
+        }
+        
+        switch(type.kind) {
+            case Array: {
+                ArrayTypeInfo arrayInfo = type.as();
+                return getBase(arrayInfo.arrayOf);
+            }            
+            case Const: {
+                ConstTypeInfo constInfo = type.as();
+                return getBase(constInfo.constOf);
+            }
+            case Ptr: {
+                PtrTypeInfo ptrInfo = type.as();
+                return getBase(ptrInfo.ptrOf);
+            }
+            case Str: {                
+                return TypeInfo.CHAR_TYPE;
+            }        
+            default:
+                return type;
+        
         }
     }
     
@@ -344,13 +373,13 @@ public abstract class TypeInfo {
         return false;
     }
     
-    public boolean hasGenericArgs() {
-        return false;
-    }
+//    public boolean hasGenericArgs() {
+//        return false;
+//    }
     
-    public List<TypeInfo> getGenericArgs() {
-        return Collections.emptyList();
-    }
+//    public List<TypeInfo> getGenericArgs() {
+//        return Collections.emptyList();
+//    }
     
     public void clearGenericArgs() {        
     }
@@ -370,6 +399,11 @@ public abstract class TypeInfo {
     @SuppressWarnings("unchecked")
     public <T extends TypeInfo> T as() {
         return (T) this;
+    }
+    
+    public TypeSpec asTypeSpec() {
+        SrcPos pos = (this.sym != null) ? this.sym.decl.getSrcPos() : null;
+        return new NameTypeSpec(pos, this.name);
     }
     
     public boolean isPrimitive() {
@@ -485,11 +519,24 @@ public abstract class TypeInfo {
     
     public static abstract class GenericTypeInfo extends TypeInfo {
         public List<GenericParam> genericParams;
+        //private List<TypeInfo> genericArgs;
         
         public GenericTypeInfo(TypeKind kind, String name, List<GenericParam> genericParams) {
             super(kind, name);
             this.genericParams = genericParams;
+            //this.genericArgs = new ArrayList<>();
         }
+        
+        
+//        @Override
+//        public boolean hasGenericArgs() {
+//            return !this.genericArgs.isEmpty();
+//        }
+//        
+//        @Override
+//        public List<TypeInfo> getGenericArgs() {
+//            return this.genericArgs;
+//        }
         
         @Override
         public boolean hasGenerics() {
@@ -610,6 +657,16 @@ public abstract class TypeInfo {
                 }
             }
             return null;
+        }
+        
+        @Override
+        public TypeSpec asTypeSpec() {
+            SrcPos pos = (this.sym != null) ? this.sym.decl.getSrcPos() : null;
+            List<TypeSpec> genArgs = new ArrayList<>();
+            // TODO
+            //for(TypeInfo arg : this.)
+            
+            return new NameTypeSpec(pos, this.name, genArgs);
         }
     }
     public static class StructTypeInfo extends AggregateTypeInfo {
@@ -826,7 +883,9 @@ public abstract class TypeInfo {
                 
         public FuncPtrTypeInfo asPtr() {
             List<TypeInfo> params = this.parameterDecls.stream().map(p -> p.type).collect(Collectors.toList());
-            return new FuncPtrTypeInfo(this.returnType, params, isVararg(), new ArrayList<>(this.genericParams));
+            FuncPtrTypeInfo funcPtrInfo = new FuncPtrTypeInfo(this.returnType, params, isVararg(), new ArrayList<>(this.genericParams));
+            //funcPtrInfo.sym = sym;
+            return funcPtrInfo;
         }
         
         @Override
@@ -920,6 +979,17 @@ public abstract class TypeInfo {
             this.returnType = returnType;
             this.params = params;
             this.isVararg = isVararg;
+        }
+        
+        @Override
+        public TypeSpec asTypeSpec() {
+            List<TypeSpec> args = new ArrayList<>();
+            for(TypeInfo p : params) {
+                args.add(p.asTypeSpec());
+            }
+            
+            SrcPos pos = (this.sym != null) ? this.sym.decl.getSrcPos() : null;
+            return new FuncPtrTypeSpec(pos, args, this.returnType.asTypeSpec(), this.isVararg, this.genericParams);
         }
         
         @Override
@@ -1034,6 +1104,12 @@ public abstract class TypeInfo {
         }
         
         @Override
+        public TypeSpec asTypeSpec() {
+            TypeSpec baseSpec = TypeInfo.CHAR_TYPE.asTypeSpec();
+            return new PtrTypeSpec(baseSpec.pos, baseSpec);
+        }
+        
+        @Override
         protected TypeInfo doCopy() {
             return new StrTypeInfo(this.str);
         }
@@ -1120,6 +1196,12 @@ public abstract class TypeInfo {
             }
                 
             return base;
+        }
+                
+        @Override
+        public TypeSpec asTypeSpec() {
+            TypeSpec baseSpec = this.ptrOf.asTypeSpec();
+            return new PtrTypeSpec(baseSpec.pos, baseSpec);
         }
         
         @Override
@@ -1219,6 +1301,12 @@ public abstract class TypeInfo {
             super(TypeKind.Const, "const");
             this.constOf = constOf;
         }
+        
+        @Override
+        public TypeSpec asTypeSpec() {
+            TypeSpec baseSpec = this.constOf.asTypeSpec();
+            return new ConstTypeSpec(baseSpec.pos, baseSpec);
+        }
                 
         @Override
         protected TypeInfo doCopy() {
@@ -1293,6 +1381,12 @@ public abstract class TypeInfo {
         @Override
         protected TypeInfo doCopy() {
             return new ArrayTypeInfo(copy(this.arrayOf), this.length, this.lengthExpr);
+        }
+        
+        @Override
+        public TypeSpec asTypeSpec() {
+            TypeSpec baseSpec = this.arrayOf.asTypeSpec();
+            return new ArrayTypeSpec(baseSpec.pos, baseSpec, lengthExpr);
         }
         
         /**
@@ -1558,17 +1652,17 @@ public abstract class TypeInfo {
                    this.resolvedType.isResolved();
         }
         
-        @Override
-        public boolean hasGenericArgs() {            
-            if(this.genericArgs != null && !this.genericArgs.isEmpty()) {
-                return true;
-            }
-            if(this.resolvedType != null && this.resolvedType instanceof IdentifierTypeInfo) {
-                return this.resolvedType.hasGenericArgs();
-            }
-            
-            return false;
-        }
+//        @Override
+//        public boolean hasGenericArgs() {            
+//            if(this.genericArgs != null && !this.genericArgs.isEmpty()) {
+//                return true;
+//            }
+//            if(this.resolvedType != null && this.resolvedType instanceof IdentifierTypeInfo) {
+//                return this.resolvedType.hasGenericArgs();
+//            }
+//            
+//            return false;
+//        }
         
         @Override
         public boolean hasGenerics() {
@@ -1579,18 +1673,18 @@ public abstract class TypeInfo {
             return false;
         }
         
-        @Override
-        public List<TypeInfo> getGenericArgs() {
-            if(this.genericArgs != null && !this.genericArgs.isEmpty()) {
-                return this.genericArgs;
-            }
-            
-            if(this.resolvedType != null && this.resolvedType instanceof IdentifierTypeInfo) {
-                return this.resolvedType.getGenericArgs();
-            }
-            
-            return this.genericArgs;
-        }
+//        @Override
+//        public List<TypeInfo> getGenericArgs() {
+//            if(this.genericArgs != null && !this.genericArgs.isEmpty()) {
+//                return this.genericArgs;
+//            }
+//            
+//            if(this.resolvedType != null && this.resolvedType instanceof IdentifierTypeInfo) {
+//                return this.resolvedType.getGenericArgs();
+//            }
+//            
+//            return this.genericArgs;
+//        }
         
         @Override
         public TypeInfo getResolvedType() {

@@ -412,7 +412,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         buf.out("}");
     }
     
-    private String typeDeclForC(TypeSpec typeSpec, String declName) {
+    private String typeDeclForC(TypeSpec typeSpec, String declName) {        
         TypeInfo type = this.resolvedTypeMap.get(typeSpec);
         if(type == null) {
             // TODO
@@ -598,8 +598,11 @@ public class CGenNodeVisitor implements NodeVisitor {
         }
         
         Symbol sym = type.sym;
-        if(sym.isForeign()) {            
-            return getForeignName(sym.decl, Names.baseTypeName(type.getName()));
+        if(sym.isForeign()) {      
+            if(sym.isBuiltin()) {
+                return prefix(Names.baseTypeName(type.getName()));
+            }
+            return getForeignName(sym.decl, Names.baseTypeName(sym.decl.name));
         }
         
         return prefix(Names.backendName(sym.declared.name(), typeName));
@@ -613,6 +616,9 @@ public class CGenNodeVisitor implements NodeVisitor {
         }
         
         if(sym.isForeign()) {
+            if(sym.isBuiltin()) {
+                return prefix(Names.baseTypeName(sym.decl.name));
+            }
             return getForeignName(sym.decl, Names.baseTypeName(sym.decl.name));
         }
         
@@ -1328,7 +1334,12 @@ public class CGenNodeVisitor implements NodeVisitor {
     @Override
     public void visit(SizeOfExpr expr) {
         buf.out("sizeof(");
-        expr.expr.visit(this);
+        if(expr.expr != null) {
+            expr.expr.visit(this);
+        }
+        else {
+            buf.out("%s", cTypeName(expr.getResolvedType().type));
+        }
         buf.out(")");
     }
     

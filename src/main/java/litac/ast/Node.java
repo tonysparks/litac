@@ -30,6 +30,11 @@ public abstract class Node {
             this.sourceLine = sourceLine;
             this.lineNumber = lineNumber;
         }
+        
+        @Override
+        public String toString() {        
+            return String.format("'%s' at line %d:\n%s", this.sourceFile, this.lineNumber, this.sourceLine);
+        }
     }
     
     private Node parentNode;

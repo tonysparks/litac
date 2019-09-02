@@ -92,7 +92,11 @@ public class GenericsNodeVisitor implements NodeVisitor {
                     genArgs.set(i, replaceType(genArgs.get(i)));
                 }
                 // TODO: Embedded generic types...
-                type = getReplacedTypeSpec(nameSpec);                
+                type = getReplacedTypeSpec(nameSpec);    
+                if(nameSpec != type && nameSpec.genericArgs.size() > 0) {
+                    System.out.println("");
+                }
+                
                 return type;
             }
             default:

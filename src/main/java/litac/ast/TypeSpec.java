@@ -3,8 +3,7 @@
  */
 package litac.ast;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import litac.ast.Node.SrcPos;
 import litac.generics.GenericParam;
@@ -19,13 +18,24 @@ import litac.util.Names;
 public abstract class TypeSpec {
 
     public static TypeSpec copy(TypeSpec spec) {
-        // TODO: Do we need to copy??
-        return spec;
+        if(spec == null) {
+            return null;
+        }
+        
+        return spec.copy();
     }
     
     public static List<TypeSpec> copy(List<TypeSpec> specs) {
-        // TODO: Do we need to copy??
-        return specs;
+        if(specs == null) {
+            return null;
+        }
+        
+        List<TypeSpec> result = new ArrayList<>(specs.size());
+        for(TypeSpec s : specs) {
+            result.add(TypeSpec.copy(s));
+        }
+        
+        return result;
     }
     
     public static TypeSpec newVoid(SrcPos pos) {
@@ -77,6 +87,7 @@ public abstract class TypeSpec {
         return (T) this;
     }
     
+    public abstract TypeSpec copy();
     
     public static class NameTypeSpec extends TypeSpec {         
         public String name;
@@ -108,6 +119,11 @@ public abstract class TypeSpec {
         public boolean hasGenericArgs() {
             return this.genericArgs != null && !this.genericArgs.isEmpty();
         }        
+        
+        @Override
+        public TypeSpec copy() {
+            return new NameTypeSpec(pos, this.name, TypeSpec.copy(this.genericArgs));
+        }
     }
     
     public static class ArrayTypeSpec extends TypeSpec {
@@ -122,6 +138,13 @@ public abstract class TypeSpec {
         public String toString() {        
             return this.base.toString() + "[]";
         }
+        
+        @Override
+        public TypeSpec copy() {
+            return new ArrayTypeSpec(this.pos, 
+                                     TypeSpec.copy(this.base), 
+                                     (this.numElements != null) ? this.numElements.copy() : null);
+        }
     }
     
     public static class PtrTypeSpec extends TypeSpec {     
@@ -133,6 +156,11 @@ public abstract class TypeSpec {
         public String toString() {        
             return this.base.toString() + "*";
         }
+        
+        @Override
+        public TypeSpec copy() {
+            return new PtrTypeSpec(this.pos, TypeSpec.copy(base));
+        }
     }
     
     public static class ConstTypeSpec extends TypeSpec {     
@@ -142,7 +170,12 @@ public abstract class TypeSpec {
         
         @Override
         public String toString() {        
-            return this.base.toString() + "const";
+            return this.base.toString() + " const";
+        }
+        
+        @Override
+        public TypeSpec copy() {
+            return new ConstTypeSpec(this.pos, TypeSpec.copy(base));
         }
     }
     
@@ -158,6 +191,15 @@ public abstract class TypeSpec {
             this.ret = ret;
             this.hasVarargs = hasVarargs;
             this.genericParams = genericParams;
+        }
+        
+        @Override
+        public TypeSpec copy() {
+            return new FuncPtrTypeSpec(this.pos, 
+                                       TypeSpec.copy(this.args), 
+                                       TypeSpec.copy(this.ret),
+                                       this.hasVarargs,
+                                       new ArrayList<>(this.genericParams)); 
         }
         
         @Override

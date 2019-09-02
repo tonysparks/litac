@@ -255,7 +255,8 @@
             '''
         }*/
         
-        /*{ 
+        /*
+        { 
             name: "Generics Type Inference from Struct of Struct Generic Type multiple",
             definitions: '''                
                 struct B<Z> {
@@ -271,9 +272,11 @@
             ''',                       
             code: '''         
                 var t = Test<i32, char*> { B<i32>{4}, B<char*>{"hi"} }                                 
-                assert(test(t) == 4)
+                assert(test<i32, char*>(t) == 4)
             ''',                      
-        },*/
+        },
+        
+        
         { 
             name: "Generics Partial",
             definitions: '''                
@@ -297,40 +300,217 @@
                 assert(t.x == 10_i32)
                 assert(t.y == 22_f32)
             ''',                      
-        },/*
+        },
+        
+        
         { 
             name: "Simple",
             definitions: '''
+           
+                struct Child {
+                    x: i32
+                }
                                 
-                //struct Test {
-                //    x: i32
-                //}
-                
-                //var y = 24
-                //const z = 66
-                
-                //var w = Test{.x = 4}
-                
-                //func (t: Test*) test(x: i32) : i32 {
-                //    if(t.x > 0) {
-                //        return -1
-                //    }
-                //    return t.x
-                //}
-                
-                struct Test<V> {
-                    x: V
+                struct Parent {
+                    c: Child
                 }
                 
-                func (t: Test<V>*) test<V>() : V {                    
-                    return t.x
-                }
             ''',                       
             code: '''         
-                //w.test(24)
-                var t = Test<i32> { .x = 4 }
-                t.test<i32>()
+                var p = Parent {.c = Child{4} }
+                assert(p.c.x == 4)
             ''',                      
-        }, */               
+        },
+        
+        {
+            name: "Foreign funcPtr",
+            symbolPrefix: "litaC__",
+            definitions: '''
+                @raw("""
+                // hand written
+                typedef int (*SomeFunc)(int x);      
+                
+                int nativeFn(SomeFunc aFn) {
+                   return aFn(4);
+                }
+                // end handwritten
+                """);
+                
+                @foreign
+                func nativeFn(aFn: SomeFunc) : i32;
+                
+                @foreign
+                typedef func(i32) : i32 as SomeFunc;
+                
+                
+                func test(x: i32) : i32 {
+                    return x
+                }
+                
+                func testFn(aFn: SomeFunc) : i32 {
+                    return aFn(4)
+                }
+            ''',                       
+            code: '''  
+                var fn = &test
+                
+                assert(fn(4)== 4)
+                assert(testFn(fn) == 4)
+                assert(nativeFn(fn) == 4)
+                    
+            ''',
+        },
+        
+        
+        
+        { 
+            name: "Simple",
+            definitions: '''
+                import "moduleX" as x 
+                //import "moduleY" 
+                //import "mem"
+                
+                struct Y {
+                    v: x::X
+                }              
+            ''',       
+            modules: [
+                {
+                    name: "moduleX",
+                    program: '''
+                        import "moduleY"
+                        
+                        public struct X {
+                            i: i32
+                        }
+                    '''
+                },
+                {
+                    name: "moduleY",
+                    program: '''
+                        import "moduleX" as x
+                        
+                        public struct H {
+                            i: x::X
+                        }
+                    '''
+                }
+            ]                
+            code: '''  
+                var x = x::X{4}
+                var y = Y {.v = x}
+                //var h = H {.i = x}
+                assert(x.i == 4)
+                assert(y.v.i == 4)
+            '''
+        },
+        
+        { 
+            name: "Simple",
+            definitions: '''
+                //import "mem"
+                
+                
+                func test<T>(t: T) : T {
+                    return t
+                }
+                
+                typedef func():i32 as Fn;
+                
+                func n() : i32 {
+                    return 4
+                }
+                
+                func curry<T>() : Fn {
+                    return n
+                }
+                
+                struct Test<T> {
+                    x: T
+                }
+                
+                func (t: Test<T>*) call<T>() : T {
+                    return t.x
+                }
+                                  
+            ''',                                   
+            code: '''  
+                assert(test(4) == 4)
+                assert(curry<i32>()() == 4)
+                var t = Test<i32> {.x = 4}
+                assert(t.call() == 4)
+            '''
+        }*/
+        
+        /*
+        { 
+            name: "Generic Func Param in different module",
+            definitions: '''
+                import "moduleX" 
+                import "moduleY"                                              
+            ''',       
+            modules: [
+                {
+                    name: "moduleX",
+                    program: '''
+                        
+                        public struct X<T> {
+                            x: T
+                        }
+                        
+                        
+                        public func test<T>(t: T) : i32 {
+                            return t.x
+                        }                        
+                        
+                    '''
+                },
+                {
+                    name: "moduleY",
+                    program: '''                                               
+                        public struct Y<T> {
+                            x: T
+                        }
+                    '''
+                }
+            ]                
+            code: '''  
+                var x = X<i32>{.x=4}
+                var y = Y<i32>{.x=8}
+                
+                assert(test(x) == 4)
+                assert(test(y) == 8)
+            '''
+        }
+        
+        { 
+            name: "Init inferrence",
+            definitions: '''
+                struct X<T> {
+                    x: T
+                }                                         
+            ''',                                  
+            code: '''  
+                var x = X{.x = 4}
+                assert(x.x == 4)
+            '''
+        },
+        */
+        
+        { 
+            name: "Init inferrence",
+            definitions: '''
+                import "mem"
+                import "clib" as c   
+                                                         
+            ''',                                  
+            code: '''  
+                
+                var x = c::MAX(1,2)
+                //var x: i32* = null
+                //var m = defaultAllocator.alloc(24)
+               // defer defaultAllocator.free(m)
+            '''
+        }                                                     
     ]
 }

@@ -94,12 +94,14 @@ public class Scope {
         switch(decl.kind) {
             case CONST:
                 kind = SymbolKind.CONST;
+                flags |= Symbol.IS_CONSTANT;
                 break;
             case ENUM:
             case STRUCT:
             case TYPEDEF:
             case UNION:
                 kind = SymbolKind.TYPE;
+                flags |= Symbol.IS_TYPE;  
                 break;
             case FUNC:
                 kind = SymbolKind.FUNC;

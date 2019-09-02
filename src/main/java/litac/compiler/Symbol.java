@@ -3,7 +3,9 @@
  */
 package litac.compiler;
 
-import litac.ast.Decl;
+import java.util.*;
+
+import litac.ast.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.TypeKind;
 
@@ -26,26 +28,48 @@ public class Symbol {
         RESOLVED,
     }
     
-    public static final int IS_LOCAL    = (1<<1);
-    public static final int IS_FOREIGN  = (1<<2);
-    public static final int IS_CONSTANT = (1<<3);
-    public static final int IS_USING    = (1<<4);
-    public static final int IS_TYPE     = (1<<5);
-    public static final int IS_INCOMPLETE = (1<<6);
-    public static final int IS_GENERIC_TEMPLATE = (1<<7);
+    public static final int IS_LOCAL                = (1<<1);
+    public static final int IS_FOREIGN              = (1<<2);
+    public static final int IS_CONSTANT             = (1<<3);
+    public static final int IS_USING                = (1<<4);
+    public static final int IS_TYPE                 = (1<<5);
+    public static final int IS_INCOMPLETE           = (1<<6);
+    public static final int IS_GENERIC_TEMPLATE     = (1<<7);
+    public static final int IS_BUILTIN              = (1<<8);
+    public static final int IS_FROM_GENERIC_TEMPLATE  = (1<<9);
     
     public SymbolKind kind;
     public ResolveState state;
     public Decl decl;
     public final String name;
     
-    /** the module in which this symbol is defined in */
+    /** the module in which this symbol is defined in 
+     *
+     *  Generics are declared in the root module
+     */
     public Module declared;
     
     /** if this symbol is from a generic type, this module is where the generic
      *  type is defined
      */
     public Module genericDeclaration;
+    
+    /**
+     * if this symbol is from a generic type, the module in which it is used
+     * and therefore generated from
+     */
+    public Module callsiteModule;
+    
+    /**
+     * Map for knowing which types should be resolved
+     * in the genericDeclaration module or the call site module 
+     */
+    public Map<TypeSpec, Module> genericMap;
+    
+    /**
+     * Map for knowing the generic arguments for this symbol
+     */
+    public List<TypeInfo> genericArgs;
     
     public TypeInfo type;
     private      int flags;
@@ -62,6 +86,9 @@ public class Symbol {
         this.declared = declared;
         this.flags = flags;
         this.state = ResolveState.UNRESOLVED;
+        
+        this.genericMap = new HashMap<>();
+        this.genericArgs = new ArrayList<>();
     }
     
     public boolean isKind(TypeKind kind) {
@@ -129,6 +156,14 @@ public class Symbol {
         return (this.flags & IS_TYPE) > 0;
     }
     
+    public boolean isBuiltin() {
+        return (this.flags & IS_BUILTIN) > 0;
+    }
+    
+    public boolean isFromGenericTemplate() {
+        return (this.flags & IS_FROM_GENERIC_TEMPLATE) > 0;
+    }
+    
     /**
      * @return if this symbol is incomplete in its definition
      */
@@ -147,6 +182,14 @@ public class Symbol {
         this.flags |= IS_GENERIC_TEMPLATE;
     }
     
+    public void markAsBuiltin() {
+        this.flags |= IS_BUILTIN;
+    }
+    
+    public void markFromGenericTemplate() {
+        this.flags |= IS_FROM_GENERIC_TEMPLATE;
+    }
+    
     /**
      * Marks the symbol as completed by definition (incomplete types are
      * defined as globals that need to be eventually resolved)
@@ -162,5 +205,34 @@ public class Symbol {
         }
         
         return this.declared;
+    }
+    
+    public void addModuleForType(TypeSpec typeSpec, TypeInfo type) {        
+        type = TypeInfo.getBase(type);
+        if(type != null && type.sym != null) {
+            this.genericMap.put(TypeSpec.getBaseType(typeSpec), type.sym.getDeclaredModule());            
+        }
+    }
+    
+    public Module getModuleForType(TypeSpec type) {
+        return this.genericMap.getOrDefault(TypeSpec.getBaseType(type), this.getDeclaredModule());
+    }
+        
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Name:").append(this.name).append("\n")
+          .append("Type:").append(this.type).append("\n")
+          .append("isLocal:").append(isLocal()).append("\n")
+          .append("isForeign:").append(isForeign()).append("\n")
+          .append("isConstant:").append(isConstant()).append("\n")
+          .append("isUsing:").append(isUsing()).append("\n")
+          .append("isType:").append(isType()).append("\n")
+          .append("isIncomplete:").append(isIncomplete()).append("\n")
+          .append("isGenericTemplate:").append(isGenericTemplate()).append("\n")
+          .append("isBuiltin:").append(isBuiltin()).append("\n")
+          .append("isFromGenericTemplate:").append(isFromGenericTemplate()).append("\n")
+          ;
+        return sb.toString();
     }
 }

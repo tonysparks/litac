@@ -89,12 +89,27 @@ public class Names {
     }
     
     public static String baseTypeName(String name) {
+        name = stripModule(name);
+        name = stripGenerics(name);
+        return name;
+    }
+    
+    private static String stripGenerics(String name) {
         int index = name.indexOf('<');
         if(index < 0) {
             return name;
         }
         
         return name.substring(0, index);
+    }
+    
+    private static String stripModule(String name) {
+        int index = name.indexOf("::");
+        if(index < 0) {
+            return name;
+        }
+        
+        return name.substring(index + 2, name.length());
     }
     
     public static String escapeName(String name) {

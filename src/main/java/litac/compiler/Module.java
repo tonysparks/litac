@@ -10,12 +10,10 @@ import litac.ast.Decl;
 import litac.ast.Decl.*;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.FuncTypeInfo;
-import litac.checker.TypeInfo.TypeKind;
+import litac.checker.TypeInfo.*;
 import litac.compiler.Scope.ScopeType;
 import litac.compiler.Symbol.ResolveState;
 import litac.util.Names;
-import litac.util.Tuple;
 
 /**
  * Keeps track of a modules defined types.
@@ -50,14 +48,15 @@ public class Module {
     
     private List<NoteStmt> notes;
     
-    private Map<String, Tuple<Module,Decl>> genericTypes;
+    //private Map<String, Tuple<Module,Decl>> genericTypes;
+    private Map<String, Symbol> genericTypes;
     
     private PhaseResult result;
     private List<Symbol> symbols;
-    
-    
+        
     public Module(Module root,
-                  Map<String, Tuple<Module,Decl>> genericTypes,
+                  //Map<String, Tuple<Module,Decl>> genericTypes,
+                  Map<String, Symbol> genericTypes,
                   PhaseResult result, 
                   ModuleStmt moduleStmt, 
                   String name) {
@@ -396,7 +395,7 @@ public class Module {
         
         newSym.state = ResolveState.RESOLVED;
         newSym.type = type;
-        //newSym.declared = null; /* built in's don't have a declared module */
+        newSym.markAsBuiltin();
         type.sym = newSym;
         
         this.builtins.put(type.name, newSym);
@@ -425,34 +424,32 @@ public class Module {
     
     public Symbol getMethodType(TypeInfo recv, String methodName) {
         
-        // First try non-generic type name, which may have a module alias
-        // with it
         String funcName = FuncTypeInfo.getMethodName(recv, methodName);
-        Symbol funcInfo = getFuncType(funcName);
-        if(funcInfo != null) {
-            return funcInfo;
+        Symbol funcSym = null;
+
+        // First try and see if the receiver declaration module has
+        // the method
+        Symbol sym = recv.sym;
+        if(sym != null) {
+            funcSym = sym.getDeclaredModule().getFuncType(funcName);
         }
         
-        // Now try with generic names included
-        Tuple<Module, Decl> genericRecv = this.genericTypes.get(recv.getResolvedType().getName());
-        if(genericRecv == null) {
-            return null;
+        // if the receiver module doesn't have the method, we look
+        // in the current scope
+        if(funcSym == null) {
+            funcSym = getFuncType(funcName);
         }
         
-        // we want to remove any module alias, as this is looking directly in the
-        // declared module
-        funcName = FuncTypeInfo.getMethodName(recv.getResolvedType(), methodName);
-        funcInfo = genericRecv.getFirst().getFuncType(funcName);
-        if(funcInfo != null) {
-            return funcInfo;
-        }
-        
-        return null;
+        return funcSym;
     }
     
     public Symbol getType(String typeName) {
         if(typeName.contains("::")) {
             return this.importedAggregateTypes.get(typeName);
+        }
+        
+        if(this.genericTypes.containsKey(typeName)) {
+            return this.genericTypes.get(typeName);
         }
         
         if(this.structTypes.containsKey(typeName)) {
@@ -471,7 +468,7 @@ public class Module {
             return this.funcTypes.get(typeName);
         }
         
-        if(this.funcTypes.containsKey(typeName)) {
+        if(this.typedefTypes.containsKey(typeName)) {
             return this.typedefTypes.get(typeName);
         }
         
@@ -482,15 +479,15 @@ public class Module {
         return this.typedefTypes.get(typeName);
     }
         
-    public void addGenericType(Module genericTypeModule, Module declared, Decl decl) {
-        decl.sym.genericDeclaration = genericTypeModule;
-        decl.sym.declared = declared;
-        this.genericTypes.put(decl.name, new Tuple<>(genericTypeModule, decl));
-    }
-    
-    public List<Tuple<Module, Decl>> getGenericTypes() {
-        return new ArrayList<>(this.genericTypes.values());
-    }
+//    public void addGenericType(Module genericTypeModule, Module declared, Decl decl) {
+//        decl.sym.genericDeclaration = genericTypeModule;
+//        decl.sym.declared = declared;
+//        this.genericTypes.put(decl.name, new Tuple<>(genericTypeModule, decl));
+//    }
+//    
+//    public List<Tuple<Module, Decl>> getGenericTypes() {
+//        return new ArrayList<>(this.genericTypes.values());
+//    }
              
     public Scope pushScope() {
         this.currentScope = this.currentScope.pushLocalScope();

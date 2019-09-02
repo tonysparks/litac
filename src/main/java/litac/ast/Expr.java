@@ -248,28 +248,26 @@ public abstract class Expr extends Stmt {
             super(kind);
             this.genericArgs = Collections.emptyList();
         }
+        
+        protected void setGenericArgs(List<TypeSpec> genArgs) {
+            this.genericArgs = genArgs;
+        }
+        
+        public void addGenericArg(TypeSpec arg) {
+            this.genericArgs.add(arg);
+        }
     }
     
     public static class InitExpr extends GenericExpr {
-        public TypeSpec type;
+        public NameTypeSpec type;
         public List<InitArgExpr> arguments;
         
-        public InitExpr(TypeSpec type, List<InitArgExpr> arguments) {
+        public InitExpr(NameTypeSpec type, List<InitArgExpr> arguments) {
             super(ExprKind.INIT);
             this.type = type;
             this.arguments = becomeParentOf(arguments);            
         }
-        
-//        @Override
-//        public void resolveTo(TypeInfo type) {        
-//            super.resolveTo(type);
-//            this.type = type;
-//            
-//            if(type.hasGenericArgs()) {
-//                this.genericArgs = type.getGenericArgs();
-//            }
-//        }
-        
+                
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
@@ -277,7 +275,8 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new InitExpr(TypeSpec.copy(this.type), copy(this.arguments));
+            NameTypeSpec nameSpec = (this.type != null) ? TypeSpec.copy(this.type).as() : null;
+            return new InitExpr(nameSpec, copy(this.arguments));
         }
     }
     
@@ -650,78 +649,19 @@ public abstract class Expr extends Stmt {
     }
 
     public static class IdentifierExpr extends GenericExpr {
-        //public String variable;
         public NameTypeSpec type;
         public Symbol sym;
         
-//        public IdentifierExpr(String variable) {
-//            this(variable, Collections.emptyList());
-//        }
-        
-        //public IdentifierExpr(String variable, List<TypeSpec> genericArgs) {
         public IdentifierExpr(NameTypeSpec typeSpec) {
             super(ExprKind.IDENTIFER);
-            //this.variable = variable;
             this.type = typeSpec;
             this.genericArgs = typeSpec.genericArgs;
-            
-            //resolveTo(type);
         }
-
-//        public List<TypeInfo> getGenericArgs() {
-//            if(this.type.hasGenericArgs()) {                
-//                return this.type.getGenericArgs();
-//            }
-//            
-//            return Collections.emptyList();
-//        }
-//        
-//        public void setGenericArgs(List<TypeInfo> genericArgs) {            
-//            if(this.type instanceof IdentifierTypeInfo) {
-//                IdentifierTypeInfo idInfo = (IdentifierTypeInfo) this.type;
-//                idInfo.genericArgs = genericArgs;
-//            }
-//        }
         
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
-        
-//        @Override
-//        public void unresolve() {
-//            if(this.type instanceof IdentifierTypeInfo) {
-//                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)this.type;
-//                idInfo.resolvedType = null;
-//            }
-//            
-//            
-//            super.unresolve();
-//        }
-        /*
-        @Override
-        public void resolveTo(TypeInfo type) {
-//            if(this.type != type) {
-//                this.type = type;
-//            }
-            if(type.hasGenericArgs()) {
-                setGenericArgs(type.getGenericArgs());
-            }
-            
-            super.resolveTo(type);
-        }
-        
-        @Override
-        public boolean isResolved() {         
-            return this.type != null && this.type.isResolved();
-        }
-        
-        // Think about this???
-        @Override
-        public TypeInfo getResolvedType() {
-            return this.type;
-            //return super.getResolvedType();
-        }*/
 
         @Override
         protected Node doCopy() {            
@@ -733,11 +673,6 @@ public abstract class Expr extends Stmt {
 
     public static class FuncIdentifierExpr extends IdentifierExpr {
 
-//        public FuncIdentifierExpr(String variable) {
-//            super(variable);
-//        }
-        
-//        public FuncIdentifierExpr(String variable, List<TypeSpec> genericArgs) {
         public FuncIdentifierExpr(NameTypeSpec typeSpec) {
             super(typeSpec);
             this.kind = ExprKind.FUNC_IDENTIFIER;
@@ -757,14 +692,6 @@ public abstract class Expr extends Stmt {
     }
     
     public static class TypeIdentifierExpr extends IdentifierExpr {
-        
-//        public TypeIdentifierExpr(String variable) {
-//            super(variable);
-//        }
-//        
-//        public TypeIdentifierExpr(String variable, List<TypeSpec> genericArgs) {
-//            super(variable);
-//        }
 
         public TypeIdentifierExpr(NameTypeSpec typeSpec) {
             super(typeSpec);
