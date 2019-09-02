@@ -589,8 +589,7 @@ public class CGenNodeVisitor implements NodeVisitor {
         return String.format("%s%s", this.options.symbolPrefix, name);
     }
     
-    private String cTypeName(TypeInfo type) {        
-        type = type.getResolvedType();
+    private String cTypeName(TypeInfo type) {
         String typeName = Names.escapeName(type);
         
         if(type.sym == null) {
@@ -1244,7 +1243,7 @@ public class CGenNodeVisitor implements NodeVisitor {
             stmt.returnExpr != null) {
             
             //TypeInfo type = stmt.returnExpr.getResolvedType().getResolvedType();
-            TypeInfo type = this.currentFuncType.peek().returnType.getResolvedType();
+            TypeInfo type = this.currentFuncType.peek().returnType;
             buf.out("{\n%s = ", typeDeclForC(type, "___result"));
             stmt.returnExpr.visit(this);
             buf.out(";\n");
@@ -1647,11 +1646,11 @@ public class CGenNodeVisitor implements NodeVisitor {
         
         TypeInfo objectInfo = expr.object.getResolvedType().type;
         if(objectInfo.isKind(TypeKind.Enum)) {
-            if(isForeign(objectInfo.getResolvedType())) {
+            if(isForeign(objectInfo)) {
                 buf.out("%s", expr.field.type.name);
             }
             else {
-                buf.out("%s_%s", cName(objectInfo.getResolvedType().sym), expr.field.type.name);
+                buf.out("%s_%s", cName(objectInfo.sym), expr.field.type.name);
             }
         }
         else {

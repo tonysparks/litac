@@ -68,7 +68,7 @@ public class DependencyGraph {
             AggregateTypeInfo aggInfo = state.decl.sym.type.as();
             for(FieldInfo field : aggInfo.fieldInfos) {
                 if(TypeInfo.isAggregate(field.type)) {
-                    Symbol sym = field.type.getResolvedType().sym;
+                    Symbol sym = field.type.sym;
                     if(sym != null) {
                         DeclState other = states.get(sym.decl);
                         if(other != null) {

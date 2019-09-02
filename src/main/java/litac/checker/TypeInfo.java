@@ -123,11 +123,7 @@ public abstract class TypeInfo {
     }
 
     public static boolean isFloat(TypeInfo type) {
-        switch(type.getKind()) {
-            case Identifier: {
-                IdentifierTypeInfo idType = type.as();
-                return isFloat(idType.getResolvedType());
-            }
+        switch(type.getKind()) {            
             case f32:
             case f64:
                 return true;
@@ -137,11 +133,7 @@ public abstract class TypeInfo {
     }
     
     public static boolean isUnsignedInteger(TypeInfo type) {
-        switch(type.getKind()) {
-            case Identifier: {
-                IdentifierTypeInfo idType = type.as();
-                return isUnsignedInteger(idType.getResolvedType());
-            }
+        switch(type.getKind()) {            
             case Bool:
             case u16:
             case u32:
@@ -155,11 +147,7 @@ public abstract class TypeInfo {
 
     
     public static boolean isSignedInteger(TypeInfo type) {
-        switch(type.getKind()) {
-            case Identifier: {
-                IdentifierTypeInfo idType = type.as();
-                return isSignedInteger(idType.getResolvedType());
-            }
+        switch(type.getKind()) {            
             case Bool:
             case Char:
             case Enum:
@@ -174,11 +162,7 @@ public abstract class TypeInfo {
     }
     
     public static boolean isInteger(TypeInfo type) {
-        switch(type.getKind()) {
-            case Identifier: {
-                IdentifierTypeInfo idType = type.as();
-                return isInteger(idType.getResolvedType());
-            }
+        switch(type.getKind()) {            
             case Const: {
                 ConstTypeInfo constInfo = type.as();
                 return isInteger(constInfo.constOf);
@@ -202,11 +186,7 @@ public abstract class TypeInfo {
     }
     
     public static boolean isNumber(TypeInfo type) {
-        switch(type.getKind()) {
-            case Identifier: {
-                IdentifierTypeInfo idType = type.as();
-                return isNumber(idType.getResolvedType());
-            }
+        switch(type.getKind()) {            
             case Bool:
             case Char:
             case Enum:
@@ -228,8 +208,7 @@ public abstract class TypeInfo {
         }
     }
     
-    public static boolean isFunc(TypeInfo type) {
-        type = type.isResolved() ? type.getResolvedType() : type;
+    public static boolean isFunc(TypeInfo type) {        
         if(type.isKind(TypeKind.Func) || type.isKind(TypeKind.FuncPtr)) {
             return true;
         }
@@ -237,8 +216,7 @@ public abstract class TypeInfo {
         return false;
     }
     
-    public static boolean isAggregate(TypeInfo type) {
-        type = type.isResolved() ? type.getResolvedType() : type;
+    public static boolean isAggregate(TypeInfo type) {        
         if(type.isKind(TypeKind.Const)) {
             ConstTypeInfo constInfo = type.as();
             return isAggregate(constInfo.constOf);
@@ -247,8 +225,7 @@ public abstract class TypeInfo {
         return type.isKind(TypeKind.Struct) || type.isKind(TypeKind.Union);
     }
     
-    public static boolean isPtrAggregate(TypeInfo type) {
-        type = type.getResolvedType();
+    public static boolean isPtrAggregate(TypeInfo type) {        
         if(isPtr(type)) {
             PtrTypeInfo ptrInfo = type.as();
             return isAggregate(ptrInfo.ptrOf);
@@ -265,7 +242,6 @@ public abstract class TypeInfo {
     }
     
     public static boolean isPtrLike(TypeInfo type) {
-        type = type.getResolvedType();
         if(type.isKind(TypeKind.Ptr) || 
            type.isKind(TypeKind.Str) || 
            type.isKind(TypeKind.Array)) {
@@ -276,7 +252,6 @@ public abstract class TypeInfo {
     }
     
     public static boolean isPtr(TypeInfo type) {
-        type = type.getResolvedType();
         if(type.isKind(TypeKind.Ptr)) {
             return true;
         }
@@ -320,7 +295,7 @@ public abstract class TypeInfo {
         Void,
         Const,
         
-        Identifier,
+        GenericParam,
         ;
         
         public static TypeKind fromString(String str) {
@@ -365,10 +340,6 @@ public abstract class TypeInfo {
         return false;
     }
     
-    public boolean isGenericParam() {
-        return false;
-    }
-    
     public boolean hasGenerics() {
         return false;
     }
@@ -380,9 +351,6 @@ public abstract class TypeInfo {
 //    public List<TypeInfo> getGenericArgs() {
 //        return Collections.emptyList();
 //    }
-    
-    public void clearGenericArgs() {        
-    }
     
     public boolean isKind(TypeKind kind) {
         return this.kind == kind;
@@ -409,41 +377,13 @@ public abstract class TypeInfo {
     public boolean isPrimitive() {
         return false;
     }
-
-    public boolean isResolved() {
-        return true;
-    }
     
-    public TypeInfo getResolvedType() {
-        return this;
-    }
-    
-    public boolean isGreater(TypeInfo type) {
-        if(this == type) {
+    public boolean isGreater(TypeInfo other) {
+        if(this == other) {
             return false;
         }
-        
-        TypeInfo me = this;
-        if(this.kind == TypeKind.Identifier) {
-            IdentifierTypeInfo idInfo = (IdentifierTypeInfo)this;
-            if(!idInfo.isResolved()) {
-                return false;
-            }
-            
-            me = idInfo.resolvedType;            
-        }
-        
-        TypeInfo them = type;
-        if(type.kind == TypeKind.Identifier) {
-            IdentifierTypeInfo idInfo = (IdentifierTypeInfo)type;
-            if(!idInfo.isResolved()) {
-                return false;
-            }
-            
-            them = idInfo.resolvedType;
-        }
-        
-        return me.kind.ordinal() > them.kind.ordinal();
+                
+        return this.kind.ordinal() > other.kind.ordinal();
     }
         
     public boolean strictEquals(TypeInfo other) {
@@ -452,7 +392,7 @@ public abstract class TypeInfo {
         }
         
         if(other.isKind(this.getKind())) {
-            return other.getResolvedType().getName().equals(this.getResolvedType().getName());
+            return other.getName().equals(this.getName());
         }
         
         return false;
@@ -567,9 +507,9 @@ public abstract class TypeInfo {
             }
             
             if(other.isKind(this.getKind())) {
-                GenericTypeInfo genInfo = (GenericTypeInfo)other.getResolvedType();
+                GenericTypeInfo genInfo = other.as();
                 if(genInfo.hasGenerics() && this.hasGenerics()) {
-                    return genInfo.getName().equals(this.getResolvedType().getName());
+                    return genInfo.getName().equals(this.getName());
                 }
                 
                 return genInfo.getBaseName()
@@ -597,18 +537,23 @@ public abstract class TypeInfo {
                           int flags) {
             super(kind, name, genericParams);
             
-            this.fieldInfos = fieldInfos;
+            this.fieldInfos = new ArrayList<>();
             this.flags = flags;
             this.pathCache = new HashMap<>();
             
             for(FieldInfo field : fieldInfos) {
-                if(field.attributes.isUsing()) {
-                    if(this.usingInfos == null) {
-                        this.usingInfos = new ArrayList<>();
-                    }
-                    
-                    this.usingInfos.add(field);
+                addField(field);
+            }
+        }
+        
+        public void addField(FieldInfo field) {
+            this.fieldInfos.add(field);
+            if(field.attributes.isUsing()) {
+                if(this.usingInfos == null) {
+                    this.usingInfos = new ArrayList<>();
                 }
+                
+                this.usingInfos.add(field);
             }
         }
         
@@ -1211,17 +1156,12 @@ public abstract class TypeInfo {
                 
         @Override
         public String getName() {
-            return ptrOf.getResolvedType().getName() + "*";
+            return ptrOf.getName() + "*";
         }
         
         @Override
         public String toString() {    
-            return ptrOf.getResolvedType().toString() + "*";
-        }
-        
-        @Override
-        public boolean isResolved() {
-            return ptrOf.isResolved();
+            return ptrOf.toString() + "*";
         }
                 
         @Override
@@ -1234,12 +1174,12 @@ public abstract class TypeInfo {
             
             if(target.isKind(TypeKind.Const) && !isConstPtr) {
                 ConstTypeInfo constInfo = target.as();
-                return canCastTo(constInfo.constOf.getResolvedType());
+                return canCastTo(constInfo.constOf);
             }
             
             if(target.isKind(TypeKind.Array)) {
                 ArrayTypeInfo arrayInfo = target.as();
-                return this.ptrOf.getResolvedType().canCastTo(arrayInfo.arrayOf.getResolvedType());
+                return this.ptrOf.canCastTo(arrayInfo.arrayOf);
             }
             
             if(target.isKind(TypeKind.Null)) {
@@ -1275,7 +1215,7 @@ public abstract class TypeInfo {
                     return true;
                 }
                                 
-                return this.ptrOf.getResolvedType().canCastTo(targetPtrOf.getResolvedType());
+                return this.ptrOf.canCastTo(targetPtrOf);
             }
             
             if(target.isKind(TypeKind.Str)) {
@@ -1315,17 +1255,12 @@ public abstract class TypeInfo {
                 
         @Override
         public String getName() {
-            return this.constOf.getResolvedType().getName() + " const";
+            return this.constOf.getName() + " const";
         }
         
         @Override
         public String toString() {    
             return getName();
-        }
-        
-        @Override
-        public boolean isResolved() {
-            return constOf.isResolved();
         }
         
         public TypeInfo getBaseType() {
@@ -1404,17 +1339,12 @@ public abstract class TypeInfo {
         
         @Override
         public String getName() {        
-            return arrayOf.getResolvedType().getName() + "[]";
+            return arrayOf.getName() + "[]";
         }
         
         @Override
         public String toString() {
-            return String.format("[%s]%s", this.length > -1 ? String.valueOf(this.length) : "", arrayOf.getResolvedType().getName());
-        }
-        
-        @Override
-        public boolean isResolved() {
-            return arrayOf.isResolved();
+            return String.format("[%s]%s", this.length > -1 ? String.valueOf(this.length) : "", arrayOf.getName());
         }
         
         @Override
@@ -1442,7 +1372,7 @@ public abstract class TypeInfo {
             
             if(target.isKind(TypeKind.Ptr)) {
                 PtrTypeInfo ptrInfo = target.as();
-                return this.arrayOf.canCastTo(ptrInfo.ptrOf.getResolvedType());
+                return this.arrayOf.canCastTo(ptrInfo.ptrOf);
             }
             
             if(target.isKind(TypeKind.Bool)) {
@@ -1572,7 +1502,7 @@ public abstract class TypeInfo {
         public String genericName;
         
         public GenericParamTypeInfo(String genericName) {
-            super(TypeKind.Identifier, genericName);
+            super(TypeKind.GenericParam, genericName);
             this.genericName = genericName;
         }
         
@@ -1587,235 +1517,4 @@ public abstract class TypeInfo {
         }
     }
     
-    public static class IdentifierTypeInfo extends TypeInfo {
-        public List<TypeInfo> genericArgs;
-        public TypeInfo resolvedType;
-        public String identifier;
-        
-        private boolean isGenericParam;
-        
-        public IdentifierTypeInfo(String identifier, List<TypeInfo> genericArgs) {
-            super(TypeKind.Identifier, identifier);
-            this.genericArgs = genericArgs;
-            this.identifier = identifier;
-            this.resolvedType = null;
-            this.isGenericParam = false;
-        }
-
-        @Override
-        public long getTypeId() {
-            if(isResolved()) {
-                return this.resolvedType.getTypeId();
-            }
-            
-            return 0; /* Undefined typeId */
-        }
-        
-        @Override
-        protected TypeInfo doCopy() {
-            IdentifierTypeInfo info = new IdentifierTypeInfo(this.identifier, copy(this.genericArgs));
-            info.resolvedType = copy(this.resolvedType);
-            return info;
-        }
-        
-        @Override
-        public String toString() {   
-            if(isResolved()) {
-                return this.resolvedType.toString();
-            }
-            return "[unresolved] : " + this.identifier;
-        }
-        
-        @Override
-        public boolean isGenericParam() {
-            return this.isGenericParam;
-        }
-        
-        /**
-         * Denotes this as a generic argument
-         */
-        public void makeGenericParam() {
-            this.isGenericParam = true;
-        }
-        
-        @Override
-        public void clearGenericArgs() {
-            this.genericArgs.clear();
-            if(this.resolvedType instanceof IdentifierTypeInfo) {
-                ((IdentifierTypeInfo)this.resolvedType).clearGenericArgs();
-            }
-        }
-        
-        @Override
-        public boolean isResolved() {
-            return this.resolvedType != null &&                    
-                   this.resolvedType.isResolved();
-        }
-        
-//        @Override
-//        public boolean hasGenericArgs() {            
-//            if(this.genericArgs != null && !this.genericArgs.isEmpty()) {
-//                return true;
-//            }
-//            if(this.resolvedType != null && this.resolvedType instanceof IdentifierTypeInfo) {
-//                return this.resolvedType.hasGenericArgs();
-//            }
-//            
-//            return false;
-//        }
-        
-        @Override
-        public boolean hasGenerics() {
-            if(isResolved()) {
-                return getResolvedType().hasGenerics();
-            }
-            
-            return false;
-        }
-        
-//        @Override
-//        public List<TypeInfo> getGenericArgs() {
-//            if(this.genericArgs != null && !this.genericArgs.isEmpty()) {
-//                return this.genericArgs;
-//            }
-//            
-//            if(this.resolvedType != null && this.resolvedType instanceof IdentifierTypeInfo) {
-//                return this.resolvedType.getGenericArgs();
-//            }
-//            
-//            return this.genericArgs;
-//        }
-        
-        @Override
-        public TypeInfo getResolvedType() {
-            if(resolvedType != null) {
-                return resolvedType.getResolvedType();
-            }
-            
-            return this;
-        }
-        
-        private TypeInfo updateGenericParam(TypeInfo type, List<GenericParam> oldNames, List<TypeInfo> newTypes) {
-            switch(type.getKind()) {
-                case FuncPtr: {
-                    FuncPtrTypeInfo funcInfo = type.as();
-                    funcInfo.returnType = updateGenericParam(funcInfo.returnType, oldNames, newTypes);
-                    int i = 0;
-                    for(TypeInfo param : funcInfo.params) {
-                        funcInfo.params.set(i++, updateGenericParam(param, oldNames, newTypes));
-                    }
-                    return funcInfo;
-                }
-                case Identifier: {
-                    for(int i = 0; i < oldNames.size(); i++) {
-                        if(type.getName().equals(oldNames.get(i).name)) {
-                            return newTypes.get(i);
-                        }
-                    }
-                    // Error??
-                    break;
-                }
-                case Struct:
-                case Union: {
-                    AggregateTypeInfo aggInfo = type.as();
-                    for(FieldInfo field : aggInfo.fieldInfos) {
-                        field.type= updateGenericParam(field.type, oldNames, newTypes);
-                    }
-                    
-                    break;
-                }
-                default: {
-                    return type;
-                }
-            }
-            
-            return type;
-        }
-        
-        public void resolve(Module module, TypeInfo resolvedTo, boolean resolveGenerics) {
-            if(resolvedTo != null) {
-                if(resolveGenerics) {
-    //                resolvedTo = Generics.createFromGenericTypeInfo(module, resolvedTo, this.genericArgs);
-                }
-                else {
-                    // TODO: Need to replace Supplied Generic Args with defined Args if the type 
-                    // is a Typedef
-                    if(resolvedTo.isKind(TypeKind.FuncPtr)) {
-                        if((resolvedTo instanceof GenericTypeInfo) && !this.genericArgs.isEmpty()) {
-                            resolvedTo = resolvedTo.copy();
-                            GenericTypeInfo genInfo = (GenericTypeInfo)resolvedTo;
-                            resolvedTo = updateGenericParam(resolvedTo, genInfo.genericParams, this.genericArgs);
-                            genInfo = (GenericTypeInfo)resolvedTo;                        
-                            
-                            genInfo.genericParams.clear();
-                            for(TypeInfo p : this.genericArgs) {
-                                genInfo.genericParams.add(new GenericParam(p.getName()));
-                            }          
-                        }                    
-                    }
-                    
-                }
-                
-                if(resolvedTo != this) {
-                    this.resolvedType = resolvedTo;
-                }
-            }
-        }
-        
-        @Override
-        public boolean isAnonymous() {
-            if(isResolved()) {
-                return this.resolvedType.isAnonymous();
-            }
-            
-            return super.isAnonymous();
-        }
-        
-        @Override
-        public boolean isKind(TypeKind kind) {
-            if(isResolved()) {
-                return this.resolvedType.isKind(kind);
-            }
-            
-            return super.isKind(kind);
-        }
-        
-        @Override
-        public TypeKind getKind() {
-            if(isResolved()) {
-                return this.resolvedType.getKind();
-            }
-            
-            return super.getKind();
-        }
-        
-        @Override
-        @SuppressWarnings("unchecked")
-        public <T extends TypeInfo> T as() {
-            if(isResolved()) {
-                return (T) this.resolvedType.as();
-            }
-            
-            return (T) this;
-        }
-        
-        @Override
-        public boolean canCastTo(TypeInfo target) {
-            if(target == this) {
-                return true;
-            }
-                        
-            if(target.isKind(this.kind)) {
-                IdentifierTypeInfo idInfo = target.as();
-                if(isResolved() && idInfo.isResolved()) {
-                    return this.resolvedType.canCastTo(idInfo.getResolvedType());
-                }
-            }
-            else if(isResolved()) {
-                return this.resolvedType.canCastTo(target);
-            }
-                
-            return false;
-        }
-    }
 }

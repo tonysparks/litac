@@ -61,7 +61,7 @@ public class Compiler {
         try(Segment s = Profiler.startSegment("Type Checker")) {
 //            TypeResolver resolver = new TypeResolver(result, unit);        
 //            TypeChecker checker = new TypeChecker(result);
-            Resolver resolver = new Resolver(result, unit);
+            TypeResolver resolver = new TypeResolver(result, unit);
                     
             Program program = resolver.resolveTypes();
             if(!result.hasErrors()) {

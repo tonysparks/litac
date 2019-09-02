@@ -16,14 +16,14 @@ import litac.compiler.*;
 import litac.compiler.Symbol.*;
 import litac.generics.*;
 import litac.parser.tokens.TokenType;
-import litac.util.Names;
+import litac.util.*;
 import litac.util.Stack;
 
 /**
  * @author antho
  *
  */
-public class Resolver {
+public class TypeResolver {
 
     private class TypeCheckException extends RuntimeException {        
         private static final long serialVersionUID = 4636780657825316494L;
@@ -75,12 +75,11 @@ public class Resolver {
     private CompilationUnit unit;
     private PhaseResult result;
     private Map<String, Module> resolvedModules;
-   // private Map<String, Tuple<Module,Decl>> genericTypes;
+    private Map<String, Boolean> labels;
     
     private List<Symbol> moduleSymbols;
     private List<Symbol> moduleFuncs;
     private Stack<Module> currentModule;
-    //private Module current;
     private Module root;
     
     // Types pending to be completed
@@ -95,8 +94,9 @@ public class Resolver {
     private boolean isTrying;
     
     private Map<TypeSpec, Module> genericMap;
+    private FuncTypeInfo currentFunc;
     
-    public Resolver(PhaseResult result, 
+    public TypeResolver(PhaseResult result, 
                     CompilationUnit unit) {
         
         this.result = result;
@@ -110,6 +110,8 @@ public class Resolver {
         
         this.resolvedModules = new HashMap<>();
         this.resolvedTypeMap = new HashMap<>();
+        
+        this.labels = new HashMap<>();
         
         this.genericStack = new Stack<>();
         this.currentModule = new Stack<>();
@@ -332,6 +334,7 @@ public class Resolver {
                 case ENUM: {
                     EnumDecl enumDecl = (EnumDecl) decl;
                     Symbol sym = module.declareEnum(enumDecl, enumDecl.name);
+                    
                     this.moduleSymbols.add(sym);
                     break;
                 }
@@ -421,11 +424,13 @@ public class Resolver {
                         EnumDecl enumDecl = (EnumDecl)sym.decl;
                         sym.type = enumTypeInfo(enumDecl);     
                         sym.type.sym = sym;
+                        
+                        createEnumAsStr(enumDecl, sym);
                         break;
                     case TYPEDEF:
                         TypedefDecl typedefDecl = (TypedefDecl) sym.decl;
                         sym.type = resolveTypeSpec(typedefDecl.type);
-                        sym.type.sym = sym;
+                        //sym.type.sym = sym;
                         break;
                     case STRUCT:                        
                         StructDecl structDecl = (StructDecl) sym.decl;                        
@@ -462,6 +467,39 @@ public class Resolver {
         sym.state = ResolveState.RESOLVED;
         leaveModule();
     }        
+    
+    private Symbol createEnumAsStr(EnumDecl enumDecl, Symbol enumSym) {
+        NoteStmt asStr = enumDecl.attributes.getNote("asStr");
+        if(asStr == null) {
+            return null;
+        }
+        
+        String funcName = asStr.getAttr(0, enumDecl.name + "AsStr");
+        FuncTypeInfo asStrFuncInfo = new FuncTypeInfo(funcName, 
+                                                      new PtrTypeInfo(new ConstTypeInfo(TypeInfo.CHAR_TYPE)), 
+                                                      Arrays.asList(new ParamInfo(enumSym.type, "e", null, new Attributes())), 
+                                                      0, 
+                                                      Collections.emptyList());
+        
+        ParameterDecl param = new ParameterDecl(enumSym.type.asTypeSpec(), "e", null, 0);
+        FuncDecl funcDecl = new FuncDecl(asStrFuncInfo.name, 
+                                         new ParametersStmt(Arrays.asList(param), false),   
+                                         new EmptyStmt(),
+                                         asStrFuncInfo.returnType.asTypeSpec(), 
+                                         Collections.emptyList(), 0);
+        
+        // Name must match CGen.visit(EnumDecl)
+        funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + current().name() + "_" + enumDecl.name + "_AsStr")));
+        funcDecl.attributes.isGlobal = true;
+        funcDecl.attributes.isPublic = true;
+        
+        Symbol sym = current().declareFunc(funcDecl, asStrFuncInfo.name);
+        sym.type = asStrFuncInfo;
+        sym.type.sym = sym;
+        
+        return sym;
+        
+    }
     
     private void typeCheck(SrcPos pos, TypeInfo a, TypeInfo b) {
         typeCheck(pos, a, b, false);
@@ -551,31 +589,47 @@ public class Resolver {
                 ? inferredType : declaredType;
     }
     
-    private void finishResolveSym(Symbol sym) {
-        if(sym.decl.kind != DeclKind.STRUCT && sym.decl.kind != DeclKind.UNION) {
-            //this.result.addError(sym.decl.getSrcPos(), "Attempting to finish resolving a declaration of type: '%s'", sym.decl.kind.name());
-            return;
+    private void finishResolveSym(Symbol sym) {        
+        switch(sym.decl.kind) {
+            case STRUCT:
+            case UNION: {
+                enterModule(sym.getDeclaredModule());
+                
+                
+                AggregateDecl aggDecl = (AggregateDecl) sym.decl;
+                if(aggDecl.hasGenericParams()) {
+                    this.genericStack.add(aggDecl.genericParams);
+                }
+                
+                // TODO: Mark TypeInfo as completed, otherwise we redo work!!
+                AggregateTypeInfo aggInfo = sym.type.as();        
+                for(FieldStmt field : aggDecl.fields) {
+                    FieldInfo info = resolveFieldInfo(sym, field);
+                    aggInfo.addField(info);
+                }        
+                
+                sym.decl.visit(stmtVisitor);
+                
+                if(aggDecl.hasGenericParams()) {
+                    this.genericStack.pop();
+                }
+                
+                
+                leaveModule();
+                break;
+            }
+            case ENUM: {
+                sym.decl.visit(stmtVisitor);
+                break;
+            }
+            case TYPEDEF: {
+                sym.decl.visit(stmtVisitor);
+                break;
+            }
+            default:
+                /* funcs/vars/const must be handled after other declarations 
+                 */
         }
-        
-        enterModule(sym.getDeclaredModule());
-        
-        AggregateDecl aggDecl = (AggregateDecl) sym.decl;
-        if(aggDecl.hasGenericParams()) {
-            this.genericStack.add(aggDecl.genericParams);
-        }
-        
-        // TODO: Mark TypeInfo as completed, otherwise we redo work!!
-        AggregateTypeInfo aggInfo = sym.type.as();        
-        for(FieldStmt field : aggDecl.fields) {
-            FieldInfo info = resolveFieldInfo(sym, field);
-            aggInfo.fieldInfos.add(info);
-        }        
-        
-        if(aggDecl.hasGenericParams()) {
-            this.genericStack.pop();
-        }
-        
-        leaveModule();
     }
     
     
@@ -585,7 +639,7 @@ public class Resolver {
         
         if (stmt instanceof VarFieldStmt) {
             VarFieldStmt var = (VarFieldStmt) stmt;
-            enterModule(parentSym.getModuleForType(var.type));
+            enterModuleFor(parentSym); ///(parentSym.getModuleForType(var.type));
             TypeInfo type = resolveTypeSpec(var.type);
             leaveModule();
             
@@ -1274,9 +1328,13 @@ public class Resolver {
                 return null;
             }
             
-            // TODO: Calculate proper enum value
-            Operand val = resolveConstExpr(field.value);
-            fieldOp = Operand.opConst(enumInfo.getFieldType(), val.val);
+            // TODO: Calculate proper enum value            
+            Object val = null;
+            if(field.value != null) {
+                val = resolveConstExpr(field.value).val;
+            }
+            
+            fieldOp = Operand.opConst(enumInfo.getFieldType(), val);
         }
         else {
             if(!TypeInfo.isFieldAccessible(objOp.type)) {
@@ -1460,11 +1518,11 @@ public class Resolver {
             case SLASH:
                 
                 if(!TypeInfo.isNumber(leftType) && !leftType.isKind(TypeKind.Ptr) && !leftType.isKind(TypeKind.Str)) {
-                    error(expr.left, "illegal, left operand has type '%s'", leftType.getResolvedType().getName());
+                    error(expr.left, "illegal, left operand has type '%s'", leftType.getName());
                 }
                 
                 if(!TypeInfo.isNumber(rightType) && !rightType.isKind(TypeKind.Ptr) && !rightType.isKind(TypeKind.Str)) {
-                    error(expr.right, "illegal, right operand has type '%s'", rightType.getResolvedType().getName());
+                    error(expr.right, "illegal, right operand has type '%s'", rightType.getName());
                 }
                 
                 break;
@@ -1578,6 +1636,31 @@ public class Resolver {
         }
     }
     
+    private void checkDuplicateFields(Stmt stmt, AggregateTypeInfo aggInfo, Map<String, Tuple<AggregateTypeInfo, FieldInfo>> definedFields) {
+        for(FieldInfo field : aggInfo.fieldInfos) {
+            if(definedFields.containsKey(field.name)) {
+                Tuple<AggregateTypeInfo, FieldInfo> tuple = definedFields.get(field.name);
+                boolean isSame = aggInfo.name.equals(tuple.getFirst().name);
+                
+                if(!isSame) {
+                    this.result.addError(stmt, "duplicate member '%s' in '%s' and '%s'", 
+                            field.name, aggInfo.name, tuple.getFirst().name);
+                }
+                else {
+                    this.result.addError(stmt, "duplicate member '%s' in '%s'", 
+                            field.name, aggInfo.name);
+                }
+            }
+            definedFields.put(field.name, new Tuple<>(aggInfo, field));
+            
+            if(field.attributes.isUsing()) {
+                if(field.type.isKind(TypeKind.Struct) || field.type.isKind(TypeKind.Union)) {
+                    checkDuplicateFields(stmt, field.type.as(), definedFields);
+                }                
+            }
+        }
+    }
+    
     private void addTypeToScope(Decl p, Scope scope, TypeInfo currentType) {        
         AggregateTypeInfo aggInfo = (currentType.isKind(TypeKind.Ptr)) 
                                         ? ((PtrTypeInfo)currentType).ptrOf.as()
@@ -1629,7 +1712,7 @@ public class Resolver {
     
     private TypeInfo inferredType(String genericName, TypeInfo paramType, TypeInfo argumentType) {
         if(paramType.getName().equals(genericName)) {
-            return argumentType.getResolvedType();
+            return argumentType;
         }
         
         if(!paramType.getKind().equals(argumentType.getKind())) {
@@ -1712,8 +1795,6 @@ public class Resolver {
                 }
                 break;
             }
-            case Identifier:
-                break;
             default:
                 break;            
         }
@@ -1811,7 +1892,7 @@ public class Resolver {
                     break;
                 }
                 
-                TypeInfo inferredType = inferredType(p.name, paramType, suppliedArguments.get(j).getResolvedType());
+                TypeInfo inferredType = inferredType(p.name, paramType, suppliedArguments.get(j));
                 if(inferredType != null) {
                     nameSpec.genericArgs.add(inferredType.asTypeSpec());
                     break;
@@ -1969,6 +2050,10 @@ public class Resolver {
         public void visit(ReturnStmt stmt) {
             if(stmt.returnExpr != null) {
                 stmt.returnExpr.visit(this);
+                typeCheck(stmt.getSrcPos(), stmt.returnExpr.getResolvedType().type, currentFunc.returnType);
+            }
+            else {
+                typeCheck(stmt.getSrcPos(), TypeInfo.VOID_TYPE, currentFunc.returnType);
             }
         }
 
@@ -2013,14 +2098,23 @@ public class Resolver {
 
         @Override
         public void visit(GotoStmt stmt) {
+            labels.putIfAbsent(stmt.label, false);
         }
 
         @Override
         public void visit(LabelStmt stmt) {
+            labels.put(stmt.label, true);
         }
         
         @Override
         public void visit(StructDecl d) {
+            for(FieldStmt field : d.fields) {
+                field.visit(this);
+            }
+            
+            Map<String, Tuple<AggregateTypeInfo, FieldInfo>> definedFields = new HashMap<>();
+            AggregateTypeInfo aggInfo = d.sym.type.as();
+            checkDuplicateFields(d, aggInfo, definedFields);
         }
         
         @Override
@@ -2029,10 +2123,32 @@ public class Resolver {
         
         @Override
         public void visit(UnionDecl d) {
+            for(FieldStmt field : d.fields) {
+                field.visit(this);
+            }
+            
+            Map<String, Tuple<AggregateTypeInfo, FieldInfo>> definedFields = new HashMap<>();
+            AggregateTypeInfo aggInfo = d.sym.type.as();
+            checkDuplicateFields(d, aggInfo, definedFields);
         }
 
         @Override
-        public void visit(EnumDecl d) {            
+        public void visit(EnumDecl d) {
+            Map<String, EnumFieldInfo> definedFields = new HashMap<>();
+            for(EnumFieldInfo field : d.fields) {
+                if(field.value != null) {
+                    field.value.visit(this);
+                    Operand op = field.value.getResolvedType();
+                    typeCheck(field.value.getSrcPos(), op.type, TypeInfo.I32_TYPE);
+                }
+                
+                if(definedFields.containsKey(field.name)) {
+                    result.addError(d, "duplicate member '%s'", field.name);
+                    continue;
+                }
+                
+                definedFields.put(field.name, field);
+            }
         }
         
         @Override
@@ -2052,13 +2168,24 @@ public class Resolver {
         public void visit(FuncDecl d) {  
             Symbol sym = d.sym;
             enterModule(sym.getDeclaredModule());       
-            current().pushScope();            
+            current().pushScope();
+            
+            
+            
             for(ParameterDecl p : d.params.params) {
                 p.visit(this);
             }
             
             if(d.bodyStmt != null) {
+                labels.clear();
+                currentFunc = sym.type.as();
                 d.bodyStmt.visit(this);
+                
+                labels.forEach((label, isDefined) -> {
+                    if(!isDefined) {
+                        result.addError(d.bodyStmt, "'%s' label not found", label);
+                    }
+                });
             }
             
             current().popScope();

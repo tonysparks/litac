@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import litac.ast.TypeSpec.NameTypeSpec;
-import litac.checker.Resolver.Operand;
+import litac.checker.TypeResolver.Operand;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.compiler.Symbol;

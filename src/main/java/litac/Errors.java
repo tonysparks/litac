@@ -3,13 +3,9 @@
  */
 package litac;
 
-import litac.ast.Stmt;
 import litac.ast.Node.SrcPos;
-import litac.parser.ErrorCode;
-import litac.parser.ParseException;
-import litac.parser.Scanner;
-import litac.parser.tokens.Token;
-import litac.parser.tokens.TokenType;
+import litac.parser.*;
+import litac.parser.tokens.*;
 
 /**
  * @author Tony

@@ -440,9 +440,9 @@
                 var t = Test<i32> {.x = 4}
                 assert(t.call() == 4)
             '''
-        }*/
+        }
         
-        /*
+        
         { 
             name: "Generic Func Param in different module",
             definitions: '''
@@ -495,7 +495,7 @@
                 assert(x.x == 4)
             '''
         },
-        */
+        
         
         { 
             name: "Init inferrence",
@@ -511,6 +511,107 @@
                 //var m = defaultAllocator.alloc(24)
                // defer defaultAllocator.free(m)
             '''
-        }                                                     
+        }
+        
+        { 
+            name: "Enum asStr",
+            definitions: '''
+                @asStr
+                enum Test {
+                    X
+                }                            
+            ''',                                  
+            code: '''  
+                
+                var x = TestAsStr(Test.X)
+                //var x: i32* = null
+                //var m = defaultAllocator.alloc(24)
+               // defer defaultAllocator.free(m)
+            '''
+        },*/
+        
+        /*               
+        { 
+            name: "Fail Func Return TypeCheck",
+            definitions: '''
+                struct X {}
+                func test() : X{
+                    return 4
+                }                            
+            ''',                                  
+            code: '''  
+                
+            ''',
+            error: "'struct X' is not of type 'i32'"
+        },
+        
+        { 
+            name: "Func Return TypeCheck",
+            definitions: '''
+                struct X {}
+                func test() : X{
+                    return X{}
+                }                            
+            ''',                                  
+            code: '''  
+                
+            ''',
+        },*/
+        
+        /*
+        { 
+            name: "Fail Enum Duplicate Fields",
+            definitions: '''
+                enum X {
+                    Y,
+                    Y
+                }
+            ''',                                  
+            code: '''  
+                
+            ''',
+            error: "duplicate member 'Y'"
+        },
+        
+        { 
+            name: "Enum Fields Type Check",
+            definitions: '''
+                enum X {
+                    Z = 1,
+                    Y
+                }
+            ''',                                  
+            code: '''  
+                
+            ''',            
+        },*/
+        
+        { 
+            name: "Fail Struct Duplicate Fields",
+            definitions: '''
+                struct X {
+                    y: i32
+                    y: f32
+                }
+            ''',                                  
+            code: '''  
+                
+            ''',
+            error: "duplicate member 'y' in 'X'"
+        },
+        
+        { 
+            name: "Fail Union Duplicate Fields",
+            definitions: '''
+                union X {
+                    y: i32
+                    y: f32
+                }
+            ''',                                  
+            code: '''  
+                
+            ''',
+            error: "duplicate member 'y' in 'X'"
+        },
     ]
 }
