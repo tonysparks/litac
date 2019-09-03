@@ -89,6 +89,11 @@ public class Module {
         this.currentScope = new Scope(result, ScopeType.MODULE);
     }
 
+    @Override
+    public String toString() {
+        return this.name();
+    }
+    
     public Module getRoot() {
         return root != null ? root : this;
     }
@@ -443,7 +448,13 @@ public class Module {
     
     public Symbol getType(String typeName) {
         if(typeName.contains("::")) {
-            return this.importedAggregateTypes.get(typeName);
+            if (this.importedAggregateTypes.containsKey(typeName)) {
+                return this.importedAggregateTypes.get(typeName);
+            }
+            
+            if (this.importedFuncTypes.containsKey(typeName)) {
+                return this.importedFuncTypes.get(typeName);
+            }
         }
         
         if(this.genericTypes.containsKey(typeName)) {

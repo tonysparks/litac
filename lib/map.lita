@@ -5,8 +5,8 @@ import "assert";
 @include("<string.h>");
 @foreign func strcmp(a:char const*, b:char const*) : i32;
 
-public typedef func<K>(K) : u32 as HashFn;
-public typedef func<K>(K, K) : bool as EqualFn;
+public typedef func<K>(K) : u32 as HashFn<K>;
+public typedef func<K>(K, K) : bool as EqualFn<K>;
 
 // TODO: Fix binary expression with const
 public func StrHashFn(str: char const*) : u32 {

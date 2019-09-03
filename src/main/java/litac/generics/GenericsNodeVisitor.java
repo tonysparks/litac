@@ -82,9 +82,33 @@ public class GenericsNodeVisitor implements NodeVisitor {
                 ptrSpec.base = replaceType(ptrSpec.base);
                 return ptrSpec;
             }
-            case FUNC_PTR:
-                // TODO
-                return null;
+            case FUNC_PTR: {
+                FuncPtrTypeSpec funcSpec = type.as();
+                
+                List<TypeSpec> args = funcSpec.args;
+                for(int i = 0; i < args.size(); i++) {
+                    args.set(i, replaceType(args.get(i)));
+                }
+                
+                funcSpec.ret = replaceType(funcSpec.ret);
+                
+                for(int i = 0; i < funcSpec.genericParams.size();) {
+                    boolean isRemoved = false;
+                    for(GenericParam subParam : this.genericParams) {
+                        if(funcSpec.genericParams.get(i).name.equals(subParam.name)) {
+                            funcSpec.genericParams.remove(i);
+                            isRemoved = true;
+                            break;
+                        }
+                    }
+                    
+                    if(!isRemoved) {
+                        i++;           
+                    }
+                }
+                
+                return funcSpec;
+            }
             case NAME: {
                 NameTypeSpec nameSpec = type.as();
                 List<TypeSpec> genArgs = nameSpec.genericArgs;
@@ -93,9 +117,9 @@ public class GenericsNodeVisitor implements NodeVisitor {
                 }
                 // TODO: Embedded generic types...
                 type = getReplacedTypeSpec(nameSpec);    
-                if(nameSpec != type && nameSpec.genericArgs.size() > 0) {
-                    System.out.println("");
-                }
+//                if(nameSpec != type && nameSpec.genericArgs.size() > 0) {
+//                    System.out.println("");
+//                }
                 
                 return type;
             }
@@ -132,8 +156,6 @@ public class GenericsNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(UnionFieldStmt stmt) {
-        
-//        stmt.decl.type = replaceType(stmt.decl.type);
         stmt.decl.visit(this);
     }
     

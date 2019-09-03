@@ -86,6 +86,24 @@ public abstract class TypeSpec {
     public <T extends TypeSpec> T as() {
         return (T) this;
     }
+
+    @Override
+    public int hashCode() {
+        return toString().hashCode();
+    }
+    
+    @Override
+    public boolean equals(Object obj) {    
+        if(obj == this) {
+            return true;
+        }
+        
+        if(!(obj instanceof TypeSpec)) {
+            return false;
+        }
+        
+        return this.toString().equals(obj.toString());
+    }
     
     public abstract TypeSpec copy();
     
@@ -185,7 +203,11 @@ public abstract class TypeSpec {
         public boolean hasVarargs;
         public List<GenericParam> genericParams;
         
-        public FuncPtrTypeSpec(SrcPos pos, List<TypeSpec> args, TypeSpec ret, boolean hasVarargs, List<GenericParam> genericParams) {
+        public FuncPtrTypeSpec(SrcPos pos, 
+                               List<TypeSpec> args, 
+                               TypeSpec ret, 
+                               boolean hasVarargs, 
+                               List<GenericParam> genericParams) {
             super(TypeSpecKind.FUNC_PTR, pos, null);
             this.args = args;
             this.ret = ret;

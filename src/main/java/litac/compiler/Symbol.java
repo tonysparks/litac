@@ -6,6 +6,7 @@ package litac.compiler;
 import java.util.*;
 
 import litac.ast.*;
+import litac.ast.Decl.DeclKind;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.TypeKind;
 
@@ -207,6 +208,12 @@ public class Symbol {
     }
     
     public Module getDeclaredModule() {
+        /*if(this.callsiteModule != null && !isGenericTemplate() && isFromGenericTemplate()) {
+            if(this.decl.kind == DeclKind.TYPEDEF) {
+                return this.callsiteModule;
+            }
+        }*/
+        
         if(this.genericDeclaration != null) {
             return this.genericDeclaration;
         }
@@ -214,10 +221,35 @@ public class Symbol {
         return this.declared;
     }
     
-    public void addModuleForType(TypeSpec typeSpec, TypeInfo type) {        
+    public void addModuleForType(TypeSpec typeSpec, TypeInfo type, Symbol typedefSym) {        
         type = TypeInfo.getBase(type);
-        if(type != null && type.sym != null) {
-            this.genericMap.put(TypeSpec.getBaseType(typeSpec), type.sym.getDeclaredModule());            
+        
+        Module module = null;
+        if(typedefSym != null) {
+            System.out.println("TypedefSym Decl: " + typedefSym.name + "(" +TypeSpec.getBaseType(typeSpec)+")" +
+                " type: " + typedefSym.decl.kind.name() + 
+                " declared: " + typedefSym.declared + 
+                " getDeclared: " + typedefSym.getDeclaredModule() + 
+                " callsite: " + typedefSym.callsiteModule);
+            module = typedefSym.getDeclaredModule();
+        }
+        
+        if(module == null && type != null && type.sym != null) {
+            System.out.println("Sym Decl: " + type.sym.name + "(" +TypeSpec.getBaseType(typeSpec)+")" +
+                               " type: " + type.sym.decl.kind.name() + 
+                               " declared: " + type.sym.declared + 
+                               " getDeclared: " + type.sym.getDeclaredModule() + 
+                               " callsite: " + type.sym.callsiteModule);
+            
+            
+            if(TypeSpec.getBaseType(typeSpec).name.equals("JsonArray")) {
+                System.out.println("here");
+            }
+            module = type.sym.getDeclaredModule();
+        }
+        
+        if(module != null) {
+            this.genericMap.put(TypeSpec.getBaseType(typeSpec), module);
         }
     }
     

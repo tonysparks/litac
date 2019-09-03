@@ -79,7 +79,7 @@ public class TypeResolver {
     
     private List<Symbol> moduleSymbols;
     private List<Symbol> moduleFuncs;
-    private Stack<Module> currentModule;
+    private Stack<Tuple<Map<TypeSpec, Module>, Module>> currentModule;
     private Module root;
     
     // Types pending to be completed
@@ -92,8 +92,7 @@ public class TypeResolver {
     
     private Stack<List<GenericParam>> genericStack;
     private boolean isTrying;
-    
-    private Map<TypeSpec, Module> genericMap;
+        
     private FuncTypeInfo currentFunc;
     
     public TypeResolver(PhaseResult result, 
@@ -156,14 +155,16 @@ public class TypeResolver {
                 
             }
             while(!syms.isEmpty());
+
+            // populate function declaration types
+            for(Symbol sym : this.moduleFuncs) {                
+                resolveSym(sym);
+            }
             
             for(Symbol sym : this.pendingValues) {
                 resolveValue(sym);
             }
             
-            for(Symbol sym : this.moduleFuncs) {                
-                resolveSym(sym);
-            }
             
             for(Symbol sym : this.moduleFuncs) {
                 if(sym.isGenericTemplate()) {
@@ -218,25 +219,46 @@ public class TypeResolver {
         resolveSym(sym);
         
         enterModuleFor(sym);
-                
-        FuncDecl funcDecl = (FuncDecl) sym.decl;
-        if(funcDecl.hasGenericParams()) {
-            return;
+        try {
+            FuncDecl funcDecl = (FuncDecl) sym.decl;
+            if(funcDecl.hasGenericParams()) {
+                return;
+            }
+            
+            sym.markAsComplete();
+            
+            funcDecl.visit(this.stmtVisitor);
         }
-        
-        sym.markAsComplete();
-        
-        funcDecl.visit(this.stmtVisitor);
-        leaveModule();
+        finally {
+            leaveModule();
+        }
     }
     
-    private void enterModuleFor(Symbol sym) {
-        enterModule(sym.getDeclaredModule());
-        this.genericMap = sym.genericMap;
+    private Module getModuleFor(NameTypeSpec typeSpec) {
+        Symbol sym = current().getType(typeSpec.name);
+        if(sym != null) {
+            return current();
+        }
+        
+        Map<TypeSpec, Module> genericMap = this.currentModule.peek().getFirst();
+        if(genericMap == null) {
+            return null;
+        }
+        
+        Module module = genericMap.get(typeSpec);
+        if(module != null) {
+            return module;
+        }
+        
+        return null;
+    }
+    
+    private void enterModuleFor(Symbol sym) {        
+        this.currentModule.add(new Tuple<>(sym.genericMap, sym.getDeclaredModule()));        
     }
     
     private void enterModule(Module module) {        
-        this.currentModule.add(module);        
+        this.currentModule.add(new Tuple<>(null, module));
     }
     
     private void leaveModule() {
@@ -244,7 +266,7 @@ public class TypeResolver {
     }
     
     private Module current() {
-        return this.currentModule.peek();
+        return this.currentModule.peek().getSecond();
     }
     
     private Symbol getType(NameTypeSpec typeSpec) {
@@ -253,11 +275,12 @@ public class TypeResolver {
             return sym;
         }
         
-        if(this.genericMap == null) {
+        Map<TypeSpec, Module> genericMap = this.currentModule.peek().getFirst();
+        if(genericMap == null) {
             return null;
         }
         
-        Module module = this.genericMap.get(typeSpec);
+        Module module = genericMap.get(typeSpec);
         if(module != null) {
             return module.getType(typeSpec.name);
         }
@@ -338,6 +361,7 @@ public class TypeResolver {
                 case ENUM: {
                     EnumDecl enumDecl = (EnumDecl) decl;
                     Symbol sym = module.declareEnum(enumDecl, enumDecl.name);
+                    sym.maskAsIncomplete();
                     
                     this.moduleSymbols.add(sym);
                     break;
@@ -424,56 +448,75 @@ public class TypeResolver {
         }
         
         sym.state = ResolveState.RESOLVING;
-        enterModule(sym.getDeclaredModule());
-        switch(sym.kind) {
-            case TYPE:
-                switch(sym.decl.kind) {
-                    case ENUM:
-                        EnumDecl enumDecl = (EnumDecl)sym.decl;
-                        sym.type = enumTypeInfo(enumDecl);     
-                        sym.type.sym = sym;
-                        
-                        createEnumAsStr(enumDecl, sym);
-                        break;
-                    case TYPEDEF:
-                        TypedefDecl typedefDecl = (TypedefDecl) sym.decl;
-                        sym.type = resolveTypeSpec(typedefDecl.type);
-                        //sym.type.sym = sym;
-                        break;
-                    case STRUCT:                        
-                        StructDecl structDecl = (StructDecl) sym.decl;                        
-                        sym.type = new StructTypeInfo(sym.decl.name, structDecl.genericParams, new ArrayList<>(), structDecl.flags);
-                        sym.type.sym = sym;
-                        this.pendingTypes.add(sym);
-                        break;
-                    case UNION:
-                        UnionDecl unionDecl = (UnionDecl) sym.decl;
-                        sym.type = new UnionTypeInfo(sym.decl.name, unionDecl.genericParams, new ArrayList<>(), unionDecl.flags);
-                        sym.type.sym = sym;
-                        this.pendingTypes.add(sym);
-                        break;
-                    default:                        
+        enterModuleFor(sym);
+        try {
+            switch(sym.kind) {
+                case TYPE:
+                    switch(sym.decl.kind) {
+                        case ENUM:
+                            EnumDecl enumDecl = (EnumDecl)sym.decl;
+                            sym.type = enumTypeInfo(enumDecl);     
+                            sym.type.sym = sym;
+                            
+                            createEnumAsStr(enumDecl, sym);
+                            break;
+                        case TYPEDEF:
+                            TypedefDecl typedefDecl = (TypedefDecl) sym.decl;
+                            if(typedefDecl.hasGenericParams()) {
+                                this.genericStack.add(typedefDecl.genericParams);
+                            }
+                            
+                            sym.type = resolveTypeSpec(typedefDecl.type);
+                            //sym.declared = current();
+                            /*if(sym.type.sym != null) {
+                                //sym.genericDeclaration = sym.type.sym.getDeclaredModule();
+                            }
+                            else {
+                                System.out.println("here");
+                            }*/
+                            
+                            if(typedefDecl.hasGenericParams()) {
+                                this.genericStack.pop();
+                            }
+                            break;
+                        case STRUCT:                        
+                            StructDecl structDecl = (StructDecl) sym.decl;                        
+                            sym.type = new StructTypeInfo(sym.decl.name, structDecl.genericParams, new ArrayList<>(), structDecl.flags);
+                            sym.type.sym = sym;
+                            this.pendingTypes.add(sym);
+                            break;
+                        case UNION:
+                            UnionDecl unionDecl = (UnionDecl) sym.decl;
+                            sym.type = new UnionTypeInfo(sym.decl.name, unionDecl.genericParams, new ArrayList<>(), unionDecl.flags);
+                            sym.type.sym = sym;
+                            this.pendingTypes.add(sym);
+                            break;
+                        default:                        
+                    }
+                    break;
+                case FUNC: {
+                    FuncDecl funcDecl = (FuncDecl) sym.decl;
+                    sym.type = funcTypeInfo(funcDecl, sym);
+                    sym.type.sym = sym;
+                    break;
                 }
-                break;
-            case FUNC:
-                FuncDecl funcDecl = (FuncDecl) sym.decl;
-                sym.type = funcTypeInfo(funcDecl, sym);
-                sym.type.sym = sym;
-                break;
-                
-            case CONST:
-            case VAR:         
-                if(!sym.isLocal()) {
-                    this.pendingValues.add(sym);
-                    return;
+                case CONST:
+                case VAR: {         
+                    if(!sym.isLocal()) {
+                        this.pendingValues.add(sym);
+                        return;
+                    }
+                    break;
                 }
-                break;
-            default:
-                break;
-        
-        }        
-        sym.state = ResolveState.RESOLVED;
-        leaveModule();
+                default:
+                    break;
+            
+            }        
+            sym.state = ResolveState.RESOLVED;
+        }
+        finally {
+            leaveModule();
+        }
     }        
     
     private Symbol createEnumAsStr(EnumDecl enumDecl, Symbol enumSym) {
@@ -504,7 +547,7 @@ public class TypeResolver {
         Symbol sym = current().declareFunc(funcDecl, asStrFuncInfo.name);
         sym.type = asStrFuncInfo;
         sym.type.sym = sym;
-        
+                
         return sym;
         
     }
@@ -532,7 +575,7 @@ public class TypeResolver {
             resolveValue(sym);
             return true;
         }
-        catch(TypeCheckException e) {
+        catch(TypeCheckException | NullPointerException e ) {
             return false;
         }
         finally {
@@ -545,7 +588,7 @@ public class TypeResolver {
             return;
         }
         
-        enterModule(sym.getDeclaredModule());
+        enterModuleFor(sym);
         try {
             Decl decl = sym.decl;
             switch(sym.kind) {
@@ -586,11 +629,11 @@ public class TypeResolver {
         TypeInfo inferredType = null;
         if(expr != null) {
             Operand op = resolveExpr(expr);
-            inferredType = op.type;
+            inferredType = (op.type != null) ? decayType(op.type) : null;
         }
         
         if(declaredType != null && inferredType != null) {            
-            typeCheck(expr.getSrcPos(), declaredType, inferredType);
+            typeCheck(expr.getSrcPos(), inferredType, declaredType);
         }
         
         // TODO: Decay array types
@@ -599,16 +642,39 @@ public class TypeResolver {
                 ? inferredType : declaredType;
     }
     
-    private void finishResolveSym(Symbol sym) {        
+    /**
+     * Types when assigned must decay to their assigned type,
+     * such as arrays to pointers and functions to function pointers
+     * 
+     * @param type
+     * @return the assignable type info
+     */
+    private TypeInfo decayType(TypeInfo type) {        
+        switch(type.kind) {
+            case Array: {
+                ArrayTypeInfo arrayInfo = type.as();
+                PtrTypeInfo ptrInfo = new PtrTypeInfo(arrayInfo.arrayOf);
+                return ptrInfo;
+            }
+            case Func: {
+                FuncTypeInfo funcInfo = type.as();
+                return funcInfo.asPtr();
+            }
+            default: {
+                return type;
+            }
+        }
+    }
+    
+    private void finishResolveSym(Symbol sym) {
+        if(sym.isComplete()) {                    
+            return;
+        }
+        
+        enterModuleFor(sym);
         switch(sym.decl.kind) {
             case STRUCT:
             case UNION: {
-                if(sym.isComplete()) {                    
-                    return;
-                }
-                
-                enterModule(sym.getDeclaredModule());
-                
                 AggregateDecl aggDecl = (AggregateDecl) sym.decl;
                 if(aggDecl.hasGenericParams()) {
                     this.genericStack.add(aggDecl.genericParams);
@@ -626,23 +692,24 @@ public class TypeResolver {
                     this.genericStack.pop();
                 }
                 
-                sym.markAsComplete();
-                
-                leaveModule();
+                sym.markAsComplete();                
                 break;
             }
             case ENUM: {
                 sym.decl.visit(stmtVisitor);
+                sym.markAsComplete();
                 break;
             }
             case TYPEDEF: {
                 sym.decl.visit(stmtVisitor);
+                sym.markAsComplete();
                 break;
             }
             default:
                 /* funcs/vars/const must be handled after other declarations 
                  */
         }
+        leaveModule();
     }
     
     
@@ -652,9 +719,7 @@ public class TypeResolver {
         
         if (stmt instanceof VarFieldStmt) {
             VarFieldStmt var = (VarFieldStmt) stmt;
-            enterModuleFor(parentSym); ///(parentSym.getModuleForType(var.type));
             TypeInfo type = resolveTypeSpec(var.type);
-            leaveModule();
             
             return new FieldInfo(type, var.name, var.attributes, null);
         }
@@ -728,10 +793,16 @@ public class TypeResolver {
                     genericSym = this.root.declareStruct(newDecl, genericsName);
                     break;
                 }
-                case UNION:
+                case UNION: {
                     UnionDecl newDecl = Generics.createUnionDecl((UnionDecl)sym.decl, genericsName, genArgs);
                     genericSym = this.root.declareUnion(newDecl, genericsName);
                     break;
+                }
+                case TYPEDEF: {
+                    TypedefDecl newDecl = Generics.createTypedefDecl((TypedefDecl)sym.decl, genericsName, genArgs);
+                    genericSym = this.root.declareTypedef(newDecl, genericsName);
+                    break;
+                }
                 default: {
                     error(nameSpec.pos, "'%s' can't contain a generic type", nameSpec.name);
                     return null;
@@ -761,7 +832,13 @@ public class TypeResolver {
                     TypeSpec arg = genArgs.get(i);
                     
                     TypeInfo type = resolveTypeSpec(arg);
-                    genericSym.addModuleForType(arg, type); 
+                    NameTypeSpec typeName = TypeSpec.getBaseType(arg);
+                    Module module = getModuleFor(typeName);
+                    Symbol typedefSym = null;
+                    if(module != null) {
+                        typedefSym = module.getAliasedType(typeName.name);
+                    }
+                    genericSym.addModuleForType(arg, type, typedefSym); 
                     genericSym.genericArgs.add(type);
                 }
             }
@@ -797,7 +874,7 @@ public class TypeResolver {
                     // This may be a func pointer
                     sym = current().currentScope().getSymbol(nameSpec.name);
 
-                    if(sym != null && sym.type != null && sym.type.isKind(TypeKind.FuncPtr)) {
+                    if(sym != null && sym.type != null && TypeInfo.isFunc(sym.type)) {                        
                         return sym.type;
                     }
                     
@@ -878,38 +955,39 @@ public class TypeResolver {
             this.genericStack.add(funcDecl.genericParams);
         }
         
-        ParametersStmt params = funcDecl.params;
+        enterModuleFor(sym);
+        try {
+            ParametersStmt params = funcDecl.params;
+            
+            List<ParamInfo> args = new ArrayList<>();
+            for(ParameterDecl param : params.params) {            
+                TypeInfo arg = resolveTypeSpec(param.type);                        
+                args.add(new ParamInfo(arg, param.name, param.defaultValue, param.attributes));
+            }
+                    
+            TypeInfo ret = resolveTypeSpec(funcDecl.returnType);
+                    
+            if(funcDecl.hasGenericParams()) {
+                this.genericStack.pop();        
+            }
         
-        List<ParamInfo> args = new ArrayList<>();
-        for(ParameterDecl param : params.params) {
-            enterModule(sym.getModuleForType(param.type));
-            TypeInfo arg = resolveTypeSpec(param.type);
+            TypeInfo type = sym.type;
+            if(type != null) {
+                FuncTypeInfo funcInfo = type.as();
+                funcInfo.name = funcDecl.name;
+                funcInfo.returnType = ret;
+                funcInfo.parameterDecls = args;
+                funcInfo.flags = funcDecl.flags;
+                funcInfo.genericParams = funcDecl.genericParams;
+                
+                return funcInfo;
+            }
+            
+            return new FuncTypeInfo(funcDecl.name, ret, args, funcDecl.flags, funcDecl.genericParams);
+        }
+        finally {
             leaveModule();
-            
-            args.add(new ParamInfo(arg, param.name, param.defaultValue, param.attributes));
         }
-        
-        enterModule(sym.getModuleForType(funcDecl.returnType));
-        TypeInfo ret = resolveTypeSpec(funcDecl.returnType);
-        leaveModule();
-        
-        if(funcDecl.hasGenericParams()) {
-            this.genericStack.pop();
-        }
-        
-        TypeInfo type = sym.type;
-        if(type != null) {
-            FuncTypeInfo funcInfo = type.as();
-            funcInfo.name = funcDecl.name;
-            funcInfo.returnType = ret;
-            funcInfo.parameterDecls = args;
-            funcInfo.flags = funcDecl.flags;
-            funcInfo.genericParams = funcDecl.genericParams;
-            
-            return funcInfo;
-        }
-        
-        return new FuncTypeInfo(funcDecl.name, ret, args, funcDecl.flags, funcDecl.genericParams);
     }
             
     private TypeInfo enumTypeInfo(EnumDecl enumDecl) {
@@ -1064,23 +1142,43 @@ public class TypeResolver {
     
     private Operand resolveUnaryExpr(UnaryExpr expr) {
         Operand op = resolveExpr(expr.expr);
+        
+        Operand operand = null;
         switch(expr.operator) {
             case STAR: {
-                TypeInfo type = op.type;
-                if(!TypeInfo.isPtrLike(type)) {                            
+                TypeInfo type = op.type;                                
+                if(type.isKind(TypeKind.Ptr)) {
+                    PtrTypeInfo ptrInfo = type.as();
+                    operand = Operand.op(ptrInfo.ptrOf);
+                }
+                else if(type.isKind(TypeKind.Str)) {
+                    operand = Operand.op(TypeInfo.CHAR_TYPE);
+                }
+                else if(type.isKind(TypeKind.Array)) {
+                    ArrayTypeInfo arrayInfo = type.as();
+                    operand = Operand.op(arrayInfo.arrayOf);
+                }
+                else {
                     error(expr, "'%s' is not a pointer type", type);
-                    return null;
                 }
                 
                 break;
             }
-            default:
+            case BAND: {
+                operand = op.type.isKind(TypeKind.Func) 
+                            ? Operand.op(((FuncTypeInfo)op.type.as()).asPtr()) 
+                            : Operand.op(new PtrTypeInfo(op.type));
+                break;
+            }
+            case NOT: {
+                operand = Operand.op(TypeInfo.BOOL_TYPE);
+                break;
+            }
+            default: {
+                operand = Operand.op(expr.expr.getResolvedType().type);                
+            }
         }
         
-        Operand operand = op.type.isKind(TypeKind.Func) 
-                ? Operand.op(((FuncTypeInfo)op.type.as()).asPtr()) 
-                : Operand.op(new PtrTypeInfo(op.type));
-                
         expr.resolveTo(operand);
         return operand;
     }
@@ -1340,7 +1438,7 @@ public class TypeResolver {
         Operand objOp = resolveExpr(c.object);
         //Operand fieldOp = resolveExpr(c.field);
             
-        Operand fieldOp = null;
+        Operand fieldOp = null; 
         if(objOp.type.isKind(TypeKind.Enum)) {
             EnumTypeInfo enumInfo = objOp.type.as();
             EnumFieldInfo field = enumInfo.getField(c.field.type.name);
@@ -1398,7 +1496,7 @@ public class TypeResolver {
         
         boolean isMethod = false;
         int numberOfDefaultArgs = 0;
-        List<Expr> suppliedArguments = new ArrayList<>(expr.arguments);
+        List<Expr> suppliedArguments = new ArrayList<>(expr.arguments); 
         
         FuncPtrTypeInfo funcPtr = null;
         if(op.type.isKind(TypeKind.Func)) {
@@ -1598,7 +1696,7 @@ public class TypeResolver {
         
         for(InitArgExpr arg : expr.arguments) {
             resolveInitArgExpr(arg);            
-        }
+        } 
 
         AggregateTypeInfo aggInfo = type.as();
         if(type.hasGenerics() && expr.genericArgs.isEmpty()) {
@@ -1974,7 +2072,9 @@ public class TypeResolver {
                                 "cannot take the return value address of '%s' as it's an R-Value", getExpr.field.type.name);
                     }
                     
-                    getExpr.object = new UnaryExpr(TokenType.BAND, new GroupExpr(getExpr.object));
+                    getExpr.object = new UnaryExpr(TokenType.BAND, new GroupExpr(getExpr.object).setSrcPos(getExpr.object.getSrcPos()))
+                                            .setSrcPos(getExpr.object.getSrcPos());
+                    
                     resolveExpr(getExpr.object);
                 }
             }
@@ -2210,27 +2310,29 @@ public class TypeResolver {
         @Override
         public void visit(FuncDecl d) {  
             Symbol sym = d.sym;
-            enterModule(sym.getDeclaredModule());       
+            enterModuleFor(sym);       
             current().pushScope();
-            
-            for(ParameterDecl p : d.params.params) {
-                p.visit(this);
-            }
-            
-            if(d.bodyStmt != null) {
-                labels.clear();
-                currentFunc = sym.type.as();
-                d.bodyStmt.visit(this);
+            try {            
+                for(ParameterDecl p : d.params.params) {
+                    p.visit(this);
+                }
                 
-                labels.forEach((label, isDefined) -> {
-                    if(!isDefined) {
-                        result.addError(d.bodyStmt, "'%s' label not found", label);
-                    }
-                });
+                if(d.bodyStmt != null) {
+                    labels.clear();
+                    currentFunc = sym.type.as();
+                    d.bodyStmt.visit(this);
+                    
+                    labels.forEach((label, isDefined) -> {
+                        if(!isDefined) {
+                            result.addError(d.bodyStmt, "'%s' label not found", label);
+                        }
+                    });
+                }
             }
-            
-            current().popScope();
-            leaveModule();
+            finally {
+                current().popScope();
+                leaveModule();
+            }
         }
 
 

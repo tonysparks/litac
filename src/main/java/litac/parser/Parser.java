@@ -388,7 +388,12 @@ public class Parser {
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         String name = identifier.getText();
         
-        return node(new TypedefDecl(name, aliasedType, name));
+        List<GenericParam> genericParams = Collections.emptyList();
+        if(match(LESS_THAN)) {
+            genericParams = genericParameters();
+        }
+        
+        return node(new TypedefDecl(name, aliasedType, name, genericParams));
     }
     
 

@@ -54,7 +54,12 @@ public abstract class Node {
         node.pos = this.pos;
         return (T)node;
     }
-    
+
+    @SuppressWarnings("unchecked")
+    public <T extends Node> T setSrcPos(SrcPos pos) {
+        this.pos = pos;
+        return (T) this;
+    }
     
     /**
      * @return the pos

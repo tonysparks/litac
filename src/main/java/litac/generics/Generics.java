@@ -3,7 +3,7 @@
  */
 package litac.generics;
 
-import java.util.*;
+import java.util.List;
 
 import litac.ast.*;
 import litac.ast.Decl.*;
@@ -33,7 +33,11 @@ public class Generics {
     public static FuncDecl createFuncDecl(FuncDecl decl, String newName, List<TypeSpec> genArgs) {
         return (FuncDecl)createDecl(decl, newName, genArgs);
     }
-      
+
+    public static TypedefDecl createTypedefDecl(TypedefDecl decl, String newName, List<TypeSpec> genArgs) {
+        return (TypedefDecl)createDecl(decl, newName, genArgs);
+    }
+    
     private static Decl createDecl(GenericDecl decl, String newName, List<TypeSpec> genArgs) {
         GenericDecl newDecl = decl.copy();
         GenericsNodeVisitor replacer = new GenericsNodeVisitor(decl.genericParams, genArgs);

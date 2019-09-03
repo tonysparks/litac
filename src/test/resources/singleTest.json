@@ -617,6 +617,7 @@
             error: "duplicate member 'y' in 'X'"
         },*/
         
+        /*
         { 
             name: "Invalid AnonStructField",
             definitions: '''
@@ -678,5 +679,157 @@
                 var x = X{.y = 4, .x = 8}    
             ''',                       
         },
+        
+        { 
+            name: "Foreign Generic",
+            definitions: '''
+                import "clib" as c
+                
+            ''',                                  
+            code: '''                  
+                var result = c::MIN(10_u64, 4_u64)
+                assert(result == 4)
+            ''',                       
+        },
+        
+        { 
+            name: "Typedef Func Generic",
+            definitions: '''          
+                typedef func<K>(K) : K as HashFn<K>;
+                          
+                func test(x: i32) : i32 {
+                    return x
+                }                          
+            ''',                                  
+            code: '''  
+                var x : HashFn<i32> = test
+                x(4)
+            ''',                       
+        },
+        
+                        
+        { 
+            name: "Typedef Struct Generic",
+            definitions: '''                
+                struct Test<T> {
+                    t: T
+                }
+                
+                typedef Test<K> as MyTest<K>;                
+            ''',                                  
+            code: '''  
+                var t = MyTest<i32> { .t = 4 }
+                assert(t.t == 4)
+            ''',                       
+        },*/
+        
+        
+        { 
+            name: "Arena Allocator",
+            definitions: '''
+                import "mem";
+                import "array";
+                import "io";           
+                import "map";
+                import "json";
+                import "string_buffer"
+                
+            ''',                       
+            code: '''        
+                debugAllocator.init()
+                defer { 
+                    debugAllocator.report(); 
+                    debugAllocator.free(); 
+                }
+                
+                var arena = Arena{}
+                arena.init(4096, &debugAllocator.alloc)
+                defer {
+                    arena.free()                    
+                    assert(debugAllocator.allocations.empty())
+                }
+                
+                var array = Array<i32>{}
+                array.init(2, &arena.alloc)
+                
+                const size = 1024
+                for(var i = 0; i < size; i+=1) {
+                    array.add(i)
+                }
+                
+                assert(array.size() == size)
+                
+                var map = Map<char const*, i32>{}
+                map.init(0, 1, &StrHashFn, &StrEqualFn, &arena.alloc)
+                
+                map.put("hi1", 421)
+                map.put("hi2", 422)
+                map.put("hi3", 423)
+                map.put("hi4", 424)
+                map.put("hi5", 425)
+                
+                assert(map.size() == 5)
+                
+                var parser = Parser{}
+                parser.init(&arena.alloc)
+                
+                var node = parser.parseJson("""
+                    {
+                        "x" : true,
+                        "y" : false,
+                        "z" : [1,2,3]
+                    }
+                """);
+                
+                var buf = StringBuffer{}
+                buf.init(1, &arena.alloc)
+                node.print(&buf)
+                
+                printf("%s\n", buf.cStr())
+                
+            ''',                      
+        },
+        
+        /*
+        { 
+            name: "Typedef Generic Bug",
+            definitions: '''                
+                import "moduleY"
+            ''',                      
+            modules: [
+                {
+                    name: "moduleX",
+                    program: '''
+                        public struct Array<T> {
+                            alloc: Allocation
+                            t: T
+                        }
+                        
+                        public struct Allocation {
+                            a: i32
+                        }
+                    '''
+                },
+                {
+                    name: "moduleY",
+                    program: '''
+                        import "moduleX"
+                        
+                        public typedef Array<Y*> as YList;
+                        
+                        public struct Y {
+                            y: i32
+                        }
+                    '''
+                },
+            ],            
+            code: '''  
+                var list = YList{                    
+                }    
+                
+                list.t = &Y{4}
+                assert(list.t.y == 4)
+            ''',                       
+        },*/       
     ]
 }
