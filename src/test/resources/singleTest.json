@@ -723,8 +723,25 @@
             ''',                       
         },*/
         
-        
         { 
+            name: "Using",
+            definitions: '''                
+                struct Test {
+                    t: i32
+                    x: f32
+                }
+                
+                func (test: using Test*) test() : i32{
+                    return t;
+                }                
+            ''',                                  
+            code: '''  
+                var t = Test{4,12}
+                assert(t.test() == 4)
+            ''',                       
+        },
+        
+        /*{ 
             name: "Arena Allocator",
             definitions: '''
                 import "mem";
@@ -788,7 +805,7 @@
                 printf("%s\n", buf.cStr())
                 
             ''',                      
-        },
+        },*/
         
         /*
         { 

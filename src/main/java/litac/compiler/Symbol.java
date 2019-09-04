@@ -6,7 +6,6 @@ package litac.compiler;
 import java.util.*;
 
 import litac.ast.*;
-import litac.ast.Decl.DeclKind;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.TypeKind;
 
@@ -239,12 +238,7 @@ public class Symbol {
                                " type: " + type.sym.decl.kind.name() + 
                                " declared: " + type.sym.declared + 
                                " getDeclared: " + type.sym.getDeclaredModule() + 
-                               " callsite: " + type.sym.callsiteModule);
-            
-            
-            if(TypeSpec.getBaseType(typeSpec).name.equals("JsonArray")) {
-                System.out.println("here");
-            }
+                               " callsite: " + type.sym.callsiteModule);            
             module = type.sym.getDeclaredModule();
         }
         

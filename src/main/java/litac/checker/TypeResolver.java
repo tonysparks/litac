@@ -1531,7 +1531,7 @@ public class TypeResolver {
             TypeInfo p = funcPtr.params.get(i);
             
             if(i < suppliedArguments.size()) {
-                Expr arg = suppliedArguments.get(i);
+                Expr arg = suppliedArguments.get(i);                
                 resolveExpr(arg);
                 
                 typeCheck(arg.getSrcPos(), arg.getResolvedType().type, p);
@@ -1810,6 +1810,9 @@ public class TypeResolver {
         for(FieldInfo field : aggInfo.fieldInfos) {
             Symbol sym = scope.addSymbol(current(), p, field.name, Symbol.IS_USING);
             sym.type = field.type;
+            resolveSym(sym);
+            //sym.type = currentType;
+            // TODO: The symbol type is not correct :( 
         }
         
         if(aggInfo.hasUsingFields()) {

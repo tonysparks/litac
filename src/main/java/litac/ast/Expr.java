@@ -256,6 +256,11 @@ public abstract class Expr extends Stmt {
         public void addGenericArg(TypeSpec arg) {
             this.genericArgs.add(arg);
         }
+        
+        protected GenericExpr copyArgs(GenericExpr copy) {
+            copy.genericArgs = TypeSpec.copy(this.genericArgs);
+            return copy;
+        }
     }
     
     public static class InitExpr extends GenericExpr {
@@ -276,7 +281,7 @@ public abstract class Expr extends Stmt {
         @Override
         protected Node doCopy() {            
             NameTypeSpec nameSpec = (this.type != null) ? TypeSpec.copy(this.type).as() : null;
-            return new InitExpr(nameSpec, copy(this.arguments));
+            return copyArgs(new InitExpr(nameSpec, copy(this.arguments)));
         }
     }
     
@@ -665,9 +670,9 @@ public abstract class Expr extends Stmt {
 
         @Override
         protected Node doCopy() {            
-            IdentifierExpr idExpr = new IdentifierExpr(this.type);    
+            IdentifierExpr idExpr = new IdentifierExpr(TypeSpec.copy(this.type).as());    
             idExpr.sym = sym;
-            return idExpr;
+            return copyArgs(idExpr);
         }
     }
 
@@ -685,7 +690,7 @@ public abstract class Expr extends Stmt {
 
         @Override
         protected Node doCopy() {            
-            FuncIdentifierExpr idExpr = new FuncIdentifierExpr(this.type);
+            FuncIdentifierExpr idExpr = new FuncIdentifierExpr(TypeSpec.copy(this.type).as());
             idExpr.sym = sym;
             return idExpr;
         }
@@ -704,7 +709,7 @@ public abstract class Expr extends Stmt {
 
         @Override
         protected Node doCopy() {            
-            TypeIdentifierExpr idExpr = new TypeIdentifierExpr(this.type);    
+            TypeIdentifierExpr idExpr = new TypeIdentifierExpr(TypeSpec.copy(this.type).as());
             idExpr.sym = sym;
             return idExpr;
         }
