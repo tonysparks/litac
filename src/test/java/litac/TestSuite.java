@@ -51,6 +51,7 @@ public class TestSuite {
     public Boolean debug;
     public List<TestCase> tests;
     
+    private int numberOfTestsRan;
     
     private void runTestSuite(TestSuite suite, File outputDir, ByteArrayOutputStream errorStream) throws Exception {
         System.out.println("\n\n\n");
@@ -104,6 +105,7 @@ public class TestSuite {
                 //options.cOptions.compileCmd =
                 //        "clang.exe -g -fsanitize=undefined,address -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
                 //+= " -g -fsanitize=undefined,address ";
+                numberOfTestsRan++;
                 
                 PhaseResult result = LitaC.compile(options);
                 if(result.hasErrors()) {
@@ -165,6 +167,8 @@ public class TestSuite {
             
             runTestSuite(suite, outputDir, errorStream);
         }
+        
+        System.out.println("Number of tests ran: " + this.numberOfTestsRan);
     }
 
     @Ignore
@@ -202,6 +206,6 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/arena.json");        
+        singleFileTest("/string_buffer.json");        
     }
 }

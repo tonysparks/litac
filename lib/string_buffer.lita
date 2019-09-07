@@ -31,7 +31,7 @@ public func (b: StringBuffer*) init(initialSize: i32 = 16,
     b.length = 0;
     b.capacity = initialSize;    
     
-    var length = (sizeof(char) * initialSize as (u64));    
+    var length = (sizeof(:char) * initialSize as (u64));    
     b.buffer = alloc.calloc(1, length) as (char*)
 }
 
@@ -55,7 +55,7 @@ public func (b: StringBuffer*) appendStr(str: char*, len: i32) {
     
     mem::memcpy((&b.buffer[b.length]) as (void*), 
                 str as (void const*), 
-                len * sizeof(char))
+                len * sizeof(:char))
     b.length += len
 }
 
@@ -159,7 +159,7 @@ public func (b: StringBuffer*) delete(start: i32, end: i32) {
     // move the contents over
     mem::memmove((&b.buffer[start]) as (void*), 
                  (&b.buffer[end]) as (void const*), 
-                 (b.length) * sizeof(char))
+                 (b.length) * sizeof(:char))
 }
 
 public func (b: StringBuffer*) contains(str: char const*, len: i32 = -1) : bool {
@@ -235,7 +235,7 @@ public func (b: StringBuffer*) insert(index: i32, format: char const*, ...) : i3
     // move the contents over
     mem::memmove((&b.buffer[index + MAX_BUFFER_SIZE]) as (void*), 
                  (&b.buffer[index]) as (void const*), 
-                 MAX_BUFFER_SIZE * sizeof(char))
+                 MAX_BUFFER_SIZE * sizeof(:char))
 
     // get the variable args
     var args1:va_list;
@@ -258,7 +258,7 @@ public func (b: StringBuffer*) insert(index: i32, format: char const*, ...) : i3
         // move the contents over again
         mem::memmove((&b.buffer[index + len - 1]) as (void*), 
                      (&b.buffer[index + MAX_BUFFER_SIZE - 1]) as (void const*), 
-                     (len + 1) * sizeof(char))
+                     (len + 1) * sizeof(:char))
 
         var n = vsnprintf(&b.buffer[index], len + 1, format, args2);
         va_end(args2);
@@ -280,7 +280,7 @@ public func (b: StringBuffer*) insert(index: i32, format: char const*, ...) : i3
     // move the contents over to the left                
     mem::memmove((&b.buffer[index + len]) as (void*), 
                  (&b.buffer[index + MAX_BUFFER_SIZE]) as (void const*), 
-                 (MAX_BUFFER_SIZE) * sizeof(char))
+                 (MAX_BUFFER_SIZE) * sizeof(:char))
 
 
     b.length += len
@@ -296,7 +296,7 @@ public func (b: StringBuffer*) copyTo(buf: char*, len: i32) : i32 {
     
     mem::memcpy(buf as (void*),
                 (&b.buffer[0]) as (void const*), 
-                bytesCopied * sizeof(char))
+                bytesCopied * sizeof(:char))
 
     return (bytesCopied)
 }
@@ -341,8 +341,8 @@ func BufferGrow(b: StringBuffer*, increment: i32) {
         n = doubleCurrent        
     }
     
-    var newlength = (sizeof(char) * n as (u64));
-    var oldlength = (sizeof(char) * b.capacity as (u64));     
+    var newlength = (sizeof(:char) * n as (u64));
+    var oldlength = (sizeof(:char) * b.capacity as (u64));     
     b.buffer = b.alloc.realloc(b.buffer as (void*), oldlength, newlength) as (char*)
     b.capacity = n;    
 }

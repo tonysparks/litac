@@ -14,14 +14,11 @@ import litac.ast.Stmt.*;
 import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
-import litac.compiler.Symbol.ResolveState;
-import litac.compiler.Symbol.SymbolKind;
-import litac.generics.GenericParam;
-import litac.generics.Generics;
+import litac.compiler.Symbol.*;
+import litac.generics.*;
 import litac.parser.tokens.TokenType;
-import litac.util.Names;
+import litac.util.*;
 import litac.util.Stack;
-import litac.util.Tuple;
 
 /**
  * @author antho
@@ -44,6 +41,14 @@ public class TypeResolver {
         public boolean isLeftValue;
         public boolean isConst;
         public Object val;
+        
+        public static Operand op(Operand other) {
+            Operand op = new Operand();
+            op.type = other.type;
+            op.isConst = other.isConst;
+            
+            return op;
+        }
         
         public static Operand op(TypeInfo type) {
             Operand op = new Operand();
@@ -112,7 +117,7 @@ public class TypeResolver {
         this.genericTypes = new HashMap<>();
         
         this.resolvedModules = new HashMap<>();
-        this.resolvedTypeMap = new HashMap<>();
+        this.resolvedTypeMap = new IdentityHashMap<>();
         
         this.labels = new HashMap<>();
         
@@ -405,6 +410,7 @@ public class TypeResolver {
                 case TYPEDEF: {
                     TypedefDecl typeDecl = (TypedefDecl) decl;
                     Symbol sym = module.declareTypedef(typeDecl, typeDecl.alias);
+                    
                     this.moduleSymbols.add(sym);
                     nonGenericDecls.add(typeDecl);
                     break;
@@ -470,7 +476,7 @@ public class TypeResolver {
                                 this.genericStack.add(typedefDecl.genericParams);
                             }
                             
-                            sym.type = resolveTypeSpec(typedefDecl.type);
+                            TypeInfo aliasedType = resolveTypeSpec(typedefDecl.type);
                             //sym.declared = current();
                             /*if(sym.type.sym != null) {
                                 //sym.genericDeclaration = sym.type.sym.getDeclaredModule();
@@ -478,6 +484,15 @@ public class TypeResolver {
                             else {
                                 System.out.println("here");
                             }*/
+                            
+                            // Allow foreign types to be aliased and referenced
+                            // in our type system                            
+                            if(typedefDecl.attributes.isForeign() && !aliasedType.isKind(TypeKind.FuncPtr)) {            
+                                aliasedType = TypeInfo.newForeignPrimitive(typedefDecl.alias);
+                                aliasedType.sym = sym;
+                            }
+                            
+                            sym.type = aliasedType;
                             
                             if(typedefDecl.hasGenericParams()) {
                                 this.genericStack.pop();
@@ -629,21 +644,24 @@ public class TypeResolver {
             declaredType = resolveTypeSpec(typeSpec);
         }
 
-
         TypeInfo inferredType = null;
         if(expr != null) {
             Operand op = resolveExpr(expr);
-            inferredType = (op.type != null) ? decayType(op.type) : null;
+            if(op != null) {
+                if(expr.getKind() == ExprKind.ARRAY_INIT) {
+                    inferredType = op.type;
+                }
+                else {
+                    inferredType = decayType(op.type);    
+                }                
+            }
         }
         
         if(declaredType != null && inferredType != null) {            
             typeCheck(expr.getSrcPos(), inferredType, declaredType);
         }
-        
-        // TODO: Decay array types
-        
-        return inferredType != null && inferredType != TypeInfo.NULL_TYPE 
-                ? inferredType : declaredType;
+                
+        return declaredType != null ? declaredType : inferredType;        
     }
     
     /**
@@ -716,7 +734,21 @@ public class TypeResolver {
         leaveModule();
     }
     
-    
+    private NameTypeSpec asTypeSpec(AggregateDecl decl, 
+                                    List<TypeInfo> genericArgs,
+                                    List<GenericParam> parentGenericParams) {
+        List<TypeSpec> args = new ArrayList<>();
+        for(GenericParam p : decl.genericParams) {
+            for(int i = 0; i < parentGenericParams.size(); i++) {
+                GenericParam parentParam = parentGenericParams.get(i);
+                if(parentParam.name.equals(p.name)) {
+                    args.add(genericArgs.get(i).asTypeSpec());
+                    break;
+                }
+            }
+        }
+        return new NameTypeSpec(decl.getSrcPos(), decl.name, args);
+    }
     
     private FieldInfo resolveFieldInfo(Symbol parentSym, FieldStmt stmt) {
         Module module = parentSym.getDeclaredModule();
@@ -729,27 +761,49 @@ public class TypeResolver {
         }
         
         if (stmt instanceof StructFieldStmt) {
+            TypeInfo type = null;
+            
             StructFieldStmt struct = (StructFieldStmt) stmt;
-            Symbol sym = module.declareStruct(struct.decl, struct.decl.name);
-            sym.maskAsIncomplete();
+            if(parentSym.isFromGenericTemplate()) {
+                Symbol sym = module.getType(struct.decl.name);
+                type = createTypeFromGenericTemplate(sym, asTypeSpec(struct.decl, parentSym.genericArgs, parentSym.genericParams));
+                struct.decl.sym = type.sym;
+            }
+            else {
+                Symbol sym = module.declareStruct(struct.decl, struct.decl.name);
+                sym.maskAsIncomplete();                       
+                this.moduleSymbols.add(sym);
+                
+                resolveSym(sym);
+                finishResolveSym(sym);
+    
+                type = sym.type;
+            }
             
-            this.moduleSymbols.add(sym);
-            
-            resolveSym(sym);        
-            finishResolveSym(sym);
-            return new FieldInfo(sym.type, struct.decl.name, struct.decl.attributes, null);
+            return new FieldInfo(type, struct.decl.name, struct.decl.attributes, null);
         }
         
         if (stmt instanceof UnionFieldStmt) {
+            TypeInfo type = null;
+            
             UnionFieldStmt union = (UnionFieldStmt) stmt;
-            Symbol sym = module.declareUnion(union.decl, union.decl.name);
-            sym.maskAsIncomplete();
+            if(parentSym.isFromGenericTemplate()) {
+                Symbol sym = module.getType(union.decl.name);
+                type = createTypeFromGenericTemplate(sym, asTypeSpec(union.decl, parentSym.genericArgs, parentSym.genericParams));
+                union.decl.sym = type.sym;
+            }
+            else {            
+                Symbol sym = module.declareUnion(union.decl, union.decl.name);
+                sym.maskAsIncomplete();                       
+                this.moduleSymbols.add(sym);
+                
+                resolveSym(sym);
+                finishResolveSym(sym);
+    
+                type = sym.type;
+            }
             
-            this.moduleSymbols.add(sym);
-            
-            resolveSym(sym);
-            finishResolveSym(sym);
-            return new FieldInfo(sym.type, union.decl.name, union.decl.attributes, null);
+            return new FieldInfo(type, union.decl.name, union.decl.attributes, null);
         }
         
         if (stmt instanceof EnumFieldStmt) {
@@ -813,8 +867,10 @@ public class TypeResolver {
                 }
             }
             
+            GenericDecl orgDecl = (GenericDecl)sym.decl;
             genericSym.callsiteModule = current();
             genericSym.genericDeclaration = sym.getDeclaredModule();
+            genericSym.genericParams = new ArrayList<>(orgDecl.genericParams);
             genericSym.markFromGenericTemplate();
             genericSym.maskAsIncomplete();
             
@@ -825,7 +881,6 @@ public class TypeResolver {
                 
                 // TODO: Move this logic into Generics.createDecl, we don't want to remove
                 // the generic params if we still have them; this hack adds them back in
-                GenericDecl orgDecl = (GenericDecl)sym.decl;
                 GenericDecl genDecl = (GenericDecl)genericSym.decl;
                 
                 genDecl.genericParams = new ArrayList<>(orgDecl.genericParams);
@@ -883,14 +938,14 @@ public class TypeResolver {
                     }
                     
                     if(sym == null) {
-                        error(typeSpec.pos, "Unresolved type '%s'", nameSpec.name);
+                        error(typeSpec.pos, "Unknown type '%s'", nameSpec.name);
                         return null;
                     }
                     
                 }
                 
                 if(!sym.isType()) {
-                    error(typeSpec.pos, "'%s' must  be a type", nameSpec.name);
+                    error(typeSpec.pos, "'%s' must be a type", nameSpec.name);
                     return null;
                 }
                 
@@ -1012,8 +1067,10 @@ public class TypeResolver {
             IdentifierExpr id =  expr.as();
             return resolveIdentifier(id);
         }
-        case TYPE_IDENTIFIER:
-            break;
+        case TYPE_IDENTIFIER: {
+            TypeIdentifierExpr id = expr.as();
+            return resolveTypeIdentifier(id);
+        }
         case BOOLEAN: {
             BooleanExpr b = expr.as();
             return b.getResolvedType();
@@ -1132,15 +1189,47 @@ public class TypeResolver {
         return op;
     }
     
-    private Operand resolveIdentifier(IdentifierExpr expr) {        
+    private Operand resolveIdentifier(IdentifierExpr expr) {              
         Symbol sym = current().currentScope().getSymbol(expr.type.name);
         if(sym == null) {
             error(expr, "unknown variable '%s'", expr.type.name);
             return null;
         }
         
-        Operand op = Operand.op(sym.type);
+        TypeInfo type = sym.type;
+        if(sym.isGenericTemplate() && expr.type.hasGenericArgs()) {
+            type = resolveTypeSpec(expr.type);
+            if(type == null) {
+                error(expr, "unknown type '%s'", expr.type);
+                return null;
+            }
+            sym = type.sym;
+        }
+        
+        Operand op = Operand.op(type);
         op.isConst = sym.isConstant();
+//        if(op.isConst) {
+//            ConstDecl
+//        }
+        
+        expr.resolveTo(op);
+        expr.sym = sym;
+        
+        return op;
+    }
+    
+    private Operand resolveTypeIdentifier(TypeIdentifierExpr expr) {        
+        TypeInfo type = resolveTypeSpec(expr.type);
+        if(type == null) {
+            error(expr, "unknown type '%s'", expr.type);
+            return null;
+        }
+        
+        Symbol sym = type.sym;
+        Operand op = Operand.op(type);
+        if(sym != null) {
+            op.isConst = sym.isConstant();
+        }
 //        if(op.isConst) {
 //            ConstDecl
 //        }
@@ -1157,17 +1246,30 @@ public class TypeResolver {
         Operand operand = null;
         switch(expr.operator) {
             case STAR: {
-                TypeInfo type = op.type;                                
+                TypeInfo type = op.type;     
+                
                 if(type.isKind(TypeKind.Ptr)) {
                     PtrTypeInfo ptrInfo = type.as();
-                    operand = Operand.op(ptrInfo.ptrOf);
+                    if(ptrInfo.ptrOf.isKind(TypeKind.Const)) {
+                        ConstTypeInfo constInfo = ptrInfo.ptrOf.as();
+                        operand = Operand.op(constInfo.constOf);                        
+                    }
+                    else {                    
+                        operand = Operand.op(ptrInfo.ptrOf);
+                    }
                 }
                 else if(type.isKind(TypeKind.Str)) {
                     operand = Operand.op(TypeInfo.CHAR_TYPE);
                 }
                 else if(type.isKind(TypeKind.Array)) {
                     ArrayTypeInfo arrayInfo = type.as();
-                    operand = Operand.op(arrayInfo.arrayOf);
+                    if(arrayInfo.arrayOf.isKind(TypeKind.Const)) {
+                        ConstTypeInfo constInfo = arrayInfo.arrayOf.as();                        
+                        operand = Operand.op(constInfo.constOf);
+                    }
+                    else {
+                        operand = Operand.op(arrayInfo.arrayOf);
+                    }
                 }
                 else {
                     error(expr, "'%s' is not a pointer type", type);
@@ -1185,8 +1287,9 @@ public class TypeResolver {
                 operand = Operand.op(TypeInfo.BOOL_TYPE);
                 break;
             }
-            default: {
-                operand = Operand.op(expr.expr.getResolvedType().type);                
+            default: {                
+                operand = Operand.op(op.type);
+                operand.isConst = op.isConst;
             }
         }
         
@@ -1412,6 +1515,7 @@ public class TypeResolver {
     private Operand resolveGroupExpr(GroupExpr c) {
         Operand op = resolveExpr(c.expr);
         Operand result = Operand.op(op.type);
+        result.isConst = op.isConst;
         c.resolveTo(result);
         return result;
     }
@@ -1500,7 +1604,7 @@ public class TypeResolver {
             return null;
         }
         
-        Operand result = Operand.op(fieldOp.type);
+        Operand result = Operand.op(fieldOp);        
         c.resolveTo(result);
         
         return result;
@@ -1576,6 +1680,8 @@ public class TypeResolver {
         c.resolveTo(operand);
         
         resolveExpr(c.expr);
+        
+        typeCheck(c.getSrcPos(), c.expr.getResolvedType().type, type, true);
         
         return operand;
     }
@@ -1671,6 +1777,8 @@ public class TypeResolver {
 
         // TODO: Cast to appropriate type
         Operand op = Operand.op(leftType);
+        op.isConst = left.isConst && right.isConst;
+        
         expr.resolveTo(op);
         
         return op;
@@ -1704,6 +1812,17 @@ public class TypeResolver {
         resolveExpr(expr.index);
         resolveExpr(expr.value);
         // should probably not be an expr??
+        
+        if(expr.index instanceof IdentifierExpr) {
+            IdentifierExpr id = expr.index.as();
+            Symbol sym = id.sym;
+            if(sym != null && !sym.isConstant()) {
+                error(expr.index.getSrcPos(), "'%s' must be a constant", id.type);
+            }
+        }
+        
+        typeCheck(expr.index.getSrcPos(), expr.index.getResolvedType().type, TypeInfo.I64_TYPE);
+        
         return null;
     }
     
@@ -1750,12 +1869,22 @@ public class TypeResolver {
     }
     
     private void checkConstant(Expr expr) {
+        if(expr instanceof IdentifierExpr) {
+            IdentifierExpr id = expr.as();
+            if(id.sym != null) {
+                if(id.sym.isConstant()) {
+                    error(expr, "can't reassign constant variable '%s'", id.type);
+                    return;
+                }
+            }
+        }
+        
         Operand op = expr.getResolvedType();
         if(op == null || op.type == null) {
             return;
         }
         
-        if(op.type.sym != null && op.type.sym.isConstant()) {
+        if(op.type.sym != null && (op.type.sym.isConstant() || op.isConst)) {
             error(expr, "can't reassign constant variable '%s'", op.type.sym.name);            
         }
     }
@@ -1864,7 +1993,7 @@ public class TypeResolver {
     
     private Symbol addSymbol(Decl d, TypeInfo type) {
         Scope scope = current().currentScope();
-        Symbol sym = scope.addSymbol(current(), d, d.name);        
+        Symbol sym = scope.addSymbol(current(), d, d.name, d instanceof ConstDecl);        
         sym.type = type;
         
         resolveSym(sym);
@@ -1960,6 +2089,19 @@ public class TypeResolver {
                 
                 genericName = aggInfo.genericParams.get(index).name;                    
                 AggregateTypeInfo argumentAggInfo = argumentType.as();
+                
+                if(argumentAggInfo.getBaseName().equals(aggInfo.getBaseName())) {
+                    Symbol sym = argumentAggInfo.sym;
+                    if(sym.genericParams != null) {
+                        for(int i = 0; i < sym.genericParams.size(); i++) {
+                            GenericParam p = sym.genericParams.get(i);
+                            if(p.name.equals(genericName)) {
+                                return sym.genericArgs.get(i);
+                            }
+                        }
+                    }
+                }
+                
                 for(FieldInfo field : aggInfo.fieldInfos) {
                     TypeInfo fieldType = inferredType(genericName, field.type, argumentAggInfo.getField(field.name).type);
                     if(fieldType != null) {
@@ -2006,7 +2148,8 @@ public class TypeResolver {
                     break;
                 }
                 
-                TypeInfo inferredType = inferredType(p.name, paramType, suppliedArguments.get(j).getResolvedType().type);
+                TypeInfo argType = suppliedArguments.get(j).getResolvedType().type;
+                TypeInfo inferredType = inferredType(p.name, paramType, argType);
                 if(inferredType != null) {
                     nameSpec.genericArgs.add(inferredType.asTypeSpec());
                     break;
@@ -2027,7 +2170,7 @@ public class TypeResolver {
         TypeInfo type = operand.type;
         
         Symbol sym = type.sym;
-        if(sym.isGenericTemplate()) {
+        if(sym != null && sym.isGenericTemplate()) {
             GenericDecl decl = (GenericDecl)sym.decl;
             error(funcExpr, "'%s' is missing generic arguments %s", nameSpec.name, decl.genericParams);
             return null;
@@ -2073,7 +2216,16 @@ public class TypeResolver {
             }
         }
         
-        return resolveTypeSpec(expr.type);
+        TypeInfo type = resolveTypeSpec(expr.type);
+        
+        Symbol sym = type.sym;
+        if(sym != null && sym.isGenericTemplate()) {
+            GenericDecl decl = (GenericDecl)sym.decl;
+            error(expr, "'%s' is missing generic arguments %s", nameSpec.name, decl.genericParams);
+            return null;
+        }
+        
+        return type;
     }
     
     private boolean isMethodSyntax(FuncCallExpr expr, FuncPtrTypeInfo funcPtr, List<Expr> suppliedArguments) {
@@ -2253,8 +2405,17 @@ public class TypeResolver {
 
         @Override
         public void visit(ParametersStmt stmt) {
+            boolean hasDefault = false;
             for(ParameterDecl p : stmt.params) {
                 p.visit(this);
+                
+                if(p.defaultValue != null) {
+                    hasDefault = true;
+                }
+                else if(hasDefault) {
+                    Decl decl = (Decl)stmt.getParentNode();
+                    error(stmt, "'%s' must have default arguments defined last", decl.name);
+                }
             }
         }
 

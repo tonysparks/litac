@@ -22,8 +22,8 @@
                 
             ''',                       
             code: '''
-                var N = sizeof(Sprite*);
-                var X = sizeof(void*);
+                var N = sizeof(:Sprite*);
+                var X = sizeof(:void*);
                 assert(N == X)
             ''',
         },
@@ -37,8 +37,8 @@
                 
             ''',                       
             code: '''
-                var N = sizeof (Test.A);
-                var X = sizeof(i32);
+                var N = sizeof(Test.A);
+                var X = sizeof(:i32);
                 assert(N == X)
             ''',
         },

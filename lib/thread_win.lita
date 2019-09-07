@@ -580,7 +580,7 @@ func _thrd_wrapper_function(aArg: LPVOID) : DWORD {
 public func (thr: Thread*) create(fun: ThreadStartFn, arg: void*) : ThreadStatus {
     /* Fill out the thread startup information (passed to the thread wrapper,
      which will eventually free it) */
-    var ti = malloc(sizeof(ThreadStartInfo)) as (ThreadStartInfo*);
+    var ti = malloc(sizeof(:ThreadStartInfo)) as (ThreadStartInfo*);
     if (ti == null) {
         return ThreadStatus.NOMEM;
     }

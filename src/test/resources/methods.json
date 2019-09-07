@@ -100,7 +100,7 @@
                     b: T
                 }
                 
-                func (a: A<T>) apply<T>() : B {
+                func (a: A<T>) apply<T>() : B<T> {
                     return B<T>{a.a}
                 }
                 
@@ -126,7 +126,7 @@
                     b: T
                 }
                 
-                func (a: A<T>) apply<T>() : B {
+                func (a: A<T>) apply<T>() : B<T> {
                     return B<T>{a.a}
                 }
                 
@@ -562,7 +562,7 @@
                     b: T
                 }
                 
-                func (a: A<T>) apply<T>() : B {
+                func (a: A<T>) apply<T>() : B<T> {
                     return B<T>{a.a}
                 }
                 

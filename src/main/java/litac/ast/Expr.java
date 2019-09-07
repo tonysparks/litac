@@ -6,8 +6,8 @@ package litac.ast;
 import java.math.BigDecimal;
 import java.util.*;
 
-import litac.ast.TypeSpec.NameTypeSpec;
 import litac.checker.TypeResolver.Operand;
+import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.compiler.Symbol;
@@ -699,10 +699,17 @@ public abstract class Expr extends Stmt {
         }
     }
     
-    public static class TypeIdentifierExpr extends IdentifierExpr {
-
-        public TypeIdentifierExpr(NameTypeSpec typeSpec) {
-            super(typeSpec);
+    public static class TypeIdentifierExpr extends GenericExpr {
+        public TypeSpec type;
+        public Symbol sym;
+        
+        public TypeIdentifierExpr(TypeSpec typeSpec) {
+            super(ExprKind.TYPE_IDENTIFIER);
+            this.type = typeSpec;
+            
+            if(typeSpec.kind==TypeSpecKind.NAME) {
+                this.genericArgs =  ((NameTypeSpec)typeSpec.as()).genericArgs;
+            }
         }
         
         @Override

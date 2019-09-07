@@ -8,6 +8,7 @@ import java.util.*;
 import litac.ast.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.TypeKind;
+import litac.generics.GenericParam;
 
 /**
  * @author Tony
@@ -70,6 +71,11 @@ public class Symbol {
      * Map for knowing the generic arguments for this symbol
      */
     public List<TypeInfo> genericArgs;
+    
+    /**
+     * Original declaration parameter names
+     */
+    public List<GenericParam> genericParams;
     
     /**
      * The type associated with this symbol
@@ -235,20 +241,20 @@ public class Symbol {
         
         Module module = null;
         if(typedefSym != null) {
-            System.out.println("TypedefSym Decl: " + typedefSym.name + "(" +TypeSpec.getBaseType(typeSpec)+")" +
+            /*System.out.println("TypedefSym Decl: " + typedefSym.name + "(" +TypeSpec.getBaseType(typeSpec)+")" +
                 " type: " + typedefSym.decl.kind.name() + 
                 " declared: " + typedefSym.declared + 
                 " getDeclared: " + typedefSym.getDeclaredModule() + 
-                " callsite: " + typedefSym.callsiteModule);
+                " callsite: " + typedefSym.callsiteModule);*/
             module = typedefSym.getDeclaredModule();
         }
         
         if(module == null && type != null && type.sym != null) {
-            System.out.println("Sym Decl: " + type.sym.name + "(" +TypeSpec.getBaseType(typeSpec)+")" +
+            /*System.out.println("Sym Decl: " + type.sym.name + "(" +TypeSpec.getBaseType(typeSpec)+")" +
                                " type: " + type.sym.decl.kind.name() + 
                                " declared: " + type.sym.declared + 
                                " getDeclared: " + type.sym.getDeclaredModule() + 
-                               " callsite: " + type.sym.callsiteModule);            
+                               " callsite: " + type.sym.callsiteModule);*/            
             module = type.sym.getDeclaredModule();
         }
         

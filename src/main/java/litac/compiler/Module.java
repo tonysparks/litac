@@ -362,13 +362,6 @@ public class Module {
             return previousType;
         }
 
-        // Allow foreign types to be aliased and referenced
-        // in our type system
-        /*
-        if(stmt.attributes.isForeign() && !aliasedType.isKind(TypeKind.FuncPtr)) {            
-            aliasedType = TypeInfo.newForeignPrimitive(alias);
-        }*/
-        
         Symbol sym = addPublicDecl(stmt, alias);        
         this.typedefTypes.put(alias, sym);
         

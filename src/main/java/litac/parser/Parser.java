@@ -1171,14 +1171,16 @@ public class Parser {
     }
     
     private Expr sizeofExpr() {
-        boolean hasParen = match(TokenType.LEFT_PAREN);
+        consume(TokenType.LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
+        
+        boolean isType = match(COLON);
         
         Expr expr = null;
         TypeSpec type = null;
         
         int backtrack = this.current;
         
-        if(hasParen) {            
+        if(isType) {
             type = type();
             
             // check to see if this is an enum type (or a field expression)
@@ -1193,12 +1195,8 @@ public class Parser {
         else {
             expr = unary();
         }
-                
-        if(hasParen) {
-            consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        }
         
-
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         return node(new SizeOfExpr(expr));        
     }
     

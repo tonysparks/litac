@@ -41,10 +41,10 @@
                 printf("Size: %d\n", s.size())
                 
                 
-                const N = 256
-                var buffer: [N]char;
+                const NZ = 256
+                var buffer: [NZ]char;
                 
-                var n = s.copyTo(buffer, N)
+                var n = s.copyTo(buffer, NZ)
                 
                 printf("'%.*s'\n", n, buffer);
                 

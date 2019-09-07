@@ -833,7 +833,137 @@
             ''',                       
         },*/
         
+        /*
+        { 
+            name: "SizeOf Struct Value",
+            definitions: ''' 
+                
+                const MAX = 128
+                
+                const s = []i32 {
+                    [0] = 1,
+                    [1] = 2,
+                }
+                
+                const x : [2]i32 = []i32 {
+                    [0] = 1,
+                    [1] = 2,
+                }
+                                
+            ''',                                  
+            code: '''
+                const y : [2]i32 = x
+              
+                assert(s[0] == 1)
+                assert(s[1] == 2)
+                assert(x[0] == 1)
+                assert(x[1] == 2)
+                assert(y[0] == 1)
+                assert(y[1] == 2)
+            ''',                       
+        },*/
         
+        
+        /*
+        { 
+            name: "Const Pointer Access Assign",
+            definitions: ''' 
+                struct X {
+                    s: char const*
+                }                                
+            ''',                                  
+            code: '''                                
+                var xx = X{"Hello"}                
+                var x = *xx.s      
+                          
+                assert(x == xx.s[0])
+                x = 'b'
+                assert(x == 'b')
+            ''',                       
+        },*/
+        
+        /*
+        { 
+            name: "Array Decl Uninit",
+            definitions: '''         
+                
+            ''',                       
+            code: '''  
+                var t : [2]i32;
+                t[0] = 4;
+                t[1] = 8;
+                assert(t[0] == 4);
+                assert(t[1] == 8);         
+            ''',             
+        },*/
+        
+        /*{ 
+            name: "Sign",
+            definitions: '''         
+                func test(s: u8) {
+                }
+            ''',                       
+            code: '''  
+                var i : i32 = 55;
+                test(i)         
+            ''',
+            error: "'u8' is not of type 'i32'"             
+        },*/
+        
+        { 
+            name: "Enum with EnumValue",
+            definitions: '''         
+                enum First {
+                    X = 24
+                }
+                
+                enum Second {
+                    Y = First.X
+                }
+            ''',                       
+            code: '''  
+                assert(First.X == 24)
+                assert(Second.Y == 24) 
+            ''',             
+        },
+        { 
+            name: "Enum with EnumValues",
+            definitions: '''         
+                enum First {
+                    X = 2,
+                    Z = 4
+                }
+                
+                enum Second {
+                    Y = (First.X|First.Z)
+                }
+            ''',                       
+            code: '''  
+                assert(First.X == 2)
+                assert(First.Z == 4)
+                assert(Second.Y == 6) 
+            ''',             
+        },
+        
+        /*        
+        { 
+            name: "FuncPtr of Generic Func",
+            definitions: ''' 
+                func PtrEqual<K>(a: K) : K {
+                    return a                
+                }                       
+                
+                func Test<K>(c: K) : K {
+                    var t = &PtrEqual<K>;
+                    return t(c)
+                }
+                         
+            ''',                                  
+            code: '''                                
+                var t = Test(4)
+                assert(t == 4)
+            ''',                       
+        },
         { 
             name: "Arena Allocator",
             definitions: '''
@@ -898,7 +1028,7 @@
                 printf("%s\n", buf.cStr())
                 
             ''',                      
-        },
+        },*/
         
         /*
         { 

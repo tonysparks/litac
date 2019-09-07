@@ -16,7 +16,7 @@ public func (a: Array<T>*) init<T>(initialSize: i32 = 16, alloc: mem::Allocator 
     a.length = 0;
     a.capacity = initialSize;    
     
-    var length = (sizeof(T) * initialSize as (u64));    
+    var length = (sizeof(:T) * initialSize as (u64));    
     a.elements = alloc.alloc(length) as (T*)
 }
 
@@ -81,7 +81,7 @@ public func (a: Array<T>*) removeAt<T>(index: i32) : T {
     if(index < a.length - 1) {
         mem::memmove((&a.elements[index]) as (void*), 
                      (&a.elements[index + 1]) as (void const*), 
-                     ((a.length - 1) - index) * sizeof(T))
+                     ((a.length - 1) - index) * sizeof(:T))
     }
     
     a.length -= 1
@@ -100,7 +100,7 @@ public func (a: Array<T>*) addAll<T>(other: Array<T>*) {
     
     mem::memcpy((&a.elements[a.length]) as (void*), 
                 (&other.elements[0]) as (void const*), 
-                other.length * sizeof(T))
+                other.length * sizeof(:T))
     a.length += other.length
 }
 
@@ -129,8 +129,8 @@ func ArrayGrow<T>(a: Array<T>*, increment: i32) {
         n = doubleCurrent        
     }
     
-    var newlength = (sizeof(T) * n as (u64));     
-    var oldlength = (sizeof(T) * a.capacity as(u64));
+    var newlength = (sizeof(:T) * n as (u64));     
+    var oldlength = (sizeof(:T) * a.capacity as(u64));
     a.elements = a.alloc.realloc(a.elements as (void*), oldlength, newlength) as (T*)
     a.capacity = n;    
 }

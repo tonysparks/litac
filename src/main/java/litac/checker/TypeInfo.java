@@ -251,6 +251,19 @@ public abstract class TypeInfo {
         return false;
     }
     
+    public static boolean isConstPtr(TypeInfo type) {                
+        if(!type.isKind(TypeKind.Ptr)) {
+            return false;
+        }
+        
+        PtrTypeInfo ptrInfo = type.as();        
+        if(ptrInfo.ptrOf.isKind(TypeKind.Const)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
     public static boolean isPtr(TypeInfo type) {
         if(type.isKind(TypeKind.Ptr)) {
             return true;
@@ -485,25 +498,12 @@ public abstract class TypeInfo {
     
     public static abstract class GenericTypeInfo extends TypeInfo {
         public List<GenericParam> genericParams;
-        //private List<TypeInfo> genericArgs;
         
         public GenericTypeInfo(TypeKind kind, String name, List<GenericParam> genericParams) {
             super(kind, name);
             this.genericParams = genericParams;
-            //this.genericArgs = new ArrayList<>();
         }
-        
-        
-//        @Override
-//        public boolean hasGenericArgs() {
-//            return !this.genericArgs.isEmpty();
-//        }
-//        
-//        @Override
-//        public List<TypeInfo> getGenericArgs() {
-//            return this.genericArgs;
-//        }
-        
+                
         @Override
         public boolean hasGenerics() {
             return !this.genericParams.isEmpty();
@@ -666,7 +666,9 @@ public abstract class TypeInfo {
             SrcPos pos = (this.sym != null) ? this.sym.decl.getSrcPos() : null;
             List<TypeSpec> genArgs = new ArrayList<>();
             // TODO
-            //for(TypeInfo arg : this.)
+            for(GenericParam p : this.genericParams) {
+                genArgs.add(new NameTypeSpec(pos, p.name));
+            }
             
             return new NameTypeSpec(pos, this.name, genArgs);
         }
@@ -1571,6 +1573,11 @@ public abstract class TypeInfo {
         @Override
         protected TypeInfo doCopy() {        
             return this;
+        }
+        
+        @Override
+        public String toString() {        
+            return this.genericName;
         }
     }
     

@@ -12,37 +12,6 @@ import litac.ast.Decl.*;
  *
  */
 public abstract class Stmt extends Node {
-
-//    public static List<FieldInfo> fromFieldStmt(Token token, List<FieldStmt> fields) {
-//        List<FieldInfo> result = new ArrayList<>();
-//        
-//        for(FieldStmt s : fields) {
-//            FieldInfo fieldInfo = null;
-//            if(s instanceof VarFieldStmt) {
-//                VarFieldStmt var = (VarFieldStmt)s;
-//                fieldInfo = new FieldInfo(var.type, var.name, var.attributes, null);
-//            }
-//            else if(s instanceof StructFieldStmt) {
-//                StructFieldStmt struct = (StructFieldStmt)s;
-//                fieldInfo = new FieldInfo(struct.decl.type, struct.decl.name, struct.decl.attributes, null);
-//            }
-//            else if(s instanceof UnionFieldStmt) {
-//                UnionFieldStmt union = (UnionFieldStmt)s;
-//                fieldInfo = new FieldInfo(union.decl.type, union.decl.name, union.decl.attributes, null);
-//            }
-//            else if(s instanceof EnumFieldStmt) {
-//                EnumFieldStmt enm = (EnumFieldStmt)s;
-//                fieldInfo = new FieldInfo(enm.decl.type, enm.decl.name, enm.decl.attributes, null);
-//            }
-//            else {
-//                throw new ParseException(ErrorCode.INVALID_FIELD, token);
-//            }
-//            
-//            result.add(fieldInfo);
-//        }
-//        
-//        return result;
-//    }
     
     public static class ModuleStmt extends Stmt {
 

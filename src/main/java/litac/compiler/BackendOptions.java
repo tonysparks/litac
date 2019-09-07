@@ -63,6 +63,7 @@ public class BackendOptions {
     public boolean profile;
     public boolean disableLines;
     public boolean debugMode;
+    public boolean isVerbose;
     public OutputType outputType;
     public String testRegex;
     

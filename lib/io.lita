@@ -45,11 +45,11 @@ public func readFile(fileName: char const*, data: char**, alloc: Allocator const
         return FileStatus.IOError;
     }
     
-    var buf = alloc.alloc(sizeof(char) * (len as(u64) + 1_u64)) as (char*);
+    var buf = alloc.alloc(sizeof(:char) * (len as(u64) + 1_u64)) as (char*);
     (*data) = buf;
 
     // stupid Windows and /r/n, the newLen will be different than that of ftell
-    var newLen = fread(buf, sizeof(char), len, fp);
+    var newLen = fread(buf, sizeof(:char), len, fp);
     if(ferror(fp)) {
         return FileStatus.IOError;
     }

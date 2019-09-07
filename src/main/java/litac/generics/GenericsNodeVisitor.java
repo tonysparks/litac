@@ -422,7 +422,8 @@ public class GenericsNodeVisitor implements NodeVisitor {
     
     @Override
     public void visit(TypeIdentifierExpr expr) {
-        visit((IdentifierExpr)expr);
+        expr.type = replaceType(expr.type);
+        expr.genericArgs = replaceType(expr.genericArgs);
     }
 
     @Override

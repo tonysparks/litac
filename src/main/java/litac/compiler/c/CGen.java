@@ -1558,6 +1558,56 @@ public class CGen {
             
             buf.out(")");
         }
+        
+        private void visitSymbol(Symbol sym) {
+            if(sym == null) {
+                return;
+            }
+            
+            if(!sym.isUsing()) {
+                buf.out("%s", cName(sym));
+                return;
+            }
+                
+            TypeInfo paramInfo = sym.usingParent;
+            AggregateTypeInfo aggInfo = null;
+            if(paramInfo.isKind(TypeKind.Ptr)) {
+                PtrTypeInfo ptrInfo = paramInfo.as();
+                aggInfo = ptrInfo.getBaseType().as();
+            }
+            else {
+                aggInfo = sym.usingParent.as();
+            }
+            
+            FieldPath path = aggInfo.getFieldPath(sym.name);
+            buf.out("%s", cName(sym.decl.sym));
+            
+            if(!path.hasPath()) {
+                if(paramInfo.isKind(TypeKind.Ptr)) {
+                    buf.out("->");
+                }
+                else {
+                    buf.out(".");
+                }
+                buf.out("%s", cName(sym));
+            }
+            else {
+                TypeInfo objectInfo = paramInfo;
+                for(FieldPathNode n : path.getPath()) {                
+                    if(objectInfo.isKind(TypeKind.Ptr)) {
+                        buf.out("->");
+                    }
+                    else {
+                        buf.out(".");
+                    }
+                    
+                    buf.out("%s", n.field.name);
+                    objectInfo = n.field.type;
+                }
+            }
+    
+        
+        }
     
         @Override
         public void visit(IdentifierExpr expr) {
@@ -1571,51 +1621,11 @@ public class CGen {
                 sym = expr.sym;
             }
             
-            if(sym != null) {            
-                if(sym.isUsing()) {
-                    TypeInfo paramInfo = sym.usingParent;
-                    AggregateTypeInfo aggInfo = null;
-                    if(paramInfo.isKind(TypeKind.Ptr)) {
-                        PtrTypeInfo ptrInfo = paramInfo.as();
-                        aggInfo = ptrInfo.getBaseType().as();
-                    }
-                    else {
-                        aggInfo = sym.usingParent.as();
-                    }
-                    
-                    FieldPath path = aggInfo.getFieldPath(sym.name);
-                    buf.out("%s", cName(sym.decl.sym));
-                    
-                    if(!path.hasPath()) {
-                        if(paramInfo.isKind(TypeKind.Ptr)) {
-                            buf.out("->");
-                        }
-                        else {
-                            buf.out(".");
-                        }
-                        buf.out("%s", cName(sym));
-                    }
-                    else {
-                        TypeInfo objectInfo = paramInfo;
-                        for(FieldPathNode n : path.getPath()) {                
-                            if(objectInfo.isKind(TypeKind.Ptr)) {
-                                buf.out("->");
-                            }
-                            else {
-                                buf.out(".");
-                            }
-                            
-                            buf.out("%s", n.field.name);
-                            objectInfo = n.field.type;
-                        }
-                    }
-                }
-                else {
-                    buf.out("%s", cName(sym));
-                }
+            if(sym == null) {
+                buf.out("%s", prefix(expr.type.toString()));
             }
             else {
-                buf.out("%s", prefix(expr.type.toString()));
+                visitSymbol(sym);
             }
         }
     
@@ -1631,7 +1641,13 @@ public class CGen {
                 buf.out("%s", getTypeNameForC(expr.type));
             }
             else {
-                visit((IdentifierExpr)expr);
+                Symbol sym = expr.sym;
+                if(sym == null) {
+                    buf.out("%s", prefix(expr.type.toString()));
+                }
+                else {
+                    visitSymbol(sym);
+                }    
             }
         }
         

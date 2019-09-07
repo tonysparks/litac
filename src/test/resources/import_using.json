@@ -256,7 +256,7 @@
                     .test = Test{4}
                 }
             ''',
-            error: "'Test' is an unknown type"
+            error: "Unknown type 'Test'"
         },        
     ]
 }
