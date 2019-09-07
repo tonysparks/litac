@@ -159,7 +159,7 @@ public abstract class Expr extends Stmt {
     }
     
     public static class SizeOfExpr extends Expr {
-        public TypeSpec type;
+        //public TypeSpec type;
         public Expr expr;
         
         public SizeOfExpr(Expr expr) {
@@ -168,11 +168,12 @@ public abstract class Expr extends Stmt {
             resolveTo(Operand.op(TypeInfo.U64_TYPE));
         }
         
+        /*
         public SizeOfExpr(TypeSpec type) {
             super(ExprKind.SIZE_OF);
             this.type = type;
             resolveTo(Operand.op(TypeInfo.U64_TYPE));
-        }
+        }*/
         
         @Override
         public void visit(NodeVisitor v) {
@@ -181,10 +182,12 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {
+            return new SizeOfExpr(this.expr.copy());
+            /*
             if(this.expr != null) {
                 return new SizeOfExpr(this.expr.copy());
             }
-            return new SizeOfExpr(TypeSpec.copy(this.type));
+            return new SizeOfExpr(TypeSpec.copy(this.type));*/
         }
     }
     

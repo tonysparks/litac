@@ -3,6 +3,7 @@
  */
 package litac.checker;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import litac.ast.*;
@@ -13,11 +14,14 @@ import litac.ast.Stmt.*;
 import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
-import litac.compiler.Symbol.*;
-import litac.generics.*;
+import litac.compiler.Symbol.ResolveState;
+import litac.compiler.Symbol.SymbolKind;
+import litac.generics.GenericParam;
+import litac.generics.Generics;
 import litac.parser.tokens.TokenType;
-import litac.util.*;
+import litac.util.Names;
 import litac.util.Stack;
+import litac.util.Tuple;
 
 /**
  * @author antho
@@ -909,6 +913,9 @@ public class TypeResolver {
                         error(arraySpec.numElements.getSrcPos(), "Array size expression must be an integer type");
                         return null;    
                     }
+                    if(operand.val instanceof Number) {
+                        length = ((BigDecimal)operand.val).longValue();
+                    }
                     
                 }
                 TypeInfo type = new ArrayTypeInfo(arrayOf, length, arraySpec.numElements);
@@ -1134,6 +1141,10 @@ public class TypeResolver {
         
         Operand op = Operand.op(sym.type);
         op.isConst = sym.isConstant();
+//        if(op.isConst) {
+//            ConstDecl
+//        }
+        
         expr.resolveTo(op);
         expr.sym = sym;
         
@@ -1382,11 +1393,19 @@ public class TypeResolver {
     }
     
     private Operand resolveSizeOfExpr(SizeOfExpr c) {
-        if(c.expr != null) {
+        /*if(c.expr != null) {
             resolveExpr(c.expr);
+        }
+        else {
+            TypeInfo type = resolveTypeSpec(c.type);
+            return Operand.opConst(type, 0);
         }
         
         // TODO: calculate real size
+        return Operand.opConst(TypeInfo.U64_TYPE, 0);
+        */
+        
+        resolveExpr(c.expr);
         return Operand.opConst(TypeInfo.U64_TYPE, 0);
     }
     
@@ -1666,7 +1685,17 @@ public class TypeResolver {
             for(Expr val : expr.values) {
                 resolveExpr(val);
             }
+            
+            if(type.isKind(TypeKind.Array)) {
+                ArrayTypeInfo arrayInfo = type.as();
+                if(arrayInfo.length < 0 && arrayInfo.lengthExpr == null) {
+                    arrayInfo.length = expr.values.size();
+                }
+            }
         }
+        
+        
+        // TODO: Array init size
         
         return operand;
     }
@@ -1802,22 +1831,22 @@ public class TypeResolver {
         }
     }
     
-    private void addTypeToScope(Decl p, Scope scope, TypeInfo currentType) {        
+    private void addTypeToScope(Decl p, Scope scope, TypeInfo rootType, TypeInfo currentType) {        
         AggregateTypeInfo aggInfo = (currentType.isKind(TypeKind.Ptr)) 
                                         ? ((PtrTypeInfo)currentType).ptrOf.as()
                                         : currentType.as();
                                         
         for(FieldInfo field : aggInfo.fieldInfos) {
-            Symbol sym = scope.addSymbol(current(), p, field.name, Symbol.IS_USING);
+            Symbol sym = scope.addSymbol(current(), new VarDecl(p.name, field.type.asTypeSpec()), field.name, Symbol.IS_USING);
             sym.type = field.type;
-            resolveSym(sym);
-            //sym.type = currentType;
-            // TODO: The symbol type is not correct :( 
+            sym.usingParent = rootType;
+            
+            resolveSym(sym);            
         }
         
         if(aggInfo.hasUsingFields()) {
             for(FieldInfo field : aggInfo.usingInfos) {
-                addTypeToScope(p, scope, field.type);
+                addTypeToScope(p, scope, rootType, field.type);
             }
         }
     }
@@ -2107,6 +2136,7 @@ public class TypeResolver {
 
         @Override
         public void visit(VarFieldStmt stmt) {
+            resolveTypeSpec(stmt.type);
         }
 
         @Override
@@ -2315,10 +2345,8 @@ public class TypeResolver {
             Symbol sym = d.sym;
             enterModuleFor(sym);       
             current().pushScope();
-            try {            
-                for(ParameterDecl p : d.params.params) {
-                    p.visit(this);
-                }
+            try {                            
+                d.params.visit(this);
                 
                 if(d.bodyStmt != null) {
                     labels.clear();
@@ -2355,7 +2383,7 @@ public class TypeResolver {
                     error(d, "'%s' is not an aggregate type (or pointer to an aggregate), can't use 'using'", d.name);
                 }
                 else {                    
-                    addTypeToScope(d, current().currentScope(), type);
+                    addTypeToScope(d, current().currentScope(), type, type);
                 }
             }
         }

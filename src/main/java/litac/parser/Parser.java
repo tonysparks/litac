@@ -14,7 +14,8 @@ import litac.ast.Node.SrcPos;
 import litac.ast.Stmt.*;
 import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.*;
+import litac.checker.TypeInfo.AggregateTypeInfo;
+import litac.checker.TypeInfo.EnumFieldInfo;
 import litac.compiler.Preprocessor;
 import litac.generics.GenericParam;
 import litac.parser.tokens.*;
@@ -1185,6 +1186,9 @@ public class Parser {
                 this.current = backtrack;
                 expr = unary();
             }
+            else {
+                expr = new TypeIdentifierExpr(type.as());
+            }
         }
         else {
             expr = unary();
@@ -1194,11 +1198,8 @@ public class Parser {
             consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         }
         
-        if(expr != null) {
-            return node(new SizeOfExpr(expr));
-        }
-        
-        return node(new SizeOfExpr(type));
+
+        return node(new SizeOfExpr(expr));        
     }
     
     private Expr typeofExpr() {

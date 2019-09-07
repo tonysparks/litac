@@ -71,7 +71,17 @@ public class Symbol {
      */
     public List<TypeInfo> genericArgs;
     
+    /**
+     * The type associated with this symbol
+     */
     public TypeInfo type;
+    
+    /**
+     * If this symbol is defined by a using block, this is the 
+     * parent aggregate type
+     */
+    public TypeInfo usingParent;
+    
     private      int flags;
     
     public Symbol(SymbolKind kind, 

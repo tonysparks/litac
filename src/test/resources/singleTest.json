@@ -723,6 +723,7 @@
             ''',                       
         },*/
         
+        /*
         { 
             name: "Using",
             definitions: '''                
@@ -741,7 +742,99 @@
             ''',                       
         },
         
-        /*{ 
+        { 
+            name: "UsingEmbed",
+            definitions: ''' 
+                struct A {
+                    y: i32
+                }               
+                struct Test {
+                    t: i32
+                    x: f32
+                    a: using A
+                }
+                
+                func (test: using Test*) test() : i32{
+                    return y;
+                }                
+            ''',                                  
+            code: '''  
+                var t = Test{4,12, A{24}}
+                assert(t.test() == 24)
+            ''',                       
+        },*/
+        
+        /*
+        { 
+            name: "ArrayInStructField",
+            definitions: ''' 
+                
+                struct Test {
+                    a: [100]char
+                }
+                                
+            ''',                                  
+            code: '''  
+                
+            ''',                       
+        },*/
+        
+        /*
+        { 
+            name: "Array Struct Field with Constant",
+            definitions: ''' 
+                
+                const MAX = 128
+                
+                struct Test {
+                    a: [MAX]char
+                }
+                                
+            ''',                                  
+            code: '''  
+                var s = sizeof(Test)
+                assert(s == MAX)
+            ''',                       
+        },
+        
+        { 
+            name: "SizeOf Struct",
+            definitions: ''' 
+                
+                const MAX = 128
+                
+                struct Test {
+                    a: [MAX]char
+                }
+                                
+            ''',                                  
+            code: '''  
+                var s = sizeof(Test)
+                assert(s == MAX)
+            ''',                       
+        },
+        
+        { 
+            name: "SizeOf Struct Value",
+            definitions: ''' 
+                
+                const MAX = 128
+                
+                struct Test {
+                    a: [MAX]char
+                }
+                                
+            ''',                                  
+            code: '''  
+                var t = Test{}
+                
+                var s = sizeof(t)
+                assert(s == MAX)
+            ''',                       
+        },*/
+        
+        
+        { 
             name: "Arena Allocator",
             definitions: '''
                 import "mem";
@@ -805,7 +898,7 @@
                 printf("%s\n", buf.cStr())
                 
             ''',                      
-        },*/
+        },
         
         /*
         { 

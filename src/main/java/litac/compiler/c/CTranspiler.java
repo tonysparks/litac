@@ -87,7 +87,7 @@ public class CTranspiler {
         try(Segment s = Profiler.startSegment("C Genaration")) {
             Buf buf = new Buf(options.indentWidth, options.useTabs);        
             
-            CGenNodeVisitor cWriter = new CGenNodeVisitor(unit, program, options, buf);                
+            CGen cWriter = new CGen(unit, program, options, buf);                
             cWriter.write();
             
             return buf;

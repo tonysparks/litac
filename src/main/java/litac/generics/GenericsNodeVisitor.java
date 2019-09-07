@@ -345,10 +345,12 @@ public class GenericsNodeVisitor implements NodeVisitor {
 
     @Override
     public void visit(SizeOfExpr expr) {
-        if(expr.expr != null) {
+        /*if(expr.expr != null) {
             expr.expr.visit(this);
         }
-        expr.type = replaceType(expr.type);
+        expr.type = replaceType(expr.type);*/
+        
+        expr.expr.visit(this);
     }
     
     @Override

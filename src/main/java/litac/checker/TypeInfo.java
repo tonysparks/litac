@@ -272,6 +272,32 @@ public abstract class TypeInfo {
         return false;
     }
     
+    public static boolean isPrimitiveType(TypeInfo type) {
+        if(type == null ) {
+            return false;
+        }
+        
+        switch(type.kind) {
+            case Bool:
+            case Char:
+            case Null:
+            case Void:
+            case f32:
+            case f64:
+            case i16:
+            case i32:
+            case i64:
+            case i8:
+            case u16:
+            case u32:
+            case u64:
+            case u8:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
     public static enum TypeKind {
         Bool,
         Char,
@@ -1346,7 +1372,7 @@ public abstract class TypeInfo {
         
         @Override
         protected TypeInfo doCopy() {
-            return new ArrayTypeInfo(copy(this.arrayOf), this.length, this.lengthExpr);
+            return new ArrayTypeInfo(copy(this.arrayOf), this.length, (this.lengthExpr != null) ? this.lengthExpr.copy() : null);
         }
         
         @Override

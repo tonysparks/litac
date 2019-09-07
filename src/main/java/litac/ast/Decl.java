@@ -43,6 +43,10 @@ public abstract class Decl extends Stmt {
         public TypeSpec type;
         public Expr expr;
         
+        public VarDecl(String name, TypeSpec type) {
+            this(name, type, null, 0);
+        }
+        
         public VarDecl(String name, TypeSpec type, Expr expr, int modifiers) {
             super(DeclKind.VAR, name);
             this.type = type;
