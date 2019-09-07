@@ -45,6 +45,7 @@ public class DependencyGraph {
         }
     }
     
+    private List<Decl> primitiveGlobals;
     private List<Decl> sortedGlobals;
     private List<Decl> sortedDependencies;
     private List<Decl> sortedAggregates;
@@ -58,17 +59,18 @@ public class DependencyGraph {
         this.sortedGlobals = new ArrayList<>();
         this.sortedDependencies = new ArrayList<>();
         this.sortedAggregates = new ArrayList<>();
+        this.primitiveGlobals = new ArrayList<>();
         this.states = new LinkedHashMap<>();
     }
 
     private void buildDependsOn(DeclState state) {
-        if(TypeInfo.isAggregate(state.decl.type)) {
+        if(TypeInfo.isAggregate(state.decl.sym.type)) {
             state.dependsOn = new ArrayList<>();
             
-            AggregateTypeInfo aggInfo = state.decl.type.as();
+            AggregateTypeInfo aggInfo = state.decl.sym.type.as();
             for(FieldInfo field : aggInfo.fieldInfos) {
                 if(TypeInfo.isAggregate(field.type)) {
-                    Symbol sym = field.type.getResolvedType().sym;
+                    Symbol sym = field.type.sym;
                     if(sym != null) {
                         DeclState other = states.get(sym.decl);
                         if(other != null) {
@@ -89,7 +91,12 @@ public class DependencyGraph {
             switch(d.kind) {
                 case CONST:
                 case VAR:
-                    this.sortedGlobals.add(d);
+                    if(d.sym.isConstant() && TypeInfo.isPrimitiveType(d.sym.type)) {
+                        this.primitiveGlobals.add(d);
+                    }
+                    else {
+                        this.sortedGlobals.add(d);
+                    }
                     break;
                 case FUNC:
                 case TYPEDEF:
@@ -151,6 +158,7 @@ public class DependencyGraph {
         }
         
         List<Decl> sorted = new ArrayList<>();
+        sorted.addAll(this.primitiveGlobals);
         sorted.addAll(this.sortedAggregates);
         sorted.addAll(this.sortedGlobals);
         sorted.addAll(this.sortedDependencies);

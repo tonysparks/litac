@@ -112,5 +112,62 @@
                 assert(strcmp(ToStr(Test.B), "B") == 0)
             ''',
         },
+        { 
+            name: "Enum BinaryExpr",
+            definitions: '''         
+                enum Test{
+                    X = (1<<1)
+                }
+            ''',                       
+            code: '''  
+                assert(Test.X == 2)         
+            ''',             
+        },
+        
+        { 
+            name: "Enum UnaryExpr",
+            definitions: '''         
+                enum Test{
+                    X = -1
+                }
+            ''',                       
+            code: '''  
+                assert(Test.X == -1)         
+            ''',             
+        },
+        { 
+            name: "Enum with EnumValue",
+            definitions: '''         
+                enum First {
+                    X = 24
+                }
+                
+                enum Second {
+                    Y = First.X
+                }
+            ''',                       
+            code: '''  
+                assert(First.X == 24)
+                assert(Second.Y == 24) 
+            ''',             
+        },
+        { 
+            name: "Enum with EnumValues",
+            definitions: '''         
+                enum First {
+                    X = 2,
+                    Z = 4
+                }
+                
+                enum Second {
+                    Y = (First.X|First.Z)
+                }
+            ''',                       
+            code: '''  
+                assert(First.X == 2)
+                assert(First.Z == 4)
+                assert(Second.Y == 6) 
+            ''',             
+        },
     ]
 }

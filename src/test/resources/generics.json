@@ -124,7 +124,7 @@
                             
             ''',            
             code: '''
-                var a: Test<i32>{}
+                var a: Test<f32>{}
                 var b: Test<f32>{}
                 var x = a as (Test<f32>) > 0
                 assert(x)
@@ -166,7 +166,7 @@
             ''',                       
             code: '''                
                 var b = 1
-                var c = sizeof Test < b > 0     
+                var c = sizeof(:Test) < b > 0     
                 assert(c == false)                                          
             ''',
         },
@@ -317,7 +317,7 @@
                 assert(a.x.y == 4)
             ''',                      
         },        
-         { 
+        { 
             name: "Generics Struct with No GenArgs",
             definitions: '''         
                 struct X<T> {
@@ -327,7 +327,7 @@
             code: '''  
                 var t = X{}
             ''',
-            error: "incorrect number of generic argument types, requires 1 and has 0" 
+            error: "is missing generic arguments [T]" 
         },
         { 
             name: "Generics Union with No GenArgs",
@@ -339,7 +339,7 @@
             code: '''  
                 var t = X{}
             ''',
-            error: "incorrect number of generic argument types, requires 1 and has 0" 
+            error: "is missing generic arguments [T]" 
         },
         { 
             name: "Generics Func with No GenArgs",
@@ -350,7 +350,7 @@
             code: '''  
                 test()
             ''',
-            error: "incorrect number of generic argument types, requires 1 and has 0" 
+            error: "is missing generic arguments [T]" 
         },
         { 
             name: "Generics Var mismatch Types",
@@ -386,7 +386,7 @@
             code: '''  
                 var x : X<f32> = X{}
             ''',
-            error: "incorrect number of generic argument types, requires 1 and has 0" 
+            error: "is missing generic arguments [T]" 
         },
         {
             name: "Generics call generic func ptr in struct field",
@@ -436,7 +436,7 @@
         {
             name: "Generics embedded", 
             definitions: '''
-                typedef func<T>(T):T as Test;
+                typedef func<T>(T):T as Test<T>;
                 
                 func test<T>(t: Test<T>, a: T) : T {
                     if(!t) {
@@ -503,7 +503,7 @@
                 var x = X<i32>{4}
                 x.method(8)
             ''',           
-            error: "'T' is an unknown type"       
+            error: "Unknown type 'T'"       
         },
  
     ]

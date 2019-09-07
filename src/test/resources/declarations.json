@@ -484,7 +484,7 @@
             ''',                       
             code: '''                
                 var ln = 2_i64;
-                const n = t(sizeof(char) as (i64) * (ln + 1_i64)) as (i32);
+                const n = t(sizeof(:char) as (i64) * (ln + 1_i64)) as (i32);
                 assert(n);
             ''',
         },
@@ -821,7 +821,7 @@
             code: '''   
                 assert(false);
             ''', 
-            error: "duplicate member 'x' from 'Entity' and 'Vec'"           
+            error: "duplicate member 'x' in 'Entity' and 'Vec'"           
         },
         {
             name: "UsingStructDeep",
@@ -1193,7 +1193,7 @@
                 
             ''',                       
             code: '''  
-                var t : []i32 const = []i32 const {1,2,3}                               
+                var t : [3]i32 const = []i32 const {1,2,3}                               
             ''',             
         },
         { 
@@ -1226,7 +1226,7 @@
                 @foreign public func malloc(size: u64) : void*;
             ''',                       
             code: '''  
-                var t = malloc( sizeof(char) * 3_u64) as (char*);
+                var t = malloc( sizeof(:char) * 3_u64) as (char*);
                 t[0] = 'h';
                 t[1] = 'i';
                 t[2] = '\0';

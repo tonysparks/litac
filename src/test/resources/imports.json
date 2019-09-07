@@ -36,10 +36,10 @@
                   
             '''
         },
-		 {
+		{
             name: "Generics embedded", 
             definitions: '''
-                typedef func<T>(T):T as Test;
+                typedef func<T>(T):T as Test<T>;
                 
                 func test<T>(t: Test<T>, a: T) : T {
                     if(!t) {
@@ -130,6 +130,24 @@
             code: '''  
                 assert(X == 4)              
             ''',
+        },
+        {
+            name: "Invalid Import",
+            modules: [
+                {
+                    name: "x",
+                    program: '''                                                
+                        public const X: i32 = 4
+                    '''
+                },
+            ], 
+            definitions: '''
+                import "z"
+            ''',                       
+            code: '''  
+                              
+            ''',
+            error: "could not find module 'z'"
         },
     ]
 }

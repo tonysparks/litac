@@ -3,90 +3,315 @@
  */
 package litac.checker;
 
-
+import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
-import litac.ast.NodeVisitor.AbstractNodeVisitor;
+import litac.ast.Node.SrcPos;
 import litac.ast.Stmt.*;
+import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
-import litac.compiler.Symbol.ResolveState;
-import litac.generics.GenericParam;
+import litac.compiler.Symbol.*;
+import litac.generics.*;
 import litac.parser.tokens.TokenType;
+import litac.util.*;
 import litac.util.Stack;
-import litac.util.Tuple;
 
 /**
- * Responsible for ensuring each Expr can be resolved down to a {@link TypeInfo}.
- * 
- * @author Tony
+ * @author antho
  *
  */
 public class TypeResolver {
+
+    private class TypeCheckException extends RuntimeException {        
+        private static final long serialVersionUID = 4636780657825316494L;
+
+        public TypeCheckException(SrcPos pos, String message, Object ... args) {
+            if(!isTrying) {
+                result.addError(pos, message, args);
+            }
+        }
+    }
+    
+    public static class Operand {
+        public TypeInfo type;
+        public boolean isLeftValue;
+        public boolean isConst;
+        public Object val;
+        
+        public static Operand op(Operand other) {
+            Operand op = new Operand();
+            op.type = other.type;
+            op.isConst = other.isConst;
+            
+            return op;
+        }
+        
+        public static Operand op(TypeInfo type) {
+            Operand op = new Operand();
+            op.type = type;
+            return op;
+        }
+                
+        public static Operand opConst(TypeInfo type, Object val) {
+            Operand op = new Operand();
+            op.type = type;            
+            op.isConst = true;
+            op.val = val;
+            return op;
+        }
+        
+        public static Operand opRight(TypeInfo type, Object val) {
+            Operand op = new Operand();
+            op.type = type;            
+            op.isLeftValue = false;
+            op.val = val;
+            return op;
+        }
+        
+        public static Operand opLeft(TypeInfo type, Object val) {
+            Operand op = new Operand();
+            op.type = type;            
+            op.isLeftValue = true;
+            op.val = val;
+            return op;
+        }
+    }
     
     private CompilationUnit unit;
     private PhaseResult result;
-    private Map<String, Tuple<Module,Decl>> genericTypes;
-    private Set<String> resolvedGenericTypes;
     private Map<String, Module> resolvedModules;
-    private List<Decl> pendingGlobals;
+    private Map<String, Boolean> labels;
     
+    private List<Symbol> moduleSymbols;
+    private List<Symbol> moduleFuncs;
+    private Stack<Tuple<Map<TypeSpec, Module>, Module>> currentModule;
     private Module root;
     
+    // Types pending to be completed
+    private List<Symbol> pendingTypes;
+    private List<Symbol> pendingValues;
+    private Map<String, Symbol> genericTypes;
+    
+    private Map<TypeSpec, TypeInfo> resolvedTypeMap;
+    private NodeVisitor stmtVisitor;
+    
+    private Stack<List<GenericParam>> genericStack;
+    private boolean isTrying;
+        
+    private FuncTypeInfo currentFunc;
+    
     public TypeResolver(PhaseResult result, 
-                        CompilationUnit unit) {
+                    CompilationUnit unit) {
+        
         this.result = result;
         this.unit = unit;
         
+        this.moduleSymbols = new ArrayList<>();
+        this.moduleFuncs = new ArrayList<>();
+        this.pendingTypes = new ArrayList<>();
+        this.pendingValues = new ArrayList<>();
         this.genericTypes = new HashMap<>();
-        this.resolvedGenericTypes = new HashSet<>();
+        
         this.resolvedModules = new HashMap<>();
-        this.pendingGlobals = new ArrayList<>();
+        this.resolvedTypeMap = new IdentityHashMap<>();
+        
+        this.labels = new HashMap<>();
+        
+        this.genericStack = new Stack<>();
+        this.currentModule = new Stack<>();
+        
+        this.stmtVisitor = new StmtVisitor();
     }
 
     public Program resolveTypes() {
-        Module module = resolveModule(this.unit.getMain());
-                
-        // add the generic types to the root declaration list        
-        module.getModuleStmt().declarations
-               .addAll(module.getGenericTypes()
-                             .stream()
-                             .map(e -> e.getSecond())                    
-                             .collect(Collectors.toList()));
-        
-        return new Program(module, resolvedModules, module.getSymbols());
+        Module module = resolveModule(this.unit.getMain());                
+        return new Program(module, 
+                           resolvedModules, 
+                           module.getSymbols(), 
+                           this.resolvedTypeMap);
     }
     
-    private Module resolveModule(ModuleStmt moduleStmt) {        
+    private void error(Stmt stmt, String message, Object ... args) {        
+        throw new TypeCheckException(stmt != null ? stmt.getSrcPos() : null, message, args);        
+    }
+    
+    private void error(SrcPos pos, String message, Object ... args) {        
+        throw new TypeCheckException(pos, message, args);
+    }
+    
+    private Module resolveModule(ModuleStmt moduleStmt) {
+        this.root = createModule(moduleStmt);
         
-        // First build up an inventory of all declarations
-        // Now that we have all of the type declarations, we can now resolve
-        // any global declarations (we know their types).
-        // Finally, we are able to traverse thru functions and resolve the sub
-        // expressions
+        enterModule(this.root);
         
-        DeclDefinitionNodeVisitor declVisitor = new DeclDefinitionNodeVisitor(moduleStmt);
-        declVisitor.visit(moduleStmt);
-        
-        Set<String> checkedModules = new HashSet<>();
-        Module module = declVisitor.module;
-        
-        resolveGlobals(checkedModules);
+        try {
+            List<Symbol> syms = null;
+            do {
+                syms = new ArrayList<>(this.moduleSymbols);
+                this.moduleSymbols.clear();
+                
+                for(Symbol sym : syms) {
+                    resolveSym(sym);
+                }
+                            
+                for(Symbol sym : syms) {
+                    finishResolveSym(sym);
+                }
+                
+            }
+            while(!syms.isEmpty());
 
-        // Second phase, resolve all types, visiting function/type bodies
-        TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result,
-                                                                      unit,
-                                                                      resolvedGenericTypes,
-                                                                      checkedModules,
-                                                                      module);
+            // populate function declaration types
+            for(Symbol sym : this.moduleFuncs) {                
+                resolveSym(sym);
+            }
+            
+            for(Symbol sym : this.pendingValues) {
+                resolveValue(sym);
+            }
+            
+            
+            for(Symbol sym : this.moduleFuncs) {
+                if(sym.isGenericTemplate()) {
+                    continue;
+                }
+                
+                resolveFunc(sym);
+            }
+            
+            Set<Symbol> processedSyms = new HashSet<>();
+            
+            // add all of the generic types
+            do {
+                Collection<Symbol> gens = new ArrayList<>(this.genericTypes.values());
+                gens.removeAll(processedSyms);
+                processedSyms.addAll(this.genericTypes.values());                
+                
+                if(gens.isEmpty()) {
+                    break;
+                }
+                
+                for(Symbol sym : gens) {
+                    if(sym.isGenericTemplate()) {
+                        continue;
+                    }
+                    
+                    if(sym.kind == SymbolKind.FUNC) {
+                        resolveFunc(sym);
+                    }
+                    else {
+                        finishResolveSym(sym);
+                    }
+                    
+                    moduleStmt.declarations.add(sym.decl);
+                }
+                
+            } 
+            while(true);
+        }
+        catch(TypeCheckException e) {
+            // is logged in PhaseResult
+        }
         
-        moduleStmt.visit(checker);
+        return this.root;
+    }
+    
+    private void resolveFunc(Symbol sym) {
+        if(sym.decl.kind != DeclKind.FUNC) {
+            return;
+        }
         
-        return module;
+        resolveSym(sym);
+        
+        enterModuleFor(sym);
+        try {
+            FuncDecl funcDecl = (FuncDecl) sym.decl;
+            if(funcDecl.hasGenericParams()) {
+                return;
+            }
+            
+            sym.markAsComplete();
+            
+            funcDecl.visit(this.stmtVisitor);
+        }
+        finally {
+            leaveModule();
+        }
+    }
+    
+    private Module getModuleFor(NameTypeSpec typeSpec) {
+        Symbol sym = current().getType(typeSpec.name);
+        if(sym != null) {
+            return current();
+        }
+        
+        Map<TypeSpec, Module> genericMap = this.currentModule.peek().getFirst();
+        if(genericMap == null) {
+            return null;
+        }
+        
+        Module module = genericMap.get(typeSpec);
+        if(module != null) {
+            return module;
+        }
+        
+        return null;
+    }
+    
+    private void enterModuleFor(Symbol sym) {        
+        this.currentModule.add(new Tuple<>(sym.genericMap, sym.getDeclaredModule()));        
+    }
+    
+    private void enterModule(Module module) {        
+        this.currentModule.add(new Tuple<>(null, module));
+    }
+    
+    private void leaveModule() {
+        this.currentModule.pop();
+    }
+    
+    private Module current() {
+        return this.currentModule.peek().getSecond();
+    }
+    
+    private Symbol getType(NameTypeSpec typeSpec) {
+        Symbol sym = current().getType(typeSpec.name);
+        if(sym != null) {
+            return sym;
+        }
+        
+        Map<TypeSpec, Module> genericMap = this.currentModule.peek().getFirst();
+        if(genericMap == null) {
+            return null;
+        }
+        
+        Module module = genericMap.get(typeSpec);
+        if(module != null) {
+            return module.getType(typeSpec.name);
+        }
+        
+        return null;
+    }
+    
+    private void addBuiltins(Module module) {
+        module.addBuiltin(TypeInfo.BOOL_TYPE);
+        module.addBuiltin(TypeInfo.CHAR_TYPE);
+        module.addBuiltin(TypeInfo.F32_TYPE);
+        module.addBuiltin(TypeInfo.F64_TYPE);
+        module.addBuiltin(TypeInfo.I8_TYPE);
+        module.addBuiltin(TypeInfo.I16_TYPE);
+        module.addBuiltin(TypeInfo.I32_TYPE);
+        module.addBuiltin(TypeInfo.I64_TYPE);
+        module.addBuiltin(TypeInfo.U8_TYPE);
+        module.addBuiltin(TypeInfo.U16_TYPE);
+        module.addBuiltin(TypeInfo.U32_TYPE);
+        module.addBuiltin(TypeInfo.U64_TYPE);
+        module.addBuiltin(TypeInfo.NULL_TYPE);
+        module.addBuiltin(TypeInfo.VOID_TYPE);
     }
     
     private Module createModule(ModuleStmt moduleStmt) {
@@ -95,555 +320,2001 @@ public class TypeResolver {
             return resolvedModules.get(moduleName);
         }
         
-        DeclDefinitionNodeVisitor declVisitor = new DeclDefinitionNodeVisitor(moduleStmt);
-        declVisitor.visit(moduleStmt);
-                
-        return declVisitor.module;
+        Module module = new Module(this.root, this.genericTypes, result, moduleStmt, moduleName);
+        addBuiltins(module);
+        
+        resolvedModules.put(moduleName, module);
+        enterModule(module);
+        
+        List<Decl> nonGenericDecls = new ArrayList<>();
+        
+        for(Decl decl : moduleStmt.declarations) {
+            switch(decl.kind) {
+                case CONST:  {
+                    Symbol sym = module.addIncomplete(decl);
+                    if(!tryResolveValue(sym)) {
+                        this.pendingValues.add(sym);
+                    }
+                    nonGenericDecls.add(decl);
+                    break;
+                }
+                case VAR: {
+                    Symbol sym = module.addIncomplete(decl);
+                    this.pendingValues.add(sym);
+                    nonGenericDecls.add(decl);
+                    break;
+                }
+                case FUNC: {
+                    FuncDecl funcDecl = (FuncDecl) decl;
+                    String funcName = funcDecl.name;
+                    if(funcDecl.isMethod()) {
+                        funcName = Names.methodName(funcDecl.params.params.get(0).type, funcName);
+                    }
+                    Symbol sym = module.declareFunc(funcDecl, funcName);
+                    sym.maskAsIncomplete();
+                    
+                    sym.type = new FuncTypeInfo(funcName, null, new ArrayList<>(), funcDecl.flags, funcDecl.genericParams);
+                    sym.type.sym = sym;
+                    
+                    this.moduleFuncs.add(sym);
+                    
+                    if(!funcDecl.hasGenericParams()) {
+                        nonGenericDecls.add(funcDecl);
+                    }
+                    else {
+                        sym.markAsGenericTemplate();
+                    }
+                    
+                    break;
+                }                
+                case ENUM: {
+                    EnumDecl enumDecl = (EnumDecl) decl;
+                    Symbol sym = module.declareEnum(enumDecl, enumDecl.name);
+                    sym.maskAsIncomplete();
+                    
+                    this.moduleSymbols.add(sym);
+                    break;
+                }
+                case STRUCT: {
+                    StructDecl structDecl = (StructDecl) decl;
+                    Symbol sym = module.declareStruct(structDecl, structDecl.name);
+                    sym.maskAsIncomplete();
+                    
+                    this.moduleSymbols.add(sym);
+                    
+                    if(!structDecl.hasGenericParams()) {
+                        nonGenericDecls.add(structDecl);
+                    }
+                    else {
+                        sym.markAsGenericTemplate();
+                    }
+                    
+                    break;
+                }
+                case UNION: {
+                    UnionDecl unionDecl = (UnionDecl) decl;
+                    Symbol sym = module.declareUnion(unionDecl, unionDecl.name);
+                    sym.maskAsIncomplete();
+                    
+                    this.moduleSymbols.add(sym);
+                    
+                    if(!unionDecl.hasGenericParams()) {
+                        nonGenericDecls.add(unionDecl);
+                    }
+                    else {
+                        sym.markAsGenericTemplate();
+                    }
+                    
+                    break;
+                }
+                case TYPEDEF: {
+                    TypedefDecl typeDecl = (TypedefDecl) decl;
+                    Symbol sym = module.declareTypedef(typeDecl, typeDecl.alias);
+                    
+                    this.moduleSymbols.add(sym);
+                    nonGenericDecls.add(typeDecl);
+                    break;
+                }
+                default:
+                    break;
+            }
+        }      
+        
+        // we don't want the upstream systems to deal with the Generic types
+        // they are resolved with proper substituted types
+        moduleStmt.declarations = nonGenericDecls;        
+        
+        for(ImportStmt imp : moduleStmt.imports) {
+            resolveImport(module, imp);
+        }   
+        
+        leaveModule();
+        
+        return module;
     }
     
-    private void resolveGlobals(Set<String> checkModules) {
-        for(Decl d : pendingGlobals) {
-            TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result,
-                    unit,
-                    resolvedGenericTypes,
-                    checkModules,
-                    d.sym.declared);
+    private void resolveImport(Module parentModule, ImportStmt importStmt) {
+        String moduleName = importStmt.alias != null ? importStmt.alias : importStmt.moduleName;
+        
+        if(parentModule.getModule(moduleName) != null) {
+            error(importStmt, "duplicate import of module '%s'", moduleName); 
+            return;
+        }
+        
+        ModuleStmt moduleStmt = unit.getImports().get(importStmt.moduleName);
+        
+        Module module = createModule(moduleStmt);
+        parentModule.importModule(importStmt, module, importStmt.alias);
+    }
+    
+    private void resolveSym(Symbol sym) {
+        if(sym.state == ResolveState.RESOLVED) {
+            return;
+        }
+        
+        if(sym.state == ResolveState.RESOLVING) {
+            error(sym.decl.getSrcPos(), "Cyclic dependency with '%s'", sym.name);
+            return;
+        }
+        
+        sym.state = ResolveState.RESOLVING;
+        enterModuleFor(sym);
+        try {
+            switch(sym.kind) {
+                case TYPE:
+                    switch(sym.decl.kind) {
+                        case ENUM:
+                            EnumDecl enumDecl = (EnumDecl)sym.decl;
+                            sym.type = enumTypeInfo(enumDecl);     
+                            sym.type.sym = sym;
+                            
+                            createEnumAsStr(enumDecl, sym);
+                            break;
+                        case TYPEDEF:
+                            TypedefDecl typedefDecl = (TypedefDecl) sym.decl;
+                            if(typedefDecl.hasGenericParams()) {
+                                this.genericStack.add(typedefDecl.genericParams);
+                            }
+                            
+                            TypeInfo aliasedType = resolveTypeSpec(typedefDecl.type);
+                            //sym.declared = current();
+                            /*if(sym.type.sym != null) {
+                                //sym.genericDeclaration = sym.type.sym.getDeclaredModule();
+                            }
+                            else {
+                                System.out.println("here");
+                            }*/
+                            
+                            // Allow foreign types to be aliased and referenced
+                            // in our type system                            
+                            if(typedefDecl.attributes.isForeign() && !aliasedType.isKind(TypeKind.FuncPtr)) {            
+                                aliasedType = TypeInfo.newForeignPrimitive(typedefDecl.alias);
+                                aliasedType.sym = sym;
+                            }
+                            
+                            sym.type = aliasedType;
+                            
+                            if(typedefDecl.hasGenericParams()) {
+                                this.genericStack.pop();
+                            }
+                            break;
+                        case STRUCT:                        
+                            StructDecl structDecl = (StructDecl) sym.decl;                        
+                            sym.type = new StructTypeInfo(sym.decl.name, structDecl.genericParams, new ArrayList<>(), structDecl.flags);
+                            sym.type.sym = sym;
+                            this.pendingTypes.add(sym);
+                            break;
+                        case UNION:
+                            UnionDecl unionDecl = (UnionDecl) sym.decl;
+                            sym.type = new UnionTypeInfo(sym.decl.name, unionDecl.genericParams, new ArrayList<>(), unionDecl.flags);
+                            sym.type.sym = sym;
+                            this.pendingTypes.add(sym);
+                            break;
+                        default:                        
+                    }
+                    break;
+                case FUNC: {
+                    FuncDecl funcDecl = (FuncDecl) sym.decl;
+                    sym.type = funcTypeInfo(funcDecl, sym);
+                    sym.type.sym = sym;
+                    break;
+                }
+                case CONST:
+                case VAR: {         
+                    if(!sym.isLocal()) {
+                        this.pendingValues.add(sym);
+                        return;
+                    }
+                    break;
+                }
+                default:
+                    break;
             
-            d.visit(checker);
+            }        
+            sym.state = ResolveState.RESOLVED;
+        }
+        finally {
+            leaveModule();
+        }
+    }        
+    
+    private Symbol createEnumAsStr(EnumDecl enumDecl, Symbol enumSym) {
+        NoteStmt asStr = enumDecl.attributes.getNote("asStr");
+        if(asStr == null) {
+            return null;
+        }
+        
+        String funcName = asStr.getAttr(0, enumDecl.name + "AsStr");
+        FuncTypeInfo asStrFuncInfo = new FuncTypeInfo(funcName, 
+                                                      new PtrTypeInfo(new ConstTypeInfo(TypeInfo.CHAR_TYPE)), 
+                                                      Arrays.asList(new ParamInfo(enumSym.type, "e", null, new Attributes())), 
+                                                      0, 
+                                                      Collections.emptyList());
+        
+        ParameterDecl param = new ParameterDecl(enumSym.type.asTypeSpec(), "e", null, 0);
+        FuncDecl funcDecl = new FuncDecl(asStrFuncInfo.name, 
+                                         new ParametersStmt(Arrays.asList(param), false),   
+                                         new EmptyStmt(),
+                                         asStrFuncInfo.returnType.asTypeSpec(), 
+                                         Collections.emptyList(), 0);
+        
+        // Name must match CGen.visit(EnumDecl)
+        funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + current().name() + "_" + enumDecl.name + "_AsStr")));
+        funcDecl.attributes.isGlobal = true;
+        funcDecl.attributes.isPublic = true;
+        
+        Symbol sym = current().declareFunc(funcDecl, asStrFuncInfo.name);
+        sym.type = asStrFuncInfo;
+        sym.type.sym = sym;
+                
+        return sym;
+        
+    }
+    
+    private void typeCheck(SrcPos pos, TypeInfo a, TypeInfo b) {
+        typeCheck(pos, a, b, false);
+    }
+    
+    private void typeCheck(SrcPos pos, TypeInfo a, TypeInfo b, boolean isCasted) {
+        if(isCasted) {
+            if(!TypeInfo.isPtrLike(a) || !TypeInfo.isPtrLike(b)) {
+                if(!a.canCastTo(b) && !b.canCastTo(a)) {
+                    error(pos, "'%s' can't be casted to '%s'", b, a);
+                }
+            }
+        }
+        else if(!a.canCastTo(b)) {
+            error(pos, "'%s' is not of type '%s'", b, a);
         }
     }
-   
-    private class DeclDefinitionNodeVisitor extends AbstractNodeVisitor {
-        Module module;
-        
-        public DeclDefinitionNodeVisitor(ModuleStmt stmt) {
-            String moduleName = stmt.name;
-            
-            this.module = new Module(root, genericTypes, result, stmt, moduleName);
+    
+    private boolean tryResolveValue(Symbol sym) {
+        try {
+            isTrying = true;
+            resolveValue(sym);
+            return true;
+        }
+        catch(TypeCheckException | NullPointerException e ) {
+            return false;
+        }
+        finally {
+            isTrying = false;
+        }
+    }
+    
+    private void resolveValue(Symbol sym) {
+        if(sym.kind != SymbolKind.CONST && sym.kind != SymbolKind.VAR) {            
+            return;
         }
         
+        enterModuleFor(sym);
+        try {
+            Decl decl = sym.decl;
+            switch(sym.kind) {
+                case CONST: {
+                    ConstDecl constDecl = (ConstDecl) decl;
+                    sym.type = resolveValueDecl(decl, constDecl.type, constDecl.expr, !sym.isForeign());
+                    sym.state = ResolveState.RESOLVED;
+                    sym.markAsComplete();
+                    break;
+                }
+                case VAR: {
+                    VarDecl varDecl = (VarDecl) decl;
+                    sym.type = resolveValueDecl(decl, varDecl.type, varDecl.expr, false);
+                    sym.state = ResolveState.RESOLVED;
+                    sym.markAsComplete();
+                    break;
+                }
+                default:
+            }    
+        }
+        finally {
+            leaveModule();
+        }
+    }
+    
+    private TypeInfo resolveValueDecl(Decl decl, TypeSpec typeSpec, Expr expr, boolean isConstant) {
+        if(expr == null && isConstant) {
+            error(decl.getSrcPos(), "const declaration must have an assignment (unless it is '@foreign')");
+            return null;
+        }
+        
+        TypeInfo declaredType = null;
+        if(typeSpec != null) {
+            declaredType = resolveTypeSpec(typeSpec);
+        }
+
+        TypeInfo inferredType = null;
+        if(expr != null) {
+            Operand op = resolveExpr(expr);
+            if(op != null) {
+                if(expr.getKind() == ExprKind.ARRAY_INIT) {
+                    inferredType = op.type;
+                }
+                else {
+                    inferredType = decayType(op.type);    
+                }                
+            }
+        }
+        
+        if(declaredType != null && inferredType != null) {            
+            typeCheck(expr.getSrcPos(), inferredType, declaredType);
+        }
+                
+        return declaredType != null ? declaredType : inferredType;        
+    }
+    
+    /**
+     * Types when assigned must decay to their assigned type,
+     * such as arrays to pointers and functions to function pointers
+     * 
+     * @param type
+     * @return the assignable type info
+     */
+    private TypeInfo decayType(TypeInfo type) {        
+        switch(type.kind) {
+            case Array: {
+                ArrayTypeInfo arrayInfo = type.as();
+                PtrTypeInfo ptrInfo = new PtrTypeInfo(arrayInfo.arrayOf);
+                return ptrInfo;
+            }
+            case Func: {
+                FuncTypeInfo funcInfo = type.as();
+                return funcInfo.asPtr();
+            }
+            default: {
+                return type;
+            }
+        }
+    }
+    
+    private void finishResolveSym(Symbol sym) {
+        if(sym.isComplete()) {                    
+            return;
+        }
+        
+        enterModuleFor(sym);
+        switch(sym.decl.kind) {
+            case STRUCT:
+            case UNION: {
+                AggregateDecl aggDecl = (AggregateDecl) sym.decl;
+                if(aggDecl.hasGenericParams()) {
+                    this.genericStack.add(aggDecl.genericParams);
+                }
+                
+                AggregateTypeInfo aggInfo = sym.type.as();        
+                for(FieldStmt field : aggDecl.fields) {
+                    FieldInfo info = resolveFieldInfo(sym, field);
+                    aggInfo.addField(info);
+                }        
+                
+                sym.decl.visit(stmtVisitor);
+                
+                if(aggDecl.hasGenericParams()) {
+                    this.genericStack.pop();
+                }
+                
+                sym.markAsComplete();                
+                break;
+            }
+            case ENUM: {
+                sym.decl.visit(stmtVisitor);
+                sym.markAsComplete();
+                break;
+            }
+            case TYPEDEF: {
+                sym.decl.visit(stmtVisitor);
+                sym.markAsComplete();
+                break;
+            }
+            default:
+                /* funcs/vars/const must be handled after other declarations 
+                 */
+        }
+        leaveModule();
+    }
+    
+    private NameTypeSpec asTypeSpec(AggregateDecl decl, 
+                                    List<TypeInfo> genericArgs,
+                                    List<GenericParam> parentGenericParams) {
+        List<TypeSpec> args = new ArrayList<>();
+        for(GenericParam p : decl.genericParams) {
+            for(int i = 0; i < parentGenericParams.size(); i++) {
+                GenericParam parentParam = parentGenericParams.get(i);
+                if(parentParam.name.equals(p.name)) {
+                    args.add(genericArgs.get(i).asTypeSpec());
+                    break;
+                }
+            }
+        }
+        return new NameTypeSpec(decl.getSrcPos(), decl.name, args);
+    }
+    
+    private FieldInfo resolveFieldInfo(Symbol parentSym, FieldStmt stmt) {
+        Module module = parentSym.getDeclaredModule();
+        
+        if (stmt instanceof VarFieldStmt) {
+            VarFieldStmt var = (VarFieldStmt) stmt;
+            TypeInfo type = resolveTypeSpec(var.type);
+            
+            return new FieldInfo(type, var.name, var.attributes, null);
+        }
+        
+        if (stmt instanceof StructFieldStmt) {
+            TypeInfo type = null;
+            
+            StructFieldStmt struct = (StructFieldStmt) stmt;
+            if(parentSym.isFromGenericTemplate()) {
+                Symbol sym = module.getType(struct.decl.name);
+                type = createTypeFromGenericTemplate(sym, asTypeSpec(struct.decl, parentSym.genericArgs, parentSym.genericParams));
+                struct.decl.sym = type.sym;
+            }
+            else {
+                Symbol sym = module.declareStruct(struct.decl, struct.decl.name);
+                sym.maskAsIncomplete();                       
+                this.moduleSymbols.add(sym);
+                
+                resolveSym(sym);
+                finishResolveSym(sym);
+    
+                type = sym.type;
+            }
+            
+            return new FieldInfo(type, struct.decl.name, struct.decl.attributes, null);
+        }
+        
+        if (stmt instanceof UnionFieldStmt) {
+            TypeInfo type = null;
+            
+            UnionFieldStmt union = (UnionFieldStmt) stmt;
+            if(parentSym.isFromGenericTemplate()) {
+                Symbol sym = module.getType(union.decl.name);
+                type = createTypeFromGenericTemplate(sym, asTypeSpec(union.decl, parentSym.genericArgs, parentSym.genericParams));
+                union.decl.sym = type.sym;
+            }
+            else {            
+                Symbol sym = module.declareUnion(union.decl, union.decl.name);
+                sym.maskAsIncomplete();                       
+                this.moduleSymbols.add(sym);
+                
+                resolveSym(sym);
+                finishResolveSym(sym);
+    
+                type = sym.type;
+            }
+            
+            return new FieldInfo(type, union.decl.name, union.decl.attributes, null);
+        }
+        
+        if (stmt instanceof EnumFieldStmt) {
+            EnumFieldStmt enm = (EnumFieldStmt) stmt;
+            Symbol sym = module.declareEnum(enm.decl, enm.decl.name);
+            this.moduleSymbols.add(sym);
+            
+            resolveSym(sym);
+            finishResolveSym(sym);
+            return new FieldInfo(sym.type, enm.decl.name, enm.decl.attributes, null);
+        }
+        
+        error(stmt.getSrcPos(), "Unknown field item declaration");
+        return null;
+    }
+    
+    private boolean hasGenericParam(List<TypeSpec> genArgs) {
+        for(TypeSpec type : genArgs) {
+            NameTypeSpec name = TypeSpec.getBaseType(type);
+            if(name != null) {
+                if(isGenericParam(name) != null) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    private TypeInfo createTypeFromGenericTemplate(Symbol sym, NameTypeSpec nameSpec) {
+        List<TypeSpec> genArgs = nameSpec.genericArgs;                
+        String genericsName = nameSpec.toGenericsName();
+        
+        Symbol genericSym = this.genericTypes.get(genericsName);                
+        if(genericSym == null) {
+            // Duplicate the Decl with the substituted generic arguments
+            switch(sym.decl.kind) {
+                case FUNC: {
+                    FuncDecl newDecl = Generics.createFuncDecl((FuncDecl)sym.decl, genericsName, genArgs);
+                    genericSym = this.root.declareFunc(newDecl, genericsName);
+                    break;
+                }
+                case STRUCT: {
+                    StructDecl newDecl = Generics.createStructDecl((StructDecl)sym.decl, genericsName, genArgs);
+                    genericSym = this.root.declareStruct(newDecl, genericsName);
+                    break;
+                }
+                case UNION: {
+                    UnionDecl newDecl = Generics.createUnionDecl((UnionDecl)sym.decl, genericsName, genArgs);
+                    genericSym = this.root.declareUnion(newDecl, genericsName);
+                    break;
+                }
+                case TYPEDEF: {
+                    TypedefDecl newDecl = Generics.createTypedefDecl((TypedefDecl)sym.decl, genericsName, genArgs);
+                    genericSym = this.root.declareTypedef(newDecl, genericsName);
+                    break;
+                }
+                default: {
+                    error(nameSpec.pos, "'%s' can't contain a generic type", nameSpec.name);
+                    return null;
+                }
+            }
+            
+            GenericDecl orgDecl = (GenericDecl)sym.decl;
+            genericSym.callsiteModule = current();
+            genericSym.genericDeclaration = sym.getDeclaredModule();
+            genericSym.genericParams = new ArrayList<>(orgDecl.genericParams);
+            genericSym.markFromGenericTemplate();
+            genericSym.maskAsIncomplete();
+            
+            this.genericTypes.put(genericsName, genericSym);   
+            
+            if(hasGenericParam(genArgs)) {
+                genericSym.markAsGenericTemplate();  
+                
+                // TODO: Move this logic into Generics.createDecl, we don't want to remove
+                // the generic params if we still have them; this hack adds them back in
+                GenericDecl genDecl = (GenericDecl)genericSym.decl;
+                
+                genDecl.genericParams = new ArrayList<>(orgDecl.genericParams);
+            }
+            //else 
+            {                
+                for(int i = 0; i < genArgs.size(); i++) {
+                    TypeSpec arg = genArgs.get(i);
+                    
+                    TypeInfo type = resolveTypeSpec(arg);
+                    NameTypeSpec typeName = TypeSpec.getBaseType(arg);
+                    Module module = getModuleFor(typeName);
+                    Symbol typedefSym = null;
+                    if(module != null) {
+                        typedefSym = module.getAliasedType(typeName.name);
+                    }
+                    genericSym.addModuleForType(arg, type, typedefSym); 
+                    genericSym.genericArgs.add(type);
+                }
+            }
+        }
+        
+        // create the TypeInfo's for this symbol
+        resolveSym(genericSym);
+        
+        // resolve any embedded fields for aggregates 
+        finishResolveSym(genericSym);
+        
+        this.resolvedTypeMap.put(nameSpec, genericSym.type);
+        return genericSym.type;
+    }
+    
+    private TypeInfo resolveTypeSpec(TypeSpec typeSpec) {
+        if(typeSpec == null) {
+            return TypeInfo.VOID_TYPE;
+        }
+        
+        switch(typeSpec.kind) {
+            case NAME: {
+                NameTypeSpec nameSpec = typeSpec.as();
+                GenericParam genParam = isGenericParam(nameSpec);
+                if(genParam != null) {
+                    return new GenericParamTypeInfo(genParam.name);
+                }
+                
+                // This will check the current module AND if we are in a generic structure
+                // we must also see if this type is mapped to a particular call site module
+                Symbol sym = getType(nameSpec);                
+                if(sym == null) {
+                    // This may be a func pointer
+                    sym = current().currentScope().getSymbol(nameSpec.name);
+
+                    if(sym != null && sym.type != null && TypeInfo.isFunc(sym.type)) {                        
+                        return sym.type;
+                    }
+                    
+                    if(sym == null) {
+                        error(typeSpec.pos, "Unknown type '%s'", nameSpec.name);
+                        return null;
+                    }
+                    
+                }
+                
+                if(!sym.isType()) {
+                    error(typeSpec.pos, "'%s' must be a type", nameSpec.name);
+                    return null;
+                }
+                
+                resolveSym(sym);
+                
+                if(nameSpec.hasGenericArgs()) {
+                    return createTypeFromGenericTemplate(sym, nameSpec);
+                }
+                                
+                this.resolvedTypeMap.put(typeSpec, sym.type);
+                return sym.type;
+            }
+            case ARRAY: {
+                ArrayTypeSpec arraySpec = typeSpec.as();
+                TypeInfo arrayOf = resolveTypeSpec(arraySpec.base);
+                long length = -1;
+                if(arraySpec.numElements != null) {
+                    Operand operand = resolveConstExpr(arraySpec.numElements);
+                    if(!TypeInfo.isInteger(operand.type)) {
+                        error(arraySpec.numElements.getSrcPos(), "Array size expression must be an integer type");
+                        return null;    
+                    }
+                    if(operand.val instanceof Number) {
+                        length = ((BigDecimal)operand.val).longValue();
+                    }
+                    
+                }
+                TypeInfo type = new ArrayTypeInfo(arrayOf, length, arraySpec.numElements);
+                this.resolvedTypeMap.put(typeSpec, type);
+                return type;
+            }
+            case CONST: {
+                ConstTypeSpec constSpec = typeSpec.as();
+                TypeInfo constOf = resolveTypeSpec(constSpec.base);
+                TypeInfo type = new ConstTypeInfo(constOf);
+                this.resolvedTypeMap.put(typeSpec, type);
+                return type;
+            }
+            case PTR: {
+                PtrTypeSpec ptrSpec = typeSpec.as();
+                TypeInfo ptrOf = resolveTypeSpec(ptrSpec.base);
+                TypeInfo type = new PtrTypeInfo(ptrOf);
+                this.resolvedTypeMap.put(typeSpec, type);
+                return type;
+            }
+            case FUNC_PTR: {
+                FuncPtrTypeSpec funcSpec = typeSpec.as();
+                List<TypeInfo> args = new ArrayList<>();
+                for(TypeSpec argSpec : funcSpec.args) {
+                    TypeInfo arg = resolveTypeSpec(argSpec);
+                    args.add(arg);
+                }
+                
+                TypeInfo ret = resolveTypeSpec(funcSpec.ret);
+                TypeInfo type = new FuncPtrTypeInfo(ret, args, funcSpec.hasVarargs, funcSpec.genericParams);
+                this.resolvedTypeMap.put(typeSpec, type);
+                return type;
+            }
+            default: {
+                error(typeSpec.pos, "Unknown type specification");
+                return null;
+            }
+        
+        }
+    }
+    
+    private TypeInfo funcTypeInfo(FuncDecl funcDecl, Symbol sym) {
+        if(funcDecl.hasGenericParams()) {
+            this.genericStack.add(funcDecl.genericParams);
+        }
+        
+        enterModuleFor(sym);
+        try {
+            ParametersStmt params = funcDecl.params;
+            
+            List<ParamInfo> args = new ArrayList<>();
+            for(ParameterDecl param : params.params) {            
+                TypeInfo arg = resolveTypeSpec(param.type);                        
+                args.add(new ParamInfo(arg, param.name, param.defaultValue, param.attributes));
+            }
+                    
+            TypeInfo ret = resolveTypeSpec(funcDecl.returnType);
+                    
+            if(funcDecl.hasGenericParams()) {
+                this.genericStack.pop();        
+            }
+        
+            TypeInfo type = sym.type;
+            if(type != null) {
+                FuncTypeInfo funcInfo = type.as();
+                funcInfo.name = funcDecl.name;
+                funcInfo.returnType = ret;
+                funcInfo.parameterDecls = args;
+                funcInfo.flags = funcDecl.flags;
+                funcInfo.genericParams = funcDecl.genericParams;
+                
+                return funcInfo;
+            }
+            
+            return new FuncTypeInfo(funcDecl.name, ret, args, funcDecl.flags, funcDecl.genericParams);
+        }
+        finally {
+            leaveModule();
+        }
+    }
+            
+    private TypeInfo enumTypeInfo(EnumDecl enumDecl) {
+        EnumTypeInfo enumInfo = new EnumTypeInfo(enumDecl.name, enumDecl.fields);
+        return enumInfo;
+    }
+    
+    private Operand resolveExpr(Expr expr) {
+        switch(expr.getKind()) {
+        case FUNC_IDENTIFIER: {
+            FuncIdentifierExpr id = expr.as();
+            return resolveFuncIdentifier(id);
+        }
+        case IDENTIFER: {
+            IdentifierExpr id =  expr.as();
+            return resolveIdentifier(id);
+        }
+        case TYPE_IDENTIFIER: {
+            TypeIdentifierExpr id = expr.as();
+            return resolveTypeIdentifier(id);
+        }
+        case BOOLEAN: {
+            BooleanExpr b = expr.as();
+            return b.getResolvedType();
+        }
+        case CHAR: {
+            CharExpr c = expr.as();
+            return c.getResolvedType();
+        }
+        case NULL: {
+            NullExpr n = expr.as();
+            return n.getResolvedType();
+        }
+        case NUMBER: {
+            NumberExpr n = expr.as();
+            return n.getResolvedType();
+        }
+        case STRING: {
+            StringExpr s = expr.as();
+            return s.getResolvedType();
+        }
+        case ARRAY_DESIGNATION: {
+            ArrayDesignationExpr a = expr.as();
+            return resolveArrayDesExpr(a);
+        }            
+        case ARRAY_INIT: {
+            ArrayInitExpr a = expr.as();
+            return resolveArrayInitExpr(a);
+        }
+        case BINARY: {
+            BinaryExpr b = expr.as();
+            return resolveBinaryExpr(b);
+        }
+        case CAST: {
+            CastExpr c = expr.as();
+            return resolveCastExpr(c);
+        }
+        case FUNC_CALL: {
+            FuncCallExpr f = expr.as();
+            return resolveFuncCallExpr(f);
+        }
+        case GET: {
+            GetExpr g = expr.as();
+            return resolveGetExpr(g);            
+        }
+        case GROUP: {
+            GroupExpr g = expr.as();
+            return resolveGroupExpr(g);
+        }
+        case INIT: {
+            InitExpr i = expr.as();
+            return resolveInitExpr(i);
+        }
+        case INIT_ARG: {
+            InitArgExpr i = expr.as();
+            return resolveInitArgExpr(i);
+        }
+        case SET: {
+            SetExpr s = expr.as();
+            return resolveSetExpr(s);
+        }
+        case SIZE_OF: {
+            SizeOfExpr s = expr.as();
+            return resolveSizeOfExpr(s);
+        }
+        case SUBSCRIPT_GET: {
+            SubscriptGetExpr s = expr.as();
+            return resolveSubGetExpr(s);
+        }
+        case SUBSCRIPT_SET: {
+            SubscriptSetExpr s = expr.as();
+            return resolveSubSetExpr(s);
+        }
+        case TERNARY: {
+            TernaryExpr t = expr.as();
+            return resolveTernaryExpr(t);
+        }
+        case TYPE_OF: {
+            TypeOfExpr t = expr.as();
+            return resolveTypeOfExpr(t);
+        }
+        case UNARY: {
+            UnaryExpr u = expr.as();
+            return resolveUnaryExpr(u);
+        }
+        default:
+            break;
+        
+        }
+        return null;
+    }
+    
+    private Operand resolveFuncIdentifier(FuncIdentifierExpr expr) { 
+        TypeInfo type = resolveTypeSpec(expr.type);
+        if(type == null) {
+            error(expr, "unknown function '%s'", expr.type.name);
+            return null;
+        }
+        
+        Symbol sym = type.sym;
+        if(type.isKind(TypeKind.FuncPtr)) {
+            Symbol funcSym = current().currentScope().getSymbol(expr.type.name);
+            if(funcSym != null && funcSym.type != null && funcSym.type.isKind(TypeKind.FuncPtr)) {
+                sym = funcSym;
+            }
+        }
+        
+        if(sym == null) {
+            error(expr, "unknown function '%s'", expr.type.name);
+            return null;
+        }
+        
+        Operand op = Operand.op(sym.type);
+        expr.resolveTo(op);
+        expr.sym = sym;
+        
+        return op;
+    }
+    
+    private Operand resolveIdentifier(IdentifierExpr expr) {              
+        Symbol sym = current().currentScope().getSymbol(expr.type.name);
+        if(sym == null) {
+            error(expr, "unknown variable '%s'", expr.type.name);
+            return null;
+        }
+        
+        TypeInfo type = sym.type;
+        if(sym.isGenericTemplate() && expr.type.hasGenericArgs()) {
+            type = resolveTypeSpec(expr.type);
+            if(type == null) {
+                error(expr, "unknown type '%s'", expr.type);
+                return null;
+            }
+            sym = type.sym;
+        }
+        
+        Operand op = Operand.op(type);
+        op.isConst = sym.isConstant();
+//        if(op.isConst) {
+//            ConstDecl
+//        }
+        
+        expr.resolveTo(op);
+        expr.sym = sym;
+        
+        return op;
+    }
+    
+    private Operand resolveTypeIdentifier(TypeIdentifierExpr expr) {        
+        TypeInfo type = resolveTypeSpec(expr.type);
+        if(type == null) {
+            error(expr, "unknown type '%s'", expr.type);
+            return null;
+        }
+        
+        Symbol sym = type.sym;
+        Operand op = Operand.op(type);
+        if(sym != null) {
+            op.isConst = sym.isConstant();
+        }
+//        if(op.isConst) {
+//            ConstDecl
+//        }
+        
+        expr.resolveTo(op);
+        expr.sym = sym;
+        
+        return op;
+    }
+    
+    private Operand resolveUnaryExpr(UnaryExpr expr) {
+        Operand op = resolveExpr(expr.expr);
+        
+        Operand operand = null;
+        switch(expr.operator) {
+            case STAR: {
+                TypeInfo type = op.type;     
+                
+                if(type.isKind(TypeKind.Ptr)) {
+                    PtrTypeInfo ptrInfo = type.as();
+                    if(ptrInfo.ptrOf.isKind(TypeKind.Const)) {
+                        ConstTypeInfo constInfo = ptrInfo.ptrOf.as();
+                        operand = Operand.op(constInfo.constOf);                        
+                    }
+                    else {                    
+                        operand = Operand.op(ptrInfo.ptrOf);
+                    }
+                }
+                else if(type.isKind(TypeKind.Str)) {
+                    operand = Operand.op(TypeInfo.CHAR_TYPE);
+                }
+                else if(type.isKind(TypeKind.Array)) {
+                    ArrayTypeInfo arrayInfo = type.as();
+                    if(arrayInfo.arrayOf.isKind(TypeKind.Const)) {
+                        ConstTypeInfo constInfo = arrayInfo.arrayOf.as();                        
+                        operand = Operand.op(constInfo.constOf);
+                    }
+                    else {
+                        operand = Operand.op(arrayInfo.arrayOf);
+                    }
+                }
+                else {
+                    error(expr, "'%s' is not a pointer type", type);
+                }
+                
+                break;
+            }
+            case BAND: {
+                operand = op.type.isKind(TypeKind.Func) 
+                            ? Operand.op(((FuncTypeInfo)op.type.as()).asPtr()) 
+                            : Operand.op(new PtrTypeInfo(op.type));
+                break;
+            }
+            case NOT: {
+                operand = Operand.op(TypeInfo.BOOL_TYPE);
+                break;
+            }
+            default: {                
+                operand = Operand.op(op.type);
+                operand.isConst = op.isConst;
+            }
+        }
+        
+        expr.resolveTo(operand);
+        return operand;
+    }
+    
+    private Operand resolveTernaryExpr(TernaryExpr c) {
+        Operand cond = resolveExpr(c.cond);
+        if(!TypeInfo.isBooleanable(cond.type)) {
+            error(c.cond, "must be a boolean expression");
+            return null;
+        }
+        
+        Operand t = resolveExpr(c.then);
+        Operand o = resolveExpr(c.other);
+        
+        typeCheck(c.getSrcPos(), t.type, o.type);
+        
+        Operand result = Operand.op(t.type);
+        c.resolveTo(result);
+        return result;
+    }
+    
+    private Operand resolveSubSetExpr(SubscriptSetExpr c) {
+        Operand objOp = resolveExpr(c.object);
+        Operand indexOp = resolveExpr(c.index);
+        Operand valOp = resolveExpr(c.value);
+        
+        
+        TypeInfo objectInfo = objOp.type;
+        TypeKind objectKind = objectInfo.getKind();
+        switch(objectKind) {
+            case Str: {
+                objectInfo = TypeInfo.CHAR_TYPE;
+                break;
+            }
+            case Array: {
+                ArrayTypeInfo arrayInfo = objectInfo.as();
+                objectInfo = arrayInfo.arrayOf;
+                break;
+            }
+            case Ptr: {
+                PtrTypeInfo ptrInfo = objectInfo.as();
+                objectInfo = ptrInfo.ptrOf;
+                break;
+            }
+            default: {
+                error(c.object, "invalid index into '%s'", objectKind.name());
+                return null;
+            }
+        }
+        
+        TypeKind indexKind = indexOp.type.getKind();
+        switch(indexKind) {
+            case i8:
+            case u8:
+            case i16:
+            case u16:
+            case i32:
+            case u32:
+            case i64:
+            case u64:
+            case Enum:
+                break;
+            default: {
+                error(c.index, "'%s' invalid index value", indexKind.name());
+                return null;
+            }
+        }
+        
+        typeCheck(c.getSrcPos(), valOp.type, objectInfo);
+        Operand result = Operand.op(valOp.type);
+        c.resolveTo(result);
+        
+        return result;
+    }
+    
+    private Operand resolveSubGetExpr(SubscriptGetExpr c) {
+        Operand objOp = resolveExpr(c.object);
+        Operand indexOp = resolveExpr(c.index);
+        
+        TypeInfo baseObj = null;
+        TypeKind objectKind = objOp.type.getKind();
+        switch(objectKind) {
+            case Str: {
+                baseObj = TypeInfo.CHAR_TYPE;
+                break;
+            }
+            case Array: {
+                ArrayTypeInfo arrayInfo = objOp.type.as();
+                baseObj = arrayInfo.arrayOf;
+                break;
+            }
+            case Ptr: {
+                PtrTypeInfo ptrInfo = objOp.type.as();
+                baseObj = ptrInfo.ptrOf;
+                break;
+            }
+            default: {
+                error(c, "invalid index into '%s'", objectKind.name());
+                return null;
+            }
+        }
+        
+        TypeKind indexKind = indexOp.type.getKind();
+        switch(indexKind) {
+            case Char:
+            case i8:
+            case u8:
+            case i16:
+            case u16:
+            case i32:
+            case u32:
+            case i64:
+            case u64:
+            case Enum:
+                break;
+            default: {
+                error(c, "'%s' invalid index value", indexKind.name());
+                return null;
+            }
+        }
+        
+        
+        Operand result = Operand.op(baseObj);
+        c.resolveTo(result);
+        
+        return result;
+    }
+    
+    private TypeInfo getAggregateField(SrcPos pos, AggregateTypeInfo aggInfo, NameTypeSpec name, boolean allowMethods, boolean error) {
+        
+        // Simple aggregate field access
+        FieldInfo field = aggInfo.getFieldWithAnonymous(name.name);
+        if(field != null) {
+            return field.type;
+        }
+        
+        
+        // Field access with aggregates with using fields
+        FieldPath path = aggInfo.getFieldPath(name.name);
+        if(path.hasPath()) {
+            TypeInfo usingField = path.getTargetField().type;    
+            return usingField;
+        }
+        
+        
+        // Method field access
+        Symbol sym = current().getMethodType(aggInfo, name.name);
+        if(sym == null || !allowMethods) {
+            if(error) {
+                error(pos, "'%s' does not have field '%s'", aggInfo.name, name);
+            }
+            return null;                
+        }
+                
+        FuncTypeInfo funcInfo = sym.type.as();
+        if(funcInfo.parameterDecls.isEmpty()) {     
+            if(error) {
+                error(pos, "'%s' does not have a parameter of '%s'", funcInfo.getName(), aggInfo.name);
+            }
+            return null;
+        }
+        
+        if(funcInfo.hasGenerics()) {
+            NameTypeSpec methodName = new NameTypeSpec(name.pos, sym.name, name.genericArgs);
+            TypeInfo type = resolveTypeSpec(methodName);
+            if(!type.isKind(TypeKind.Func)) {
+                if(error) {
+                    this.result.addError(pos, "'%s' does not have field '%s'", aggInfo.name, name);
+                }
+                return null;    
+            }
+            
+            funcInfo = type.as();
+        }
+        
+        ParamInfo objectParam = funcInfo.parameterDecls.get(0);
+                    
+        TypeInfo baseType = objectParam.type;
+        if(TypeInfo.isPtrAggregate(baseType)) {
+            baseType = ((PtrTypeInfo) baseType.as()).getBaseType();
+        }
+        
+        if(baseType.strictEquals(aggInfo)) {                                
+            return funcInfo;
+        }
+        
+        if(error) {
+            error(pos, "'%s' does not have field '%s'", aggInfo.name, name);
+        }
+        
+        return null;
+    }
+    
+    private Operand resolveTypeOfExpr(TypeOfExpr c) {
+        if(c.expr != null) {
+            resolveExpr(c.expr);
+        }
+        
+        // TODO: calculate real value
+        return Operand.opConst(TypeInfo.U64_TYPE, 0);
+    }
+    
+    private Operand resolveSizeOfExpr(SizeOfExpr c) {
+        /*if(c.expr != null) {
+            resolveExpr(c.expr);
+        }
+        else {
+            TypeInfo type = resolveTypeSpec(c.type);
+            return Operand.opConst(type, 0);
+        }
+        
+        // TODO: calculate real size
+        return Operand.opConst(TypeInfo.U64_TYPE, 0);
+        */
+        
+        resolveExpr(c.expr);
+        return Operand.opConst(TypeInfo.U64_TYPE, 0);
+    }
+    
+    private Operand resolveGroupExpr(GroupExpr c) {
+        Operand op = resolveExpr(c.expr);
+        Operand result = Operand.op(op.type);
+        result.isConst = op.isConst;
+        c.resolveTo(result);
+        return result;
+    }
+    
+    private Operand resolveSetExpr(SetExpr c) {
+        Operand objOp = resolveExpr(c.object);
+        //Operand fieldOp = resolveExpr(c.field);
+        Operand valOp = resolveExpr(c.value);
+        
+        if(objOp.type.isKind(TypeKind.Enum)) {
+            error(c.object, "can't reassign enum '%s'", objOp.type.name);
+            return null;
+        }
+        
+        if(!TypeInfo.isFieldAccessible(objOp.type)) {
+            error(c.field, "'%s' can't be accessed with field '%s'", objOp.type, c.field.type.name);
+            return null;
+        }
+        
+        AggregateTypeInfo aggInfo = null;
+        if(TypeInfo.isPtrAggregate(objOp.type)) {
+            PtrTypeInfo ptrInfo = objOp.type.as();
+            aggInfo = ptrInfo.getBaseType().as();
+        }
+        else {
+            aggInfo = objOp.type.as();
+        }
+        
+        TypeInfo field = getAggregateField(c.getSrcPos(), aggInfo, c.field.type, false, true);
+        if(field != null) {
+            c.field.resolveTo(Operand.op(field));
+        }
+        
+        typeCheck(c.getSrcPos(), valOp.type, field);
+        
+        Operand result = Operand.op(valOp.type);
+        c.resolveTo(result);
+        
+        return result;
+    }
+    
+    private Operand resolveGetExpr(GetExpr c) {
+        Operand objOp = resolveExpr(c.object);
+        //Operand fieldOp = resolveExpr(c.field);
+            
+        Operand fieldOp = null; 
+        if(objOp.type.isKind(TypeKind.Enum)) {
+            EnumTypeInfo enumInfo = objOp.type.as();
+            EnumFieldInfo field = enumInfo.getField(c.field.type.name);
+            if(field == null) {
+                error(c.field, "'%s' does not have field '%s'", objOp.type, c.field.type.name);
+                return null;
+            }
+            
+            // TODO: Calculate proper enum value            
+            Object val = null;
+            if(field.value != null) {
+                val = resolveConstExpr(field.value).val;
+            }
+            
+            fieldOp = Operand.opConst(enumInfo.getFieldType(), val);
+        }
+        else {
+            if(!TypeInfo.isFieldAccessible(objOp.type)) {
+                error(c.field, "'%s' can't be accessed with field '%s'", objOp.type, c.field.type.name);
+                return null;
+            }
+            
+            AggregateTypeInfo aggInfo = null;
+            if(TypeInfo.isPtrAggregate(objOp.type)) {
+                PtrTypeInfo ptrInfo = objOp.type.as();
+                aggInfo = ptrInfo.getBaseType().as();
+            }
+            else {
+                aggInfo = objOp.type.as();
+            }
+            
+            TypeInfo field = getAggregateField(c.getSrcPos(), aggInfo, c.field.type, true, true);
+            if(field != null) {
+                fieldOp = Operand.op(field);
+                c.field.resolveTo(fieldOp);
+            }
+        }
+        
+        if(fieldOp == null) {
+            return null;
+        }
+        
+        Operand result = Operand.op(fieldOp);        
+        c.resolveTo(result);
+        
+        return result;
+    }
+    
+    private Operand resolveFuncCallExpr(FuncCallExpr expr) {
+        Operand op = resolveExpr(expr.object);        
+        if(!op.type.isKind(TypeKind.Func) && !op.type.isKind(TypeKind.FuncPtr)) {
+            error(expr.object, "'%s' is not a function", op.type.sym.name);
+            return null;
+        }
+        
+        boolean isMethod = false;
+        int numberOfDefaultArgs = 0;
+        List<Expr> suppliedArguments = new ArrayList<>(expr.arguments); 
+        
+        FuncPtrTypeInfo funcPtr = null;
+        if(op.type.isKind(TypeKind.Func)) {
+            FuncTypeInfo funcInfo = op.type.as();
+            
+            isMethod = funcInfo.isMethod();            
+            funcPtr = funcInfo.asPtr();
+            
+            for(ParamInfo p : funcInfo.parameterDecls) {
+                if(p.defaultValue != null) {
+                    numberOfDefaultArgs++;
+                }
+            }            
+        }
+        else {
+            funcPtr = op.type.as();
+        }
+
+        // see if this is method call syntax
+        boolean isMethodCall = isMethod && isMethodSyntax(expr, funcPtr, suppliedArguments);                
+        checkNumberOfArgs(expr, op.type.name, funcPtr, suppliedArguments.size(), numberOfDefaultArgs);
+        
+                
+        // type inference for generic functions 
+        if(funcPtr.hasGenerics() && expr.genericArgs.isEmpty()) {            
+            funcPtr = inferFuncCallExpr(expr, funcPtr, suppliedArguments, isMethodCall);            
+        }
+               
+        
+        int i = 0;
+        for(; i < funcPtr.params.size(); i++) {
+            TypeInfo p = funcPtr.params.get(i);
+            
+            if(i < suppliedArguments.size()) {
+                Expr arg = suppliedArguments.get(i);                
+                resolveExpr(arg);
+                
+                typeCheck(arg.getSrcPos(), arg.getResolvedType().type, p);
+            }
+        }
+        
+        if(funcPtr.isVararg) {
+            for(; i < suppliedArguments.size(); i++) {
+                Expr arg = suppliedArguments.get(i);
+                resolveExpr(arg);
+            }                
+        }
+                
+        Operand retOp = Operand.op(funcPtr.returnType);
+        expr.resolveTo(retOp);
+        
+        return retOp;
+    }
+    
+    private Operand resolveCastExpr(CastExpr c) {
+        TypeInfo type = resolveTypeSpec(c.castTo);
+        Operand operand = Operand.op(type);
+        c.resolveTo(operand);
+        
+        resolveExpr(c.expr);
+        
+        typeCheck(c.getSrcPos(), c.expr.getResolvedType().type, type, true);
+        
+        return operand;
+    }
+    
+    private Operand resolveBinaryExpr(BinaryExpr expr) {
+        Operand left = resolveExpr(expr.left);
+        Operand right = resolveExpr(expr.right);
+        
+        //typeCheck(expr.getSrcPos(), left.type, right.type);
+        //typeCheck(expr.getSrcPos(), right.type, left.type);
+        
+        TypeInfo leftType = left.type;
+        TypeInfo rightType = right.type;
+        
+        switch(expr.operator) {
+            case EQUALS: {                    
+                checkConstant(expr.left);
+                break;
+            }
+        
+            case BAND_EQ:
+            case BNOT_EQ:
+            case BOR_EQ:
+            case XOR_EQ:
+            case LSHIFT_EQ:
+            case RSHIFT_EQ: 
+                checkConstant(expr.left);
+                // fallthru
+            case BAND:
+            case BNOT:
+            case BOR:
+            case XOR:
+            case LSHIFT:
+            case RSHIFT: {
+                if(!TypeInfo.isInteger(leftType)) {
+                    error(expr.left, "illegal, left operand has type '%s'", leftType.getName());
+                }
+                
+                if(!TypeInfo.isInteger(rightType)) {
+                    error(expr.right, "illegal, right operand has type '%s'", rightType.getName());
+                }
+                break;
+            }
+                
+            case AND:
+            case OR:
+                break;
+            
+            case EQUALS_EQUALS:
+            case NOT_EQUALS:
+                break;
+                
+            case GREATER_EQUALS:
+            case GREATER_THAN:
+            case LESS_EQUALS:
+            case LESS_THAN:
+                if(!TypeInfo.isNumber(leftType)) {
+                    error(expr.left, "illegal, left operand has type '%s'", leftType.getName());
+                }
+                
+                if(!TypeInfo.isNumber(rightType)) {
+                    error(expr.right, "illegal, right operand has type '%s'", rightType.getName());
+                }
+                
+                break;
+            
+            case MINUS_EQ:
+            case PLUS_EQ:
+            case MOD_EQ:
+            case MUL_EQ:
+            case DIV_EQ:
+                checkConstant(expr.left);
+                // fallthru
+            case MINUS:
+            case PLUS:
+            case MOD:
+            case STAR:
+            case SLASH:
+                
+                if(!TypeInfo.isNumber(leftType) && !leftType.isKind(TypeKind.Ptr) && !leftType.isKind(TypeKind.Str)) {
+                    error(expr.left, "illegal, left operand has type '%s'", leftType.getName());
+                }
+                
+                if(!TypeInfo.isNumber(rightType) && !rightType.isKind(TypeKind.Ptr) && !rightType.isKind(TypeKind.Str)) {
+                    error(expr.right, "illegal, right operand has type '%s'", rightType.getName());
+                }
+                
+                break;
+        default:
+            break;
+        
+        }
+
+        // TODO: Cast to appropriate type
+        Operand op = Operand.op(leftType);
+        op.isConst = left.isConst && right.isConst;
+        
+        expr.resolveTo(op);
+        
+        return op;
+    }
+    
+    private Operand resolveArrayInitExpr(ArrayInitExpr expr) {
+        TypeInfo type = resolveTypeSpec(expr.type);
+        Operand operand = Operand.op(type);
+        expr.resolveTo(operand);
+        
+        if(expr.values != null) {
+            for(Expr val : expr.values) {
+                resolveExpr(val);
+            }
+            
+            if(type.isKind(TypeKind.Array)) {
+                ArrayTypeInfo arrayInfo = type.as();
+                if(arrayInfo.length < 0 && arrayInfo.lengthExpr == null) {
+                    arrayInfo.length = expr.values.size();
+                }
+            }
+        }
+        
+        
+        // TODO: Array init size
+        
+        return operand;
+    }
+    
+    private Operand resolveArrayDesExpr(ArrayDesignationExpr expr) {
+        resolveExpr(expr.index);
+        resolveExpr(expr.value);
+        // should probably not be an expr??
+        
+        if(expr.index instanceof IdentifierExpr) {
+            IdentifierExpr id = expr.index.as();
+            Symbol sym = id.sym;
+            if(sym != null && !sym.isConstant()) {
+                error(expr.index.getSrcPos(), "'%s' must be a constant", id.type);
+            }
+        }
+        
+        typeCheck(expr.index.getSrcPos(), expr.index.getResolvedType().type, TypeInfo.I64_TYPE);
+        
+        return null;
+    }
+    
+    private Operand resolveInitArgExpr(InitArgExpr expr) {
+        Operand op = Operand.op(TypeInfo.NULL_TYPE);
+        if(expr.value != null) {
+            op = resolveExpr(expr.value);            
+            expr.resolveTo(op);            
+        }
+                
+        return op;
+    }
+    
+    private Operand resolveInitExpr(InitExpr expr) {
+        TypeInfo type = resolveTypeSpec(expr.type);
+        if(!TypeInfo.isAggregate(type)) {
+            error(expr, "only struct or union can use initialization syntax");
+        }
+        
+        for(InitArgExpr arg : expr.arguments) {
+            resolveInitArgExpr(arg);            
+        } 
+
+        AggregateTypeInfo aggInfo = type.as();
+        if(type.hasGenerics() && expr.genericArgs.isEmpty()) {
+            type = inferInitExpr(expr, aggInfo);
+        }
+                
+        Operand operand = Operand.op(type);        
+        expr.resolveTo(operand);
+        
+        checkInitArguments(expr);
+        
+        return operand;
+    }
+    
+    private Operand resolveConstExpr(Expr expr) {
+        Operand op = resolveExpr(expr);
+        if(!op.isConst) {
+            error(expr, "expected a constant expression");
+        }
+        
+        return op;
+    }
+    
+    private void checkConstant(Expr expr) {
+        if(expr instanceof IdentifierExpr) {
+            IdentifierExpr id = expr.as();
+            if(id.sym != null) {
+                if(id.sym.isConstant()) {
+                    error(expr, "can't reassign constant variable '%s'", id.type);
+                    return;
+                }
+            }
+        }
+        
+        Operand op = expr.getResolvedType();
+        if(op == null || op.type == null) {
+            return;
+        }
+        
+        if(op.type.sym != null && (op.type.sym.isConstant() || op.isConst)) {
+            error(expr, "can't reassign constant variable '%s'", op.type.sym.name);            
+        }
+    }
+    
+    private void checkNumberOfArgs(FuncCallExpr expr, String funcName, FuncPtrTypeInfo funcInfo, int numberOfSuppliedArgs, int numberOfDefaultArgs) {
+        int maxNumOfArgs = funcInfo.params.size();
+        if(maxNumOfArgs == numberOfSuppliedArgs) {
+            return;
+        }
+        
+        int minNumOfArgs = maxNumOfArgs - numberOfDefaultArgs;
+        
+        if(numberOfSuppliedArgs == minNumOfArgs) {
+            return;
+        }
+        
+        if(minNumOfArgs > numberOfSuppliedArgs) {
+            error(expr, "'%s' called with too few arguments", funcName);
+            return;
+        }
+        
+        if(funcInfo.isVararg) {
+            return;
+        }
+        
+        if(maxNumOfArgs < numberOfSuppliedArgs) {            
+            error(expr, "'%s' called with too many arguments", funcName);
+        }
+    }
+    
+    private void checkDuplicateFields(Stmt stmt, AggregateTypeInfo aggInfo, Map<String, Tuple<AggregateTypeInfo, FieldInfo>> definedFields) {
+        for(FieldInfo field : aggInfo.fieldInfos) {
+            if(definedFields.containsKey(field.name)) {
+                Tuple<AggregateTypeInfo, FieldInfo> tuple = definedFields.get(field.name);
+                boolean isSame = aggInfo.name.equals(tuple.getFirst().name);
+                
+                if(!isSame) {
+                    this.result.addError(stmt, "duplicate member '%s' in '%s' and '%s'", 
+                            field.name, aggInfo.name, tuple.getFirst().name);
+                }
+                else {
+                    this.result.addError(stmt, "duplicate member '%s' in '%s'", 
+                            field.name, aggInfo.name);
+                }
+            }
+            definedFields.put(field.name, new Tuple<>(aggInfo, field));
+            
+            if(field.attributes.isUsing()) {
+                if(field.type.isKind(TypeKind.Struct) || field.type.isKind(TypeKind.Union)) {
+                    checkDuplicateFields(stmt, field.type.as(), definedFields);
+                }                
+            }
+        }
+    }
+    
+    private void checkInitArguments(InitExpr expr) {
+        AggregateTypeInfo aggInfo = expr.getResolvedType().type.as();
+        
+        for(InitArgExpr arg : expr.arguments) {
+            if(arg.fieldName != null) {
+                TypeInfo fieldType = getAggregateField(arg.getSrcPos(), aggInfo, new NameTypeSpec(arg.getSrcPos(), arg.fieldName), false, true);
+                typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
+            }
+            else {
+                FieldInfo field = aggInfo.getFieldByPosition(arg.argPosition);
+                if(field == null) {
+                    error(arg.getSrcPos(), "'%s' does not have a field at index '%d'", aggInfo.name, arg.argPosition);
+                }
+                
+                TypeInfo fieldType = field.type;
+                typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
+            }
+        }
+    }
+    
+    private void addTypeToScope(Decl p, Scope scope, TypeInfo rootType, TypeInfo currentType) {        
+        AggregateTypeInfo aggInfo = (currentType.isKind(TypeKind.Ptr)) 
+                                        ? ((PtrTypeInfo)currentType).ptrOf.as()
+                                        : currentType.as();
+                                        
+        for(FieldInfo field : aggInfo.fieldInfos) {
+            Symbol sym = scope.addSymbol(current(), new VarDecl(p.name, field.type.asTypeSpec()), field.name, Symbol.IS_USING);
+            sym.type = field.type;
+            sym.usingParent = rootType;
+            
+            resolveSym(sym);            
+        }
+        
+        if(aggInfo.hasUsingFields()) {
+            for(FieldInfo field : aggInfo.usingInfos) {
+                addTypeToScope(p, scope, rootType, field.type);
+            }
+        }
+    }
+    
+    private Symbol addSymbol(Decl d, TypeSpec typeSpec) {
+        Scope scope = current().currentScope();
+        Symbol sym = scope.addSymbol(current(), d, d.name);
+        
+        TypeInfo type = resolveTypeSpec(typeSpec);
+        sym.type = type;
+        
+        resolveSym(sym);
+        return sym;
+    }
+    
+    private Symbol addSymbol(Decl d, TypeInfo type) {
+        Scope scope = current().currentScope();
+        Symbol sym = scope.addSymbol(current(), d, d.name, d instanceof ConstDecl);        
+        sym.type = type;
+        
+        resolveSym(sym);
+        return sym;
+    }
+    
+    private GenericParam isGenericParam(NameTypeSpec name) {
+        for(List<GenericParam> gens : this.genericStack) {
+            for(GenericParam p : gens) {
+                if(p.name.equals(name.name)) {
+                    return p;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    private TypeInfo inferredType(String genericName, TypeInfo paramType, TypeInfo argumentType) {
+        if(paramType.getName().equals(genericName)) {
+            return argumentType;
+        }
+        
+        if(!paramType.getKind().equals(argumentType.getKind())) {
+            return null;
+        }
+        
+        // TODO
+        int index = 0;
+        //if(paramType.hasGenericArgs()) {
+        if(paramType.sym != null && paramType.sym.isFromGenericTemplate()) {
+            List<TypeInfo> genericArgs = paramType.sym.genericArgs;
+            for(;index < genericArgs.size(); index++) {
+                if(genericArgs.get(index).name.equals(genericName)) {
+                    break;
+                }
+            }
+        }
+        else if(paramType.isKind(TypeKind.FuncPtr)) {
+            // TODO: If we forgot to put generic types on Typedef of func pointer with
+            // generics
+            //this.result.addError(null, "", args);
+        }
+        
+        switch(paramType.getKind()) {
+            case Array: {
+                ArrayTypeInfo arrayInfo = paramType.as();
+                ArrayTypeInfo argumentArrayInfo = argumentType.as();
+                return inferredType(genericName, arrayInfo.arrayOf, argumentArrayInfo.arrayOf);
+            }
+            case Const: {
+                ConstTypeInfo constInfo = paramType.as();
+                ConstTypeInfo argumentConstInfo = argumentType.as();
+                return inferredType(genericName, constInfo.constOf, argumentConstInfo.constOf);
+            }
+            case FuncPtr: {
+                FuncPtrTypeInfo funcInfo = paramType.as();
+                if(!funcInfo.hasGenerics() || funcInfo.genericParams.size() <= index) {
+                    break;
+                }
+                
+                genericName = funcInfo.genericParams.get(index).name;
+                FuncPtrTypeInfo argumentFuncInfo = argumentType.as();
+                
+                TypeInfo retType = inferredType(genericName, funcInfo.returnType, argumentFuncInfo.returnType);
+                if(retType != null) {
+                    return retType;
+                }
+                
+                
+                for(int i = 0; i < funcInfo.params.size(); i++) {
+                    if(i < argumentFuncInfo.params.size()) {
+                        TypeInfo pType = inferredType(genericName, funcInfo.params.get(i), argumentFuncInfo.params.get(i));
+                        if(pType != null) {
+                            return pType;
+                        }
+                    }
+                }
+                
+                break;
+            }
+            case Ptr: {
+                PtrTypeInfo ptrInfo = paramType.as();
+                PtrTypeInfo argumentPtrInfo = argumentType.as();
+                return inferredType(genericName, ptrInfo.ptrOf, argumentPtrInfo.ptrOf);
+            }
+            case Union:
+            case Struct: {
+                AggregateTypeInfo aggInfo = paramType.as();
+                if(!aggInfo.hasGenerics() || aggInfo.genericParams.size() <= index) {
+                    break;
+                }
+                
+                genericName = aggInfo.genericParams.get(index).name;                    
+                AggregateTypeInfo argumentAggInfo = argumentType.as();
+                
+                if(argumentAggInfo.getBaseName().equals(aggInfo.getBaseName())) {
+                    Symbol sym = argumentAggInfo.sym;
+                    if(sym.genericParams != null) {
+                        for(int i = 0; i < sym.genericParams.size(); i++) {
+                            GenericParam p = sym.genericParams.get(i);
+                            if(p.name.equals(genericName)) {
+                                return sym.genericArgs.get(i);
+                            }
+                        }
+                    }
+                }
+                
+                for(FieldInfo field : aggInfo.fieldInfos) {
+                    TypeInfo fieldType = inferredType(genericName, field.type, argumentAggInfo.getField(field.name).type);
+                    if(fieldType != null) {
+                        return fieldType;
+                    }
+                }
+                break;
+            }
+            default:
+                break;            
+        }
+        
+        return null;
+        
+    }
+    
+    
+    private FuncPtrTypeInfo inferFuncCallExpr(FuncCallExpr expr, FuncPtrTypeInfo funcPtr, List<Expr> suppliedArguments, boolean isMethodCall) {
+        for(Expr arg : expr.arguments) {
+            resolveExpr(arg);
+        }
+        
+        Expr objectExpr = expr.object;
+        if(isMethodCall) {
+            GetExpr getExpr = (GetExpr) expr.object;
+            objectExpr = getExpr.field;
+        }
+        
+        if(!(objectExpr instanceof FuncIdentifierExpr)) {
+            return funcPtr;            
+        }
+        
+        FuncIdentifierExpr funcExpr = (FuncIdentifierExpr)objectExpr;
+        NameTypeSpec nameSpec = funcExpr.type;
+        nameSpec.genericArgs = new ArrayList<>();
+        
+        expr.genericArgs = new ArrayList<>(funcPtr.genericParams.size());
+        
+        for(GenericParam p : funcPtr.genericParams) {
+            for(int j = 0; j < funcPtr.params.size(); j++) {
+                TypeInfo paramType = funcPtr.params.get(j);
+                
+                if(j >= suppliedArguments.size()) {
+                    break;
+                }
+                
+                TypeInfo argType = suppliedArguments.get(j).getResolvedType().type;
+                TypeInfo inferredType = inferredType(p.name, paramType, argType);
+                if(inferredType != null) {
+                    nameSpec.genericArgs.add(inferredType.asTypeSpec());
+                    break;
+                }
+            }
+        }
+        
+        Operand operand = resolveExpr(expr.object);
+        
+        // unable to infer types
+        if(!expr.object.isResolved()) {
+            for(int i = expr.genericArgs.size(); i < funcPtr.genericParams.size(); i++) {
+                error(expr, "unable to infer generic parameter '%s'", funcPtr.genericParams.get(i));
+            }
+            return funcPtr;
+        }
+        
+        TypeInfo type = operand.type;
+        
+        Symbol sym = type.sym;
+        if(sym != null && sym.isGenericTemplate()) {
+            GenericDecl decl = (GenericDecl)sym.decl;
+            error(funcExpr, "'%s' is missing generic arguments %s", nameSpec.name, decl.genericParams);
+            return null;
+        }
+        
+        if(type.isKind(TypeKind.Func)) {
+            FuncTypeInfo funcInfo = type.as();
+            return funcInfo.asPtr();
+        }
+        
+        return type.as();
+    }
+    
+    
+    private TypeInfo inferInitExpr(InitExpr expr, AggregateTypeInfo aggInfo) {
+        expr.genericArgs = new ArrayList<>(aggInfo.genericParams.size());
+        
+        List<TypeInfo> suppliedArguments = new ArrayList<>();
+        for(Expr arg : expr.arguments) {
+            suppliedArguments.add(arg.getResolvedType().type);
+        }
+        
+        NameTypeSpec nameSpec = expr.type;
+        if(nameSpec == null) {
+            return aggInfo;
+        }
+        
+        nameSpec.genericArgs = new ArrayList<>();
+        
+        for(GenericParam p : aggInfo.genericParams) {                
+            for(int j = 0; j < aggInfo.fieldInfos.size(); j++) {
+                TypeInfo paramType = aggInfo.fieldInfos.get(j).type;
+                
+                if(j >= suppliedArguments.size()) {
+                    break;
+                }
+                
+                TypeInfo inferredType = inferredType(p.name, paramType, suppliedArguments.get(j));
+                if(inferredType != null) {
+                    nameSpec.genericArgs.add(inferredType.asTypeSpec());
+                    break;
+                }
+            }
+        }
+        
+        TypeInfo type = resolveTypeSpec(expr.type);
+        
+        Symbol sym = type.sym;
+        if(sym != null && sym.isGenericTemplate()) {
+            GenericDecl decl = (GenericDecl)sym.decl;
+            error(expr, "'%s' is missing generic arguments %s", nameSpec.name, decl.genericParams);
+            return null;
+        }
+        
+        return type;
+    }
+    
+    private boolean isMethodSyntax(FuncCallExpr expr, FuncPtrTypeInfo funcPtr, List<Expr> suppliedArguments) {
+        if(!(expr.object instanceof GetExpr)) {
+            return false;
+        }
+        
+        GetExpr getExpr = (GetExpr) expr.object;
+        if(!getExpr.field.getResolvedType().type.isKind(TypeKind.Func)) {
+            return false;
+        }
+        
+        getExpr.isMethodCall = true;
+        if(!funcPtr.params.isEmpty()) {
+            TypeInfo paramInfo = funcPtr.params.get(0);                    
+            TypeInfo argInfo = getExpr.object.getResolvedType().type;
+            
+            
+            // Determine if we need to promote the object to a
+            // pointer depending on what the method is expecting as an
+            // argument
+            if(TypeInfo.isPtrAggregate(paramInfo)) {
+                if(!TypeInfo.isPtrAggregate(argInfo)) {
+                    
+                    // Can't take the address of an R-Value 
+                    if(getExpr.object instanceof FuncCallExpr) {
+                        error(getExpr.object, 
+                                "cannot take the return value address of '%s' as it's an R-Value", getExpr.field.type.name);
+                    }
+                    
+                    getExpr.object = new UnaryExpr(TokenType.BAND, new GroupExpr(getExpr.object).setSrcPos(getExpr.object.getSrcPos()))
+                                            .setSrcPos(getExpr.object.getSrcPos());
+                    
+                    resolveExpr(getExpr.object);
+                }
+            }
+        }
+        
+        suppliedArguments.add(0, getExpr.object);            
+        return true;
+    }
+    
+    /* --------------------------------------------------------------
+                              Statements
+       -------------------------------------------------------------- */
+    
+    private class StmtVisitor implements NodeVisitor {
+
         @Override
-        public void visit(ModuleStmt stmt) {            
-            if(root == null) {
-                root = this.module;
-            }
-            
-            for(Decl d : stmt.declarations) {
-                d.visit(this);
-            }
-                        
-            resolvedModules.put(module.name(), module);
-            
-            for(ImportStmt i : stmt.imports) {
-                i.visit(this);
-            }
+        public void visit(ModuleStmt stmt) {
         }
-        
+
         @Override
-        public void visit(ImportStmt stmt) {                                
-            String moduleName = stmt.alias != null ? stmt.alias : stmt.moduleName;
-            
-            if(this.module.getModule(moduleName) != null) {
-                result.addError(stmt, "duplicate import of module '%s'", moduleName);
-                return;
-            }
-            
-            ModuleStmt moduleStmt = unit.getImports().get(stmt.moduleName);
-            
-            Module module = createModule(moduleStmt);
-            this.module.importModule(stmt, module, stmt.alias);
+        public void visit(ImportStmt stmt) {
         }
-        
+
+        @Override
+        public void visit(NoteStmt stmt) {
+        }
+
+        @Override
+        public void visit(VarFieldStmt stmt) {
+            resolveTypeSpec(stmt.type);
+        }
+
         @Override
         public void visit(StructFieldStmt stmt) {
-            Node parent = stmt.getParentNode();
-            if(parent instanceof StructDecl) {
-                StructDecl decl = (StructDecl)parent;
-                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
-            }
-            
-            stmt.decl.visit(this);      
         }
 
         @Override
         public void visit(UnionFieldStmt stmt) {
-            Node parent = stmt.getParentNode();
-            if(parent instanceof UnionDecl) {
-                UnionDecl decl = (UnionDecl)parent;
-                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
-            }
-            
-            stmt.decl.visit(this);
         }
-        
+
         @Override
         public void visit(EnumFieldStmt stmt) {
-            Node parent = stmt.getParentNode();
-            if(parent instanceof EnumDecl) {
-                EnumDecl decl = (EnumDecl)parent;
-                stmt.decl.type.name = String.format("%s:%s", decl.name, stmt.decl.type.name); 
-            }
-            
-            stmt.decl.visit(this);
-        }
-        
-        @Override
-        public void visit(EnumDecl d) {            
-            this.module.declareEnum(d, d.name, (EnumTypeInfo)d.type);    
-            
-            for(EnumFieldInfo f : d.fields) {                
-                if(f.value != null && !f.value.isResolved()) {
-                    f.value.resolveTo(TypeInfo.I32_TYPE);
-                }
-            }
-            
-            NoteStmt asStr = d.attributes.getNote("asStr");
-            if(asStr != null) {
-                String funcName = asStr.getAttr(0, d.name + "AsStr");
-                FuncTypeInfo asStrFuncInfo = new FuncTypeInfo(funcName, 
-                                                              new PtrTypeInfo(new ConstTypeInfo(TypeInfo.CHAR_TYPE)), 
-                                                              Arrays.asList(new ParameterDecl(d.type, "e", null, 0)), 
-                                                              0, 
-                                                              Collections.emptyList());
-                FuncDecl funcDecl = new FuncDecl(asStrFuncInfo.name, 
-                                                 asStrFuncInfo, 
-                                                 new ParametersStmt(asStrFuncInfo.parameterDecls, false), 
-                                                 new EmptyStmt(), 
-                                                 asStrFuncInfo.returnType);
-                
-                // Name must match CGen.visit(EnumDecl)
-                funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + this.module.name() + "_" + d.name + "_AsStr")));
-                funcDecl.attributes.isGlobal = true;
-                funcDecl.attributes.isPublic = true;
-                
-                this.module.declareFunc(funcDecl, asStrFuncInfo.name, asStrFuncInfo);
-            }
-        }
-
-
-        @Override
-        public void visit(FuncDecl d) {
-            FuncTypeInfo funcInfo = d.type.as();
-            String funcName = d.name;
-            if(funcInfo.isMethod()) {
-                funcName = funcInfo.getMethodName();
-            }
-            
-            this.module.declareFunc(d, funcName, funcInfo);
-        }
-
-
-        @Override
-        public void visit(StructDecl d) {
-            this.module.declareStruct(d, d.name, (StructTypeInfo)d.type);
-            
-            for(FieldStmt s : d.fields) {
-                s.visit(this);
-            }
-        }
-
-        @Override
-        public void visit(UnionDecl d) {
-            this.module.declareUnion(d, d.name, (UnionTypeInfo)d.type);
-            
-            for(FieldStmt s : d.fields) {
-                s.visit(this);
-            }
-        }
-        
-        @Override
-        public void visit(TypedefDecl d) {
-            this.module.declareTypedef(d, d.alias, d.type);
-        }
-
-        @Override
-        public void visit(ConstDecl d) {            
-            if(this.module.addIncomplete(d)) {
-                pendingGlobals.add(d);
-            }
-        }
-        
-        @Override
-        public void visit(VarDecl d) {
-            if(this.module.addIncomplete(d)) {
-                pendingGlobals.add(d);
-            }
-        }
-        
-    }
-
-    private static class TypeResolverNodeVisitor extends AbstractNodeVisitor {
-        
-        private Module module;
-        private Stack<Module> moduleStack;
-        private PhaseResult result;
-        private CompilationUnit unit;
-        private Stack<GenericTypeInfo> currentGenericType;
-        
-        private Set<String> resolvedGenericTypes;
-        private Set<String> checkedModules;
-        
-        // The type the generic module is defined in        
-        private Module genericModule;
-        
-        public TypeResolverNodeVisitor(PhaseResult result, 
-                                       CompilationUnit unit,
-                                       Set<String> resolvedGenericTypes,
-                                       Set<String> resolvedModules,
-                                       Module module) {
-            this.result = result;
-            this.unit = unit;
-            this.module = module;
-            this.resolvedGenericTypes = resolvedGenericTypes;
-            this.checkedModules = resolvedModules;
-            
-            this.currentGenericType = new Stack<>();
-            this.moduleStack = new Stack<>();
-            this.moduleStack.add(module);
-        }
-        
-        private TypeInfo getType(String typeName) {
-            // This type could actually be a generic parameter, if so
-            // make sure not to attempt to get an actual defined type, 
-            // as the generic parameter takes precedence
-            if(!this.currentGenericType.isEmpty()) {
-                for(GenericTypeInfo genType: this.currentGenericType) {
-                    for(GenericParam p : genType.genericParams) {
-                        if(p.name.equals(typeName)) {
-                            return null;
-                        }
-                    }
-                }
-            }
-            
-            if(this.genericModule != null) {
-                TypeInfo type = this.genericModule.getType(typeName);
-                if(type != null) {
-                    return type;
-                }
-            }
-            
-            for(Module m : this.moduleStack) {
-                TypeInfo type = m.getType(typeName);
-                if(type != null) {
-                    return type;
-                }
-            }
-                        
-            return null;
-        }
-        
-        private void pushModule(Module module) {
-            this.moduleStack.add(module);
-        }
-        
-        private void popModule() {
-            this.moduleStack.pop();
-        }
-        
-        private boolean isResolvingGenericDecl() {
-            return !this.currentGenericType.isEmpty();
-        }
-        
-        private void enterScope() {
-            this.module.pushScope();
-        }
-        
-        private void exitScope() {            
-            this.module.popScope();
-        }
-        
-        private Scope peekScope() {
-            return this.module.currentScope();
-        }
-        
-        private TypeInfo getType(Stmt stmt, List<TypeInfo> genericArgs, List<GenericParam> genericParams, TypeInfo expectedType) {
-            if(expectedType == null && isResolvingGenericDecl()) {
-                // we're processing a generic function, we can only resolve so much
-                // with these unknown types
-                return null;
-            }
-            
-            for(int i = 0; i < genericParams.size(); i++) {
-                GenericParam p = genericParams.get(i);
-                if(p.name.equals(expectedType.getName())) {
-                    if(i >= genericArgs.size()) {
-                        this.result.addError(stmt, "'%s' invalid generic argument type", expectedType.getName());
-                        break;
-                    }
-                    
-                    return genericArgs.get(i);
-                }
-            }
-            
-            return expectedType;
-        }
-        
-        private void resolveType(Stmt stmt, TypeInfo type) {
-            resolveType(stmt, type, null);
-        }
-                        
-        private void resolveType(Stmt stmt, TypeInfo type, TypeInfo resolvedType) {
-            if(type == null) {
-                return;
-            }
-            
-            switch(type.getKind()) {
-                case Ptr: {
-                    PtrTypeInfo ptrInfo = type.as();
-                    resolveType(stmt, ptrInfo.ptrOf, resolvedType);
-                    break;
-                }
-                case Const: {
-                    ConstTypeInfo constInfo = type.as();
-                    resolveType(stmt, constInfo.constOf, resolvedType);
-                    break;
-                }
-                case Array: {
-                    ArrayTypeInfo arrayInfo = type.as();
-                    resolveType(stmt, arrayInfo.arrayOf, resolvedType);
-                    
-                    if(arrayInfo.lengthExpr != null) {    
-                        Module m = this.module;
-                        try {
-                            // TODO: Fix this hack, should change to not rely on 'module' at 
-                            // all and solely do everything via the moduleStack
-                            // We might be resolving this array in a different module than the one
-                            // we are visiting at this time, so we must use the moduleStack to 
-                            // use the correct module for scope.getSymbol() to be the correct scope
-                            this.module = this.moduleStack.peek();                        
-                            arrayInfo.lengthExpr.visit(this);
-                            
-                            Integer len = asInt(arrayInfo.lengthExpr);
-                            if(len == null) {
-                                this.result.addError(arrayInfo.lengthExpr, "'%s' invalid array length expression", type.getName());
-                                return;
-                            }
-                            
-                            arrayInfo.length = len;
-                        }
-                        finally {
-                            this.module = m;                           
-                        }
-                    }
-                    break;
-                }
-                case FuncPtr: {
-                    FuncPtrTypeInfo funcInfo = type.as();
-                    if(funcInfo.hasGenerics()) {
-                        return;
-                    }
-                    
-                    resolveType(stmt, funcInfo.returnType);
-                    for(TypeInfo p : funcInfo.params) {
-                        resolveType(stmt, p);
-                    }
-                    break;
-                }
-                case Func: {
-                    FuncTypeInfo funcInfo = type.as();
-                    if(funcInfo.hasGenerics()) {
-                        return;
-                    }
-                    
-                    if(funcInfo.sym.state == ResolveState.RESOLVED ||
-                       funcInfo.sym.state == ResolveState.RESOLVING) {
-                        return;
-                    }
-                    
-                    funcInfo.sym.state = ResolveState.RESOLVING; 
-                    pushModule(funcInfo.sym.getDeclaredModule());
-                    
-                    resolveType(stmt, funcInfo.returnType);
-                    for(ParameterDecl p : funcInfo.parameterDecls) {
-                        resolveType(stmt, p.type);
-                    }
-                    popModule();
-                    funcInfo.sym.state = ResolveState.RESOLVED;
-                    break;
-                }
-                case Union:
-                case Struct: {
-                    AggregateTypeInfo aggInfo = type.as();
-                    if(aggInfo.hasGenerics()) {
-                        return;
-                    }
-                    
-                    if(aggInfo.sym.state == ResolveState.RESOLVED ||
-                       aggInfo.sym.state == ResolveState.RESOLVING) {
-                        return;
-                    }
-                    
-                    aggInfo.sym.state = ResolveState.RESOLVING; 
-                    pushModule(aggInfo.sym.getDeclaredModule());
-                    
-                    for(FieldInfo field : aggInfo.fieldInfos) {
-                        resolveType(stmt, field.type);
-                    }                
-                    popModule();
-                    aggInfo.sym.state = ResolveState.RESOLVED; 
-                    break;
-                }
-                default: { 
-                    if(!type.isResolved()) {
-                        if(resolvedType == null) {
-                            resolvedType = getType(type.getName());
-                            if(resolvedType == null) {                        
-                                if(isResolvingGenericDecl()) {
-                                    if(this.currentGenericType.peek().isGenericParam(type.getName())) {
-                                        IdentifierTypeInfo idType = type.as();
-                                        idType.makeGenericParam();
-                                    }
-                                    return;
-                                }
-                                
-                                if(!type.isGenericParam()) {
-                                    this.result.addError(stmt, "'%s' is an unknown type", type.getName());
-                                }
-                                return;                        
-                            }
-                        }
-                        else if(!resolvedType.isResolved()) {
-                            resolveType(stmt, resolvedType);
-                        }
-                        
-                        if(resolvedType.hasGenericArgs() && !resolvedType.hasGenerics()) {
-                            List<TypeInfo> args = resolvedType.getGenericArgs();
-                            for(TypeInfo t : args) {
-                                resolveType(stmt, t);
-                            }
-                        }
-                                        
-                        IdentifierTypeInfo idType = type.as();
-                        idType.resolve(this.module, resolvedType, !isResolvingGenericDecl());
-                    }
-                }
-            }
-        }
-        
-        private Integer asInt(Expr expr) {
-            if(expr instanceof NumberExpr) {
-                NumberExpr nExpr = (NumberExpr) expr;                   
-                return nExpr.asInt();
-            }
-            else if(expr instanceof IdentifierExpr) {
-                IdentifierExpr iExpr = (IdentifierExpr)expr;
-                if(iExpr.sym != null && iExpr.sym.decl instanceof ConstDecl) {
-                    ConstDecl cExpr = (ConstDecl)iExpr.sym.decl;
-                    // TODO: Constant folding
-                    if(cExpr.expr instanceof NumberExpr) {
-                        NumberExpr nExpr = (NumberExpr)cExpr.expr;
-                        
-                        return nExpr.asInt();
-                    }
-                    else if(iExpr.sym.isForeign()) {
-                        return -1;
-                    }
-                }
-            }
-            else if(expr instanceof GetExpr) {
-                GetExpr getExpr = (GetExpr)expr;
-                TypeInfo objectInfo = getExpr.object.getResolvedType();
-                if(objectInfo.isKind(TypeKind.Enum)) {
-                    EnumTypeInfo enumInfo = objectInfo.as();
-                    EnumFieldInfo field = enumInfo.getField(getExpr.field.variable);
-                    if(field != null) {
-                        // TODO: Constant folding of Enum values 
-                        if(field.value != null) {
-                            return asInt(field.value);
-                        }
-                        
-                        int index = enumInfo.indexOf(field.name);
-                        if(index > -1) {
-                            return index;
-                        }
-                    }    
-                }                
-            }
-            
-            
-            return null;
-        }
-        
-        private void visitGenericTypes() {
-            Module current = this.module;
-            
-            List<Tuple<Module,Decl>> newTypes = new ArrayList<>();
-            do {                
-                newTypes.addAll(this.module.getGenericTypes());
-                newTypes.removeIf(decl -> resolvedGenericTypes.contains(decl.getSecond().name));
-                
-                for(Tuple<Module,Decl> d : newTypes) {
-                    Decl decl = d.getSecond();
-                    if(resolvedGenericTypes.contains(decl.name)) {
-                        continue;
-                    }
-                    
-                    resolvedGenericTypes.add(decl.name);
-                    
-                    this.genericModule = current;
-                    // this.genericModule = current.getRoot(); ?? What's going 
-                    this.module = d.getFirst();
-                    
-                    pushModule(d.getFirst());
-                    pushModule(decl.sym.declared);
-                    decl.visit(this);
-                    popModule();
-                    popModule();
-                }
-            }
-            while(!newTypes.isEmpty());
-            
-            this.module = current;
-            this.genericModule = null;
-        }
-        
-        @Override
-        public void visit(ModuleStmt stmt) {
-            
-            for(ImportStmt i : stmt.imports) {
-                i.visit(this);
-            }
-            
-            for(Decl d : stmt.declarations) {
-                d.visit(this);
-            } 
-            
-            visitGenericTypes();
-        }
-        
-        
-
-        @Override
-        public void visit(ImportStmt stmt) {            
-            Module importModule = module.getModule(stmt.alias != null ? stmt.alias : stmt.moduleName);
-            if(this.checkedModules.contains(importModule.name())) {
-                return;
-            }
-            
-            this.checkedModules.add(importModule.name());
-            
-            TypeResolverNodeVisitor checker = new TypeResolverNodeVisitor(result, 
-                                                                          unit,
-                                                                          resolvedGenericTypes, 
-                                                                          checkedModules,
-                                                                          importModule);
-            
-            importModule.getModuleStmt().visit(checker);
         }
 
         @Override
         public void visit(IfStmt stmt) {
             stmt.condExpr.visit(this);
             
-            enterScope();
+            current().pushScope();
             stmt.thenStmt.visit(this);
-            exitScope();
+            current().popScope();
             
             if(stmt.elseStmt != null) {
-                enterScope();
+                current().pushScope();
                 stmt.elseStmt.visit(this);
-                exitScope();    
+                current().popScope();
             }
         }
 
@@ -651,52 +2322,42 @@ public class TypeResolver {
         public void visit(WhileStmt stmt) {
             stmt.condExpr.visit(this);
             
-            enterScope();
+            current().pushScope();
             stmt.bodyStmt.visit(this);
-            exitScope();
+            current().popScope();
         }
-
 
         @Override
         public void visit(DoWhileStmt stmt) {
-            enterScope();
+            current().pushScope();
             stmt.bodyStmt.visit(this);
-            exitScope();
+            current().popScope();
             
             stmt.condExpr.visit(this);
         }
 
- 
         @Override
         public void visit(ForStmt stmt) {
-            enterScope();
-            if(stmt.initStmt != null) {
-                stmt.initStmt.visit(this);
-            }
-            
-            if(stmt.condExpr != null) {
-                stmt.condExpr.visit(this);
-            }
-            
-            if(stmt.postStmt != null) {
-                stmt.postStmt.visit(this);
-            }
+            current().pushScope();
+            if(stmt.initStmt != null) stmt.initStmt.visit(this);
+            if(stmt.condExpr != null) stmt.condExpr.visit(this);
+            if(stmt.postStmt != null) stmt.postStmt.visit(this);
             
             stmt.bodyStmt.visit(this);
-            exitScope();
+            current().popScope();
         }
-        
+
         @Override
         public void visit(SwitchCaseStmt stmt) {
             stmt.cond.visit(this);
             stmt.stmt.visit(this);
         }
-        
+
         @Override
         public void visit(SwitchStmt stmt) {
             stmt.cond.visit(this);
             
-            for(SwitchCaseStmt s : stmt.stmts) {
+            for(Stmt s : stmt.stmts) {
                 s.visit(this);
             }
             
@@ -713,1131 +2374,298 @@ public class TypeResolver {
         public void visit(ContinueStmt stmt) {
         }
 
-
         @Override
         public void visit(ReturnStmt stmt) {
             if(stmt.returnExpr != null) {
-                stmt.returnExpr.visit(this);                
-            }            
+                stmt.returnExpr.visit(this);
+                typeCheck(stmt.getSrcPos(), stmt.returnExpr.getResolvedType().type, currentFunc.returnType);
+            }
+            else {
+                typeCheck(stmt.getSrcPos(), TypeInfo.VOID_TYPE, currentFunc.returnType);
+            }
         }
 
         @Override
         public void visit(BlockStmt stmt) {
-            enterScope();
+            current().pushScope();
             for(Stmt s : stmt.stmts) {
                 s.visit(this);
             }
-            exitScope();
-
+            current().popScope();
         }
-        
+
         @Override
         public void visit(DeferStmt stmt) {
-            stmt.stmt.visit(this);            
+            stmt.stmt.visit(this);
         }
-        
-        @Override
-        public void visit(GotoStmt stmt) {
-        }
-        
-        @Override
-        public void visit(LabelStmt stmt) {
-        }
-        
+
         @Override
         public void visit(EmptyStmt stmt) {
         }
-        
+
         @Override
-        public void visit(VarDecl d) {
-            if(d.expr != null) {
-                d.expr.visit(this);
-    
-                // infer the type from the expression
-                if(d.type == null) {
-                    d.type = d.expr.getResolvedType();
-                    
-                    if(d.type.isKind(TypeKind.Null)) {
-                        this.result.addError(d, "unable to infer type from null");
-                        return;
-                    }
-                    
-                    if(d.type == null) {
-                        return;
-                    }
-                    
-                    // we can't assign an array literal, so we must
-                    // infer as a pointer
-                    if(d.type.isKind(TypeKind.Array)) {
-                        if(!(d.expr instanceof ArrayInitExpr)) {
-                            ArrayTypeInfo arrayInfo = d.type.as();
-                            d.type = new PtrTypeInfo(arrayInfo.arrayOf);
-                        }
-                    }
+        public void visit(ParametersStmt stmt) {
+            boolean hasDefault = false;
+            for(ParameterDecl p : stmt.params) {
+                p.visit(this);
+                
+                if(p.defaultValue != null) {
+                    hasDefault = true;
                 }
-                else {
-                    // infer the array length, if this is an array
-                    if(d.type.isKind(TypeKind.Array)) {
-                        ArrayTypeInfo arrayInfo = d.type.as();
-                        if(arrayInfo.length < 0) {
-                            TypeInfo exprInfo = d.expr.getResolvedType();
-                            if(exprInfo.isKind(TypeKind.Array)) {
-                                ArrayTypeInfo exprArrayInfo = exprInfo.as();
-                                arrayInfo.length = exprArrayInfo.length;
-                            }
-                        }
-                    }
+                else if(hasDefault) {
+                    Decl decl = (Decl)stmt.getParentNode();
+                    error(stmt, "'%s' must have default arguments defined last", decl.name);
                 }
             }
-            
-            // if we can't infer the type, some
-            // type hasn't been resolved correctly
-            if(d.type == null) {
-                return;
+        }
+
+        @Override
+        public void visit(VarDeclsStmt stmt) {
+            for(Stmt s : stmt.vars) {
+                s.visit(this);
             }
-            
-            resolveType(d, d.type);
-            
-            if(d.attributes.isGlobal) {
-                Symbol sym = peekScope().getSymbol(d.name);
-                sym.markComplete();
+        }
+
+        @Override
+        public void visit(ConstDeclsStmt stmt) {
+            for(Stmt s : stmt.consts) {
+                s.visit(this);
             }
-            else {
-                peekScope().addSymbol(this.module, d, d.name, d.type);
-            }
+        }
+
+        @Override
+        public void visit(GotoStmt stmt) {
+            labels.putIfAbsent(stmt.label, false);
+        }
+
+        @Override
+        public void visit(LabelStmt stmt) {
+            labels.put(stmt.label, true);
         }
         
-  
-        @Override
-        public void visit(ConstDecl d) {
-            if(d.expr != null) {
-                d.expr.visit(this);
-    
-                // infer the type from the expression
-                if(d.type == null) {
-                    d.type = d.expr.getResolvedType();
-                    
-                    if(d.type.isKind(TypeKind.Null)) {
-                        this.result.addError(d, "unable to infer type from null");
-                        return;
-                    }
-                    
-                    if(d.type == null) {
-                        return;
-                    }
-                    
-                    // we can't assign an array literal, so we must
-                    // infer as a pointer
-                    if(d.type.isKind(TypeKind.Array)) {
-                        if(!(d.expr instanceof ArrayInitExpr)) {
-                            ArrayTypeInfo arrayInfo = d.type.as();
-                            d.type = new PtrTypeInfo(arrayInfo.arrayOf);
-                        }
-                    }
-                }
-                else {
-                    // infer the array length, if this is an array
-                    if(d.type.isKind(TypeKind.Array)) {
-                        ArrayTypeInfo arrayInfo = d.type.as();
-                        if(arrayInfo.length < 0) {
-                            TypeInfo exprInfo = d.expr.getResolvedType();
-                            if(exprInfo.isKind(TypeKind.Array)) {
-                                ArrayTypeInfo exprArrayInfo = exprInfo.as();
-                                arrayInfo.length = exprArrayInfo.length;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            resolveType(d, d.type);
-            
-            if(d.attributes.isGlobal) {
-                Symbol sym = peekScope().getSymbol(d.name);
-                sym.markComplete();
-            }
-            else {
-                peekScope().addSymbol(this.module, d, d.name, d.type, true);
-            }
-        }
-
-        @Override
-        public void visit(EnumDecl d) {    
-            for(EnumFieldInfo f : d.fields) {
-                if(f.value != null) {
-                    f.value.visit(this);
-                }
-            }
-        }
-
-        private void addTypeToScope(Decl p, Scope scope, TypeInfo currentType) {
-            if(!currentType.isResolved()) {
-                resolveType(p, currentType);
-            }
-            
-            AggregateTypeInfo aggInfo = (currentType.isKind(TypeKind.Ptr)) 
-                                            ? ((PtrTypeInfo)currentType).ptrOf.as()
-                                            : currentType.as();
-                                            
-            for(FieldInfo field : aggInfo.fieldInfos) {
-                scope.addSymbol(this.module, p, field.name, field.type, Symbol.IS_USING);
-            }
-            
-            if(aggInfo.hasUsingFields()) {
-                for(FieldInfo field : aggInfo.usingInfos) {
-                    addTypeToScope(p, scope, field.type);
-                }
-            }
-        }
-        
-        @Override
-        public void visit(FuncDecl d) {
-            enterScope();
-            {
-                FuncTypeInfo funcInfo = d.type.as();
-                
-                // must resolve types, even for generic functions
-                // otherwise the Generic.replacer will not work
-                if(funcInfo.hasGenerics()) {
-                    this.currentGenericType.add(funcInfo);
-                }
-                
-                resolveType(d, d.returnType);
-                for(ParameterDecl p : d.params.params) {
-                    resolveType(p, p.type);
-                    if(p.defaultValue != null) {
-                        p.defaultValue.visit(this);
-                    }
-                    
-                    Scope scope = peekScope();
-                    scope.addSymbol(this.module, p, p.name, p.type);
-
-                    if(p.attributes.isUsing()) {
-                        if(!TypeInfo.isAggregate(p.type) &&
-                           !TypeInfo.isPtrAggregate(p.type)) {
-                            this.result.addError(d, "'%s' is not an aggregate type (or pointer to an aggregate), can't use 'using'", p.name);
-                        }
-                        else {
-                            addTypeToScope(p, scope, p.type);
-                        }
-                    }
-                }
-                
-                d.bodyStmt.visit(this);
-                
-                if(funcInfo.hasGenerics()) {
-                    this.currentGenericType.pop();
-                }
-            }
-            exitScope();
-        }
-
-
         @Override
         public void visit(StructDecl d) {
-            StructTypeInfo structInfo = d.type.as();
-            if(structInfo.hasGenerics()) {
-                this.currentGenericType.add(structInfo);
+            for(FieldStmt field : d.fields) {
+                field.visit(this);
             }
             
-            resolveType(d, d.type);
-            
-            for(FieldStmt s : d.fields) {
-                s.visit(this);
-            }
-            
-            if(structInfo.hasGenerics()) {
-                this.currentGenericType.pop();
-            }
-        }
-        
-        @Override
-        public void visit(VarFieldStmt stmt) {
-            resolveType(stmt, stmt.type);
-            if(stmt.type.isKind(TypeKind.FuncPtr)) {
-                FuncPtrTypeInfo funcPtr = stmt.type.as();
-                funcPtr.name = stmt.name;
-            }
-        }
-        
-        @Override
-        public void visit(UnionFieldStmt stmt) {
-            stmt.decl.visit(this);
-        }
-        
-        @Override
-        public void visit(StructFieldStmt stmt) {
-            stmt.decl.visit(this);
-        }
-
-        @Override
-        public void visit(UnionDecl d) {
-            UnionTypeInfo unionInfo = d.type.as();
-            if(unionInfo.hasGenerics()) {
-                this.currentGenericType.add(unionInfo);
-            }
-            
-            resolveType(d, d.type);
-            
-            for(FieldStmt s : d.fields) {
-                s.visit(this);
-            }
-            
-            if(unionInfo.hasGenerics()) {
-                this.currentGenericType.pop();
-            }
+            Map<String, Tuple<AggregateTypeInfo, FieldInfo>> definedFields = new HashMap<>();
+            AggregateTypeInfo aggInfo = d.sym.type.as();
+            checkDuplicateFields(d, aggInfo, definedFields);
         }
         
         @Override
         public void visit(TypedefDecl d) {
-            if(d.type.hasGenericArgs()) {                
-                for(TypeInfo type: d.type.getGenericArgs()) {
-                    resolveType(d, type);        
-                }
-            }
-            
-            resolveType(d, d.type);
-        }
-
-        private TypeInfo getAggregateFieldTypeInfo(InitExpr expr) {
-            TypeInfo type = null;
-            if(expr.type != null) {
-                type = getType(expr.type.getName());               
-            }
-            // anonymous aggregate
-            else {
-                Node parent = expr.getParentNode();
-                if(parent instanceof InitExpr) {
-                    InitExpr parentExpr = (InitExpr)parent;
-                    
-                    TypeInfo aggInfo;
-                    if(!parentExpr.isResolved()) {
-                        aggInfo = getAggregateFieldTypeInfo(parentExpr);
-                    }
-                    else {
-                        aggInfo = parentExpr.getResolvedType();
-                    }
-                    
-                    
-                    int index = 0;
-                    for(Expr e : parentExpr.arguments) {
-                        if(e == expr) {
-                            break;
-                        }
-                        
-                        index++;
-                    }
-                                   
-                    
-                    if(TypeInfo.isAggregate(aggInfo)) {                        
-                        AggregateTypeInfo info = aggInfo.as();
-                        if(index >= info.fieldInfos.size()) {
-                            this.result.addError(expr, "invalid %s initialize index", info.getKind().name());
-                        }
-                        else {
-                            FieldInfo field = info.fieldInfos.get(index);
-                            type = field.type;
-                            expr.resolveTo(type);
-                        }
-                    }
-                }
-            }
-            
-            return type;
         }
         
         @Override
-        public void visit(CastExpr expr) {            
-            resolveType(expr, expr.castTo);
-            expr.resolveTo(expr.castTo);
+        public void visit(UnionDecl d) {
+            for(FieldStmt field : d.fields) {
+                field.visit(this);
+            }
             
-            expr.expr.visit(this);
+            Map<String, Tuple<AggregateTypeInfo, FieldInfo>> definedFields = new HashMap<>();
+            AggregateTypeInfo aggInfo = d.sym.type.as();
+            checkDuplicateFields(d, aggInfo, definedFields);
+        }
+
+        @Override
+        public void visit(EnumDecl d) {
+            Map<String, EnumFieldInfo> definedFields = new HashMap<>();
+            for(EnumFieldInfo field : d.fields) {
+                if(field.value != null) {
+                    field.value.visit(this);
+                    Operand op = field.value.getResolvedType();
+                    typeCheck(field.value.getSrcPos(), op.type, TypeInfo.I32_TYPE);
+                }
+                
+                if(definedFields.containsKey(field.name)) {
+                    result.addError(d, "duplicate member '%s'", field.name);
+                    continue;
+                }
+                
+                definedFields.put(field.name, field);
+            }
         }
         
+        @Override
+        public void visit(ConstDecl d) {            
+            TypeInfo type = resolveValueDecl(d, d.type, d.expr, !d.attributes.isForeign());            
+            addSymbol(d, type);
+        }
+
+        @Override
+        public void visit(VarDecl d) {
+            TypeInfo type = resolveValueDecl(d, d.type, d.expr, false);            
+            addSymbol(d, type);
+            
+        }
+
+        @Override
+        public void visit(FuncDecl d) {  
+            Symbol sym = d.sym;
+            enterModuleFor(sym);       
+            current().pushScope();
+            try {                            
+                d.params.visit(this);
+                
+                if(d.bodyStmt != null) {
+                    labels.clear();
+                    currentFunc = sym.type.as();
+                    d.bodyStmt.visit(this);
+                    
+                    labels.forEach((label, isDefined) -> {
+                        if(!isDefined) {
+                            result.addError(d.bodyStmt, "'%s' label not found", label);
+                        }
+                    });
+                }
+            }
+            finally {
+                current().popScope();
+                leaveModule();
+            }
+        }
+
+
+
+        @Override
+        public void visit(ParameterDecl d) {
+            if(d.defaultValue != null) {
+                d.defaultValue.visit(this);
+            }
+            
+            d.sym = addSymbol(d, d.type);
+
+            if(d.attributes.isUsing()) {
+                TypeInfo type = d.sym.type;
+                if (!TypeInfo.isAggregate(type) && 
+                    !TypeInfo.isPtrAggregate(type)) {
+                    error(d, "'%s' is not an aggregate type (or pointer to an aggregate), can't use 'using'", d.name);
+                }
+                else {                    
+                    addTypeToScope(d, current().currentScope(), type, type);
+                }
+            }
+        }
+
+        @Override
+        public void visit(CastExpr expr) {
+            resolveCastExpr(expr);            
+        }
+
         @Override
         public void visit(SizeOfExpr expr) {
-            expr.expr.visit(this);
+            resolveSizeOfExpr(expr);
         }
-        
+
         @Override
         public void visit(TypeOfExpr expr) {
-            expr.expr.visit(this);
+            resolveTypeOfExpr(expr);
         }
-        
+
         @Override
         public void visit(InitArgExpr expr) {
-            expr.value.visit(this);
-            expr.resolveTo(expr.value.getResolvedType());
+            resolveInitArgExpr(expr);
         }
-        
-        private TypeInfo inferInitExpr(InitExpr expr, AggregateTypeInfo aggInfo) {
-            expr.genericArgs = new ArrayList<>(aggInfo.genericParams.size());
-            
-            List<TypeInfo> suppliedArguments = new ArrayList<>();
-            for(Expr arg : expr.arguments) {
-                suppliedArguments.add(arg.getResolvedType());
-            }
-            
-            for(GenericParam p : aggInfo.genericParams) {                
-                for(int j = 0; j < aggInfo.fieldInfos.size(); j++) {
-                    TypeInfo paramType = aggInfo.fieldInfos.get(j).type;
-                    
-                    if(j >= suppliedArguments.size()) {
-                        break;
-                    }
-                    
-                    TypeInfo inferredType = inferredType(p.name, paramType, suppliedArguments.get(j).getResolvedType());
-                    if(inferredType != null) {
-                        expr.genericArgs.add(inferredType);
-                        break;
-                    }
-                }
-            }
-            
-            if(expr.type instanceof IdentifierTypeInfo) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo) expr.type;
-                idInfo.genericArgs = expr.genericArgs;
-            }
-            
-            return aggInfo;
-        }
-        
+
         @Override
         public void visit(InitExpr expr) {
-            for(InitArgExpr e : expr.arguments) {
-                e.visit(this);
-            }
-            
-            // TODO: no type was specified, must infer from
-            // parent node
-            if(expr.type == null) {
-                Node parent = expr.getParentNode();
-                if(!(parent instanceof Expr)) {
-                    this.result.addError(expr, "'%s' is an unknown type", expr.type);
-                    return;
-                }
-                
-                Expr parentExpr = (Expr)parent;                
-                expr.type = parentExpr.getResolvedType();
-            }
-                        
-            if(!expr.type.isResolved()) {
-                TypeInfo type = getAggregateFieldTypeInfo(expr);          
-                if(type == null) {
-                    this.result.addError(expr, "'%s' is an unknown type", expr.type);
-                    return;
-                }
-                
-                // type inference for generic type
-                if(type.hasGenerics() && expr.genericArgs.isEmpty()) {
-                   type = inferInitExpr(expr, type.as()); 
-                }    
-            
-                IdentifierTypeInfo idInfo = expr.type.as();
-                idInfo.resolve(this.module, type, !isResolvingGenericDecl());
-            }
-        }
-
-        private TypeInfo inferredType(String genericName, TypeInfo paramType, TypeInfo argumentType) {
-            if(paramType.getName().equals(genericName)) {
-                return argumentType.getResolvedType();
-            }
-            
-            if(!paramType.getKind().equals(argumentType.getKind())) {
-                return null;
-            }
-            
-            int index = 0;
-            if(paramType.hasGenericArgs()) {
-                List<TypeInfo> genericArgs = paramType.getGenericArgs();
-                for(;index < genericArgs.size(); index++) {
-                    if(genericArgs.get(index).name.equals(genericName)) {
-                        break;
-                    }
-                }
-            }
-            else if(paramType.isKind(TypeKind.FuncPtr)) {
-                // TODO: If we forgot to put generic types on Typedef of func pointer with
-                // generics
-                //this.result.addError(null, "", args);
-            }
-            
-            switch(paramType.getKind()) {
-                case Array: {
-                    ArrayTypeInfo arrayInfo = paramType.as();
-                    ArrayTypeInfo argumentArrayInfo = argumentType.as();
-                    return inferredType(genericName, arrayInfo.arrayOf, argumentArrayInfo.arrayOf);
-                }
-                case Const: {
-                    ConstTypeInfo constInfo = paramType.as();
-                    ConstTypeInfo argumentConstInfo = argumentType.as();
-                    return inferredType(genericName, constInfo.constOf, argumentConstInfo.constOf);
-                }
-                case FuncPtr: {
-                    FuncPtrTypeInfo funcInfo = paramType.as();
-                    if(!funcInfo.hasGenerics() || funcInfo.genericParams.size() <= index) {
-                        break;
-                    }
-                    
-                    genericName = funcInfo.genericParams.get(index).name;
-                    FuncPtrTypeInfo argumentFuncInfo = argumentType.as();
-                    
-                    TypeInfo retType = inferredType(genericName, funcInfo.returnType, argumentFuncInfo.returnType);
-                    if(retType != null) {
-                        return retType;
-                    }
-                    
-                    
-                    for(int i = 0; i < funcInfo.params.size(); i++) {
-                        if(i < argumentFuncInfo.params.size()) {
-                            TypeInfo pType = inferredType(genericName, funcInfo.params.get(i), argumentFuncInfo.params.get(i));
-                            if(pType != null) {
-                                return pType;
-                            }
-                        }
-                    }
-                    
-                    break;
-                }
-                case Ptr: {
-                    PtrTypeInfo ptrInfo = paramType.as();
-                    PtrTypeInfo argumentPtrInfo = argumentType.as();
-                    return inferredType(genericName, ptrInfo.ptrOf, argumentPtrInfo.ptrOf);
-                }
-                case Union:
-                case Struct: {
-                    AggregateTypeInfo aggInfo = paramType.as();
-                    if(!aggInfo.hasGenerics() || aggInfo.genericParams.size() <= index) {
-                        break;
-                    }
-                    
-                    genericName = aggInfo.genericParams.get(index).name;                    
-                    AggregateTypeInfo argumentAggInfo = argumentType.as();
-                    for(FieldInfo field : aggInfo.fieldInfos) {
-                        TypeInfo fieldType = inferredType(genericName, field.type, argumentAggInfo.getField(field.name).type);
-                        if(fieldType != null) {
-                            return fieldType;
-                        }
-                    }
-                    break;
-                }
-                case Identifier:
-                    break;
-                default:
-                    break;            
-            }
-            
-            return null;
-            
-        }
-        
-        private FuncPtrTypeInfo inferFuncCallExpr(FuncCallExpr expr, FuncPtrTypeInfo funcPtr, List<Expr> suppliedArguments, boolean isMethodCall) {
-            for(Expr arg : expr.arguments) {
-                arg.visit(this);
-            }
-                        
-            expr.genericArgs = new ArrayList<>(funcPtr.genericParams.size());
-            
-            for(GenericParam p : funcPtr.genericParams) {
-                for(int j = 0; j < funcPtr.params.size(); j++) {
-                    TypeInfo paramType = funcPtr.params.get(j);
-                    
-                    if(j >= suppliedArguments.size()) {
-                        break;
-                    }
-                    
-                    TypeInfo inferredType = inferredType(p.name, paramType, suppliedArguments.get(j).getResolvedType());
-                    if(inferredType != null) {
-                        expr.genericArgs.add(inferredType);
-                        break;
-                    }
-                }
-            }
-            
-            Expr objectExpr = expr.object;
-            if(isMethodCall) {
-                GetExpr getExpr = (GetExpr) expr.object;
-                objectExpr = getExpr.field;
-            }
-            
-            objectExpr.unresolve();
-            if(objectExpr instanceof IdentifierExpr) {
-                IdentifierExpr idExpr = (IdentifierExpr)objectExpr;
-                idExpr.setGenericArgs(expr.genericArgs);
-            }
-            
-            expr.object.visit(this);
-            
-            // unable to infer types
-            if(!expr.object.isResolved()) {
-                for(int i = expr.genericArgs.size(); i < funcPtr.genericParams.size(); i++) {
-                    this.result.addError(expr, "unable to infer generic parameter '%s'", funcPtr.genericParams.get(i));
-                }
-                return funcPtr;
-            }
-            
-            TypeInfo type = expr.object.getResolvedType();            
-            if(type.isKind(TypeKind.Func)) {
-                FuncTypeInfo funcInfo = type.as();
-                return funcInfo.asPtr();
-            }
-            
-            return type.as();
-        }
-        
-        private boolean isMethodSyntax(FuncCallExpr expr, FuncPtrTypeInfo funcPtr, List<Expr> suppliedArguments) {
-            if(!(expr.object instanceof GetExpr)) {
-                return false;
-            }
-            
-            GetExpr getExpr = (GetExpr) expr.object;
-            if(!getExpr.field.getResolvedType().isKind(TypeKind.Func)) {
-                return false;
-            }
-            
-            getExpr.isMethodCall = true;
-            if(!funcPtr.params.isEmpty()) {
-                TypeInfo paramInfo = funcPtr.params.get(0);                    
-                TypeInfo argInfo = getExpr.object.getResolvedType();
-                
-                
-                // Determine if we need to premote the object to a
-                // pointer depending on what the method is expecting as an
-                // argument
-                if(TypeInfo.isPtrAggregate(paramInfo)) {
-                    if(!TypeInfo.isPtrAggregate(argInfo)) {
-                        
-                        // Can't take the address of an R-Value 
-                        if(getExpr.object instanceof FuncCallExpr) {
-                            this.result.addError(getExpr.object, 
-                                    "cannot take the return value address of '%s' as it's an R-Value", getExpr.field.variable);
-                        }
-                        
-                        getExpr.object = new UnaryExpr(TokenType.BAND, new GroupExpr(getExpr.object));
-                        getExpr.object.resolveTo(new PtrTypeInfo(argInfo));
-                    }
-                }
-            }
-            
-            suppliedArguments.add(0, getExpr.object);            
-            return true;
-        }
-        
-        @Override
-        public void visit(FuncCallExpr expr) {
-            for(TypeInfo arg : expr.genericArgs) {
-                resolveType(expr, arg);
-            }
-            
-            expr.object.visit(this);            
-            
-            TypeInfo type = expr.object.getResolvedType();
-            if(!type.isKind(TypeKind.Func) && !type.isKind(TypeKind.FuncPtr)) {
-                this.result.addError(expr, "'%s' is not a function", type.getName());
-                return;
-            }
-            
-            boolean isMethod = false;
-                        
-            FuncPtrTypeInfo funcPtr = null;
-            if(type.isKind(TypeKind.Func)) {
-                FuncTypeInfo funcInfo = type.as();
-                isMethod = funcInfo.isMethod();
-                
-                funcPtr = funcInfo.asPtr();
-            }
-            else {
-                funcPtr = type.as();
-            }
-            
-            
-            List<Expr> suppliedArguments = new ArrayList<>(expr.arguments);
-            
-            // see if this is method call syntax
-            boolean isMethodCall = isMethod && isMethodSyntax(expr, funcPtr, suppliedArguments);
-            
-            // type inference for generic functions 
-            if(funcPtr.hasGenerics() && expr.genericArgs.isEmpty()) {            
-                funcPtr = inferFuncCallExpr(expr, funcPtr, suppliedArguments, isMethodCall);            
-            }
-            
-            expr.resolveTo(getType(expr, expr.genericArgs, funcPtr.genericParams, funcPtr.returnType));
-            
-
-            boolean hasSym = type.sym != null;
-            if(hasSym) {
-                pushModule(type.sym.declared);
-            }
-            
-            int i = 0;
-            for(; i < funcPtr.params.size(); i++) {
-                TypeInfo paramInfo = funcPtr.params.get(i);
-                resolveType(expr, getType(expr, expr.genericArgs, funcPtr.genericParams, paramInfo));
-                
-                if(i < expr.arguments.size()) {
-                    Expr arg = expr.arguments.get(i);
-                    arg.visit(this);
-                    
-                    resolveType(arg, getType(expr, expr.genericArgs, funcPtr.genericParams, arg.getResolvedType()));
-                }
-            }
-            
-            if(funcPtr.isVararg) {
-                for(; i < expr.arguments.size(); i++) {
-                    Expr arg = expr.arguments.get(i);
-                    arg.visit(this);
-                    
-                    resolveType(arg, getType(expr, expr.genericArgs, funcPtr.genericParams, arg.getResolvedType()));
-                }                
-            }
-            
-            if(hasSym) {
-                popModule();
-            }
+            resolveInitExpr(expr);            
         }
 
         @Override
-        public void visit(IdentifierExpr expr) {
-            if(!expr.type.isResolved()) {
-                Symbol sym = peekScope().getSymbol(expr.variable); 
-                
-                // Might be a generic type not defined
-                if(sym == null && isResolvingGenericDecl()) {                    
-                    return;
-                }
-                
-                if(sym == null) {
-                    this.result.addError(expr, "unknown variable '%s'", expr.variable);
-                    return;
-                }
-                
-                IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, sym.getType(), !isResolvingGenericDecl());
-                
-                // If this is a type, we will use the resolved type from the 
-                // symbol (as it might have generic types); otherwise it is
-                // a variable name
-                TypeInfo newType = type.getResolvedType();
-                if(newType.sym != null && sym.isType()) {
-                    expr.sym = newType.sym;
-                }
-                else {
-                    expr.sym = sym;
-                }
-                expr.resolveTo(expr.type); // TODO: remove type from IdExpr
-            }
-        }
-        
-        @Override
-        public void visit(FuncIdentifierExpr expr) {
-            if(!expr.type.isResolved()) {
-                TypeInfo resolvedType = this.module.getFuncType(expr.variable); 
-                
-                if(resolvedType == null) {
-                    Symbol sym = peekScope().getSymbol(expr.variable); 
-                    
-                    if(sym == null || !sym.getType().isKind(TypeKind.FuncPtr)) {
-                        if(sym == null && isResolvingGenericDecl()) {                    
-                            return;
-                        }
-                        
-                        this.result.addError(expr, "unknown function '%s'", expr.variable);
-                        return;                        
-                    }
-                    
-                    resolvedType = sym.getType();
-                }
-                
-                IdentifierTypeInfo type = expr.type.as();
-                type.resolve(this.module, resolvedType, !isResolvingGenericDecl());
-
-                TypeInfo newType = type.getResolvedType();
-                if(newType.sym != null) {
-                    expr.sym = newType.sym;
-                }
-                expr.resolveTo(expr.type); // TODO: remove type from IdExpr
-            }
-        }
-        
-        @Override
-        public void visit(TypeIdentifierExpr expr) {
-            if(!expr.type.isResolved()) {
-                Symbol sym = peekScope().getSymbol(expr.variable);
-                
-                
-                // Might be a generic type not defined
-                if(sym == null) {
-                    if(isResolvingGenericDecl()) {
-                        return;
-                    }
-                    
-                    TypeInfo type = getType(expr.type.getName());
-                    if(type == null) {
-                        resolveType(expr, expr.type);
-                        
-                        if(!expr.type.isResolved()) {
-                            this.result.addError(expr, "unknown type '%s'", expr.variable);
-                            return;   
-                        }
-                    }
-                    else {
-                        sym = type.sym;
-                    }
-                }
-                
-                if(expr.type instanceof IdentifierTypeInfo) {
-                    IdentifierTypeInfo type = expr.type.as();
-                    type.resolve(this.module, sym.getType(), !isResolvingGenericDecl());
-                    
-                    // If this is a type, we will use the resolved type from the 
-                    // symbol (as it might have generic types); otherwise it is
-                    // a variable name
-                    TypeInfo newType = type.getResolvedType();
-                    if(newType.sym != null && sym.isType()) {
-                        expr.sym = newType.sym;
-                    }
-                    else {
-                        expr.sym = sym;
-                    }
-                    expr.resolveTo(expr.type); // TODO: remove type from IdExpr
-                }
-                else {
-                    expr.resolveTo(expr.type);
-                }
-            }
-        }
-        
-        private boolean resolveAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value) {
-            return resolveAggregate(type, field, expr, value, true);
-        }
-        
-        private boolean resolveAggregate(TypeInfo type, TypeInfo field, Expr expr, Expr value, boolean error) { 
-            if(type == null) {
-                this.result.addError(expr, "unknown type");
-                return false;
-            }
-            
-            resolveType(expr, type);
-            
-            switch(type.getKind()) {
-                case Ptr: {
-                    PtrTypeInfo ptrInfo = type.as();
-                    return resolveAggregate(ptrInfo.ptrOf, field, expr, value, error);                    
-                }
-                case Const: {
-                    ConstTypeInfo constInfo = type.as();
-                    return resolveAggregate(constInfo.constOf, field, expr, value, error);
-                }
-                case Union:
-                case Struct: {
-                    AggregateTypeInfo structInfo = type.as();
-                    for(FieldInfo fieldInfo : structInfo.fieldInfos) {  
-                        if(fieldInfo.type.isAnonymous()) {
-                            if(resolveAggregate(fieldInfo.type, field, expr, value, false)) {
-                                return true;
-                            }
-                        }
-                        else if(fieldInfo.name.equals(field.getName())) {
-                            if(!field.isResolved()) {
-                                pushModule(structInfo.sym.getDeclaredModule());
-                                resolveType(expr, field, fieldInfo.type);
-                                popModule();
-                            }
-                            
-                            expr.resolveTo(fieldInfo.type);                            
-                            return true;
-                        }
-                    }
-                    
-                    FieldPath path = structInfo.getFieldPath(field.getName());
-                    if(path.hasPath()) {
-                        TypeInfo usingField = path.getTargetField().type; 
-                        if(!field.isResolved()) {
-                            pushModule(structInfo.sym.getDeclaredModule());
-                            resolveType(expr, field, usingField);
-                            popModule();
-                        }
-                        
-                        expr.resolveTo(usingField);
-                        return true;
-                    }
-                    
-                    FuncTypeInfo funcInfo = this.module.getMethodType(type, field.getName());
-                    if(funcInfo != null) {                        
-                        if(funcInfo.parameterDecls.isEmpty()) {
-                            if(error) {
-                                this.result.addError(expr, "'%s' does not have a parameter of '%s'", funcInfo.getName(), structInfo.name);
-                            }
-                            break;
-                        }              
-                        
-                        ParameterDecl objectParam = funcInfo.parameterDecls.get(0);
-                        pushModule(funcInfo.sym.getDeclaredModule());
-                        resolveType(objectParam, objectParam.type);
-                        popModule();
-                        
-                        TypeInfo baseType = objectParam.type.getResolvedType();
-                        if(TypeInfo.isPtrAggregate(baseType)) {
-                            baseType = ((PtrTypeInfo) baseType.as()).getBaseType().getResolvedType();
-                        }
-                        
-                        if(baseType.strictEquals(structInfo)) {
-                            if(!field.isResolved()) {
-                                resolveType(expr, field, funcInfo);
-                            }
-                            
-                            expr.resolveTo(field.getResolvedType());
-                            return true;
-                        }
-                    }
-                    
-                    if(error) {
-                        this.result.addError(expr, "'%s' does not have field '%s'", structInfo.name, field.name);
-                    }
-                    break;
-                }
-                case Enum: {
-                    if(value != null) {
-                        if(error) {
-                            this.result.addError(expr, "'%s.%s' can not be reassigned", type.name, field.name);
-                        }
-                    }
-                    else {
-                        EnumTypeInfo enumInfo = type.as();
-                        for(EnumFieldInfo fieldInfo : enumInfo.fields) {
-                            if(!field.isResolved()) {
-                                if(fieldInfo.value != null) {
-                                    resolveType(expr, field, fieldInfo.value.getResolvedType());
-                                }
-                                else {
-                                    resolveType(expr, field, TypeInfo.I32_TYPE);
-                                }
-                            }
-                            
-                            expr.resolveTo(enumInfo);
-                            return true;
-                        }
-                        if(error) {
-                            this.result.addError(expr, "'%s' does not have field '%s'", enumInfo.name, field.name);
-                        }
-                    }
-                    break;
-                }
-                case Identifier: {
-                    // if we are parsing a Generic structure, ignore that we
-                    // can't fully resolve this type (will get resolved when defined with concrete type)
-                    if(isResolvingGenericDecl()) {
-                        expr.resolveTo(type);
-                        break;
-                    }
-                }
-                default: {
-                    this.result.addError(expr, "'%s' is an invalid type for aggregate access", type.getName());
-                }
-            }
-            
-            return false;
-        }
-        
-        @Override
-        public void visit(GetExpr expr) {
-            expr.object.visit(this);  
-            //expr.field.visit(this);
-            
-            if(!expr.field.type.isResolved()) {
-                TypeInfo type = expr.object.getResolvedType();                
-                resolveAggregate(type, expr.field.type, expr, null);
-                if(!expr.field.isResolved()) {
-                    expr.field.resolveTo(expr.field.type);
-                }
-            }
-            
-            resolveType(expr, expr.field.type);
-        }
-        
-        @Override
-        public void visit(SetExpr expr) {
-            expr.object.visit(this);         
-            //expr.field.visit(this);
-            expr.value.visit(this);
-            
-            if(!expr.field.type.isResolved()) {
-                TypeInfo type = expr.object.getResolvedType();
-                resolveAggregate(type, expr.field.type, expr, expr.value);
-                if(!expr.field.isResolved()) {
-                    expr.field.resolveTo(expr.field.type);
-                }
-            }
-            
-            resolveType(expr, expr.field.type);
+        public void visit(NullExpr expr) {
         }
 
         @Override
-        public void visit(UnaryExpr expr) {
-            expr.expr.visit(this);
-            
-            switch(expr.operator) {
-                case STAR: {
-                    TypeInfo type = expr.expr.getResolvedType().getResolvedType();
-                    if(type.isKind(TypeKind.Ptr)) {
-                        PtrTypeInfo ptrInfo = type.as();
-                        expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
-                    }
-                    else if(type.isKind(TypeKind.Str)) {
-                        expr.resolveTo(type);
-                    }
-                    else if(type.isKind(TypeKind.Array)) {
-                        ArrayTypeInfo arrayInfo = type.as();
-                        expr.resolveTo(arrayInfo.arrayOf);
-                    }
-                    else {
-                        this.result.addError(expr, "'%s' is not a pointer type", type);
-                    }
-                    
-                    break;
-                }
-                case BAND: {
-                    TypeInfo type = expr.expr.getResolvedType().getResolvedType();
-                    if(type.isKind(TypeKind.Func)) {
-                        FuncTypeInfo funcType = type.as();
-                        expr.resolveTo(funcType.asPtr());
-                    }
-                    else {
-                        PtrTypeInfo ptrInfo = new PtrTypeInfo(type);
-                        expr.resolveTo(ptrInfo);
-                    }
-                    break;
-                }
-                case NOT: {
-                    expr.resolveTo(TypeInfo.BOOL_TYPE);
-                    break;
-                }
-                default: {
-                    expr.resolveTo(expr.expr.getResolvedType());
-                }
-            }
+        public void visit(BooleanExpr expr) {
+        }
+
+        @Override
+        public void visit(NumberExpr expr) {
+        }
+
+        @Override
+        public void visit(StringExpr expr) {
+        }
+
+        @Override
+        public void visit(CharExpr expr) {
         }
 
         @Override
         public void visit(GroupExpr expr) {
-            expr.expr.visit(this);
-            expr.resolveTo(expr.expr.getResolvedType());
+            resolveGroupExpr(expr);
+        }
+
+        @Override
+        public void visit(FuncCallExpr expr) {
+            resolveFuncCallExpr(expr);
+        }
+
+        @Override
+        public void visit(IdentifierExpr expr) {
+            resolveIdentifier(expr);
+        }
+
+        @Override
+        public void visit(FuncIdentifierExpr expr) {
+            resolveFuncIdentifier(expr);
+        }
+
+        /* (non-Javadoc)
+         * @see litac.ast.NodeVisitor#visit(litac.ast.Expr.TypeIdentifierExpr)
+         */
+        @Override
+        public void visit(TypeIdentifierExpr expr) {
+            // TODO Auto-generated method stub
+            
+        }
+
+        @Override
+        public void visit(GetExpr expr) {
+            resolveGetExpr(expr);
+        }
+
+        @Override
+        public void visit(SetExpr expr) {
+            resolveSetExpr(expr);
+        }
+
+        @Override
+        public void visit(UnaryExpr expr) {
+            resolveUnaryExpr(expr);
         }
 
         @Override
         public void visit(BinaryExpr expr) {
-            expr.left.visit(this);
-            expr.right.visit(this);
-            
-            switch(expr.operator) {
-                case AND:
-                case OR:
-                case GREATER_THAN:
-                case GREATER_EQUALS:
-                case LESS_THAN:
-                case LESS_EQUALS:
-                case EQUALS_EQUALS:
-                case NOT_EQUALS:
-                    expr.resolveTo(TypeInfo.BOOL_TYPE);
-                    break;
-                default:
-                    if(expr.left.isResolved() && expr.right.isResolved()) {
-                        TypeInfo leftType = expr.left.getResolvedType();
-                        TypeInfo rightType = expr.right.getResolvedType();
-                        
-                        if(leftType.strictEquals(rightType)) {
-                            expr.resolveTo(leftType);
-                        }
-                        else if(leftType.isGreater(rightType)) {
-                            expr.resolveTo(leftType);
-                        }
-                        else {
-                            expr.resolveTo(rightType);
-                        }
-                    }
-                    break;
-            }            
+            resolveBinaryExpr(expr);
         }
 
         @Override
         public void visit(TernaryExpr expr) {
-            expr.cond.visit(this);
-            expr.then.visit(this);
-            expr.other.visit(this);
-            
-            expr.resolveTo(expr.then.getResolvedType());
+            resolveTernaryExpr(expr);
         }
 
         @Override
         public void visit(ArrayInitExpr expr) {
-            ArrayTypeInfo arrayInfo = expr.getResolvedType().as();
-            
-            int n = expr.values.size();
-            for(Expr v : expr.values) {
-                v.visit(this);
-            }
-            
-            // TODO -- validate sizes?
-            if(arrayInfo.length < 0) {
-                arrayInfo.length = n;
-            }
-            
-            resolveType(expr, arrayInfo);
-            
-            if(arrayInfo.length < n) {
-                this.result.addError(expr, "defined array dimension '%d' is smaller than number of elements '%d'", arrayInfo.length, n);
-            }
-            
+            resolveArrayInitExpr(expr);
         }
-        
+
         @Override
         public void visit(ArrayDesignationExpr expr) {
-            expr.index.visit(this);
-            expr.value.visit(this);
-            expr.resolveTo(expr.value.getResolvedType());
+            resolveArrayDesExpr(expr);
         }
-        
+
         @Override
         public void visit(SubscriptGetExpr expr) {
-            expr.object.visit(this);
-            expr.index.visit(this);
-            
-            TypeKind objectKind = expr.object.getResolvedType().getKind();
-            switch(objectKind) {
-                case Str:
-                    expr.resolveTo(TypeInfo.CHAR_TYPE);
-                    break;
-                case Array:
-                    ArrayTypeInfo arrayInfo = expr.object.getResolvedType().as();
-                    expr.resolveTo(arrayInfo.arrayOf.getResolvedType());
-                    break;
-                case Ptr:
-                    PtrTypeInfo ptrInfo = expr.object.getResolvedType().as();
-                    expr.resolveTo(ptrInfo.ptrOf.getResolvedType());
-                    break;
-                case Const:
-                    ConstTypeInfo constInfo = expr.object.getResolvedType().as();
-                    expr.resolveTo(constInfo.getBaseType().getResolvedType());
-                    break;
-                case Enum: {
-                    expr.resolveTo(TypeInfo.I32_TYPE);
-                    break;
-                }
-                default: {
-                    this.result.addError(expr, "invalid index into '%s'", objectKind.name());
-                    return;
-                }
-            }
+            resolveSubGetExpr(expr);
         }
 
         @Override
         public void visit(SubscriptSetExpr expr) {
-            expr.object.visit(this);
-            expr.index.visit(this);
-            expr.value.visit(this);
-            
-            expr.resolveTo(expr.value.getResolvedType());
+            resolveSubSetExpr(expr);
         }
-        
     }
 }

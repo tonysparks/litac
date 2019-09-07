@@ -3,22 +3,49 @@
  */
 package litac.ast;
 
+import java.math.BigDecimal;
 import java.util.*;
 
+import litac.checker.TypeResolver.Operand;
+import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.compiler.Symbol;
-import litac.parser.ErrorCode;
-import litac.parser.ParseException;
-import litac.parser.tokens.NumberToken;
-import litac.parser.tokens.Token;
-import litac.parser.tokens.TokenType;
+import litac.parser.*;
+import litac.parser.tokens.*;
 
 /**
  * @author Tony
  *
  */
 public abstract class Expr extends Stmt {
+    
+    public static enum ExprKind {        
+        CAST,
+        SIZE_OF,
+        TYPE_OF,
+        INIT_ARG,
+        INIT,
+        TERNARY,
+        BINARY,
+        ARRAY_INIT,
+        ARRAY_DESIGNATION,
+        SUBSCRIPT_GET,
+        SUBSCRIPT_SET,
+        BOOLEAN,
+        FUNC_CALL,
+        GET,
+        SET,
+        GROUP,
+        NULL,
+        NUMBER,
+        STRING,
+        CHAR,
+        UNARY,
+        IDENTIFER,
+        FUNC_IDENTIFIER,
+        TYPE_IDENTIFIER,
+    }
     
     public static TypeKind fromTokenType(Token token) {
         switch(token.getType()) {
@@ -58,38 +85,37 @@ public abstract class Expr extends Stmt {
         }
     }
     
-    private TypeInfo resolvedTo;
+    private Operand resolvedTo;
+    protected ExprKind kind;
     
-    public TypeInfo getResolvedType() {
+    Expr(ExprKind kind) {
+        this.kind = kind;
+    }
+    
+    
+    public ExprKind getKind() {
+        return kind;
+    }
+    
+    public Operand getResolvedType() {
         return resolvedTo;
     }
     
-    public void resolveTo(TypeInfo type) {
-        if(type != null) {
-            if(type.isResolved()) {
-                this.resolvedTo = type.getResolvedType();
-            }
-            else {
-                TypeInfo partialResolved = type.getResolvedType();
-                if(partialResolved != null) {
-                    this.resolvedTo = partialResolved;
-                }
-                else {
-                    this.resolvedTo = type;
-                }
-            }
-        }
-        else {
-            this.resolvedTo = null;
-        }
+    public void resolveTo(Operand type) {
+        this.resolvedTo = type;
     }
     
     public boolean isResolved() {
-        return this.resolvedTo != null && this.resolvedTo.isResolved();
+        return this.resolvedTo != null;
     }
     
     public void unresolve() {
         this.resolvedTo = null;
+    }
+    
+    @SuppressWarnings("unchecked")
+    public <T extends Expr> T as() {
+        return (T) this;
     }
     
     @SuppressWarnings("unchecked")
@@ -104,23 +130,21 @@ public abstract class Expr extends Stmt {
     /**
      * Used for constant expressions
      */
-    public static abstract class ConstExpr extends Expr {
-        public TypeInfo type;
-        
-        protected ConstExpr(TypeInfo type) {
-            this.type = type;
+    public static abstract class ConstExpr extends Expr {                
+        protected ConstExpr(ExprKind kind, Operand op) {
+            super(kind);
+            resolveTo(op);
         }
     }
     
     public static class CastExpr extends Expr {
-        public TypeInfo castTo;
+        public TypeSpec castTo;
         public Expr expr;
         
-        public CastExpr(TypeInfo castTo, Expr expr) {
+        public CastExpr(TypeSpec castTo, Expr expr) {
+            super(ExprKind.CAST);
             this.expr = becomeParentOf(expr);
-            this.castTo = castTo;
-            
-            resolveTo(castTo);
+            this.castTo = castTo;            
         }
         
         @Override
@@ -130,25 +154,26 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new CastExpr(this.castTo.copy(), this.expr.copy());
+            return new CastExpr(TypeSpec.copy(this.castTo), this.expr.copy());
         }
     }
     
     public static class SizeOfExpr extends Expr {
+        //public TypeSpec type;
         public Expr expr;
         
         public SizeOfExpr(Expr expr) {
-            if(expr instanceof IdentifierExpr && !(expr instanceof TypeIdentifierExpr)) {
-                IdentifierExpr idExpr = (IdentifierExpr)expr;
-                expr = new TypeIdentifierExpr(idExpr.variable, idExpr.type);
-                expr.setLineNumber(idExpr.getLineNumber());
-                expr.setSourceLine(idExpr.getSourceLine());
-                expr.setSourceFile(idExpr.getSourceFile());
-            }
-            
+            super(ExprKind.SIZE_OF);
             this.expr = becomeParentOf(expr);
-            resolveTo(TypeInfo.U64_TYPE);
+            resolveTo(Operand.op(TypeInfo.U64_TYPE));
         }
+        
+        /*
+        public SizeOfExpr(TypeSpec type) {
+            super(ExprKind.SIZE_OF);
+            this.type = type;
+            resolveTo(Operand.op(TypeInfo.U64_TYPE));
+        }*/
         
         @Override
         public void visit(NodeVisitor v) {
@@ -156,25 +181,30 @@ public abstract class Expr extends Stmt {
         }
         
         @Override
-        protected Node doCopy() {            
+        protected Node doCopy() {
             return new SizeOfExpr(this.expr.copy());
+            /*
+            if(this.expr != null) {
+                return new SizeOfExpr(this.expr.copy());
+            }
+            return new SizeOfExpr(TypeSpec.copy(this.type));*/
         }
     }
     
     public static class TypeOfExpr extends Expr {
         public Expr expr;
+        public TypeSpec type;
         
         public TypeOfExpr(Expr expr) {
-            if(expr instanceof IdentifierExpr && !(expr instanceof TypeIdentifierExpr)) {
-                IdentifierExpr idExpr = (IdentifierExpr)expr;
-                expr = new TypeIdentifierExpr(idExpr.variable, idExpr.type);
-                expr.setLineNumber(idExpr.getLineNumber());
-                expr.setSourceLine(idExpr.getSourceLine());
-                expr.setSourceFile(idExpr.getSourceFile());
-            }
-            
+            super(ExprKind.TYPE_OF);
             this.expr = becomeParentOf(expr);
-            resolveTo(TypeInfo.I64_TYPE);
+            resolveTo(Operand.op(TypeInfo.I64_TYPE));
+        }
+        
+        public TypeOfExpr(TypeSpec type) {
+            super(ExprKind.TYPE_OF);
+            this.type = type;
+            resolveTo(Operand.op(TypeInfo.I64_TYPE));
         }
         
         @Override
@@ -183,8 +213,11 @@ public abstract class Expr extends Stmt {
         }
         
         @Override
-        protected Node doCopy() {            
-            return new TypeOfExpr(this.expr.copy());
+        protected Node doCopy() { 
+            if(this.expr != null) {
+                return new TypeOfExpr(this.expr.copy());
+            }
+            return new TypeOfExpr(TypeSpec.copy(this.type));
         }
     }
     
@@ -194,6 +227,7 @@ public abstract class Expr extends Stmt {
         public Expr value;
         
         public InitArgExpr(String fieldName, int argPosition, Expr value) {
+            super(ExprKind.INIT_ARG);
             this.fieldName = fieldName;
             this.argPosition = argPosition;
             this.value = becomeParentOf(value);
@@ -211,34 +245,37 @@ public abstract class Expr extends Stmt {
     }
     
     public static abstract class GenericExpr extends Expr {
-        public List<TypeInfo> genericArgs;
+        public List<TypeSpec> genericArgs;
         
-        public GenericExpr() {
+        public GenericExpr(ExprKind kind) {
+            super(kind);
             this.genericArgs = Collections.emptyList();
+        }
+        
+        protected void setGenericArgs(List<TypeSpec> genArgs) {
+            this.genericArgs = genArgs;
+        }
+        
+        public void addGenericArg(TypeSpec arg) {
+            this.genericArgs.add(arg);
+        }
+        
+        protected GenericExpr copyArgs(GenericExpr copy) {
+            copy.genericArgs = TypeSpec.copy(this.genericArgs);
+            return copy;
         }
     }
     
     public static class InitExpr extends GenericExpr {
-        public TypeInfo type;
+        public NameTypeSpec type;
         public List<InitArgExpr> arguments;
         
-        public InitExpr(TypeInfo type, List<InitArgExpr> arguments) {
+        public InitExpr(NameTypeSpec type, List<InitArgExpr> arguments) {
+            super(ExprKind.INIT);
             this.type = type;
-            this.arguments = becomeParentOf(arguments);
-            
-            resolveTo(type);
+            this.arguments = becomeParentOf(arguments);            
         }
-        
-        @Override
-        public void resolveTo(TypeInfo type) {        
-            super.resolveTo(type);
-            this.type = type;
-            
-            if(type.hasGenericArgs()) {
-                this.genericArgs = type.getGenericArgs();
-            }
-        }
-        
+                
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
@@ -246,7 +283,8 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new InitExpr(TypeInfo.copy(this.type), copy(this.arguments));
+            NameTypeSpec nameSpec = (this.type != null) ? TypeSpec.copy(this.type).as() : null;
+            return copyArgs(new InitExpr(nameSpec, copy(this.arguments)));
         }
     }
     
@@ -256,6 +294,7 @@ public abstract class Expr extends Stmt {
         public Expr other;
 
         public TernaryExpr(Expr cond, Expr then, Expr other) {
+            super(ExprKind.TERNARY);
             this.cond = becomeParentOf(cond);
             this.then = becomeParentOf(then);
             this.other = becomeParentOf(other);
@@ -273,15 +312,12 @@ public abstract class Expr extends Stmt {
     }
     
     public static class BinaryExpr extends Expr {
-
         public Expr left;
         public TokenType operator;
         public Expr right;
-        
-        /**
-         * 
-         */
+
         public BinaryExpr(Expr left, TokenType operator, Expr right) {
+            super(ExprKind.BINARY);
             this.left = becomeParentOf(left);
             this.operator = operator;
             this.right = becomeParentOf(right);
@@ -299,12 +335,13 @@ public abstract class Expr extends Stmt {
     }
     
     public static class ArrayInitExpr extends Expr {
+        public TypeSpec type;
         public List<Expr> values;
         
-        public ArrayInitExpr(TypeInfo array, List<Expr> values) {
+        public ArrayInitExpr(TypeSpec type, List<Expr> values) {
+            super(ExprKind.ARRAY_INIT);
+            this.type = type;
             this.values = becomeParentOf(values);
-
-            resolveTo(array);
         }
         
         @Override
@@ -314,7 +351,7 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new ArrayInitExpr(getResolvedType(), copy(this.values));
+            return new ArrayInitExpr(TypeSpec.copy(this.type), copy(this.values));
         }
     }
     
@@ -323,6 +360,7 @@ public abstract class Expr extends Stmt {
         public Expr value;
         
         public ArrayDesignationExpr(Expr index, Expr value) {
+            super(ExprKind.ARRAY_DESIGNATION);
             this.index = becomeParentOf(index);
             this.value = becomeParentOf(value);
         }
@@ -343,6 +381,7 @@ public abstract class Expr extends Stmt {
         public Expr index;
         
         public SubscriptGetExpr(Expr object, Expr index) {
+            super(ExprKind.SUBSCRIPT_GET);
             this.object = becomeParentOf(object);
             this.index = becomeParentOf(index);
         }
@@ -365,6 +404,7 @@ public abstract class Expr extends Stmt {
         public Expr value;
         
         public SubscriptSetExpr(Expr object, Expr index, TokenType operator, Expr value) {
+            super(ExprKind.SUBSCRIPT_SET);
             this.object = becomeParentOf(object);
             this.index = becomeParentOf(index);
             this.operator = operator;
@@ -388,10 +428,8 @@ public abstract class Expr extends Stmt {
         public boolean bool;
         
         public BooleanExpr(boolean bool) {
-            super(TypeInfo.BOOL_TYPE);
+            super(ExprKind.BOOLEAN, Operand.opConst(TypeInfo.BOOL_TYPE, bool));
             this.bool = bool;
-            
-            resolveTo(this.type);
         }
         
         
@@ -411,7 +449,8 @@ public abstract class Expr extends Stmt {
         public Expr object;
         public List<Expr> arguments;
         
-        public FuncCallExpr(Expr object, List<Expr> arguments, List<TypeInfo> genericArgs) {
+        public FuncCallExpr(Expr object, List<Expr> arguments, List<TypeSpec> genericArgs) {
+            super(ExprKind.FUNC_CALL);
             this.object = becomeParentOf(object);
             this.arguments = becomeParentOf(arguments);
             this.genericArgs = genericArgs;
@@ -424,7 +463,7 @@ public abstract class Expr extends Stmt {
 
         @Override
         protected Node doCopy() {            
-            return new FuncCallExpr(object.copy(), copy(this.arguments), TypeInfo.copy(genericArgs));
+            return new FuncCallExpr(object.copy(), copy(this.arguments), TypeSpec.copy(genericArgs));
         }
     }
     
@@ -434,6 +473,7 @@ public abstract class Expr extends Stmt {
         public boolean isMethodCall;
         
         public GetExpr(Expr object, IdentifierExpr field) {
+            super(ExprKind.GET);
             this.object = becomeParentOf(object);
             this.field = becomeParentOf(field);            
         }
@@ -461,6 +501,7 @@ public abstract class Expr extends Stmt {
         public Expr value;
         
         public SetExpr(Expr object, IdentifierExpr field, TokenType operator, Expr value) {
+            super(ExprKind.SET);
             this.object = becomeParentOf(object);
             this.field = becomeParentOf(field);
             
@@ -483,6 +524,7 @@ public abstract class Expr extends Stmt {
         public Expr expr;
         
         public GroupExpr(Expr expr) {
+            super(ExprKind.GROUP);
             this.expr = becomeParentOf(expr);
         }
         
@@ -499,9 +541,7 @@ public abstract class Expr extends Stmt {
         
     public static class NullExpr extends ConstExpr {
         public NullExpr() {
-            super(TypeInfo.NULL_TYPE);
-            
-            resolveTo(this.type);
+            super(ExprKind.NULL, Operand.opConst(TypeInfo.NULL_TYPE, null));
         }
         
         @Override
@@ -517,7 +557,7 @@ public abstract class Expr extends Stmt {
     
     public static class NumberExpr extends ConstExpr {
         public String number;
-        
+                
         public NumberExpr(NumberToken token) {
             this(token.getTypeInfo(), token.getText());
         }
@@ -527,10 +567,8 @@ public abstract class Expr extends Stmt {
         }
         
         public NumberExpr(TypeInfo type, String number) {
-            super(type);
-            this.number = number;
-            
-            resolveTo(this.type);
+            super(ExprKind.NUMBER, Operand.opConst(type, new BigDecimal(number)));        
+            this.number = number;            
         }
         
         public int asInt() {
@@ -545,7 +583,7 @@ public abstract class Expr extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new NumberExpr(type.copy(), this.number);
+            return new NumberExpr(TypeInfo.copy(getResolvedType().type), this.number);
         }
     }
 
@@ -553,10 +591,8 @@ public abstract class Expr extends Stmt {
         public String string;
         
         public StringExpr(String string) {
-            super(new StrTypeInfo(string));
-            this.string = string;
-            
-            resolveTo(this.type);
+            super(ExprKind.STRING, Operand.opConst(new StrTypeInfo(string), string));
+            this.string = string;            
         }
         
         @Override
@@ -579,10 +615,8 @@ public abstract class Expr extends Stmt {
         public String character;
         
         public CharExpr(String character) {
-            super(TypeInfo.CHAR_TYPE);
-            this.character = character;
-            
-            resolveTo(this.type);
+            super(ExprKind.CHAR, Operand.opConst(TypeInfo.CHAR_TYPE, character));
+            this.character = character;            
         }
         
         @Override
@@ -606,6 +640,7 @@ public abstract class Expr extends Stmt {
         public Expr expr;
         
         public UnaryExpr(TokenType operator, Expr expr) {
+            super(ExprKind.UNARY);
             this.operator = operator;
             this.expr = becomeParentOf(expr);
         }
@@ -621,60 +656,34 @@ public abstract class Expr extends Stmt {
         }
     }
 
-    public static class IdentifierExpr extends Expr {
-        public String variable;
-        public TypeInfo type;
+    public static class IdentifierExpr extends GenericExpr {
+        public NameTypeSpec type;
         public Symbol sym;
-                
-        public IdentifierExpr(String variable, TypeInfo type) {
-            this.variable = variable;
-            this.type = type;
-            resolveTo(type);
-        }
-
-        public List<TypeInfo> getGenericArgs() {
-            if(this.type.hasGenericArgs()) {                
-                return this.type.getGenericArgs();
-            }
-            
-            return Collections.emptyList();
-        }
         
-        public void setGenericArgs(List<TypeInfo> genericArgs) {            
-            if(this.type instanceof IdentifierTypeInfo) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo) this.type;
-                idInfo.genericArgs = genericArgs;
-            }
+        public IdentifierExpr(NameTypeSpec typeSpec) {
+            super(ExprKind.IDENTIFER);
+            this.type = typeSpec;
+            this.genericArgs = typeSpec.genericArgs;
         }
         
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
-        
-        @Override
-        public void unresolve() {
-            if(this.type instanceof IdentifierTypeInfo) {
-                IdentifierTypeInfo idInfo = (IdentifierTypeInfo)this.type;
-                idInfo.resolvedType = null;
-            }
-            
-            
-            super.unresolve();
-        }
 
         @Override
         protected Node doCopy() {            
-            IdentifierExpr idExpr = new IdentifierExpr(this.variable, this.type.copy());
+            IdentifierExpr idExpr = new IdentifierExpr(TypeSpec.copy(this.type).as());    
             idExpr.sym = sym;
-            return idExpr;
+            return copyArgs(idExpr);
         }
     }
 
     public static class FuncIdentifierExpr extends IdentifierExpr {
 
-        public FuncIdentifierExpr(String variable, TypeInfo type) {
-            super(variable, type);
+        public FuncIdentifierExpr(NameTypeSpec typeSpec) {
+            super(typeSpec);
+            this.kind = ExprKind.FUNC_IDENTIFIER;
         }
 
         @Override
@@ -684,18 +693,25 @@ public abstract class Expr extends Stmt {
 
         @Override
         protected Node doCopy() {            
-            FuncIdentifierExpr idExpr = new FuncIdentifierExpr(this.variable, this.type.copy());
-            idExpr.sym = this.sym;
+            FuncIdentifierExpr idExpr = new FuncIdentifierExpr(TypeSpec.copy(this.type).as());
+            idExpr.sym = sym;
             return idExpr;
         }
     }
     
-    public static class TypeIdentifierExpr extends IdentifierExpr {
+    public static class TypeIdentifierExpr extends GenericExpr {
+        public TypeSpec type;
+        public Symbol sym;
         
-        public TypeIdentifierExpr(String variable, TypeInfo type) {
-            super(variable, type);
+        public TypeIdentifierExpr(TypeSpec typeSpec) {
+            super(ExprKind.TYPE_IDENTIFIER);
+            this.type = typeSpec;
+            
+            if(typeSpec.kind==TypeSpecKind.NAME) {
+                this.genericArgs =  ((NameTypeSpec)typeSpec.as()).genericArgs;
+            }
         }
-
+        
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
@@ -703,8 +719,8 @@ public abstract class Expr extends Stmt {
 
         @Override
         protected Node doCopy() {            
-            TypeIdentifierExpr idExpr = new TypeIdentifierExpr(this.variable, this.type.copy());
-            idExpr.sym = this.sym;
+            TypeIdentifierExpr idExpr = new TypeIdentifierExpr(TypeSpec.copy(this.type).as());
+            idExpr.sym = sym;
             return idExpr;
         }
     }

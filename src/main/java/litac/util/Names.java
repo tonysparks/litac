@@ -3,6 +3,11 @@
  */
 package litac.util;
 
+import java.util.Collections;
+import java.util.List;
+
+import litac.ast.TypeSpec;
+import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 
@@ -84,12 +89,27 @@ public class Names {
     }
     
     public static String baseTypeName(String name) {
+        name = stripModule(name);
+        name = stripGenerics(name);
+        return name;
+    }
+    
+    private static String stripGenerics(String name) {
         int index = name.indexOf('<');
         if(index < 0) {
             return name;
         }
         
         return name.substring(0, index);
+    }
+    
+    private static String stripModule(String name) {
+        int index = name.indexOf("::");
+        if(index < 0) {
+            return name;
+        }
+        
+        return name.substring(index + 2, name.length());
     }
     
     public static String escapeName(String name) {
@@ -143,5 +163,62 @@ public class Names {
         
         recvName = baseTypeName(recvName);
         return String.format("%s_%s", recvName, funcName);
+    }
+    
+    public static String getBaseName(TypeSpec typeSpec) {
+        switch(typeSpec.kind) {
+            case PTR: {
+                PtrTypeSpec ptrInfo = typeSpec.as();
+                return getBaseName(ptrInfo.base);
+            }
+            case ARRAY: {
+                ArrayTypeSpec arrayInfo = typeSpec.as();
+                return getBaseName(arrayInfo.base);
+            }
+            case CONST: {
+                ConstTypeSpec constInfo = typeSpec.as();
+                return getBaseName(constInfo.base);
+            }
+            default: {
+                return typeSpec.toString();
+            }
+        }
+    }
+    
+    public static String methodName(TypeSpec recvInfo, String funcName) {
+        if(recvInfo == null) {
+            return funcName;
+        }
+        
+        String recvName = getBaseName(recvInfo);        
+        recvName = baseTypeName(recvName);
+        return String.format("%s_%s", recvName, funcName);
+    }
+    
+    public static String genericsName(TypeSpec type) {        
+        if(type.kind != TypeSpecKind.NAME) {
+            return type.toString();
+        }
+        
+        NameTypeSpec name = type.as();
+        StringBuilder newName = new StringBuilder(name.name);
+        
+        List<TypeSpec> genericArgs = name.hasGenericArgs() ? name.genericArgs : Collections.emptyList();
+        
+        if(!genericArgs.isEmpty()) {
+            newName.append("<");
+        }
+        for(int i = 0; i < genericArgs.size(); i++) {
+            if(i > 0) newName.append(",");
+            
+            TypeSpec argInfo = genericArgs.get(i);            
+            newName.append(genericsName(argInfo));
+        }
+        
+        if(!genericArgs.isEmpty()) {
+            newName.append(">");
+        }
+        
+        return newName.toString();
     }
 }

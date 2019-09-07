@@ -3,52 +3,15 @@
  */
 package litac.ast;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import litac.ast.Decl.*;
-import litac.checker.*;
-import litac.checker.TypeInfo.FieldInfo;
-import litac.parser.ErrorCode;
-import litac.parser.ParseException;
-import litac.parser.tokens.Token;
 
 /**
  * @author Tony
  *
  */
 public abstract class Stmt extends Node {
-
-    public static List<FieldInfo> fromFieldStmt(Token token, List<FieldStmt> fields) {
-        List<FieldInfo> result = new ArrayList<>();
-        
-        for(FieldStmt s : fields) {
-            FieldInfo fieldInfo = null;
-            if(s instanceof VarFieldStmt) {
-                VarFieldStmt var = (VarFieldStmt)s;
-                fieldInfo = new FieldInfo(var.type, var.name, var.attributes, null);
-            }
-            else if(s instanceof StructFieldStmt) {
-                StructFieldStmt struct = (StructFieldStmt)s;
-                fieldInfo = new FieldInfo(struct.decl.type, struct.decl.name, struct.decl.attributes, null);
-            }
-            else if(s instanceof UnionFieldStmt) {
-                UnionFieldStmt union = (UnionFieldStmt)s;
-                fieldInfo = new FieldInfo(union.decl.type, union.decl.name, union.decl.attributes, null);
-            }
-            else if(s instanceof EnumFieldStmt) {
-                EnumFieldStmt enm = (EnumFieldStmt)s;
-                fieldInfo = new FieldInfo(enm.decl.type, enm.decl.name, enm.decl.attributes, null);
-            }
-            else {
-                throw new ParseException(ErrorCode.INVALID_FIELD, token);
-            }
-            
-            result.add(fieldInfo);
-        }
-        
-        return result;
-    }
     
     public static class ModuleStmt extends Stmt {
 
@@ -105,6 +68,10 @@ public abstract class Stmt extends Node {
     public static class NoteStmt extends Stmt {
         public final String name;
         public final List<String> attributes;
+        
+        public NoteStmt(String name) {
+            this(name, Collections.emptyList());
+        }
         
         public NoteStmt(String name, List<String> attributes) {
             this.name = name;
@@ -171,10 +138,10 @@ public abstract class Stmt extends Node {
     
     public static class VarFieldStmt extends FieldStmt {
         public String name;
-        public TypeInfo type;
+        public TypeSpec type;
         public Attributes attributes;
         
-        public VarFieldStmt(String name, TypeInfo type, int modifiers) {
+        public VarFieldStmt(String name, TypeSpec type, int modifiers) {
             this.name = name;
             this.type = type;
             this.attributes = new Attributes();
@@ -198,7 +165,7 @@ public abstract class Stmt extends Node {
         
         @Override
         protected Node doCopy() {            
-            VarFieldStmt v = new VarFieldStmt(this.name, this.type.copy(), this.attributes.modifiers);
+            VarFieldStmt v = new VarFieldStmt(this.name, TypeSpec.copy(this.type), this.attributes.modifiers);
             v.attributes = this.attributes;
             return v;
         }

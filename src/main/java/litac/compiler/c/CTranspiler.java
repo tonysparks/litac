@@ -69,7 +69,7 @@ public class CTranspiler {
         // this allows me to debug the output C
         if(checkerResult.hasErrors()) {
             for(PhaseError error : checkerResult.getErrors()) {
-                Errors.typeCheckError(error.stmt, error.message);
+                Errors.typeCheckError(error.pos, error.message);
             } 
             System.exit(23);
         }
@@ -87,7 +87,7 @@ public class CTranspiler {
         try(Segment s = Profiler.startSegment("C Genaration")) {
             Buf buf = new Buf(options.indentWidth, options.useTabs);        
             
-            CGenNodeVisitor cWriter = new CGenNodeVisitor(unit, program, options, buf);                
+            CGen cWriter = new CGen(unit, program, options, buf);                
             cWriter.write();
             
             return buf;

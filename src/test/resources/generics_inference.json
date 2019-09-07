@@ -212,7 +212,7 @@
         { 
             name: "Generics Type Inference from Func Ptr Generic Type",
             definitions: '''      
-                typedef func<V>(V):V as Func
+                typedef func<V>(V):V as Func<V>
                 
                 func test<T>(fn: Func<T>, t: T):T {
                     return fn<T>(t)
@@ -234,7 +234,7 @@
                     a : V
                 }
                 
-                typedef Test as Foo
+                typedef Test<V> as Foo<V>
                 
                 func test<T>(t:Foo<T>):T {
                     return t.a
@@ -294,7 +294,7 @@
             code: '''         
                 assert(test() == 4)
             ''',  
-            error: "'T' invalid generic argument type"
+            error: "'test' is missing generic arguments [T]"
         },
         
         // aggregate initializer

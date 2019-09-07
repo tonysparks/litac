@@ -17,11 +17,33 @@ import litac.util.Tuple;
  */
 public abstract class Node {
 
-    private Node parentNode;
-    private int lineNumber;
-    private String sourceLine;
-    private String sourceFile;
+    public static class SrcPos {
+        public String sourceFile;
+        public String sourceLine;
+        public int lineNumber;
         
+        public SrcPos() {            
+        }
+        
+        public SrcPos(String sourceFile, String sourceLine, int lineNumber) {
+            this.sourceFile = sourceFile;
+            this.sourceLine = sourceLine;
+            this.lineNumber = lineNumber;
+        }
+        
+        @Override
+        public String toString() {        
+            return String.format("'%s' at line %d:\n%s", this.sourceFile, this.lineNumber, this.sourceLine);
+        }
+    }
+    
+    private Node parentNode;
+    private SrcPos pos;
+    
+    public Node() {
+        this.pos = new SrcPos();
+    }
+    
     public abstract void visit(NodeVisitor v);
     
     protected abstract Node doCopy();
@@ -29,54 +51,63 @@ public abstract class Node {
     @SuppressWarnings("unchecked")
     public <T extends Node> T copy() {
         Node node = doCopy();
-        node.setLineNumber(this.lineNumber);
-        node.setSourceLine(this.sourceLine);
-        node.setSourceFile(this.sourceFile);
+        node.pos = this.pos;
         return (T)node;
     }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Node> T setSrcPos(SrcPos pos) {
+        this.pos = pos;
+        return (T) this;
+    }
     
-    
+    /**
+     * @return the pos
+     */
+    public SrcPos getSrcPos() {
+        return pos;
+    }
     
     /**
      * @return the sourceFile
      */
     public String getSourceFile() {
-        return sourceFile;
+        return this.pos.sourceFile;
     }
     
     /**
      * @param sourceFile the sourceFile to set
      */
     public void setSourceFile(String sourceFile) {
-        this.sourceFile = sourceFile;
+        this.pos.sourceFile = sourceFile;
     }
     
     /**
      * @return the sourceLine
      */
     public String getSourceLine() {
-        return sourceLine;
+        return this.pos.sourceLine;
     }
     
     /**
      * @param sourceLine the sourceLine to set
      */
     public void setSourceLine(String sourceLine) {
-        this.sourceLine = sourceLine;
+        this.pos.sourceLine = sourceLine;
     }
     
     /**
      * @return the lineNumber
      */
     public int getLineNumber() {
-        return lineNumber;
+        return this.pos.lineNumber;
     }
     
     /**
      * @param lineNumber the lineNumber to set
      */
     public void setLineNumber(int lineNumber) {
-        this.lineNumber = lineNumber;
+        this.pos.lineNumber = lineNumber;
     }
     
     /**

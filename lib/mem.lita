@@ -26,13 +26,13 @@ import "array";
 #if (options.debugMode) 
 
     public func new<T>(a: Allocator const* = defaultAllocator, file: char const* = __FILE__, line: u64 = __LINE__) : T* {        
-        return a.alloc(sizeof(T), file, line) as (T*)
+        return a.alloc(sizeof(:T), file, line) as (T*)
     }
 
 #else 
 
     public func new<T>(a: Allocator const* = defaultAllocator) : T* {        
-        return a.alloc(sizeof(T)) as (T*)
+        return a.alloc(sizeof(:T)) as (T*)
     }
 
 #end
@@ -197,7 +197,7 @@ const PAGE_SIZE = 4096_u64
 
 public func (arena: Arena*) init(size: u64 = PAGE_SIZE, alloc: Allocator const* = defaultAllocator) {
     arena.decorated = alloc
-    arena.region = alloc.calloc(size, sizeof(u8)) as (u8*)
+    arena.region = alloc.calloc(size, sizeof(:u8)) as (u8*)
     arena.current = 0
     arena.size = size
     arena.next = null

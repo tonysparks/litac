@@ -1,0 +1,26 @@
+import "map"
+
+public enum CmdParserStatus {
+    OK,
+    MISSING_REQUIRED,
+}
+
+public struct CmdParser {
+
+}
+
+public func (p: CmdParser*) init() {
+
+}
+
+public func (p: CmdParser*) addOption(longName: char const*, shortName: char, description: char const*, defaultValue: void*) {
+
+}
+
+public func (p: CmdParser*) getOption(longName: char const*) : char const* {
+    return null;
+}
+
+public func (p: CmdParser*) parse(argc: i32, argv: char**) {
+
+}

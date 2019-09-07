@@ -39,6 +39,7 @@ public class LitaC {
         System.out.println("  -profile             Reports profile metrics of the compiler");
         System.out.println("  -disableLine         Disables #line directive in C output");
         System.out.println("  -debug               Enables debug mode");
+        System.out.println("  -verbose             Enables verbose output");
         System.out.println("  -o, -output <arg>    The name of the compiled binary");
         System.out.println("  -outpuDir <arg>      The directory in which the C output files are stored");
         System.out.println("  -v, -version         Displays the LitaC version");
@@ -100,6 +101,10 @@ public class LitaC {
                 case "-v":
                 case "-version": {
                     System.out.printf("%s\n", VERSION);
+                    break;
+                }
+                case "-verbose": {
+                    options.isVerbose = true;
                     break;
                 }
                 case "-profile": {
@@ -171,22 +176,26 @@ public class LitaC {
             System.exit(1);
         }
         
-//        try {
+        try {
             PhaseResult result = compile(options);
             
             if(result.hasErrors()) {
                 for(PhaseError error : result.getErrors()) {
-                    Errors.typeCheckError(error.stmt, error.message);
+                    Errors.typeCheckError(error.pos, error.message);
                 }            
             }  
             
             if(options.profile) {
                 printProfileResults();
             }
-//        }
-//        catch(Exception e) {
-//            System.err.println(e.getMessage());
-//        }
+        }
+        catch(Exception e) {
+            if(options.isVerbose) {
+                throw e;
+            }
+            
+            System.err.println(e.getMessage());
+        }
     }
 
     public static PhaseResult compile(BackendOptions options) throws Exception {

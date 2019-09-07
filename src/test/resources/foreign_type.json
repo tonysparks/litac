@@ -13,7 +13,7 @@
         }
     '''
     tests: [           
-        /*{
+        {
             name: "Foreign Primitive",
             definitions: '''
                 @raw("""
@@ -163,7 +163,7 @@
                 var t = X{.x = y}
                 assert(t.x == 4)    
             ''',
-        },*/
+        },
         {
             name: "Foreign funcPtr",
             symbolPrefix: "litaC__",

@@ -15,6 +15,7 @@ public class Buf {
     private int indent;
     private final String tabSpaces;
     private final boolean useTabs;
+    private final int indentWidth;
     
     private StringBuilder formatSb;
     private Formatter formatter;
@@ -27,12 +28,21 @@ public class Buf {
         
         this.tabSpaces = tabSpaces;
         this.useTabs = useTabs;
+        this.indentWidth = indentWidth;
         
         this.formatSb = new StringBuilder();
         this.formatter = new Formatter(this.formatSb);
         
         this.sb = new StringBuilder(4096 * 2);
         this.indent = 0;
+    }
+
+    public boolean tabs() {
+        return this.useTabs;
+    }
+    
+    public int indentWidth() {
+        return this.indentWidth;
     }
     
     @Override

@@ -31,6 +31,8 @@ public class BackendOptions {
         Tagged,
         ;
         
+        public String value = name();
+        
         public static TypeInfoOption fromString(String option) {
             if(option == null) {
                 return None;
@@ -43,7 +45,7 @@ public class BackendOptions {
             }
             
             return None;
-        }
+        }        
     }
     
     public BackendType backendType;
@@ -61,6 +63,7 @@ public class BackendOptions {
     public boolean profile;
     public boolean disableLines;
     public boolean debugMode;
+    public boolean isVerbose;
     public OutputType outputType;
     public String testRegex;
     

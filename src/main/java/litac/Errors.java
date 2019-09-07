@@ -3,12 +3,9 @@
  */
 package litac;
 
-import litac.ast.Stmt;
-import litac.parser.ErrorCode;
-import litac.parser.ParseException;
-import litac.parser.Scanner;
-import litac.parser.tokens.Token;
-import litac.parser.tokens.TokenType;
+import litac.ast.Node.SrcPos;
+import litac.parser.*;
+import litac.parser.tokens.*;
 
 /**
  * @author Tony
@@ -16,10 +13,10 @@ import litac.parser.tokens.TokenType;
  */
 public class Errors {
 
-    public static void typeCheckError(Stmt stmt, String message) {
-        if(stmt != null) {
-            System.err.println(String.format("*** ERROR: %s at line: %d in '%s'", message, stmt.getLineNumber(), stmt.getSourceFile()));
-            System.err.println("\t" +stmt.getSourceLine());
+    public static void typeCheckError(SrcPos pos, String message) {
+        if(pos != null) {
+            System.err.println(String.format("*** ERROR: %s at line: %d in '%s'", message, pos.lineNumber, pos.sourceFile));
+            System.err.println("\t" +pos.sourceLine);
             System.err.println();
         }
         else {
