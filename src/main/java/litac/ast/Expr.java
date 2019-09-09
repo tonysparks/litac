@@ -559,16 +559,23 @@ public abstract class Expr extends Stmt {
         public String number;
                 
         public NumberExpr(NumberToken token) {
-            this(token.getTypeInfo(), token.getText());
+            this(token.getTypeInfo(), (Number)token.getValue());
         }
         
         public NumberExpr(TypeInfo type, int number) {
-            this(type, String.valueOf(number));
+            this(type, (Number)number);
         }
         
         public NumberExpr(TypeInfo type, String number) {
             super(ExprKind.NUMBER, Operand.opConst(type, new BigDecimal(number)));        
             this.number = number;            
+        }
+        
+        public NumberExpr(TypeInfo type, Number number) {
+            super(ExprKind.NUMBER, Operand.opConst(type, (number instanceof Float || number instanceof Double) 
+                    ? new BigDecimal(number.doubleValue()) : new BigDecimal(number.longValue())));
+            
+            this.number = number.toString();            
         }
         
         public int asInt() {

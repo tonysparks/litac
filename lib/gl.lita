@@ -1,0 +1,577 @@
+@foreign public const __gl_h_: i32;
+@foreign public const WIN32_LEAN_AND_MEAN: i32;
+@foreign public const GLAPI: i32;
+@foreign public const GL_OES_VERSION_1_0: i32;
+@foreign public const GL_OES_read_format: i32;
+@foreign public const GL_OES_compressed_paletted_texture: i32;
+@foreign public const GL_DEPTH_BUFFER_BIT: i32;
+@foreign public const GL_STENCIL_BUFFER_BIT: i32;
+@foreign public const GL_COLOR_BUFFER_BIT: i32;
+@foreign public const GL_FALSE: i32;
+@foreign public const GL_TRUE: i32;
+@foreign public const GL_POINTS: i32;
+@foreign public const GL_LINES: i32;
+@foreign public const GL_LINE_LOOP: i32;
+@foreign public const GL_LINE_STRIP: i32;
+@foreign public const GL_TRIANGLES: i32;
+@foreign public const GL_TRIANGLE_STRIP: i32;
+@foreign public const GL_TRIANGLE_FAN: i32;
+@foreign public const GL_NEVER: i32;
+@foreign public const GL_LESS: i32;
+@foreign public const GL_EQUAL: i32;
+@foreign public const GL_LEQUAL: i32;
+@foreign public const GL_GREATER: i32;
+@foreign public const GL_NOTEQUAL: i32;
+@foreign public const GL_GEQUAL: i32;
+@foreign public const GL_ALWAYS: i32;
+@foreign public const GL_ZERO: i32;
+@foreign public const GL_ONE: i32;
+@foreign public const GL_SRC_COLOR: i32;
+@foreign public const GL_ONE_MINUS_SRC_COLOR: i32;
+@foreign public const GL_SRC_ALPHA: i32;
+@foreign public const GL_ONE_MINUS_SRC_ALPHA: i32;
+@foreign public const GL_DST_ALPHA: i32;
+@foreign public const GL_ONE_MINUS_DST_ALPHA: i32;
+@foreign public const GL_DST_COLOR: i32;
+@foreign public const GL_ONE_MINUS_DST_COLOR: i32;
+@foreign public const GL_SRC_ALPHA_SATURATE: i32;
+@foreign public const GL_FRONT: i32;
+@foreign public const GL_BACK: i32;
+@foreign public const GL_FRONT_AND_BACK: i32;
+@foreign public const GL_FOG: i32;
+@foreign public const GL_LIGHTING: i32;
+@foreign public const GL_TEXTURE_2D: i32;
+@foreign public const GL_CULL_FACE: i32;
+@foreign public const GL_ALPHA_TEST: i32;
+@foreign public const GL_BLEND: i32;
+@foreign public const GL_COLOR_LOGIC_OP: i32;
+@foreign public const GL_DITHER: i32;
+@foreign public const GL_STENCIL_TEST: i32;
+@foreign public const GL_DEPTH_TEST: i32;
+@foreign public const GL_POINT_SMOOTH: i32;
+@foreign public const GL_LINE_SMOOTH: i32;
+@foreign public const GL_SCISSOR_TEST: i32;
+@foreign public const GL_COLOR_MATERIAL: i32;
+@foreign public const GL_NORMALIZE: i32;
+@foreign public const GL_RESCALE_NORMAL: i32;
+@foreign public const GL_POLYGON_OFFSET_FILL: i32;
+@foreign public const GL_VERTEX_ARRAY: i32;
+@foreign public const GL_NORMAL_ARRAY: i32;
+@foreign public const GL_COLOR_ARRAY: i32;
+@foreign public const GL_TEXTURE_COORD_ARRAY: i32;
+@foreign public const GL_MULTISAMPLE: i32;
+@foreign public const GL_SAMPLE_ALPHA_TO_COVERAGE: i32;
+@foreign public const GL_SAMPLE_ALPHA_TO_ONE: i32;
+@foreign public const GL_SAMPLE_COVERAGE: i32;
+@foreign public const GL_NO_ERROR: i32;
+@foreign public const GL_INVALID_ENUM: i32;
+@foreign public const GL_INVALID_VALUE: i32;
+@foreign public const GL_INVALID_OPERATION: i32;
+@foreign public const GL_STACK_OVERFLOW: i32;
+@foreign public const GL_STACK_UNDERFLOW: i32;
+@foreign public const GL_OUT_OF_MEMORY: i32;
+@foreign public const GL_EXP: i32;
+@foreign public const GL_EXP2: i32;
+@foreign public const GL_FOG_DENSITY: i32;
+@foreign public const GL_FOG_START: i32;
+@foreign public const GL_FOG_END: i32;
+@foreign public const GL_FOG_MODE: i32;
+@foreign public const GL_FOG_COLOR: i32;
+@foreign public const GL_CW: i32;
+@foreign public const GL_CCW: i32;
+@foreign public const GL_SMOOTH_POINT_SIZE_RANGE: i32;
+@foreign public const GL_SMOOTH_LINE_WIDTH_RANGE: i32;
+@foreign public const GL_ALIASED_POINT_SIZE_RANGE: i32;
+@foreign public const GL_ALIASED_LINE_WIDTH_RANGE: i32;
+@foreign public const GL_IMPLEMENTATION_COLOR_READ_TYPE_OES: i32;
+@foreign public const GL_IMPLEMENTATION_COLOR_READ_FORMAT_OES: i32;
+@foreign public const GL_MAX_LIGHTS: i32;
+@foreign public const GL_MAX_TEXTURE_SIZE: i32;
+@foreign public const GL_MAX_MODELVIEW_STACK_DEPTH: i32;
+@foreign public const GL_MAX_PROJECTION_STACK_DEPTH: i32;
+@foreign public const GL_MAX_TEXTURE_STACK_DEPTH: i32;
+@foreign public const GL_MAX_VIEWPORT_DIMS: i32;
+@foreign public const GL_MAX_ELEMENTS_VERTICES: i32;
+@foreign public const GL_MAX_ELEMENTS_INDICES: i32;
+@foreign public const GL_MAX_TEXTURE_UNITS: i32;
+@foreign public const GL_NUM_COMPRESSED_TEXTURE_FORMATS: i32;
+@foreign public const GL_COMPRESSED_TEXTURE_FORMATS: i32;
+@foreign public const GL_SUBPIXEL_BITS: i32;
+@foreign public const GL_RED_BITS: i32;
+@foreign public const GL_GREEN_BITS: i32;
+@foreign public const GL_BLUE_BITS: i32;
+@foreign public const GL_ALPHA_BITS: i32;
+@foreign public const GL_DEPTH_BITS: i32;
+@foreign public const GL_STENCIL_BITS: i32;
+@foreign public const GL_DONT_CARE: i32;
+@foreign public const GL_FASTEST: i32;
+@foreign public const GL_NICEST: i32;
+@foreign public const GL_PERSPECTIVE_CORRECTION_HINT: i32;
+@foreign public const GL_POINT_SMOOTH_HINT: i32;
+@foreign public const GL_LINE_SMOOTH_HINT: i32;
+@foreign public const GL_POLYGON_SMOOTH_HINT: i32;
+@foreign public const GL_FOG_HINT: i32;
+@foreign public const GL_LIGHT_MODEL_AMBIENT: i32;
+@foreign public const GL_LIGHT_MODEL_TWO_SIDE: i32;
+@foreign public const GL_AMBIENT: i32;
+@foreign public const GL_DIFFUSE: i32;
+@foreign public const GL_SPECULAR: i32;
+@foreign public const GL_POSITION: i32;
+@foreign public const GL_SPOT_DIRECTION: i32;
+@foreign public const GL_SPOT_EXPONENT: i32;
+@foreign public const GL_SPOT_CUTOFF: i32;
+@foreign public const GL_CONSTANT_ATTENUATION: i32;
+@foreign public const GL_LINEAR_ATTENUATION: i32;
+@foreign public const GL_QUADRATIC_ATTENUATION: i32;
+@foreign public const GL_BYTE: i32;
+@foreign public const GL_UNSIGNED_BYTE: i32;
+@foreign public const GL_SHORT: i32;
+@foreign public const GL_UNSIGNED_SHORT: i32;
+@foreign public const GL_FLOAT: i32;
+@foreign public const GL_FIXED: i32;
+@foreign public const GL_CLEAR: i32;
+@foreign public const GL_AND: i32;
+@foreign public const GL_AND_REVERSE: i32;
+@foreign public const GL_COPY: i32;
+@foreign public const GL_AND_INVERTED: i32;
+@foreign public const GL_NOOP: i32;
+@foreign public const GL_XOR: i32;
+@foreign public const GL_OR: i32;
+@foreign public const GL_NOR: i32;
+@foreign public const GL_EQUIV: i32;
+@foreign public const GL_INVERT: i32;
+@foreign public const GL_OR_REVERSE: i32;
+@foreign public const GL_COPY_INVERTED: i32;
+@foreign public const GL_OR_INVERTED: i32;
+@foreign public const GL_NAND: i32;
+@foreign public const GL_SET: i32;
+@foreign public const GL_EMISSION: i32;
+@foreign public const GL_SHININESS: i32;
+@foreign public const GL_AMBIENT_AND_DIFFUSE: i32;
+@foreign public const GL_MODELVIEW: i32;
+@foreign public const GL_PROJECTION: i32;
+@foreign public const GL_TEXTURE: i32;
+@foreign public const GL_ALPHA: i32;
+@foreign public const GL_RGB: i32;
+@foreign public const GL_RGBA: i32;
+@foreign public const GL_LUMINANCE: i32;
+@foreign public const GL_LUMINANCE_ALPHA: i32;
+@foreign public const GL_UNPACK_ALIGNMENT: i32;
+@foreign public const GL_PACK_ALIGNMENT: i32;
+@foreign public const GL_UNSIGNED_SHORT_4_4_4_4: i32;
+@foreign public const GL_UNSIGNED_SHORT_5_5_5_1: i32;
+@foreign public const GL_UNSIGNED_SHORT_5_6_5: i32;
+@foreign public const GL_FLAT: i32;
+@foreign public const GL_SMOOTH: i32;
+@foreign public const GL_KEEP: i32;
+@foreign public const GL_REPLACE: i32;
+@foreign public const GL_INCR: i32;
+@foreign public const GL_DECR: i32;
+@foreign public const GL_VENDOR: i32;
+@foreign public const GL_RENDERER: i32;
+@foreign public const GL_VERSION: i32;
+@foreign public const GL_EXTENSIONS: i32;
+@foreign public const GL_MODULATE: i32;
+@foreign public const GL_DECAL: i32;
+@foreign public const GL_ADD: i32;
+@foreign public const GL_TEXTURE_ENV_MODE: i32;
+@foreign public const GL_TEXTURE_ENV_COLOR: i32;
+@foreign public const GL_TEXTURE_ENV: i32;
+@foreign public const GL_NEAREST: i32;
+@foreign public const GL_LINEAR: i32;
+@foreign public const GL_NEAREST_MIPMAP_NEAREST: i32;
+@foreign public const GL_LINEAR_MIPMAP_NEAREST: i32;
+@foreign public const GL_NEAREST_MIPMAP_LINEAR: i32;
+@foreign public const GL_LINEAR_MIPMAP_LINEAR: i32;
+@foreign public const GL_TEXTURE_MAG_FILTER: i32;
+@foreign public const GL_TEXTURE_MIN_FILTER: i32;
+@foreign public const GL_TEXTURE_WRAP_S: i32;
+@foreign public const GL_TEXTURE_WRAP_T: i32;
+@foreign public const GL_TEXTURE0: i32;
+@foreign public const GL_TEXTURE1: i32;
+@foreign public const GL_TEXTURE2: i32;
+@foreign public const GL_TEXTURE3: i32;
+@foreign public const GL_TEXTURE4: i32;
+@foreign public const GL_TEXTURE5: i32;
+@foreign public const GL_TEXTURE6: i32;
+@foreign public const GL_TEXTURE7: i32;
+@foreign public const GL_TEXTURE8: i32;
+@foreign public const GL_TEXTURE9: i32;
+@foreign public const GL_TEXTURE10: i32;
+@foreign public const GL_TEXTURE11: i32;
+@foreign public const GL_TEXTURE12: i32;
+@foreign public const GL_TEXTURE13: i32;
+@foreign public const GL_TEXTURE14: i32;
+@foreign public const GL_TEXTURE15: i32;
+@foreign public const GL_TEXTURE16: i32;
+@foreign public const GL_TEXTURE17: i32;
+@foreign public const GL_TEXTURE18: i32;
+@foreign public const GL_TEXTURE19: i32;
+@foreign public const GL_TEXTURE20: i32;
+@foreign public const GL_TEXTURE21: i32;
+@foreign public const GL_TEXTURE22: i32;
+@foreign public const GL_TEXTURE23: i32;
+@foreign public const GL_TEXTURE24: i32;
+@foreign public const GL_TEXTURE25: i32;
+@foreign public const GL_TEXTURE26: i32;
+@foreign public const GL_TEXTURE27: i32;
+@foreign public const GL_TEXTURE28: i32;
+@foreign public const GL_TEXTURE29: i32;
+@foreign public const GL_TEXTURE30: i32;
+@foreign public const GL_TEXTURE31: i32;
+@foreign public const GL_REPEAT: i32;
+@foreign public const GL_CLAMP_TO_EDGE: i32;
+@foreign public const GL_PALETTE4_RGB8_OES: i32;
+@foreign public const GL_PALETTE4_RGBA8_OES: i32;
+@foreign public const GL_PALETTE4_R5_G6_B5_OES: i32;
+@foreign public const GL_PALETTE4_RGBA4_OES: i32;
+@foreign public const GL_PALETTE4_RGB5_A1_OES: i32;
+@foreign public const GL_PALETTE8_RGB8_OES: i32;
+@foreign public const GL_PALETTE8_RGBA8_OES: i32;
+@foreign public const GL_PALETTE8_R5_G6_B5_OES: i32;
+@foreign public const GL_PALETTE8_RGBA4_OES: i32;
+@foreign public const GL_PALETTE8_RGB5_A1_OES: i32;
+@foreign public const GL_LIGHT0: i32;
+@foreign public const GL_LIGHT1: i32;
+@foreign public const GL_LIGHT2: i32;
+@foreign public const GL_LIGHT3: i32;
+@foreign public const GL_LIGHT4: i32;
+@foreign public const GL_LIGHT5: i32;
+@foreign public const GL_LIGHT6: i32;
+@foreign public const GL_LIGHT7: i32;
+@foreign public typedef void as GLenum;
+@foreign public typedef void as GLboolean;
+@foreign public typedef void as GLbitfield;
+@foreign public typedef void as GLbyte;
+@foreign public typedef void as GLshort;
+@foreign public typedef void as GLint;
+@foreign public typedef void as GLsizei;
+@foreign public typedef void as GLubyte;
+@foreign public typedef void as GLushort;
+@foreign public typedef void as GLuint;
+@foreign public typedef void as GLfloat;
+@foreign public typedef void as GLclampf;
+@foreign public typedef void as GLvoid;
+@foreign public typedef void as GLintptrARB;
+@foreign public typedef void as GLsizeiptrARB;
+@foreign public typedef void as GLfixed;
+@foreign public typedef void as GLclampx;
+@foreign public typedef void as _GLfuncptr;
+
+@foreign
+public func glActiveTexture(_0: GLenum) : void;
+
+@foreign
+public func glAlphaFunc(_0: GLenum, _1: GLclampf) : void;
+
+@foreign
+public func glAlphaFuncx(_0: GLenum, _1: GLclampx) : void;
+
+@foreign
+public func glBindTexture(_0: GLenum, _1: GLuint) : void;
+
+@foreign
+public func glBlendFunc(_0: GLenum, _1: GLenum) : void;
+
+@foreign
+public func glClear(_0: GLbitfield) : void;
+
+@foreign
+public func glClearColor(_0: GLclampf, _1: GLclampf, _2: GLclampf, _3: GLclampf) : void;
+
+@foreign
+public func glClearColorx(_0: GLclampx, _1: GLclampx, _2: GLclampx, _3: GLclampx) : void;
+
+@foreign
+public func glClearDepthf(_0: GLclampf) : void;
+
+@foreign
+public func glClearDepthx(_0: GLclampx) : void;
+
+@foreign
+public func glClearStencil(_0: GLint) : void;
+
+@foreign
+public func glClientActiveTexture(_0: GLenum) : void;
+
+@foreign
+public func glColor4f(_0: GLfloat, _1: GLfloat, _2: GLfloat, _3: GLfloat) : void;
+
+@foreign
+public func glColor4x(_0: GLfixed, _1: GLfixed, _2: GLfixed, _3: GLfixed) : void;
+
+@foreign
+public func glColorMask(_0: GLboolean, _1: GLboolean, _2: GLboolean, _3: GLboolean) : void;
+
+@foreign
+public func glColorPointer(_0: GLint, _1: GLenum, _2: GLsizei, _3: GLvoid const*) : void;
+
+@foreign
+public func glCompressedTexImage2D(_0: GLenum, _1: GLint, _2: GLenum, _3: GLsizei, _4: GLsizei, _5: GLint, _6: GLsizei, _7: GLvoid const*) : void;
+
+@foreign
+public func glCompressedTexSubImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLint, _4: GLsizei, _5: GLsizei, _6: GLenum, _7: GLsizei, _8: GLvoid const*) : void;
+
+@foreign
+public func glCopyTexImage2D(_0: GLenum, _1: GLint, _2: GLenum, _3: GLint, _4: GLint, _5: GLsizei, _6: GLsizei, _7: GLint) : void;
+
+@foreign
+public func glCopyTexSubImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLint, _4: GLint, _5: GLint, _6: GLsizei, _7: GLsizei) : void;
+
+@foreign
+public func glCullFace(_0: GLenum) : void;
+
+@foreign
+public func glDeleteTextures(_0: GLsizei, _1: GLuint const*) : void;
+
+@foreign
+public func glDepthFunc(_0: GLenum) : void;
+
+@foreign
+public func glDepthMask(_0: GLboolean) : void;
+
+@foreign
+public func glDepthRangef(_0: GLclampf, _1: GLclampf) : void;
+
+@foreign
+public func glDepthRangex(_0: GLclampx, _1: GLclampx) : void;
+
+@foreign
+public func glDisable(_0: GLenum) : void;
+
+@foreign
+public func glDisableClientState(_0: GLenum) : void;
+
+@foreign
+public func glDrawArrays(_0: GLenum, _1: GLint, _2: GLsizei) : void;
+
+@foreign
+public func glDrawElements(_0: GLenum, _1: GLsizei, _2: GLenum, _3: GLvoid const*) : void;
+
+@foreign
+public func glEnable(_0: GLenum) : void;
+
+@foreign
+public func glEnableClientState(_0: GLenum) : void;
+
+@foreign
+public func glFinish() : void;
+
+@foreign
+public func glFlush() : void;
+
+@foreign
+public func glFogf(_0: GLenum, _1: GLfloat) : void;
+
+@foreign
+public func glFogfv(_0: GLenum, _1: GLfloat const*) : void;
+
+@foreign
+public func glFogx(_0: GLenum, _1: GLfixed) : void;
+
+@foreign
+public func glFogxv(_0: GLenum, _1: GLfixed const*) : void;
+
+@foreign
+public func glFrontFace(_0: GLenum) : void;
+
+@foreign
+public func glFrustumf(_0: GLfloat, _1: GLfloat, _2: GLfloat, _3: GLfloat, _4: GLfloat, _5: GLfloat) : void;
+
+@foreign
+public func glFrustumx(_0: GLfixed, _1: GLfixed, _2: GLfixed, _3: GLfixed, _4: GLfixed, _5: GLfixed) : void;
+
+@foreign
+public func glGenTextures(_0: GLsizei, _1: GLuint*) : void;
+
+@foreign
+public func glGetError() : GLenum;
+
+@foreign
+public func glGetIntegerv(_0: GLenum, _1: GLint*) : void;
+
+@foreign
+public func glGetString(_0: GLenum) : GLubyte const*;
+
+@foreign
+public func glHint(_0: GLenum, _1: GLenum) : void;
+
+@foreign
+public func glLightModelf(_0: GLenum, _1: GLfloat) : void;
+
+@foreign
+public func glLightModelfv(_0: GLenum, _1: GLfloat const*) : void;
+
+@foreign
+public func glLightModelx(_0: GLenum, _1: GLfixed) : void;
+
+@foreign
+public func glLightModelxv(_0: GLenum, _1: GLfixed const*) : void;
+
+@foreign
+public func glLightf(_0: GLenum, _1: GLenum, _2: GLfloat) : void;
+
+@foreign
+public func glLightfv(_0: GLenum, _1: GLenum, _2: GLfloat const*) : void;
+
+@foreign
+public func glLightx(_0: GLenum, _1: GLenum, _2: GLfixed) : void;
+
+@foreign
+public func glLightxv(_0: GLenum, _1: GLenum, _2: GLfixed const*) : void;
+
+@foreign
+public func glLineWidth(_0: GLfloat) : void;
+
+@foreign
+public func glLineWidthx(_0: GLfixed) : void;
+
+@foreign
+public func glLoadIdentity() : void;
+
+@foreign
+public func glLoadMatrixf(_0: GLfloat const*) : void;
+
+@foreign
+public func glLoadMatrixx(_0: GLfixed const*) : void;
+
+@foreign
+public func glLogicOp(_0: GLenum) : void;
+
+@foreign
+public func glMaterialf(_0: GLenum, _1: GLenum, _2: GLfloat) : void;
+
+@foreign
+public func glMaterialfv(_0: GLenum, _1: GLenum, _2: GLfloat const*) : void;
+
+@foreign
+public func glMaterialx(_0: GLenum, _1: GLenum, _2: GLfixed) : void;
+
+@foreign
+public func glMaterialxv(_0: GLenum, _1: GLenum, _2: GLfixed const*) : void;
+
+@foreign
+public func glMatrixMode(_0: GLenum) : void;
+
+@foreign
+public func glMultMatrixf(_0: GLfloat const*) : void;
+
+@foreign
+public func glMultMatrixx(_0: GLfixed const*) : void;
+
+@foreign
+public func glMultiTexCoord4f(_0: GLenum, _1: GLfloat, _2: GLfloat, _3: GLfloat, _4: GLfloat) : void;
+
+@foreign
+public func glMultiTexCoord4x(_0: GLenum, _1: GLfixed, _2: GLfixed, _3: GLfixed, _4: GLfixed) : void;
+
+@foreign
+public func glNormal3f(_0: GLfloat, _1: GLfloat, _2: GLfloat) : void;
+
+@foreign
+public func glNormal3x(_0: GLfixed, _1: GLfixed, _2: GLfixed) : void;
+
+@foreign
+public func glNormalPointer(_0: GLenum, _1: GLsizei, _2: GLvoid const*) : void;
+
+@foreign
+public func glOrthof(_0: GLfloat, _1: GLfloat, _2: GLfloat, _3: GLfloat, _4: GLfloat, _5: GLfloat) : void;
+
+@foreign
+public func glOrthox(_0: GLfixed, _1: GLfixed, _2: GLfixed, _3: GLfixed, _4: GLfixed, _5: GLfixed) : void;
+
+@foreign
+public func glPixelStorei(_0: GLenum, _1: GLint) : void;
+
+@foreign
+public func glPointSize(_0: GLfloat) : void;
+
+@foreign
+public func glPointSizex(_0: GLfixed) : void;
+
+@foreign
+public func glPolygonOffset(_0: GLfloat, _1: GLfloat) : void;
+
+@foreign
+public func glPolygonOffsetx(_0: GLfixed, _1: GLfixed) : void;
+
+@foreign
+public func glPopMatrix() : void;
+
+@foreign
+public func glPushMatrix() : void;
+
+@foreign
+public func glReadPixels(_0: GLint, _1: GLint, _2: GLsizei, _3: GLsizei, _4: GLenum, _5: GLenum, _6: GLvoid*) : void;
+
+@foreign
+public func glRotatef(_0: GLfloat, _1: GLfloat, _2: GLfloat, _3: GLfloat) : void;
+
+@foreign
+public func glRotatex(_0: GLfixed, _1: GLfixed, _2: GLfixed, _3: GLfixed) : void;
+
+@foreign
+public func glSampleCoverage(_0: GLclampf, _1: GLboolean) : void;
+
+@foreign
+public func glSampleCoveragex(_0: GLclampx, _1: GLboolean) : void;
+
+@foreign
+public func glScalef(_0: GLfloat, _1: GLfloat, _2: GLfloat) : void;
+
+@foreign
+public func glScalex(_0: GLfixed, _1: GLfixed, _2: GLfixed) : void;
+
+@foreign
+public func glScissor(_0: GLint, _1: GLint, _2: GLsizei, _3: GLsizei) : void;
+
+@foreign
+public func glShadeModel(_0: GLenum) : void;
+
+@foreign
+public func glStencilFunc(_0: GLenum, _1: GLint, _2: GLuint) : void;
+
+@foreign
+public func glStencilMask(_0: GLuint) : void;
+
+@foreign
+public func glStencilOp(_0: GLenum, _1: GLenum, _2: GLenum) : void;
+
+@foreign
+public func glTexCoordPointer(_0: GLint, _1: GLenum, _2: GLsizei, _3: GLvoid const*) : void;
+
+@foreign
+public func glTexEnvf(_0: GLenum, _1: GLenum, _2: GLfloat) : void;
+
+@foreign
+public func glTexEnvfv(_0: GLenum, _1: GLenum, _2: GLfloat const*) : void;
+
+@foreign
+public func glTexEnvx(_0: GLenum, _1: GLenum, _2: GLfixed) : void;
+
+@foreign
+public func glTexEnvxv(_0: GLenum, _1: GLenum, _2: GLfixed const*) : void;
+
+@foreign
+public func glTexImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLsizei, _4: GLsizei, _5: GLint, _6: GLenum, _7: GLenum, _8: GLvoid const*) : void;
+
+@foreign
+public func glTexParameterf(_0: GLenum, _1: GLenum, _2: GLfloat) : void;
+
+@foreign
+public func glTexParameterx(_0: GLenum, _1: GLenum, _2: GLfixed) : void;
+
+@foreign
+public func glTexSubImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLint, _4: GLsizei, _5: GLsizei, _6: GLenum, _7: GLenum, _8: GLvoid const*) : void;
+
+@foreign
+public func glTranslatef(_0: GLfloat, _1: GLfloat, _2: GLfloat) : void;
+
+@foreign
+public func glTranslatex(_0: GLfixed, _1: GLfixed, _2: GLfixed) : void;
+
+@foreign
+public func glVertexPointer(_0: GLint, _1: GLenum, _2: GLsizei, _3: GLvoid const*) : void;
+
+@foreign
+public func glViewport(_0: GLint, _1: GLint, _2: GLsizei, _3: GLsizei) : void;

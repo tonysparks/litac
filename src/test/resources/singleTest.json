@@ -910,6 +910,7 @@
             error: "'u8' is not of type 'i32'"             
         },*/
         
+        /*
         { 
             name: "Enum with EnumValue",
             definitions: '''         
@@ -942,6 +943,41 @@
                 assert(First.X == 2)
                 assert(First.Z == 4)
                 assert(Second.Y == 6) 
+            ''',             
+        },*/
+        
+        { 
+            name: "Func Ptr from Macro",
+            definitions: '''         
+                import "opengls"
+            ''',  
+            modules: [
+                {
+                    name: "opengls",
+                    program: '''
+                        import using "glads"
+                    '''
+                },
+                {
+                    name: "glads",
+                    program: '''
+                        @raw("""
+                            int test(int i) {
+                                return i;
+                            }
+                            
+                            typedef int (*FLUSHPROC)(int);
+                            const FLUSHPROC gladFlush = &test;
+                            #define glFlush gladFlush
+                        """);
+        
+                        @foreign public typedef func(i32) : i32 as FLUSHPROC;
+                        @foreign public const glFlush : FLUSHPROC;
+                    '''
+                }
+            ]                     
+            code: '''  
+                assert(glFlush(4) == 4)
             ''',             
         },
         

@@ -169,5 +169,18 @@
                 assert(Second.Y == 6) 
             ''',             
         },
+        
+        { 
+            name: "Enum with EnumValue Hex",
+            definitions: '''         
+                enum First {
+                    X = 0x0
+                }
+                
+            ''',                       
+            code: '''  
+                assert(First.X == 0) 
+            ''',             
+        },
     ]
 }

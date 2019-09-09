@@ -29,7 +29,7 @@ public class Module {
     
     private Map<String, Module> imports;
     private ModuleStmt moduleStmt;
-    
+    private List<Module> usingImports;
     
     private Map<String, Symbol> funcTypes;
     private Map<String, Symbol> structTypes;
@@ -78,6 +78,8 @@ public class Module {
         
         this.importedFuncTypes = new HashMap<>();
         this.importedAggregateTypes = new HashMap<>();
+        
+        this.usingImports = new ArrayList<>();
         
         this.genericTypes = genericTypes;
         this.notes = new ArrayList<>();
@@ -176,7 +178,7 @@ public class Module {
             module.currentScope().getSymbols()
                                  .stream()
                                  .filter(s -> s.decl.attributes.isPublic &&
-                                              s.declared == module)
+                                              module.isSymbolOwned(s))
                                  .forEach(s -> currentScope().addSymbol(alias, s));
         }
         else {
@@ -209,8 +211,8 @@ public class Module {
             
             module.currentScope().getSymbols()
                                  .stream()
-                                 .filter(s -> s.decl.attributes.isPublic &&
-                                              s.declared == module)
+                                 .filter(s -> s.decl.attributes.isPublic && 
+                                              module.isSymbolOwned(s))
                                  .forEach(s -> currentScope().addSymbol(s));
             
             for(Entry<String, Symbol> typeEntry: module.foreignTypes.entrySet()) {
@@ -225,6 +227,8 @@ public class Module {
         }
         
         if(stmt.isUsing) {
+            this.usingImports.add(module);
+            
             for(Entry<String, Symbol> funcType: module.publicFuncTypes.entrySet()) {
                 this.publicFuncTypes.put(funcType.getKey(), funcType.getValue());
             }
@@ -236,6 +240,15 @@ public class Module {
         
         this.foreignTypes.putAll(module.foreignTypes);
         this.notes.addAll(module.notes);
+    }
+    
+    
+    /**
+     * @param sym
+     * @return true if the supplied symbol is owned by this module
+     */
+    public boolean isSymbolOwned(Symbol sym) {
+        return sym.declared == this || this.usingImports.stream().anyMatch(m -> m.isSymbolOwned(sym));
     }
     
     public List<NoteStmt> getNotes() {
