@@ -3,7 +3,7 @@ import "assert";
 import "string_buffer";
 import "map";
 import "array";
-import "clib";
+import "libc";
 
 @asStr
 public enum JsonType {

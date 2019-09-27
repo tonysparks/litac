@@ -1,26 +1,95 @@
 import "map"
+import "io"
 
-public enum CmdParserStatus {
+import "libc"
+
+const MAX_MESSAGE_SIZE = 256
+
+public enum CmdParserStatus {    
     OK,
+    MISSING_ARGUMENT,
     MISSING_REQUIRED,
 }
 
-public struct CmdParser {
+public enum OptionFlag {
+    HAS_ARGUMENT = (1<<0),
+    IS_REQUIRED  = (1<<1),
 
+    // private flags
+    IS_USED      = (1<<2),
+}
+
+public struct Option {
+    name: char const*
+    shortName: char
+    description: char const*
+    value: char const*
+    defaultValue: char const*
+    flags: i32
+}
+
+public struct CmdParser {
+    options: Map<char const*, Option>
+    errors: [MAX_MESSAGE_SIZE]char
+    status: CmdParserStatus
 }
 
 public func (p: CmdParser*) init() {
-
+    p.options = StrMap<Option>(Option{0})
 }
 
-public func (p: CmdParser*) addOption(longName: char const*, shortName: char, description: char const*, defaultValue: void*) {
+public func (p: CmdParser*) addOption(longName: char const*, 
+                                      shortName: char, 
+                                      description: char const*,
+                                      flags: i32
+                                      defaultValue: char const*) {
 
+    p.options.put(longName, Option {
+        .name = longName,
+        .shortName = shortName,
+        .description = description,
+        .value = null,
+        .flags = flags
+        .defaultValue = defaultValue
+    })
 }
 
-public func (p: CmdParser*) getOption(longName: char const*) : char const* {
-    return null;
+public func (p: CmdParser*) getOption(longName: char const*) : Option {
+    return p.options.get(longName);
 }
 
-public func (p: CmdParser*) parse(argc: i32, argv: char**) {
+public func (p: CmdParser*) parse(argc: i32, argv: char**) : CmdParserStatus {
+    for(var i = 0; i < argc; i+=1) {
+        var arg = argv[i]
+        var len = strlen(arg)
 
+        if(p.options.contains(arg)) {
+            var opt = p.options.get(arg)
+            if(opt.flags & OptionFlag.HAS_ARGUMENT) {
+                if(i + 1 >= argc) {                    
+                    sprintf(p.error, "'%s' is missing argument", MAX_MESSAGE_SIZE)
+                    p.status = CmdParserStatus.MISSING_ARGUMENT
+                    return p.status;
+                }
+
+                
+            }
+
+            opt.flags |= OptionFlag.IS_USED
+        }
+        else {
+            strlen(arg)
+        }
+    }
+}
+
+public func main(len: i32, args: char**) {
+    var parser = CmdParser{}
+    parser.init()
+
+    parser.addOption("aString", 'a', "A simple description", "aDefaultValue")
+    var opt = parser.getOption("aString")
+
+
+    printf("Hello args '%s'\n", opt.name)
 }
