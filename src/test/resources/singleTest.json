@@ -12,7 +12,6 @@
             %test%
         }
     '''
-<<<<<<< HEAD
     tests: [ 
 	    { 
             name: "FuncPtr Cast",
@@ -31,9 +30,6 @@
                  assert(f(test as (Func)) == 4)
             ''',             
         },
-=======
-    tests: [                           
->>>>>>> branch 'master' of https://github.com/tonysparks/litac.git
         { 
             name: "Address of Array Element",
             definitions: '''
@@ -43,7 +39,7 @@
             ''',                       
             code: '''         
                 var a = &array[0]
-                assert(a != 1)
+                assert(a != 1 as (void*))
             ''',                      
         },
     ]
