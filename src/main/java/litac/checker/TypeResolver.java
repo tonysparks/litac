@@ -577,7 +577,7 @@ public class TypeResolver {
     
     private void typeCheck(SrcPos pos, TypeInfo a, TypeInfo b, boolean isCasted) {
         if(isCasted) {
-            if(!TypeInfo.isPtrLike(a) || !TypeInfo.isPtrLike(b)) {
+            if((!TypeInfo.isPtrLike(a) || !TypeInfo.isPtrLike(b)) && (!TypeInfo.isFunc(a) || !TypeInfo.isFunc(b))) {
                 if(!a.canCastTo(b) && !b.canCastTo(a)) {
                     error(pos, "'%s' can't be casted to '%s'", b, a);
                 }

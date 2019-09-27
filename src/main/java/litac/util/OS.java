@@ -85,4 +85,8 @@ public class OS {
         return OsType.OTHER;
     }
     
+    public static String getWorkingDir() {
+        return System.getProperty("user.dir");
+    }
+    
 }

@@ -20,7 +20,7 @@ import litac.compiler.*;
 import litac.compiler.BackendOptions.OutputType;
 import litac.compiler.FieldPath.FieldPathNode;
 import litac.compiler.c.CTranspiler.COptions;
-import litac.util.Names;
+import litac.util.*;
 import litac.util.Stack;
 
 /**
@@ -517,30 +517,32 @@ public class CGen {
         }
     }
     
-    //private String funcPtr(FuncPtrTypeInfo funcInfo,)
-    
     private String getTypeNameForC(TypeSpec typeSpec) {
-        TypeInfo type = this.resolvedTypeMap.get(typeSpec);
-        if(type == null) {
-            // TODO
-        }
-        
-        return getTypeNameForC(type);
+        return getTypeNameForC(typeSpec, false);
     }
     
     private String getTypeNameForC(TypeInfo type) {
+        return getTypeNameForC(type, false);
+    }
+    
+    private String getTypeNameForC(TypeSpec typeSpec, boolean isCast) {
+        TypeInfo type = this.resolvedTypeMap.get(typeSpec);        
+        return getTypeNameForC(type, isCast);
+    }
+    
+    private String getTypeNameForC(TypeInfo type, boolean isCast) {
         switch (type.getKind()) {
             case Ptr: {
                 PtrTypeInfo ptrInfo = type.as();
-                return getTypeNameForC(ptrInfo.ptrOf) + "*";
+                return getTypeNameForC(ptrInfo.ptrOf, isCast) + "*";
             }
             case Const: {
                 ConstTypeInfo constInfo = type.as();
-                return "const " + getTypeNameForC(constInfo.constOf);
+                return "const " + getTypeNameForC(constInfo.constOf, isCast);
             }
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();                
-                String name = getTypeNameForC(arrayInfo.arrayOf);
+                String name = getTypeNameForC(arrayInfo.arrayOf, isCast);
                 if(arrayInfo.length < 0) {
                     return String.format("%s[]", name);
                 }
@@ -553,11 +555,12 @@ public class CGen {
                 boolean isFirst = true;
                 for(TypeInfo p : funcInfo.params) {
                     if(!isFirst) params.append(",");
-                    params.append(getTypeNameForC(p));
+                    params.append(getTypeNameForC(p, isCast));
                     isFirst = false;
                 }
                 
-                return String.format("%s (*%s)(%s)", getTypeNameForC(funcInfo.returnType), /*prefix(funcInfo.getName())*/ cTypeName(funcInfo), params);
+                return String.format("%s (*%s)(%s)", getTypeNameForC(funcInfo.returnType, isCast), 
+                        isCast ? "" : cTypeName(funcInfo), params);
             }
             default: {
                 return cTypeName(type);
@@ -758,9 +761,17 @@ public class CGen {
                 }
                 case "cFile": {
                     if(note.attributes != null) {
-                        for(String file: note.attributes) {
+                        for(String fileName: note.attributes) {
                             try {
-                                String contents = new String(Files.readAllBytes(new File(file).toPath()));
+                                File file = new File(fileName);
+                                if(!file.exists()) {
+                                    file = new File(OS.getWorkingDir(), fileName);
+                                    if(!file.exists()) {
+                                        file = new File(options.options.libDir.getAbsolutePath(), fileName);
+                                    }
+                                }
+                                
+                                String contents = new String(Files.readAllBytes(file.toPath()));
                                 buf.appendRaw(contents);
                                 buf.outln();
                             }
@@ -1365,7 +1376,7 @@ public class CGen {
         
         @Override
         public void visit(CastExpr expr) {                
-            buf.out("(%s)", getTypeNameForC(expr.castTo));
+            buf.out("(%s)", getTypeNameForC(expr.castTo, true));
             expr.expr.visit(this);
         }
         
