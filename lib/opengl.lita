@@ -35,3 +35,39 @@
 //import using "glext";
 
 import using "glad"
+
+import "io"
+public func glCheckErrorPrint() : bool {
+    var hasError = false
+    var hadError = false
+
+    do {
+        var err = glGetError()
+        var msg: char* = null;
+        switch(err) {
+            case GL_NO_ERROR:               msg=null;                   break;
+            case GL_INVALID_OPERATION:      msg="INVALID_OPERATION";    break;
+            case GL_INVALID_ENUM:           msg="INVALID_ENUM";         break;
+            case GL_INVALID_VALUE:          msg="INVALID_VALUE";        break;
+            case GL_OUT_OF_MEMORY:          msg="OUT_OF_MEMORY";        break;
+            //case GL_STACK_UNDERFLOW:        msg="GL_STACK_UNDERFLOW";   break;
+            //case GL_STACK_OVERFLOW:         msg="GL_STACK_OVERFLOW";    break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION:  msg="INVALID_FRAMEBUFFER_OPERATION";  break;
+            default: {
+                msg="Unknown error";
+            }
+        }
+
+        if(msg) {
+            printf("OpenGL error: '%s'\n", msg)
+            hadError = true
+            hasError = true
+        }
+        else {
+            hasError = false
+        }
+    }
+    while(hasError);
+
+    return hadError;
+}

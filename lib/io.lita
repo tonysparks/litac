@@ -18,6 +18,7 @@ import "mem";
 @foreign public var SEEK_CUR : i32;
 @foreign public var SEEK_END : i32;
 
+@asStr
 public enum FileStatus {
     Ok = 0,
     FileNotFoundError,

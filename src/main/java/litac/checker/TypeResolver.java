@@ -487,7 +487,7 @@ public class TypeResolver {
                             
                             // Allow foreign types to be aliased and referenced
                             // in our type system                            
-                            if(typedefDecl.attributes.isForeign() && !aliasedType.isKind(TypeKind.FuncPtr)) {            
+                            if(typedefDecl.attributes.isForeign() && aliasedType.isKind(TypeKind.Void)) {            
                                 aliasedType = TypeInfo.newForeignPrimitive(typedefDecl.alias);
                                 aliasedType.sym = sym;
                             }
