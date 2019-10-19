@@ -33,9 +33,15 @@
 @foreign public func MIN<T>(a: T, b: T) : T;
 @foreign public func ABS(a: f32) : f32;
 @foreign public func sqrt(v: f64) : f64;
+@foreign public func sqrtf(v: f32) : f32;
 @foreign public func cos(v: f64) : f64;
+@foreign public func cosf(v: f32) : f32;
 @foreign public func sin(v: f64) : f64;
-
+@foreign public func sinf(v: f32) : f32;
+@foreign public func asinf(v: f32) : f32;
+@foreign public func fabs(v: f32) : f32;
+@foreign public func tan(v: f64) : f64;
+@foreign public const M_PI: f64;
 
 @foreign public struct va_list;
 @foreign public func va_start(args: va_list, format: char const*);

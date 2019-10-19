@@ -648,7 +648,8 @@ public class TypeResolver {
         if(expr != null) {
             Operand op = resolveExpr(expr);
             if(op != null) {
-                if(expr.getKind() == ExprKind.ARRAY_INIT) {
+                if(expr.getKind() == ExprKind.ARRAY_INIT ||
+                   expr.getKind() == ExprKind.INIT) {
                     inferredType = op.type;
                 }
                 else {
@@ -675,7 +676,7 @@ public class TypeResolver {
         switch(type.kind) {
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();
-                PtrTypeInfo ptrInfo = new PtrTypeInfo(arrayInfo.arrayOf);
+                PtrTypeInfo ptrInfo = new PtrTypeInfo(decayType(arrayInfo.arrayOf));
                 return ptrInfo;
             }
             case Func: {
@@ -1028,7 +1029,8 @@ public class TypeResolver {
             }
                     
             TypeInfo ret = resolveTypeSpec(funcDecl.returnType);
-                    
+            ret = decayType(ret);        
+            
             if(funcDecl.hasGenericParams()) {
                 this.genericStack.pop();        
             }
@@ -1838,17 +1840,19 @@ public class TypeResolver {
     
     private Operand resolveInitExpr(InitExpr expr) {
         TypeInfo type = resolveTypeSpec(expr.type);
-        if(!TypeInfo.isAggregate(type)) {
-            error(expr, "only struct or union can use initialization syntax");
+        if(!TypeInfo.isAggregate(type) && !type.isKind(TypeKind.Array)) {
+            error(expr, "only struct, union or array can use initialization syntax");
         }
         
         for(InitArgExpr arg : expr.arguments) {
             resolveInitArgExpr(arg);            
         } 
 
-        AggregateTypeInfo aggInfo = type.as();
-        if(type.hasGenerics() && expr.genericArgs.isEmpty()) {
-            type = inferInitExpr(expr, aggInfo);
+        if(TypeInfo.isAggregate(type)) {
+            AggregateTypeInfo aggInfo = type.as();
+            if(type.hasGenerics() && expr.genericArgs.isEmpty()) {
+                type = inferInitExpr(expr, aggInfo);
+            }
         }
                 
         Operand operand = Operand.op(type);        
@@ -1941,21 +1945,33 @@ public class TypeResolver {
     }
     
     private void checkInitArguments(InitExpr expr) {
-        AggregateTypeInfo aggInfo = expr.getResolvedType().type.as();
+        TypeInfo type = expr.getResolvedType().type;
         
-        for(InitArgExpr arg : expr.arguments) {
-            if(arg.fieldName != null) {
-                TypeInfo fieldType = getAggregateField(arg.getSrcPos(), aggInfo, new NameTypeSpec(arg.getSrcPos(), arg.fieldName), false, true);
-                typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
-            }
-            else {
-                FieldInfo field = aggInfo.getFieldByPosition(arg.argPosition);
-                if(field == null) {
-                    error(arg.getSrcPos(), "'%s' does not have a field at index '%d'", aggInfo.name, arg.argPosition);
+        if(TypeInfo.isAggregate(type)) { 
+            AggregateTypeInfo aggInfo = expr.getResolvedType().type.as();
+            
+            for(InitArgExpr arg : expr.arguments) {
+                if(arg.fieldName != null) {
+                    TypeInfo fieldType = getAggregateField(arg.getSrcPos(), aggInfo, new NameTypeSpec(arg.getSrcPos(), arg.fieldName), false, true);
+                    typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
                 }
-                
-                TypeInfo fieldType = field.type;
-                typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
+                else {
+                    FieldInfo field = aggInfo.getFieldByPosition(arg.argPosition);
+                    if(field == null) {
+                        error(arg.getSrcPos(), "'%s' does not have a field at index '%d'", aggInfo.name, arg.argPosition);
+                    }
+                    
+                    TypeInfo fieldType = field.type;
+                    typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
+                }
+            }
+        }
+        else if(type.isKind(TypeKind.Array)) {
+            ArrayTypeInfo arrayInfo = type.as();
+            TypeInfo baseType = arrayInfo.getBaseType();
+            
+            for(InitArgExpr arg : expr.arguments) {                
+                typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, baseType);
             }
         }
     }

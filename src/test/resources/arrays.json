@@ -13,23 +13,6 @@
         }
     '''
     tests: [ 
-	    /*{ 
-            name: "FuncPtr Cast",
-            definitions: '''         
-                typedef func() : i32 as Func;
-                
-                func test() : i32 {
-                    return 4
-                }
-                
-                func f(fn: Func) : i32 {
-                    return fn()
-                }
-            ''',                       
-            code: '''  
-                 assert(f(test as (Func)) == 4)
-            ''',             
-        },
         { 
             name: "Address of Array Element",
             definitions: '''
@@ -41,8 +24,7 @@
                 var a = &array[0]
                 assert(a != 1 as (void*))
             ''',                      
-        },*/
-        /*
+        },        
         { 
             name: "Array Init from Typedef",
             definitions: '''
@@ -59,7 +41,7 @@
                 assert(array[1] == 2)
                 assert(array[2] == 3)
             ''',                      
-        },*/
+        },
         
         // TODO!!! 
         /*{ 
@@ -81,42 +63,6 @@
         },*/
         
         { 
-            name: "Array Init from Typedef in struct",
-            definitions: '''
-                typedef [3]f32 as Vec3;
-                struct X {
-                    v: Vec3
-                }
-                
-                const x = X {
-                    .v = Vec3 {1,2,3}
-                }
-            ''',                       
-            code: '''                                         
-                assert(x.v[0] == 1)
-                assert(x.v[1] == 2)
-                assert(x.v[2] == 3)
-            ''',                      
-        },
-        
-        { 
-            name: "Array Init from Typedef in func call",
-            definitions: '''
-                typedef [3]f32 as Vec3;
-                
-                func test(v: Vec3) {
-                    assert(v[0] == 1f)
-                    assert(v[1] == 2f)
-                    assert(v[2] == 3f)    
-                }
-            ''',                       
-            code: '''                                     
-                test(Vec3{1f, 2f, 3f})
-            ''',                      
-        },
-        
-        /*
-        { 
             name: "Array Return Decay",
             definitions: '''
                 typedef [3]f32 as Vec3;
@@ -135,28 +81,6 @@
                 assert(a[1] == 2)
                 assert(a[2] == 3)
             ''',                      
-        },*/
-        
-        /** Do we want to support??
-        { 
-            name: "Array2d Return Decay",
-            definitions: '''
-                typedef [1][3]f32 as Vec3;
-                
-                const array = [1][3]f32 {
-                    [3]f32 {1.0f, 2.0f, 3.0f}
-                }
-                
-                func test(v: Vec3) : Vec3 {
-                    return v // return an array, not valid/safe C
-                }
-            ''',                       
-            code: '''         
-                var a = test(array)
-                assert(a[0][0] == 1)
-                assert(a[0][1] == 2)
-                assert(a[0][2] == 3)
-            ''',                      
-        },*/
+        },
     ]
 }

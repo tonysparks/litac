@@ -541,13 +541,35 @@ public class CGen {
                 return "const " + getTypeNameForC(constInfo.constOf, isCast);
             }
             case Array: {
-                ArrayTypeInfo arrayInfo = type.as();                
-                String name = getTypeNameForC(arrayInfo.arrayOf, isCast);
-                if(arrayInfo.length < 0) {
-                    return String.format("%s[]", name);
-                }
+                ArrayTypeInfo arrayInfo = type.as();
+                TypeInfo baseInfo = arrayInfo.getBaseType();
+                String baseName = getTypeNameForC(baseInfo);
                 
-                return String.format("%s[%d]", name, arrayInfo.length);
+                StringBuilder sb = new StringBuilder();
+                do {
+                    if(arrayInfo.length < 0) {
+                        if(arrayInfo.lengthExpr != null) {
+                            Buf tmp = new Buf(this.buf.indentWidth(), this.buf.tabs());
+                            CGenNodeVisitor visitor = new CGenNodeVisitor(tmp);
+                            arrayInfo.lengthExpr.visit(visitor);
+                            sb.append("[").append(tmp.toString()).append("]");
+                        }
+                        else {
+                            sb.append("[]");
+                        }
+                    }
+                    else {
+                        sb.append(String.format("[%d]", arrayInfo.length));
+                    }
+                    
+                    
+                    arrayInfo = arrayInfo.arrayOf.isKind(TypeKind.Array) ?
+                                arrayInfo.arrayOf.as() : null;
+                    
+                } 
+                while(arrayInfo != null);
+                
+                return String.format("%s%s", baseName, sb.toString());
             }
             case FuncPtr: {
                 FuncPtrTypeInfo funcInfo = type.as();
@@ -1416,16 +1438,17 @@ public class CGen {
         }
         
         @Override
-        public void visit(InitExpr expr) {            
-            /*if(expr.type.isAnonymous()) {
-                buf.out(" {");
-            }
-            else {
-                buf.out("(%s) {", expr.type.name);
-            }*/
-            
-            if(!(expr.getParentNode() instanceof Decl)) {
-                buf.out("(%s)", getTypeNameForC(expr.type));
+        public void visit(InitExpr expr) {                        
+            Node parent = expr.getParentNode();
+            if(!(parent instanceof Decl)) {
+                if(expr.getResolvedType().type.isKind(TypeKind.Array) && (parent instanceof InitArgExpr)) {
+                    // if this is an array initializer and we are already in an initializer, don't output
+                    // the type hint
+                }
+                else {
+                    buf.out("(%s)", getTypeNameForC(expr.type));
+                }
+                
             }
             
             buf.out(" {");
