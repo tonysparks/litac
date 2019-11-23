@@ -19,6 +19,27 @@ import litac.parser.tokens.*;
  *
  */
 public abstract class Expr extends Stmt {
+
+    public static boolean isConstExpr(Expr expr) {
+        if(expr instanceof ConstExpr) {
+            return true;
+        }
+        
+        if(expr instanceof GroupExpr) {
+            GroupExpr groupExpr = (GroupExpr)expr;
+            return isConstExpr(groupExpr.expr);
+        }
+        else if(expr instanceof BinaryExpr) {
+            BinaryExpr binExpr = (BinaryExpr)expr;
+            return isConstExpr(binExpr.left) && isConstExpr(binExpr.right);
+        }
+        else if(expr instanceof UnaryExpr) {
+            UnaryExpr uExpr = (UnaryExpr)expr;
+            return isConstExpr(uExpr.expr);
+        }
+        
+        return false;
+    }
     
     public static enum ExprKind {        
         CAST,

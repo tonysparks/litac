@@ -1,0 +1,87 @@
+{
+    description: "Tests Consts",
+    program: '''                
+        @include("assert.h");
+        @foreign func assert(e:bool):void;
+        
+        @include("<string.h>");
+        @foreign func strncmp(a:char const*, b:char const*, len: i32) : i32;
+        @foreign func strcmp(a:char const*, b:char const*) : i32;
+        
+        %definitions%
+        
+        func main(len:i32, args:char**):i32 {
+            %test%
+        }
+    '''
+    tests: [        
+        {
+            name: "Const Primitives",
+            code: '''
+                const X = 10;
+                assert(X == 10);
+                
+                const Y = 10.0;
+                assert(Y == 10.0);
+                                
+                const Z = 10 + 100_i64;
+                assert(Z == 110_i64);
+                
+                const W = "Hi";
+                assert(strcmp(W, "Hi") == 0);
+                
+                const B = true;
+                assert(B == true);
+            '''
+        },
+        {
+            name: "Const Complex Types",
+            definitions: '''
+                struct Test {
+                    x: f32
+                }
+                var i = 0
+                func call() : i32 {
+                    i += 1
+                    return i
+                }
+            ''',
+            code: '''
+                const x = Test{1f}                
+                assert(x.x == 1f);
+                
+                const y = &Test{2f}                
+                assert(y.x == 2f);
+                
+                const v = call()
+                assert(v == 1)
+                assert(v == 1)                
+            '''
+        },            
+	    {
+            name: "Const Imports",
+			modules: [
+                {
+                    name: "const_public",
+                    program: '''
+                        public const X = 10
+						const Y = -10
+						
+						public func test() : i32 {
+						  return Y + 0
+						}
+                    '''
+                }
+            ],
+            definitions: '''
+                import "const_public"
+            ''',
+            code: '''              
+                const Y = 1.0f              
+                assert(X == 10);
+                assert(Y == 1.0f);
+                assert(test() == -10)
+            '''
+        },
+    ]
+}
