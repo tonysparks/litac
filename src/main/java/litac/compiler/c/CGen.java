@@ -62,6 +62,7 @@ public class CGen {
     
     private Stack<FuncTypeInfo> currentFuncType;
     private Stack<Stack<DeferStmt>> defers;
+    private Stack<Stack<String>> constDefs;
     private int aggregateLevel;
     private Pattern testPattern;
     
@@ -100,13 +101,26 @@ public class CGen {
         
         this.writtenModules = new HashSet<>();
         this.defers = new Stack<>();
+        this.constDefs = new Stack<>();
+        
         
         this.cgen = new CGenNodeVisitor(this.buf);
-        
-        preface();
     }
     
     public void write() {
+        this.declarations.clear();
+        this.moduleInitFunc.clear();
+        this.moduleDestroyFunc.clear();
+        this.currentFuncType.clear();
+        
+        this.writtenModules.clear();
+        this.defers.clear();
+        this.constDefs.clear();
+        
+        this.constDefs.add(new Stack<>());
+        
+        preface();
+        
         this.main.getModuleStmt().visit(this.cgen);
         
         DependencyGraph graph = new DependencyGraph(this.main.getPhaseResult());
@@ -709,6 +723,12 @@ public class CGen {
         }
     }
     
+    
+    
+    /**
+     * Writes out parts of the AST to the equivalent C
+     * code
+     */
     private class CGenNodeVisitor implements NodeVisitor { 
     
         private Buf buf;
@@ -915,12 +935,27 @@ public class CGen {
             visitNotes(d.attributes.notes);
             
             checkLine(d);
-            if(d.sym.type.isPrimitive()) {
-                buf.out("const ");
+                        
+            if(Expr.isConstExpr(d.expr)) {
+                buf.out("#define ");
+                buf.out("%s (", name);
+                d.expr.visit(this);
+                buf.out(")\n"); 
+                
+                // globals are not undef (are namespaced by the compiler)
+                if(!d.attributes.isGlobal) {
+                    constDefs.peek().add(name);
+                }
             }
-            buf.out("%s = ", typeDeclForC(d.sym.type, name));
-            d.expr.visit(this);
-            buf.out(";\n");
+            else {
+                if(d.sym.type.isPrimitive()) {
+                    buf.out("const ");
+                }
+                
+                buf.out("%s = ", typeDeclForC(d.sym.type, name));
+                d.expr.visit(this);
+                buf.out(";\n");
+            }
         }
     
         private String name(String name, Attributes attributes) {
@@ -1290,6 +1325,21 @@ public class CGen {
                 buf.out(";\n");
             }
         }
+        
+        private void pushConst() {
+            constDefs.add(new Stack<>());
+        }
+        
+        private void popConst() {
+            if(constDefs.isEmpty()) {
+                return;
+            }
+            
+            Stack<String> consts = constDefs.pop();
+            for(String c : consts) {
+                buf.out("#undef %s\n", c);
+            }
+        }
     
         @Override
         public void visit(BreakStmt stmt) {
@@ -1345,6 +1395,8 @@ public class CGen {
             checkLine(stmt);
             buf.out("{");
             
+            pushConst();
+            
             int deferCount = defers.size();
             for(Stmt s : stmt.stmts) {
                 boolean isExpr = s instanceof Expr;
@@ -1359,6 +1411,7 @@ public class CGen {
                 }
             }
             
+            popConst();
             if(defers.size() > deferCount) {
                 outputDefer(defers.pop());
             }
