@@ -31,7 +31,9 @@ public class Token {
 
         this.pos = new SrcPos(source.getSourceName(), 
                               source.getCurrentLine(), 
-                              this.lineNum);
+                              this.lineNum,
+                              this.position,
+                              this);
         
         extract();
     }

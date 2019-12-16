@@ -6,6 +6,7 @@ package litac.ast;
 import java.util.ArrayList;
 import java.util.List;
 
+import litac.parser.tokens.Token;
 import litac.util.Tuple;
 
 
@@ -21,14 +22,22 @@ public abstract class Node {
         public String sourceFile;
         public String sourceLine;
         public int lineNumber;
+        public int position;
+        public Token token;
         
         public SrcPos() {            
         }
         
-        public SrcPos(String sourceFile, String sourceLine, int lineNumber) {
+        public SrcPos(String sourceFile, 
+                      String sourceLine, 
+                      int lineNumber,
+                      int position,
+                      Token token) {
             this.sourceFile = sourceFile;
             this.sourceLine = sourceLine;
             this.lineNumber = lineNumber;
+            this.position = position;
+            this.token = token;
         }
         
         @Override
@@ -108,6 +117,22 @@ public abstract class Node {
      */
     public void setLineNumber(int lineNumber) {
         this.pos.lineNumber = lineNumber;
+    }
+    
+    public void setPosition(int position) {
+        this.pos.position = position;
+    }
+    
+    public void setToken(Token token) {
+        this.pos.token = token;
+    }
+    
+    public void updateSrcPos(SrcPos srcPos) {
+        this.pos.lineNumber = srcPos.lineNumber;
+        this.pos.position = srcPos.position;
+        this.pos.sourceFile = srcPos.sourceFile;
+        this.pos.sourceLine = srcPos.sourceLine;
+        this.pos.token = srcPos.token;
     }
     
     /**

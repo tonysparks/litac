@@ -23,7 +23,7 @@ public class CompilationUnit {
     private ModuleStmt builtin;
     private Map<String, ModuleStmt> imports;
     
-    private CompilationUnit(ModuleStmt builtin, ModuleStmt main) {
+    public CompilationUnit(ModuleStmt builtin, ModuleStmt main) {
         this.builtin = builtin;
         this.main = main;
         this.imports = new HashMap<>();

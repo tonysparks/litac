@@ -152,22 +152,22 @@ int tss_set(tss_t key, void *val);
 
 @asStr
 public enum ThreadStatus {
-  ERROR    = 0,
-  SUCCESS  = 1,
-  TIMEDOUT = 2,
-  BUSY     = 3,
-  NOMEM    = 4,
+    ERROR    = 0,
+    SUCCESS  = 1,
+    TIMEDOUT = 2,
+    BUSY     = 3,
+    NOMEM    = 4,
 }
 
 @asStr
 public enum MutexType {
-  PLAIN     = 0,
-  TIMED     = 1,
-  RECURSIVE = 2,
+    PLAIN     = 0,
+    TIMED     = 1,
+    RECURSIVE = 2,
 }
 
 #if (OS == "WINDOWS")
-  import using "thread_win"
+    import using "thread_win"
 #else  
-  import using "thread_posix"
+    import using "thread_posix"
 #end
