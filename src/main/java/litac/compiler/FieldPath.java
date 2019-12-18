@@ -99,7 +99,7 @@ public class FieldPath {
     }
     
     public FieldInfo getTargetField() {
-        return this.targetField.field;
+        return this.targetField != null ? this.targetField.field : null;
     }
     
     private List<FieldPathNode> findPath(AggregateTypeInfo ownerInfo, String field) {

@@ -234,11 +234,15 @@ public abstract class TypeInfo {
     }
     
     public static boolean isFieldAccessible(TypeInfo type) {
-        if(isAggregate(type) || isPtrAggregate(type)) {
+        if(isAggregate(type) || isPtrAggregate(type) || isEnum(type)) {
             return true;
         }
         
         return false;
+    }
+    
+    public static boolean isEnum(TypeInfo type) {
+        return type.isKind(TypeKind.Enum);
     }
     
     public static boolean isPtrLike(TypeInfo type) {

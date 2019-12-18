@@ -66,20 +66,32 @@ public class Document {
         return this.document.text;
     }
     
-    public Location getDefinitionLocation(Program program, Position pos) {
+    public Location getDefinitionLocation(Workspace workspace, Position pos) {
+        Program program = workspace.getLatestProgram();
         if(program == null) {
-            return null;
+            workspace.processSource(this.document.uri);
+            program = workspace.getLatestProgram();
+            if(program == null) {    
+                return null;
+            }
         }
                 
         Module module = program.getModule(this.moduleName);
-        if(module == null) {
-            return null;
+        if(module == null) {            
+            workspace.processSource(this.document.uri);
+            program = workspace.getLatestProgram();
+            if(program == null) {
+                return null;
+            }
+            
+            module = program.getModule(this.moduleName);            
+            if(module == null) {
+                return null;
+            }
         }
         
-        SourceToAst sta = new SourceToAst(program, pos);
-        sta.visit(module.getModuleStmt());
-        
-        return sta.getLocation();
+        SourceToAst sta = new SourceToAst(program, module, pos);
+        return sta.findSourceLocation(module.getModuleStmt());        
     }
     
     public List<SymbolInformation> getSymbols(Program program) {

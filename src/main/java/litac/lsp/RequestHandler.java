@@ -82,7 +82,7 @@ public class RequestHandler {
         Document doc = this.workspace.getDocument(params.textDocument.uri);
         Location location = null;
         if(doc != null) {
-            location = doc.getDefinitionLocation(this.workspace.getLatestProgram(), params.position);
+            location = doc.getDefinitionLocation(this.workspace, params.position);
         }
         
         RpcResponse resp = new RpcResponse();

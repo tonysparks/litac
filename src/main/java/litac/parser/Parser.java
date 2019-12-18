@@ -654,15 +654,19 @@ public class Parser {
             case IDENTIFIER: {
                 Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
                 consume(COLON, ErrorCode.MISSING_COLON);
-                int modifiers = modifiers();
-                TypeSpec type = type(false);
+                Attributes attributes = new Attributes();
+                attributes.modifiers = modifiers();
+                attributes.srcPos = pos;
+                attributes.addNotes(notes);
                 
-                return new VarFieldStmt(identifier.getText(), type, modifiers).addNotes(notes).setSrcPos(pos);
+                TypeSpec type = type(false);                 
+                return new VarFieldStmt(identifier.getText(), type, attributes).setSrcPos(pos);
             }                
             case STRUCT: {
                 advance();
                 
                 StructDecl struct = structDeclaration();
+                struct.attributes.srcPos = pos;
                 struct.attributes.addNotes(notes);
                 return new StructFieldStmt(struct).setSrcPos(pos);
             }
@@ -670,6 +674,7 @@ public class Parser {
                 advance();
                 
                 UnionDecl union = unionDeclaration();
+                union.attributes.srcPos = pos;
                 union.attributes.addNotes(notes);
                 return new UnionFieldStmt(union).setSrcPos(pos);                
             }
@@ -677,6 +682,7 @@ public class Parser {
                 advance();
                 
                 EnumDecl enm = enumDeclaration();
+                enm.attributes.srcPos = pos;
                 enm.attributes.addNotes(notes);
                 return new EnumFieldStmt(enm).setSrcPos(pos);
             }
@@ -685,7 +691,8 @@ public class Parser {
         }
     }
     
-    private EnumFieldInfo enumFieldStatement() {        
+    private EnumFieldInfo enumFieldStatement() {  
+        SrcPos pos = pos();
         List<NoteStmt> notes = notes();
         Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         
@@ -696,6 +703,7 @@ public class Parser {
         
         Attributes attrs = new Attributes();
         attrs.notes = notes;
+        attrs.srcPos = pos;
         
         return new EnumFieldInfo(identifier.getText(), expr, attrs);
     }
@@ -1294,8 +1302,7 @@ public class Parser {
     }     
     
     private Expr finishFunctionCall(Expr callee) {
-        List<TypeSpec> genericArgs = Collections.emptyList();
-        
+        List<TypeSpec> genericArgs = Collections.emptyList();        
         List<Expr> arguments = arguments();
         
         // Convert the IdentifierExpr to a FuncIndentiferExpr
@@ -1305,12 +1312,14 @@ public class Parser {
         }
         else if(callee instanceof GetExpr) {
             GetExpr getExpr = (GetExpr)callee;
+            SrcPos pos = getExpr.getSrcPos();
             if(getExpr.field instanceof IdentifierExpr) {
                 IdentifierExpr idExpr = (IdentifierExpr)getExpr.field;
-                genericArgs = idExpr.genericArgs;    
+                genericArgs = idExpr.genericArgs;
+                pos = idExpr.getSrcPos();
             }
             
-            IdentifierExpr newId = new FuncIdentifierExpr(getExpr.field.type).setSrcPos(callee.getSrcPos());
+            IdentifierExpr newId = new FuncIdentifierExpr(getExpr.field.type).setSrcPos(pos);
             getExpr.setField(newId);
         }
             

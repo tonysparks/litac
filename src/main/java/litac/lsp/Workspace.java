@@ -103,7 +103,9 @@ public class Workspace {
     }
     
     public void removeDocument(String documentUri) {
-        this.documents.remove(canonicalPath(documentUri));
+        String moduleName = canonicalPath(documentUri);
+        this.documents.remove(moduleName);
+        this.modules.remove(moduleName);
     }
 
     public void changedDocument(String documentUri, DidChangeParams change) {
@@ -140,7 +142,9 @@ public class Workspace {
         if(!this.modules.containsKey(moduleName)) {
             Document document = this.documents.get(moduleName);
             if(document != null) {
-                this.modules.put(moduleName, canonicalPath(document.document.uri));
+                File file = new File(URI.create(document.document.uri));
+                this.modules.put(moduleName, normalizePath(file.getAbsolutePath()));
+                        //canonicalPath(document.document.uri));
             }
             else {
                 File moduleFile = new File(this.srcDir, moduleName + ".lita");
@@ -241,8 +245,17 @@ public class Workspace {
     }
     
     public PhaseResult processSource() {
+        //return processSourceModule(this.rootModule);
+        return new PhaseResult();
+    }
+    
+    public PhaseResult processSource(String documentUri) {
+        return processSourceModule(canonicalPath(documentUri));
+    }
+    
+    private PhaseResult processSourceModule(String moduleName) {
         try {
-            ModuleStmt rootModule = readModule(this.rootModule);
+            ModuleStmt rootModule = readModule(moduleName);
             ModuleStmt builtin = readModule("builtins");
             
             CompilationUnit unit = new CompilationUnit(builtin, rootModule);
