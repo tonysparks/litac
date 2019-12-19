@@ -97,8 +97,8 @@ public class SourceToAst implements NodeVisitor {
                     }
                 }
                 
-                findFromTypeSpec(funcSpec.base);
-                findFromTypeSpec(funcSpec.ret);                
+                if(isNodeAtPos(funcSpec.base)) findFromTypeSpec(funcSpec.base);
+                if(isNodeAtPos(funcSpec.ret))  findFromTypeSpec(funcSpec.ret);                
                 break;
             case NAME:
                 break;
@@ -559,65 +559,76 @@ public class SourceToAst implements NodeVisitor {
             }
         }        
     }
+    
+    private void visitField(Expr object, IdentifierExpr field) {
+        if(!isNodeAtPos(field)) {
+            return;
+        }
+        
+        if(field instanceof IdentifierExpr) {
+            Operand op = object.getResolvedType();
+            if(op == null) {
+                return;
+            }
+            
+            if(TypeInfo.isEnum(op.type)) {
+                EnumTypeInfo enumInfo = op.type.as();
+                EnumFieldInfo enumField = enumInfo.getField(field.type.name);
+                if(enumField == null) {
+                    return;
+                }
+                
+                findFromSrcPos(enumField.attributes.srcPos);
+            }
+            else if(TypeInfo.isFieldAccessible(op.type)) {
+                AggregateTypeInfo aggInfo = op.type.as();
+                
+                // first check and see if this is a field member of the 
+                // aggregate
+                FieldPath path = aggInfo.getFieldPath(field.type.name);
+                if(path != null && path.hasPath()) {
+                    FieldInfo aggField = path.getTargetField();
+                    if(aggField != null) {
+                        findFromSrcPos(aggField.attributes.srcPos);                           
+                    }
+                    
+                }
+                
+                // Now check if this is a member function
+                Operand fieldOp = field.getResolvedType();
+                if(fieldOp == null) {
+                    return;
+                }
+                
+                if(TypeInfo.isFunc(fieldOp.type)) {
+                    findFromTypeInfo(fieldOp.type);
+                }                    
+            }
+        }
+        
+        field.visit(this);
+        
+    }
 
     @Override
     public void visit(GetExpr expr) {
-        // TODO
         if(isNodeAtPos(expr)) {
             findFromExpr(expr);
         }
         
         expr.object.visit(this);
-        if(isNodeAtPos(expr.field)) {
-            if(expr.field instanceof IdentifierExpr) {
-                Operand op = expr.object.getResolvedType();
-                if(op == null) {
-                    return;
-                }
-                
-                if(TypeInfo.isEnum(op.type)) {
-                    EnumTypeInfo enumInfo = op.type.as();
-                    EnumFieldInfo field = enumInfo.getField(expr.field.type.name);
-                    if(field == null) {
-                        return;
-                    }
-                    
-                    findFromSrcPos(field.attributes.srcPos);
-                }
-                else if(TypeInfo.isFieldAccessible(op.type)) {
-                    AggregateTypeInfo aggInfo = op.type.as();
-                    
-                    // first check and see if this is a field member of the 
-                    // aggregate
-                    FieldPath path = aggInfo.getFieldPath(expr.field.type.name);
-                    if(path != null && path.hasPath()) {
-                        FieldInfo field = path.getTargetField();
-                        if(field != null) {
-                            findFromSrcPos(field.attributes.srcPos);                           
-                        }
-                        
-                    }
-                    
-                    // Now check if this is a member function
-                    Operand fieldOp = expr.field.getResolvedType();
-                    if(fieldOp == null) {
-                        return;
-                    }
-                    
-                    if(TypeInfo.isFunc(fieldOp.type)) {
-                        findFromTypeInfo(fieldOp.type);
-                    }                    
-                }
-            }
-            
-            expr.field.visit(this);
-        }
+        visitField(expr.object, expr.field);
     }
 
     @Override
     public void visit(SetExpr expr) {
-        // TODO Auto-generated method stub
+        if(isNodeAtPos(expr)) {
+            findFromExpr(expr);
+        }
         
+        expr.object.visit(this);
+        visitField(expr.object, expr.field);        
+        expr.value.visit(this);
     }
 
     @Override
@@ -640,26 +651,46 @@ public class SourceToAst implements NodeVisitor {
 
     @Override
     public void visit(ArrayInitExpr expr) {
-        // TODO Auto-generated method stub
+        if(isNodeAtPos(expr)) {
+            findFromExpr(expr);
+        }
         
+        if(isNodeAtPos(expr.type)) {
+            findFromTypeSpec(expr.type);
+        }
+        
+        for(Expr e : expr.values) {
+            e.visit(this);
+        }
     }
 
     @Override
     public void visit(ArrayDesignationExpr expr) {
-        // TODO Auto-generated method stub
+        if(isNodeAtPos(expr)) {
+            findFromExpr(expr);
+        }
         
+        expr.value.visit(this);
+        expr.index.visit(this);        
     }
 
     @Override
     public void visit(SubscriptGetExpr expr) {
-        // TODO Auto-generated method stub
-        
+        if(isNodeAtPos(expr)) {
+            findFromExpr(expr);
+        }
+        expr.object.visit(this);
+        expr.index.visit(this);
     }
 
     @Override
     public void visit(SubscriptSetExpr expr) {
-        // TODO Auto-generated method stub
-        
+        if(isNodeAtPos(expr)) {
+            findFromExpr(expr);
+        }
+        expr.object.visit(this);
+        expr.index.visit(this);
+        expr.value.visit(this);
     }
 
 }

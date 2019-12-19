@@ -245,8 +245,8 @@ public class Workspace {
     }
     
     public PhaseResult processSource() {
-        //return processSourceModule(this.rootModule);
-        return new PhaseResult();
+        return processSourceModule(this.rootModule);
+        //return new PhaseResult();
     }
     
     public PhaseResult processSource(String documentUri) {

@@ -95,6 +95,7 @@ public class RequestHandler {
         Document doc = this.workspace.getDocument(params.textDocument.uri);
         List<SymbolInformation> symbols = Collections.emptyList();
         if(doc != null) {
+            this.workspace.processSource(params.textDocument.uri);
             symbols = doc.getSymbols(this.workspace.getLatestProgram());
         }
         
