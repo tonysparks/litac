@@ -5,7 +5,6 @@ import static litac.parser.tokens.TokenType.*;
 
 import java.util.*;
 
-import leola.ast.ParameterList;
 import litac.Errors;
 import litac.ast.*;
 import litac.ast.Decl.*;
@@ -84,7 +83,7 @@ public class Parser {
      * @return the {@link ModuleStmt}
      */
     public ModuleStmt parseModule() {
-                
+        SrcPos pos = pos();
         List<ImportStmt> imports = new ArrayList<>();
         List<NoteStmt> moduleNotes = new ArrayList<>();
         List<Decl> declarations = new ArrayList<>();
@@ -96,7 +95,7 @@ public class Parser {
             }
             else if(match(HASH)) {
                 CompStmt compStmt = compStmt();
-                executeCompStmt(compStmt, imports, moduleNotes, declarations);
+                compStmt.evaluateForModule(pp, imports, moduleNotes, declarations);                
             }
             else {
                 List<NoteStmt> notes = notes();
@@ -126,7 +125,7 @@ public class Parser {
             }
         }
         
-        return node(new ModuleStmt(moduleName, imports, moduleNotes, declarations));
+        return new ModuleStmt(moduleName, imports, moduleNotes, declarations).setSrcPos(pos);
     }
     
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -461,41 +460,6 @@ public class Parser {
         }
     }
     
-    private void executeCompStmt(CompStmt compStmt, List<ImportStmt> imports, List<NoteStmt> moduleNotes, List<Decl> declarations) {
-        if(compStmt.type.equals("if") || compStmt.type.equals("elseif") || compStmt.type.equals("else")) {
-            if(compStmt.type.equals("else") || this.pp.execute(compStmt.expr)) {
-                List<Stmt> stmts = compStmt.body;
-                for(Stmt s : stmts) {
-                    if(s instanceof Decl) {
-                        declarations.add((Decl)s);
-                    }
-                    else if(s instanceof ImportStmt) {
-                        imports.add((ImportStmt)s);
-                    }
-                    else if(s instanceof NoteStmt) {
-                        moduleNotes.add((NoteStmt)s);
-                    }
-                    else if(s instanceof BlockStmt) {
-                        BlockStmt b = (BlockStmt)s;
-                        for(Stmt n : b.stmts) {
-                            if(n instanceof NoteStmt) {
-                                moduleNotes.add((NoteStmt)n);
-                            }
-                        }
-                    }
-                    else {
-                        throw error(peek(), ErrorCode.INVALID_COMP_STMT);
-                    }
-                }
-            }
-            else {
-                if(compStmt.end != null) {
-                    executeCompStmt(compStmt.end, imports, moduleNotes, declarations);
-                }
-            }
-        }
-    }
-    
     private CompStmt compStmt() {
         String type = "";
         
@@ -513,16 +477,38 @@ public class Parser {
         switch(type) {
             case "if": 
             case "elseif": {
-                consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
-                StringBuilder sb = new StringBuilder();
+                int currentLine = pos().lineNumber;
+                String sourceLine = pos().sourceLine;
+                StringBuilder sb = new StringBuilder(sourceLine);
+                Token token = peek();
+                
                 while(!isAtEnd()) {
-                    if(check(RIGHT_PAREN)) {
-                        break;
-                    }
+                    token = peek();
                     
-                    sb.append(" ").append(advance().getText());                    
+                    int nextLine = token.getLineNumber();
+                    if(nextLine != currentLine) {
+                        if(sourceLine.trim().endsWith("\\")) {
+                            currentLine = nextLine;
+                            sourceLine = pos().sourceLine;
+                            sb.replace(sb.length() - 1, sb.length(), "\n");
+                            sb.append(sourceLine);
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    else {                        
+                        advance();
+                    }
                 }
-                consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+                
+                String exprScript = sb.toString().trim().substring(1);
+                if(exprScript.startsWith("if")) {
+                    exprScript = exprScript.substring("if".length());
+                }
+                else if(exprScript.startsWith("elseif")) {
+                    exprScript = exprScript.substring("elseif".length());
+                }
                
                 List<Stmt> body = new ArrayList<>();
                 while(!isAtEnd()) {
@@ -539,7 +525,7 @@ public class Parser {
                 consume(HASH, ErrorCode.MISSING_COMP_STMT_END);
                 
                 CompStmt end = compStmt();
-                return new CompStmt(type, sb.toString(), body, end);
+                return new CompStmt(type, exprScript, body, end);
             }
             case "else": {
                 List<Stmt> body = new ArrayList<>();
@@ -592,6 +578,12 @@ public class Parser {
             
             decl.attributes.notes = notes;
             return decl.setSrcPos(pos);
+        }
+        
+        if(match(HASH)) {
+            //CompStmt compStmt = compStmt().setSrcPos(pos);
+            //return executeCompStmt(compStmt).setSrcPos(pos);
+            return compStmt().setSrcPos(pos);
         }
         
         if(match(LEFT_BRACE))   return blockStatement().setSrcPos(pos);        
@@ -1391,20 +1383,21 @@ public class Parser {
     private TypeSpec chainableType(TypeSpec type) {
         do {
             SrcPos pos = pos();
-            advance();
-        
             Token n = peek();
+            
             if(n.getType().equals(STAR)) {
+                advance();
                 type = new PtrTypeSpec(pos, type);
             }
             else if(n.getType().equals(LEFT_BRACKET)) {
+                advance();
                 type = arrayType(type);
             }
             else if(n.getType().equals(CONST)) {
                 if(type.kind == TypeSpecKind.CONST) {
                     throw error(n, ErrorCode.INVALID_CONST_EXPR);
                 }
-                
+                advance();
                 type = new ConstTypeSpec(pos, type);
             }
             else {
@@ -1483,6 +1476,7 @@ public class Parser {
             case F64: 
             case VOID: {
                 TypeSpec type = new NameTypeSpec(t.getPos(), t.getText());
+                advance();
                 return chainableType(type);
             }
             case IDENTIFIER: {
@@ -1490,15 +1484,21 @@ public class Parser {
 
                 // identifier() consumes multiple tokens, 
                 // account for advance in ptr check
-                rewind();
+                //rewind();
                 return chainableType(type);
             }
             case LEFT_BRACKET: {                
                 ArrayTypeSpec type = arrayType(null);
                 advance();
                 
+                boolean hasParen = match(LEFT_PAREN);
                 type.base = type(disambiguiate);
-                return type;
+                
+                if(hasParen) {
+                    consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+                }
+                
+                return chainableType(type);
             }            
             case FUNC: {
                 advance();                

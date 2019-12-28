@@ -33,7 +33,13 @@ public func (a: Array<T>*) add<T>(element: T) {
     if(a.length + 1 > a.capacity) {
         ArrayGrow<T>(a, 1)        
     }
-    a.elements[a.length] = element;
+
+    #if (isArray(scope.getSymbol("element")?type))
+        mem::memcpy(&a.elements[a.length], element as (void*), sizeof(:T));
+    #else
+        a.elements[a.length] = element;
+    #end
+
     a.length += 1
 }
 
@@ -48,9 +54,13 @@ public func (a: Array<T>*) get<T>(index: i32) : T {
 }
 
 public func (a: Array<T>*) set<T>(index: i32, element: T) {
-    assert(index >= 0 && index < a.length)
+    assert(index >= 0 && index < a.length);
 
-    a.elements[index] = element;
+    #if (isArray(scope.getSymbol("e")?type))
+        mem::memcpy(&a.elements[index], element as (void*), sizeof(:T));
+    #else
+        a.elements[index] = element;
+    #end
 }
 
 public func (a: Array<T>*) first<T>() : T {    

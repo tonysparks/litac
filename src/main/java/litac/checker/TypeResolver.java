@@ -103,10 +103,13 @@ public class TypeResolver {
     private boolean isTrying;
         
     private FuncTypeInfo currentFunc;
+    private Preprocessor preprocessor;
     
-    public TypeResolver(PhaseResult result, 
-                    CompilationUnit unit) {
+    public TypeResolver(Preprocessor pp,
+                        PhaseResult result, 
+                        CompilationUnit unit) {
         
+        this.preprocessor = pp;
         this.result = result;
         this.unit = unit;
         
@@ -477,13 +480,6 @@ public class TypeResolver {
                             }
                             
                             TypeInfo aliasedType = resolveTypeSpec(typedefDecl.type);
-                            //sym.declared = current();
-                            /*if(sym.type.sym != null) {
-                                //sym.genericDeclaration = sym.type.sym.getDeclaredModule();
-                            }
-                            else {
-                                System.out.println("here");
-                            }*/
                             
                             // Allow foreign types to be aliased and referenced
                             // in our type system                            
@@ -2435,6 +2431,16 @@ public class TypeResolver {
             }
         }
 
+        @Override
+        public void visit(CompStmt stmt) {
+            preprocessor.putContext("module", current());
+            preprocessor.putContext("scope", current().currentScope());
+            Stmt s = stmt.evaluateForBody(preprocessor);
+            if(s != null) {
+                s.visit(this);
+            }            
+        }
+        
         @Override
         public void visit(VarDeclsStmt stmt) {
             for(Stmt s : stmt.vars) {

@@ -123,5 +123,54 @@
                 printf("OS type: %s\n", OS);                  
             '''
         },
+        {
+            name: "Body If Simple",
+            definitions: '''                
+                func test<T>(i: T) : T {
+                    #if isBool(scope.getSymbol("i")?type)
+                        return i
+                    #elseif isFloat(scope.getSymbol("i")?type)
+                        return i + 4.4f
+                    #elseif isInteger(scope.getSymbol("i")?type)
+                        return i + 4
+                    #else 
+                        return i
+                    #end 
+                }                           
+            ''',            
+            code: '''
+                var x : i32 = test<i32>(1)
+                var y : f32 = test<f32>(3.0f)
+                var z : bool = test<bool>(true)
+                
+                assert(x == 5)
+                assert(y == 7.4f)
+                assert(z == true)                  
+            '''
+        },
+        {
+            name: "Body If MultiLine",
+            definitions: '''                
+                func test<T>(i: T) : T {
+                    #if isBool(scope.getSymbol("i")?type) &&\
+                        isInteger(scope.getSymbol("i")?type ) 
+                        return i
+                    #elseif isFloat(scope.getSymbol("i")?type)
+                        return i + 4.4f                    
+                    #else
+                        return i + 6                    
+                    #end 
+                }                           
+            ''',            
+            code: '''
+                var x : i32 = test<i32>(1)
+                var y : f32 = test<f32>(3.0f)
+                var z : bool = test<bool>(true)
+                
+                assert(x == 7)
+                assert(y == 7.4f)
+                assert(z == true)                  
+            '''
+        },
     ]
 }

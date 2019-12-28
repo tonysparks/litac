@@ -264,7 +264,7 @@ public class Workspace {
             visitor.visit(builtin);
                     
             PhaseResult result = new PhaseResult();
-            TypeResolver resolver = new TypeResolver(result, unit);        
+            TypeResolver resolver = new TypeResolver(options.preprocessor(), result, unit);        
             this.latestProgram = resolver.resolveTypes();
             
             return result;
@@ -274,6 +274,10 @@ public class Workspace {
             result.addError(e.getToken().getPos(), e.getErrorCode().toString());
             
             return result;
+        }
+        catch(Exception e) {
+            // an unrecoverable error
+            return new PhaseResult();
         }
     }
     

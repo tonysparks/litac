@@ -5,7 +5,9 @@ package litac.ast;
 
 import java.util.*;
 
+import litac.Errors;
 import litac.ast.Decl.*;
+import litac.compiler.*;
 
 /**
  * @author Tony
@@ -495,24 +497,126 @@ public abstract class Stmt extends Node {
         }
     }
     
-    public static class CompStmt {
+    public static class CompStmt extends Stmt {
         public String type;
         public String expr;
         public List<Stmt> body;
         public CompStmt end;
         
+        private Stmt evaluatedStmt;
+        
         public CompStmt(String type, String expr, List<Stmt> body, CompStmt end) {
             this.type = type;
             this.expr = expr;
-            this.body = body;
-            this.end = end;
-            //this.body = becomeParentOf(body);
-            //this.end = becomeParentOf(end);
+            this.body = becomeParentOf(body);
+            this.end = becomeParentOf(end);
         }
         
-//        @Override
-//        protected Node doCopy() {            
-//            return new CompStmt(this.type, this.expr, copy(body), copy(end));
-//        }
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            CompStmt s = new CompStmt(this.type, this.expr, copy(body), copy(end));
+            s.evaluatedStmt = copy(this.evaluatedStmt);
+            return s;
+        }
+        
+
+        private boolean execute(Preprocessor pp, String expression) {
+            try {
+                return pp.execute(expression);
+            }
+            catch(CompileException e) {
+                Errors.compileError(getSrcPos(), e.getMessage());
+            }
+            
+            return false;
+        }
+        
+        /**
+         * Evaluates the Compile Time Statement in a statement body
+         * 
+         * @param pp
+         * @return the {@link Stmt} that should be used as a replacement
+         */
+        public Stmt evaluateForBody(Preprocessor pp) {
+            if(this.evaluatedStmt != null) {
+                return this.evaluatedStmt;
+            }
+            
+            CompStmt compStmt = this;
+            switch(compStmt.type) {
+                case "if":
+                case "elseif":
+                case "else": {
+                    if(compStmt.type.equals("else") || execute(pp, compStmt.expr)) {
+                        List<Stmt> stmts = compStmt.body;
+                        this.evaluatedStmt = new BlockStmt(stmts).setSrcPos(getSrcPos());
+                        return this.evaluatedStmt;
+                    }
+                    else {
+                        if(compStmt.end != null) {
+                            this.evaluatedStmt = compStmt.end.evaluateForBody(pp).setSrcPos(getSrcPos());
+                            return this.evaluatedStmt;
+                        }
+                    }
+                }
+            }            
+            this.evaluatedStmt = new EmptyStmt().setSrcPos(getSrcPos());
+            return this.evaluatedStmt;
+        }
+        
+        
+        /**
+         * Evaluates the Compile Time Statement for a module.
+         * 
+         * @param pp
+         * @param imports
+         * @param moduleNotes
+         * @param declarations
+         */
+        public void evaluateForModule(Preprocessor pp, 
+                                      List<ImportStmt> imports, 
+                                      List<NoteStmt> moduleNotes, 
+                                      List<Decl> declarations) {
+            
+            CompStmt compStmt = this;
+            switch(compStmt.type) {
+                case "if":
+                case "elseif":
+                case "else": {
+                    if(compStmt.type.equals("else") || execute(pp, compStmt.expr)) {
+                        List<Stmt> stmts = compStmt.body;
+                        for(Stmt s : stmts) {
+                            if(s instanceof Decl) {
+                                declarations.add((Decl)s);
+                            }
+                            else if(s instanceof ImportStmt) {
+                                imports.add((ImportStmt)s);
+                            }
+                            else if(s instanceof NoteStmt) {
+                                moduleNotes.add((NoteStmt)s);
+                            }
+                            else if(s instanceof BlockStmt) {
+                                BlockStmt b = (BlockStmt)s;
+                                for(Stmt n : b.stmts) {
+                                    if(n instanceof NoteStmt) {
+                                        moduleNotes.add((NoteStmt)n);
+                                    }
+                                }
+                            }
+                        }
+                    }                    
+                    else {
+                        if(compStmt.end != null) {
+                            compStmt.end.evaluateForModule(pp, imports, moduleNotes, declarations);
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -52,6 +52,9 @@ public class RequestHandler {
         capabilities.capabilities.definitionProvider = true;
         capabilities.capabilities.documentSymbolProvider = true;
         capabilities.capabilities.workspaceSymbolProvider = true;
+        capabilities.capabilities.completionProvider = new CompletionOptions();
+        capabilities.capabilities.completionProvider.resolveProvider = true;
+        capabilities.capabilities.completionProvider.triggerCharacters = new String[]{"."};
         
         RpcResponse response = new RpcResponse();
         response.id = rpc.id;
@@ -76,6 +79,19 @@ public class RequestHandler {
     public void handleTextDocumentDidSave(RpcRequest rpc, DidSaveTextDocumentParams params) {        
         this.workspace.saveDocument(params);
         this.sender.sendDiagnostics(this.workspace, params.textDocument.uri);
+    }
+    
+    public void handleTextDocumentCompletion(RpcRequest rpc, CompletionParams params) {
+        Document doc = this.workspace.getDocument(params.textDocument.uri);
+        List<CompletionItem> items = Collections.emptyList();
+        if(doc != null) {
+            items = doc.getAutoCompletionList(workspace, params.position);
+        }
+        
+        RpcResponse resp = new RpcResponse();
+        resp.id = rpc.id;
+        resp.result = items;
+        this.sender.sendMessage(resp);
     }
     
     public void handleTextDocumentDefinition(RpcRequest rpc, TextDocumentPositionParams params) {

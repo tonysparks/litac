@@ -11,5 +11,6 @@ package litac.compiler;
  */
 public interface Preprocessor {
 
+    public void putContext(String name, Object context);
     public boolean execute(String stmt);
 }

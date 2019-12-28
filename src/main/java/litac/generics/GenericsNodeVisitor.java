@@ -267,6 +267,19 @@ public class GenericsNodeVisitor implements NodeVisitor {
             d.visit(this);
         }
     }
+    
+    @Override
+    public void visit(CompStmt stmt) {
+        if(stmt.body != null) {
+            for(Stmt s : stmt.body) {
+                s.visit(this);
+            }
+        }
+        
+        if(stmt.end != null) {
+            stmt.end.visit(this);
+        }
+    }
 
     @Override
     public void visit(EnumDecl d) {

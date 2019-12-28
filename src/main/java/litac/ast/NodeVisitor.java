@@ -37,6 +37,7 @@ public interface NodeVisitor {
     void visit(ConstDeclsStmt stmt);
     void visit(GotoStmt stmt);
     void visit(LabelStmt stmt);
+    void visit(CompStmt stmt);
     
     void visit(ConstDecl d);
     void visit(EnumDecl d);
@@ -170,6 +171,10 @@ public interface NodeVisitor {
         
         @Override
         public void visit(ParametersStmt stmt) {
+        }
+        
+        @Override
+        public void visit(CompStmt stmt) {
         }
 
         @Override

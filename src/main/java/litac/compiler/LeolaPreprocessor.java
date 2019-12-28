@@ -5,6 +5,7 @@ package litac.compiler;
 
 import leola.vm.Leola;
 import leola.vm.types.LeoObject;
+import litac.checker.TypeInfo;
 import litac.util.OS;
 
 /**
@@ -24,6 +25,12 @@ public class LeolaPreprocessor implements Preprocessor {
         
         this.runtime.put("options", options);
         this.runtime.put("OS", OS.getOS().name());
+        this.runtime.loadStatics(TypeInfo.class);
+    }
+    
+    @Override
+    public void putContext(String name, Object context) {
+        this.runtime.put(name, context);
     }
     
     @Override

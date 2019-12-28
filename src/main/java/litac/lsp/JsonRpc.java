@@ -258,6 +258,18 @@ public class JsonRpc {
         public boolean definitionProvider;
         public boolean documentSymbolProvider;
         public boolean workspaceSymbolProvider;
+        public CompletionOptions completionProvider;
+    }
+    
+    public static class CompletionRegistrationOptions {
+        public String[] triggerCharacters;
+        public String[] allCommitCharacters;
+        public Boolean resolveProvider;
+    }
+    
+    public static class CompletionOptions {
+        public Boolean resolveProvider;
+        public String[] triggerCharacters;        
     }
     
     public static class Diagnostic {
@@ -280,6 +292,15 @@ public class JsonRpc {
         public Position position;
     }
     
+    public static class CompletionContext {
+        public int triggerKind; // 1 Invoked, 2 TriggerCharacter, 3 TriggerForIncompleteCompletions
+        public String triggerCharacter;
+    }
+    
+    public static class CompletionParams extends TextDocumentPositionParams {
+        public CompletionContext context;
+    }
+    
     public static class DidSaveTextDocumentParams {
         public TextDocumentIdentifier textDocument;
         public String text;
@@ -299,5 +320,27 @@ public class JsonRpc {
         public boolean deprecated;
         public Location location;
         public String containerName;
+    }
+    
+    public static class CompletionItem {
+        public String label;
+        public Integer kind;
+        public String detail;
+        public String documentation;
+        public Boolean deprecated;
+        public Boolean preselect;
+        public String sortText;
+        public String filterText;
+        public String insertText;
+        //public InsertTextFormat insertTextFormat;
+        //public TextEdit textEdit;
+        //public TextEdit[] additionalTextEdits;
+        public String[] commitCharacters;
+        //public Command command;
+        public Object data;
+    }
+    
+    public static class CompletionList {
+        
     }
 }

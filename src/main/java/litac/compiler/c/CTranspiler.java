@@ -62,7 +62,7 @@ public class CTranspiler {
                                  Program program,
                                  BackendOptions options) throws Exception {
         
-        Buf buf = toC(unit, program, options.cOptions);        
+        Buf buf = toC(unit, program, options);        
         File cOutput = writeCFile(buf, options);
 
         // if there are any type checker errors, we want to fail at this point,
@@ -83,11 +83,12 @@ public class CTranspiler {
         }
     }
     
-    private static Buf toC(CompilationUnit unit, Program program, COptions options) throws Exception {
+    private static Buf toC(CompilationUnit unit, Program program, BackendOptions options) throws Exception {
         try(Segment s = Profiler.startSegment("C Genaration")) {
-            Buf buf = new Buf(options.indentWidth, options.useTabs);        
+            COptions cOptions = options.cOptions;
+            Buf buf = new Buf(cOptions.indentWidth, cOptions.useTabs);        
             
-            CGen cWriter = new CGen(unit, program, options, buf);                
+            CGen cWriter = new CGen(options.preprocessor(), unit, program, cOptions, buf);                
             cWriter.write();
             
             return buf;

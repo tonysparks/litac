@@ -7,6 +7,7 @@ import java.io.File;
 
 import litac.ast.Decl;
 import litac.ast.Node.SrcPos;
+import litac.ast.Stmt.NoteStmt;
 import litac.compiler.Symbol;
 import litac.lsp.JsonRpc.*;
 
@@ -58,5 +59,18 @@ public class LspUtil {
         }
         
         return info;
+    }
+    
+    public static CompletionItem fromSymbolCompletionItem(Symbol sym) {
+        CompletionItem item = new CompletionItem();
+        item.deprecated = sym.decl != null && sym.decl.attributes.hasNote("deprecated");
+        if(sym.decl != null && sym.decl.attributes.hasNote("doc")) {
+            NoteStmt note = sym.decl.attributes.getNote("doc");
+            item.documentation = note.getAttr(0, "");
+        }
+        
+        item.detail = sym.name;
+        item.label = sym.name;
+        return item;
     }
 }

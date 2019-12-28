@@ -37,7 +37,7 @@ public class MessageSender {
     }
     
     public void sendDiagnostics(Workspace workspace, String documentUri) {
-        PhaseResult result = workspace.processSource();
+        PhaseResult result = workspace.processSource(documentUri);
         List<PhaseError> errors = result.getErrors();
         
         PublishDiagnosticsParams params = new PublishDiagnosticsParams();

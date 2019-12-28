@@ -16,6 +16,7 @@ import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.checker.TypeResolver.Operand;
 import litac.compiler.*;
 import litac.compiler.BackendOptions.OutputType;
 import litac.compiler.FieldPath.FieldPathNode;
@@ -76,12 +77,15 @@ public class CGen {
     
     private Map<TypeSpec, TypeInfo> resolvedTypeMap;
     private CGenNodeVisitor cgen;
+    private Preprocessor preprocessor;
     
-    public CGen(CompilationUnit unit, 
-                           Program program, 
-                           COptions options, 
-                           Buf buf) {
+    public CGen(Preprocessor pp,
+                CompilationUnit unit, 
+                Program program, 
+                COptions options, 
+                Buf buf) {
         
+        this.preprocessor = pp;
         this.unit = unit;
         this.program = program;
         this.options = options;
@@ -461,7 +465,17 @@ public class CGen {
     private String typeDeclForC(TypeInfo type, String declName) {
         switch (type.getKind()) {
             case Ptr: {
-                String typeDecl = getTypeNameForC(type);                
+                PtrTypeInfo ptrInfo = type.as();
+                TypeInfo baseInfo = ptrInfo.getBaseType();
+                if(baseInfo.isKind(TypeKind.Array)) {
+                    ArrayTypeInfo arrayInfo = baseInfo.as();
+                    if(arrayInfo.length > -1) {
+                        String typeDecl = getTypeNameForC(arrayInfo.arrayOf);
+                        return String.format("%s (*%s)[%d]", typeDecl, declName, arrayInfo.length);
+                    }
+                }
+                
+                String typeDecl = getTypeNameForC(type);    
                 return String.format("%s %s", typeDecl, declName); 
             }
             case Const: {
@@ -548,6 +562,14 @@ public class CGen {
         switch (type.getKind()) {
             case Ptr: {
                 PtrTypeInfo ptrInfo = type.as();
+                TypeInfo baseInfo = ptrInfo.getBaseType();
+                if(baseInfo.isKind(TypeKind.Array)) {
+                    ArrayTypeInfo arrayInfo = baseInfo.as();
+                    if(arrayInfo.length > -1) {
+                        String typeDecl = getTypeNameForC(arrayInfo.arrayOf, isCast);
+                        return String.format("%s (*)[%d]", typeDecl, arrayInfo.length);
+                    }
+                }
                 return getTypeNameForC(ptrInfo.ptrOf, isCast) + "*";
             }
             case Const: {
@@ -857,6 +879,14 @@ public class CGen {
         
         @Override
         public void visit(ParametersStmt stmt) {
+        }
+        
+        @Override
+        public void visit(CompStmt stmt) {
+            Stmt s = stmt.evaluateForBody(preprocessor);
+            if(s != null) {
+                s.visit(this);
+            }            
         }
         
         // TODO
@@ -1890,6 +1920,12 @@ public class CGen {
         @Override
         public void visit(ArrayInitExpr expr) {
             if(!expr.values.isEmpty()) {
+                if(!(expr.getParentNode() instanceof ArrayInitExpr)) {
+                    Operand op = expr.getResolvedType();
+                    String typeName = getTypeNameForC(op.type);
+                    buf.out("(%s)", typeName);
+                }
+                
                 buf.out("{");
                 boolean isFirst = true;
                 for(Expr v : expr.values) {

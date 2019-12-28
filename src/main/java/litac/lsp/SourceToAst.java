@@ -24,6 +24,7 @@ public class SourceToAst implements NodeVisitor {
 
     private class AstNodeFound extends RuntimeException {        
         private static final long serialVersionUID = 7748524454625404184L;
+        
         Location location;        
         public AstNodeFound(Location location) {
             this.location = location;
@@ -161,7 +162,11 @@ public class SourceToAst implements NodeVisitor {
         if(type == null) {
             return false;
         }
-        TypeInfo baseType = TypeInfo.getBase(type);        
+        TypeInfo baseType = TypeInfo.getBase(type);
+        if(baseType == null || baseType.sym == null) {
+            return false;
+        }
+        
         return findFromDecl(baseType.sym.decl);
     }
     
@@ -186,17 +191,39 @@ public class SourceToAst implements NodeVisitor {
     
     @Override
     public void visit(ModuleStmt stmt) {
+        for(Stmt s:stmt.imports) {
+            s.visit(this);
+        }
+        
         for(Decl d: stmt.declarations) {
+            if(d.sym != null && d.sym.isFromGenericTemplate()) {
+                continue;
+            }
+            
             d.visit(this);            
+        }
+        
+        for(Stmt s : stmt.notes) {
+            s.visit(this);
         }
     }
 
     @Override
     public void visit(ImportStmt stmt) {
+        if(isNodeAtPos(stmt)) {
+            String moduleName = stmt.alias != null ? stmt.alias : stmt.moduleName;
+            Module m = this.module.getModule(moduleName);
+            if(m != null) {
+                findFromSrcPos(m.getModuleStmt().getSrcPos());
+            }
+        }
     }
 
     @Override
     public void visit(NoteStmt stmt) {
+        if(isNodeAtPos(stmt)) {
+            findFromSrcPos(stmt.getSrcPos());
+        }
     }
 
     @Override
@@ -316,6 +343,19 @@ public class SourceToAst implements NodeVisitor {
     public void visit(ParametersStmt stmt) {
         for(Stmt s: stmt.params) {
             s.visit(this);
+        }
+    }
+    
+    @Override
+    public void visit(CompStmt stmt) {
+        if(stmt.body != null) {
+            for(Stmt s : stmt.body) {
+                s.visit(this);
+            }
+        }
+        
+        if(stmt.end != null) {
+            stmt.end.visit(this);
         }
     }
 
@@ -581,7 +621,8 @@ public class SourceToAst implements NodeVisitor {
                 findFromSrcPos(enumField.attributes.srcPos);
             }
             else if(TypeInfo.isFieldAccessible(op.type)) {
-                AggregateTypeInfo aggInfo = op.type.as();
+                
+                AggregateTypeInfo aggInfo = TypeInfo.getBase(op.type).as();
                 
                 // first check and see if this is a field member of the 
                 // aggregate

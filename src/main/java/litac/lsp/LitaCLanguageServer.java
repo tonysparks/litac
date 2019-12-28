@@ -135,6 +135,10 @@ public class LitaCLanguageServer {
                                 this.handler.handleTextDocumentDocumentSymbol(msg, gson.fromJson(msg.params, DocumentSymbolParams.class));
                                 break;
                             }
+                            case "textDocument/completion": {
+                                this.handler.handleTextDocumentCompletion(msg, gson.fromJson(msg.params, CompletionParams.class));
+                                break;
+                            }
                             case "workspace/symbol": {
                                 this.handler.handleWorkspaceSymbol(msg, gson.fromJson(msg.params, WorkspaceSymbolParams.class));
                                 break;

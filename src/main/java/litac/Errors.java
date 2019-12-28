@@ -13,6 +13,20 @@ import litac.parser.tokens.*;
  */
 public class Errors {
 
+    public static void compileError(SrcPos pos, String message) {
+        // TODO: Rethrow the exception?? or???
+        if(pos != null) {
+            System.err.println(String.format("*** ERROR: %s at line: %d in '%s'", message, pos.lineNumber, pos.sourceFile));
+            System.err.println("\t" +pos.sourceLine);
+            System.err.println();
+        }
+        else {
+            System.err.println(String.format("*** ERROR: %s", message));            
+            System.err.println();
+        }
+    }
+
+    
     public static void typeCheckError(SrcPos pos, String message) {
         if(pos != null) {
             System.err.println(String.format("*** ERROR: %s at line: %d in '%s'", message, pos.lineNumber, pos.sourceFile));
