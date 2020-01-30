@@ -24,8 +24,13 @@ public class LspUtil {
         range.start.character = 0;
         
         range.end = new Position();
-        range.end.line = lineNumber;        
-        range.end.character = srcPos.sourceLine.length();
+        range.end.line = lineNumber;    
+        if(srcPos.sourceLine != null) {
+            range.end.character = srcPos.sourceLine.length();
+        }
+        else {
+            range.end.character = 1;
+        }
         return range;
     }
     

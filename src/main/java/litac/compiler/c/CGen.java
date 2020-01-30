@@ -66,6 +66,7 @@ public class CGen {
     private Stack<Stack<String>> constDefs;
     private int aggregateLevel;
     private Pattern testPattern;
+    private boolean testMainOnly;
     
     private List<Decl> declarations;
     private int currentLine;
@@ -93,6 +94,10 @@ public class CGen {
                 
         if(this.options.options.testRegex != null) {
             this.testPattern = Pattern.compile(this.options.options.testRegex);
+        }
+        
+        if(options.options.testFile) {
+            this.testMainOnly = true;
         }
         
         this.main = program.getMainModule();
@@ -626,7 +631,12 @@ public class CGen {
         }
     }
     
-    public boolean isTestIncluded(NoteStmt note) {        
+    public boolean isTestIncluded(NoteStmt note) { 
+        if(this.testMainOnly) {
+            String mainFile = program.getMainModule().getModuleStmt().getSourceFile();
+            return (note.getSourceFile().equals(mainFile));
+        }
+        
         if(this.testPattern == null) {
             return true;
         }

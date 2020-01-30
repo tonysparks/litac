@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 import litac.compiler.*;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.lsp.JsonRpc.*;
-import litac.parser.tokens.WordToken;
 
 /**
  * Represents a litac module document
@@ -126,17 +125,17 @@ public class Document {
         // index into source and iterate backwards until a . is found, then
         // look for the object -- this solves object. and object.startOf use cases
         // what about ctrl+space from empty context or from middle of name (i.e., Load(ctrl+space) for LoadFile, LoadModel, etc.)
-        int toIndex = getLineStart(pos.line) + pos.character;    
-        int startingIndex = readIdentifier(toIndex);
-        if(startingIndex <= toIndex && startingIndex > -1 && toIndex > -1) {
-            String text = getText();
-            String identifier = text.substring(startingIndex, toIndex + 1);
-            
-            return module.getModuleScope().getSymbols().stream()
-                    .filter(sym -> sym.declared == docModule && !sym.isBuiltin() && !sym.isFromGenericTemplate() && sym.name.startsWith(identifier))
-                    .map(sym -> LspUtil.fromSymbolCompletionItem(sym))
-                    .collect(Collectors.toList()); 
-        }
+//        int toIndex = getLineStart(pos.line) + pos.character;    
+//        int startingIndex = readIdentifier(toIndex);
+//        if(startingIndex <= toIndex && startingIndex > -1 && toIndex > -1) {
+//            String text = getText();
+//            String identifier = text.substring(startingIndex, toIndex + 1);
+//            
+//            return module.getModuleScope().getSymbols().stream()
+//                    .filter(sym -> sym.declared == docModule && !sym.isBuiltin() && !sym.isFromGenericTemplate() && sym.name.startsWith(identifier))
+//                    .map(sym -> LspUtil.fromSymbolCompletionItem(sym))
+//                    .collect(Collectors.toList()); 
+//        }
         
         //SourceToAst sta = new SourceToAst(program, module, pos);
         //sta.findSourceLocation(stmt)
@@ -148,27 +147,27 @@ public class Document {
                 .collect(Collectors.toList()); 
     }
     
-    private int readIdentifier(int index) {
-        while(index > -1) {
-            char c = this.buffer.charAt(index);            
-            if(!WordToken.isValidIdentifierCharacter(c)) {
-                break;
-            }
-            
-            index--;
-        }
-        
-        while(index < this.buffer.length()) {
-            char prevC = this.buffer.charAt(index);
-            if(WordToken.isValidStartIdentifierCharacter(prevC)) {
-                break;
-            }
-            
-            index++;
-        }
-        
-        return index;
-    }
+//    private int readIdentifier(int index) {
+//        while(index > -1) {
+//            char c = this.buffer.charAt(index);            
+//            if(!WordToken.isValidIdentifierCharacter(c)) {
+//                break;
+//            }
+//            
+//            index--;
+//        }
+//        
+//        while(index < this.buffer.length()) {
+//            char prevC = this.buffer.charAt(index);
+//            if(WordToken.isValidStartIdentifierCharacter(prevC)) {
+//                break;
+//            }
+//            
+//            index++;
+//        }
+//        
+//        return index;
+//    }
     
     public List<SymbolInformation> getSymbols(Program program) {
         if(program == null) {

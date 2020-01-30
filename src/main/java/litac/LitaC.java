@@ -51,6 +51,7 @@ public class LitaC {
         System.out.println("                         all         Means all types will have reflection values");
         System.out.println("                         tagged      Means only basic types and types annoted with @typeinfo will have reflection values");        
         System.out.println("  -test <arg>          Runs functions annotated with @test.  <arg> is a regex of which tests should be run");
+        System.out.println("  -testFile            Runs functions annotated with @test in the supplied source file only");
         System.out.println("  -buildCmd            The underlying C compiler build and compile command.  Variables will ");
         System.out.println("                       be substituted if found: ");
         System.out.println("                          %output%         The executable name ");
@@ -170,6 +171,11 @@ public class LitaC {
                     checkArg(args, i, "-test");
                     options.outputType = OutputType.Test;
                     options.testRegex = args[++i];
+                    break;
+                }
+                case "-testFile": {
+                    options.outputType = OutputType.Test;
+                    options.testFile = true;
                     break;
                 }
                 default:                    

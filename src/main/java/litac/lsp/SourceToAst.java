@@ -72,7 +72,10 @@ public class SourceToAst implements NodeVisitor {
         switch(typeSpec.kind) {
             case ARRAY:
                 ArrayTypeSpec arraySpec = typeSpec.as();
-                arraySpec.numElements.visit(this);
+                if(arraySpec.numElements != null) {
+                    arraySpec.numElements.visit(this);
+                }
+                
                 if(isNodeAtPos(arraySpec.base)) {
                     findFromTypeSpec(arraySpec.base);
                 }

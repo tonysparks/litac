@@ -66,6 +66,7 @@ public class BackendOptions {
     public boolean isVerbose;
     public OutputType outputType;
     public String testRegex;
+    public boolean testFile;
     
     public CTranspiler.COptions cOptions;
     

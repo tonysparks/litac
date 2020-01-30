@@ -88,7 +88,7 @@ public class CompilationUnit {
     
     private static ModuleStmt readModule(Preprocessor pp, File moduleFile) throws IOException {            
         if(!moduleFile.exists()) {
-            throw new FileNotFoundException();
+            throw new FileNotFoundException(moduleFile.getAbsolutePath());
         }
         
         Source source = new Source(moduleFile.getName(), new FileReader(moduleFile));                                    

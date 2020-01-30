@@ -63,10 +63,25 @@
 					"type": "string",
 					"default": "",
 					"description": "The path to the LitaC library, this should be your litac/lib directory"
+				},
+				"litac.testOutputPath": {
+					"type": "string",
+					"default": "",
+					"description": "The path to write out test output files"
+				},
+				"litac.clearTestOutput": {
+					"type": "boolean",
+					"default": "true",
+					"description": "Clears the output before each test run"
 				}
 			}
 		},
-		"commands": []
+		"commands": [
+			{
+				"command": "litac.runTestsInCurrentFile",
+				"title": "LitaC: Run tests in current file"
+			}
+		]
 	},
 	"dependencies": {
 		"vscode-languageclient": "^4.4.2"
