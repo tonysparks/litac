@@ -9,6 +9,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import litac.ast.Node.SrcPos;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
 import litac.checker.TypeResolver;
@@ -183,7 +184,7 @@ public class Workspace {
         }
     }
     
-    private ModuleStmt readModule(String moduleName) {                
+    private ModuleStmt readModule(String moduleName, PhaseResult result ) {                
         String physicalFileName = getModulePhysicalFileName(moduleName);
         String text = getDocumentText(moduleName);
         
@@ -194,7 +195,7 @@ public class Workspace {
         }
         
         Source source = new Source(physicalFileName, new StringReader(text));                                    
-        Parser parser = new Parser(this.options.preprocessor(), new Scanner(source));
+        Parser parser = new Parser(this.options.preprocessor(), result, new Scanner(source));
         ModuleStmt module = parser.parseModule();
         
         return module;
@@ -254,39 +255,38 @@ public class Workspace {
     }
     
     private PhaseResult processSourceModule(String moduleName) {
+        PhaseResult result = new PhaseResult();
         try {
-            ModuleStmt rootModule = readModule(moduleName);
-            ModuleStmt builtin = readModule("builtins");
+            
+            ModuleStmt rootModule = readModule(moduleName, result);
+            ModuleStmt builtin = readModule("builtins", result);
             
             CompilationUnit unit = new CompilationUnit(builtin, rootModule);
-            CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(unit.getImports());
+            CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(unit.getImports(), result);
             visitor.visit(rootModule);
             visitor.visit(builtin);
                     
-            PhaseResult result = new PhaseResult();
             TypeResolver resolver = new TypeResolver(options.preprocessor(), result, unit);        
-            this.latestProgram = resolver.resolveTypes();
-            
-            return result;
+            this.latestProgram = resolver.resolveTypes();            
         }
         catch(ParseException e) {
-            PhaseResult result = new PhaseResult();
-            result.addError(e.getToken().getPos(), e.getErrorCode().toString());
-            
-            return result;
+            result.addError(e.getToken().getPos(), e.getErrorCode().toString());            
         }
         catch(Exception e) {
-            // an unrecoverable error
-            return new PhaseResult();
+            result.addError((SrcPos)null, "internal compiler error: %s", e.getMessage());
         }
+        
+        return result;
     }
     
     
     private class CompilationUnitNodeVisitor extends AbstractNodeVisitor {
         Map<String, ModuleStmt> imports;
+        PhaseResult result;
         
-        CompilationUnitNodeVisitor(Map<String, ModuleStmt> imports) {
+        CompilationUnitNodeVisitor(Map<String, ModuleStmt> imports, PhaseResult result) {
             this.imports = imports;
+            this.result = result;
         }
         
         @Override
@@ -306,7 +306,7 @@ public class Workspace {
                 return null;                
             }
             
-            ModuleStmt module = readModule(moduleName);
+            ModuleStmt module = readModule(moduleName, this.result);
             this.imports.put(moduleName, module);
             
             return module;

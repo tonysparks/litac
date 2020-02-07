@@ -62,9 +62,9 @@ public class CompilationUnit {
      * @param main
      * @return
      */
-    public static CompilationUnit modules(BackendOptions options, File moduleFile) throws IOException {   
-        ModuleStmt builtin = readModule(options.preprocessor(), new File(options.libDir, "builtins.lita"));
-        ModuleStmt main = readModule(options.preprocessor(), moduleFile);
+    public static CompilationUnit modules(BackendOptions options, File moduleFile, PhaseResult result) throws IOException {   
+        ModuleStmt builtin = readModule(options.preprocessor(), new File(options.libDir, "builtins.lita"), result);
+        ModuleStmt main = readModule(options.preprocessor(), moduleFile, result);
         main.imports.add(new ImportStmt("builtins", null, false));
      
         if(options.outputType == OutputType.Test) {
@@ -74,7 +74,7 @@ public class CompilationUnit {
         
         CompilationUnit unit = new CompilationUnit(builtin, main);
         
-        CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(options, unit);
+        CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(options, unit, result);
         visitor.visit(main);
         visitor.visit(builtin);
         return unit;
@@ -86,13 +86,14 @@ public class CompilationUnit {
         }
     }
     
-    private static ModuleStmt readModule(Preprocessor pp, File moduleFile) throws IOException {            
+    private static ModuleStmt readModule(Preprocessor pp, File moduleFile, PhaseResult result) throws IOException {    
+        // TODO: should this be a phaseresult or an exception??
         if(!moduleFile.exists()) {
             throw new FileNotFoundException(moduleFile.getAbsolutePath());
         }
         
         Source source = new Source(moduleFile.getName(), new FileReader(moduleFile));                                    
-        Parser parser = new Parser(pp, new Scanner(source));
+        Parser parser = new Parser(pp, result, new Scanner(source));
         ModuleStmt module = parser.parseModule();
         
         return module;                       
@@ -102,10 +103,12 @@ public class CompilationUnit {
         
         BackendOptions options;
         CompilationUnit unit;
+        PhaseResult result;
         
-        CompilationUnitNodeVisitor(BackendOptions options, CompilationUnit unit) {
+        CompilationUnitNodeVisitor(BackendOptions options, CompilationUnit unit, PhaseResult result) {
             this.options = options;
             this.unit = unit;
+            this.result = result;
         }
         
         @Override
@@ -131,7 +134,7 @@ public class CompilationUnit {
             }
             
             try {
-                ModuleStmt module = readModule(this.options.preprocessor(), importFile);
+                ModuleStmt module = readModule(this.options.preprocessor(), importFile, this.result);
                 this.unit.imports.put(moduleName, module);
                 return module;
             }

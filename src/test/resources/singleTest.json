@@ -190,7 +190,7 @@
                 assert(z == true)                  
             '''
         },*/
-        
+        /*
         {
             name: "Body If MultiLine",
             definitions: '''                
@@ -215,7 +215,7 @@
                 assert(z == true)                  
             '''
         },
-        
+        */
         /*
         { 
             name: "Array Return Decay",
@@ -259,5 +259,17 @@
                 assert(a[0][2] == 3)
             ''',                      
         },*/
+        {
+            name: "Parsing",
+            definitions: '''                
+                
+                            
+            ''',                       
+            code: '''                
+                test("a");
+                test("b");                                          
+            ''',
+            error: "Unknown type 'test'"                      
+        },
     ]
 }
