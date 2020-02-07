@@ -26,6 +26,7 @@ public class Token {
      */
     public Token(Source source) {
         this.source = source;
+        
         this.lineNum = source.getLineNum();
         this.position = source.getPosition();
 

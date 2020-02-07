@@ -4,6 +4,7 @@ package litac.parser;
 import static litac.parser.tokens.TokenType.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import litac.Errors;
 import litac.ast.*;
@@ -15,6 +16,7 @@ import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.AggregateTypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
+import litac.compiler.PhaseResult;
 import litac.compiler.Preprocessor;
 import litac.generics.GenericParam;
 import litac.parser.tokens.*;
@@ -43,6 +45,8 @@ public class Parser {
     private Token startToken;
     private Preprocessor pp;
     
+    private PhaseResult result;
+    
     private final static Set<TokenType> GENERICS_AMBIGUITY = new HashSet<>();
     static {
         // ( ) ] { } : ; , . ? == != | ^ *
@@ -69,12 +73,19 @@ public class Parser {
      * @param scanner
      *            the scanner to be used with this parser.
      */
-    public Parser(Preprocessor pp, Scanner scanner) {
+    public Parser(Preprocessor pp,
+                  PhaseResult result,
+                  Scanner scanner) {
         this.scanner = scanner;
+        this.result = result;
         this.tokens = scanner.getTokens();
         
         this.current = 0;    
         this.pp = pp;
+    }
+    
+    public PhaseResult getPhaseResult() {
+        return this.result;
     }
 
     /**
@@ -90,42 +101,55 @@ public class Parser {
         
         String moduleName = Names.getModuleName(this.scanner.getSourceFile());
         while(!isAtEnd()) {
-            if(match(IMPORT)) {
-                imports.add(importDeclaration());
+            try {
+                tryModuleStatement(imports, moduleNotes, declarations);
             }
-            else if(match(HASH)) {
-                CompStmt compStmt = compStmt();
-                compStmt.evaluateForModule(pp, imports, moduleNotes, declarations);                
-            }
-            else {
-                List<NoteStmt> notes = notes();
-                boolean isPublic = match(PUBLIC);
-                
-                if(match(VAR))            declarations.add(varDeclaration());
-                else if(match(CONST))     declarations.add(constDeclaration());
-                else if(match(FUNC))      declarations.add(funcDeclaration());
-                else if(match(STRUCT))    declarations.add(structDeclaration());
-                else if(match(UNION))     declarations.add(unionDeclaration());
-                else if(match(ENUM))      declarations.add(enumDeclaration());
-                else if(match(TYPEDEF))   declarations.add(typedefDeclaration());            
-                else if(match(SEMICOLON)) {
-                    if(notes != null) {
-                        for(NoteStmt note : notes) {
-                            moduleNotes.add(note);
-                        }
-                    }
-                    continue;
-                }
-                else throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
-                
-                Attributes attrs = declarations.get(declarations.size() - 1).attributes; 
-                attrs.isPublic = isPublic;
-                attrs.isGlobal = true;
-                attrs.notes = notes;
+            catch(ParseException e) {
+                this.result.addError(e.getToken(), e.getMessage());
+                adjust(); // advance the tokens to avoid infinite loop
             }
         }
         
         return new ModuleStmt(moduleName, imports, moduleNotes, declarations).setSrcPos(pos);
+    }
+    
+    private void tryModuleStatement(List<ImportStmt> imports, 
+                                    List<NoteStmt> moduleNotes,
+                                    List<Decl> declarations) {
+        if(match(IMPORT)) {
+            imports.add(importDeclaration());
+        }
+        else if(match(HASH)) {
+            CompStmt compStmt = compStmt();
+            compStmt.evaluateForModule(pp, imports, moduleNotes, declarations);                
+        }
+        else {
+            List<NoteStmt> notes = notes();
+            boolean isPublic = match(PUBLIC);
+            
+            if(match(VAR))            declarations.add(varDeclaration());
+            else if(match(CONST))     declarations.add(constDeclaration());
+            else if(match(FUNC))      declarations.add(funcDeclaration());
+            else if(match(STRUCT))    declarations.add(structDeclaration());
+            else if(match(UNION))     declarations.add(unionDeclaration());
+            else if(match(ENUM))      declarations.add(enumDeclaration());
+            else if(match(TYPEDEF))   declarations.add(typedefDeclaration());            
+            else if(match(SEMICOLON)) {
+                if(notes != null) {
+                    for(NoteStmt note : notes) {
+                        moduleNotes.add(note);
+                    }
+                }
+                return;
+            }
+            else throw error(peek(), ErrorCode.UNEXPECTED_TOKEN);
+            
+            Attributes attrs = declarations.get(declarations.size() - 1).attributes; 
+            attrs.isPublic = isPublic;
+            attrs.isGlobal = true;
+            attrs.notes = notes;
+        }
+        
     }
     
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -558,7 +582,20 @@ public class Parser {
      *                      Statement parsing
      *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
     
-    private Stmt statement() {     
+    private Stmt statement() {
+        try {
+            return tryStatement();
+        }
+        catch(ParseException e) {
+            this.result.addError(e.getToken(), e.getMessage());
+            adjust(); // advance the tokens to avoid infinite loop
+        }
+        
+        // TODO: Should this be an empty statement or an ParseErrorStmt?
+        return emptyStmt();
+    }
+    
+    private Stmt tryStatement() {     
         SrcPos pos = pos();
         
         // check for notes on declarations
@@ -902,8 +939,19 @@ public class Parser {
      *                      Expression parsing
      *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
     
+    private Expr expression() {
+        try {
+            return tryExpression();
+        }
+        catch(ParseException e) {
+            this.result.addError(e.getToken(), e.getMessage());
+            adjust(); // advance the tokens to avoid infinite loop
+        }
+        
+        return new NullExpr();
+    }
     
-    private Expr expression() {        
+    private Expr tryExpression() {        
         SrcPos pos = pos();
         return assignment().setSrcPos(pos);
     }
@@ -1901,6 +1949,31 @@ public class Parser {
         return peek().getType() == END_OF_FILE;
     }
     
+    /**
+     * We've encountered a syntax error, so now we want to
+     * readjust to a healthy parsing state.
+     * 
+     * @param types
+     */
+    private void adjust(TokenType ...types) {
+        if(types == null || types.length == 0) {
+            advance();
+            return;
+        }
+               
+        Set<TokenType> set = Arrays
+                .stream(types)
+                .collect(Collectors.toSet());  
+                
+        while(!isAtEnd()) {
+            TokenType type = peek().getType();
+            if(set.contains(type)) {
+                break;
+            }
+            
+            advance();
+        }
+    }
     
     /**
      * Constructs an error message into a {@link ParseException}

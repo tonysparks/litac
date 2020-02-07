@@ -45,6 +45,10 @@ public class MessageSender {
         params.diagnostics = Collections.emptyList();
         if(!errors.isEmpty()) {
             for(PhaseError error : errors) {
+                if(error.pos == null) {
+                    continue;
+                }
+                
                 String uri = new File(error.pos.sourceFile).toURI().toString();
                 Document doc = workspace.getDocument(uri);
                 if(doc == null) {
