@@ -3,9 +3,11 @@
  */
 package litac.ast;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import litac.ast.Node.SrcPos;
+import litac.checker.TypeResolver.Operand;
 import litac.generics.GenericParam;
 import litac.util.Names;
 
@@ -153,7 +155,17 @@ public abstract class TypeSpec {
         }
         
         @Override
-        public String toString() {        
+        public String toString() {   
+            if(numElements.isResolved()) {
+                Operand operand = numElements.getResolvedType();
+                if(operand.val instanceof Number) {
+                    long length = ((BigDecimal)operand.val).longValue();
+                    if(length > -1) {
+                        return String.format("%s[%d]", this.base.toString(), length);
+                    }
+                }
+            }
+                
             return this.base.toString() + "[]";
         }
         

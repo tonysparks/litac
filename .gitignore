@@ -7,3 +7,5 @@
 /litac.exe
 /output_tests/
 /dependency-reduced-pom.xml
+/extras/litac/node_modules
+/litac-lsp.log

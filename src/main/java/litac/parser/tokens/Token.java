@@ -26,12 +26,15 @@ public class Token {
      */
     public Token(Source source) {
         this.source = source;
+        
         this.lineNum = source.getLineNum();
         this.position = source.getPosition();
 
         this.pos = new SrcPos(source.getSourceName(), 
                               source.getCurrentLine(), 
-                              this.lineNum);
+                              this.lineNum,
+                              this.position,
+                              this);
         
         extract();
     }

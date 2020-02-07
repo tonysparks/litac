@@ -18,7 +18,7 @@ import litac.checker.TypeInfo.*;
 public class Names {
 
     public static String getModuleName(String fileName) {
-        int startIndex = fileName.lastIndexOf("/");
+        int startIndex = fileName.lastIndexOf("/") + 1;
         int endIndex = fileName.lastIndexOf(".");
         
         if(startIndex < 0) {

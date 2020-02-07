@@ -188,7 +188,7 @@ func SetEvent(handle: HANDLE) : i32;
 func ResetEvent(handle: HANDLE) : i32;
 
 @foreign
-func Sleep(msec: i64);
+public func Sleep(msec: i64);
 
 @foreign
 func SleepEx(msec: DWORD, b: bool) : DWORD;

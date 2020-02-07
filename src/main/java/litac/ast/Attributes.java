@@ -6,6 +6,7 @@ package litac.ast;
 import java.util.ArrayList;
 import java.util.List;
 
+import litac.ast.Node.SrcPos;
 import litac.ast.Stmt.NoteStmt;
 
 /**
@@ -33,6 +34,7 @@ public class Attributes {
     public static final int USING_MODIFIER = (1 << 1);
     
     public int modifiers;
+    public SrcPos srcPos;
         
     public boolean isUsing() {
         return (this.modifiers & USING_MODIFIER) > 0;

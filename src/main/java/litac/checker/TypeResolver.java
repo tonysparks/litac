@@ -28,11 +28,10 @@ public class TypeResolver {
 
     private class TypeCheckException extends RuntimeException {        
         private static final long serialVersionUID = 4636780657825316494L;
-
+        public SrcPos pos;
         public TypeCheckException(SrcPos pos, String message, Object ... args) {
-            if(!isTrying) {
-                result.addError(pos, message, args);
-            }
+            super(String.format(message, args));
+            this.pos = pos;
         }
     }
     
@@ -100,13 +99,15 @@ public class TypeResolver {
     private NodeVisitor stmtVisitor;
     
     private Stack<List<GenericParam>> genericStack;
-    private boolean isTrying;
         
     private FuncTypeInfo currentFunc;
+    private Preprocessor preprocessor;
     
-    public TypeResolver(PhaseResult result, 
-                    CompilationUnit unit) {
+    public TypeResolver(Preprocessor pp,
+                        PhaseResult result, 
+                        CompilationUnit unit) {
         
+        this.preprocessor = pp;
         this.result = result;
         this.unit = unit;
         
@@ -143,81 +144,89 @@ public class TypeResolver {
         throw new TypeCheckException(pos, message, args);
     }
     
+    private void addError(Stmt stmt, String message, Object ... args) {
+        this.result.addError(stmt != null ? stmt.getSrcPos() : null, message, args);
+    }
+        
     private Module resolveModule(ModuleStmt moduleStmt) {
         this.root = createModule(moduleStmt);
         
         enterModule(this.root);
         
-        try {
-            List<Symbol> syms = null;
-            do {
-                syms = new ArrayList<>(this.moduleSymbols);
-                this.moduleSymbols.clear();
-                
-                for(Symbol sym : syms) {
-                    resolveSym(sym);
-                }
-                            
-                for(Symbol sym : syms) {
-                    finishResolveSym(sym);
-                }
-                
+        List<Symbol> syms = null;
+        do {
+            syms = new ArrayList<>(this.moduleSymbols);
+            this.moduleSymbols.clear();
+            
+            for(Symbol sym : syms) {
+                tryResolveSym(sym);
             }
-            while(!syms.isEmpty());
+                        
+            for(Symbol sym : syms) {
+                tryFinishResolveSym(sym);
+            }
+            
+        }
+        while(!syms.isEmpty());
 
-            // populate function declaration types
-            for(Symbol sym : this.moduleFuncs) {                
-                resolveSym(sym);
+        // populate function declaration types
+        for(Symbol sym : this.moduleFuncs) {                
+            tryResolveSym(sym);
+        }
+        
+        for(Symbol sym : this.pendingValues) {
+            tryResolveValue(sym);
+        }
+        
+        
+        for(Symbol sym : this.moduleFuncs) {
+            if(sym.isGenericTemplate()) {
+                continue;
             }
             
-            for(Symbol sym : this.pendingValues) {
-                resolveValue(sym);
+            tryResolveFunc(sym);
+        }
+        
+        Set<Symbol> processedSyms = new HashSet<>();
+        
+        // add all of the generic types
+        do {
+            Collection<Symbol> gens = new ArrayList<>(this.genericTypes.values());
+            gens.removeAll(processedSyms);
+            processedSyms.addAll(this.genericTypes.values());                
+            
+            if(gens.isEmpty()) {
+                break;
             }
             
-            
-            for(Symbol sym : this.moduleFuncs) {
+            for(Symbol sym : gens) {
                 if(sym.isGenericTemplate()) {
                     continue;
                 }
                 
-                resolveFunc(sym);
+                if(sym.kind == SymbolKind.FUNC) {
+                    tryResolveFunc(sym);
+                }
+                else {
+                    tryFinishResolveSym(sym);
+                }
+                
+                moduleStmt.declarations.add(sym.decl);
             }
             
-            Set<Symbol> processedSyms = new HashSet<>();
-            
-            // add all of the generic types
-            do {
-                Collection<Symbol> gens = new ArrayList<>(this.genericTypes.values());
-                gens.removeAll(processedSyms);
-                processedSyms.addAll(this.genericTypes.values());                
+        } 
+        while(true);
                 
-                if(gens.isEmpty()) {
-                    break;
-                }
-                
-                for(Symbol sym : gens) {
-                    if(sym.isGenericTemplate()) {
-                        continue;
-                    }
-                    
-                    if(sym.kind == SymbolKind.FUNC) {
-                        resolveFunc(sym);
-                    }
-                    else {
-                        finishResolveSym(sym);
-                    }
-                    
-                    moduleStmt.declarations.add(sym.decl);
-                }
-                
-            } 
-            while(true);
+        return this.root;
+    }
+    
+    private void tryResolveFunc(Symbol sym) {
+        try {
+            resolveFunc(sym);
         }
         catch(TypeCheckException e) {
-            // is logged in PhaseResult
+            this.result.addError(e.pos, e.getMessage());
         }
-        
-        return this.root;
     }
     
     private void resolveFunc(Symbol sym) {
@@ -329,108 +338,130 @@ public class TypeResolver {
         List<Decl> nonGenericDecls = new ArrayList<>();
         
         for(Decl decl : moduleStmt.declarations) {
-            switch(decl.kind) {
-                case CONST:  {
-                    Symbol sym = module.addIncomplete(decl);
-                    if(!tryResolveValue(sym)) {
-                        this.pendingValues.add(sym);
-                    }
-                    nonGenericDecls.add(decl);
-                    break;
-                }
-                case VAR: {
-                    Symbol sym = module.addIncomplete(decl);
-                    this.pendingValues.add(sym);
-                    nonGenericDecls.add(decl);
-                    break;
-                }
-                case FUNC: {
-                    FuncDecl funcDecl = (FuncDecl) decl;
-                    String funcName = funcDecl.name;
-                    if(funcDecl.isMethod()) {
-                        funcName = Names.methodName(funcDecl.params.params.get(0).type, funcName);
-                    }
-                    Symbol sym = module.declareFunc(funcDecl, funcName);
-                    sym.maskAsIncomplete();
-                    
-                    sym.type = new FuncTypeInfo(funcName, null, new ArrayList<>(), funcDecl.flags, funcDecl.genericParams);
-                    sym.type.sym = sym;
-                    
-                    this.moduleFuncs.add(sym);
-                    
-                    if(!funcDecl.hasGenericParams()) {
-                        nonGenericDecls.add(funcDecl);
-                    }
-                    else {
-                        sym.markAsGenericTemplate();
-                    }
-                    
-                    break;
-                }                
-                case ENUM: {
-                    EnumDecl enumDecl = (EnumDecl) decl;
-                    Symbol sym = module.declareEnum(enumDecl, enumDecl.name);
-                    sym.maskAsIncomplete();
-                    
-                    this.moduleSymbols.add(sym);
-                    break;
-                }
-                case STRUCT: {
-                    StructDecl structDecl = (StructDecl) decl;
-                    Symbol sym = module.declareStruct(structDecl, structDecl.name);
-                    sym.maskAsIncomplete();
-                    
-                    this.moduleSymbols.add(sym);
-                    
-                    if(!structDecl.hasGenericParams()) {
-                        nonGenericDecls.add(structDecl);
-                    }
-                    else {
-                        sym.markAsGenericTemplate();
-                    }
-                    
-                    break;
-                }
-                case UNION: {
-                    UnionDecl unionDecl = (UnionDecl) decl;
-                    Symbol sym = module.declareUnion(unionDecl, unionDecl.name);
-                    sym.maskAsIncomplete();
-                    
-                    this.moduleSymbols.add(sym);
-                    
-                    if(!unionDecl.hasGenericParams()) {
-                        nonGenericDecls.add(unionDecl);
-                    }
-                    else {
-                        sym.markAsGenericTemplate();
-                    }
-                    
-                    break;
-                }
-                case TYPEDEF: {
-                    TypedefDecl typeDecl = (TypedefDecl) decl;
-                    Symbol sym = module.declareTypedef(typeDecl, typeDecl.alias);
-                    
-                    this.moduleSymbols.add(sym);
-                    nonGenericDecls.add(typeDecl);
-                    break;
-                }
-                default:
-                    break;
-            }
+            tryResolveDeclaration(decl, module, nonGenericDecls);
         }      
         
         // we don't want the upstream systems to deal with the Generic types
         // they are resolved with proper substituted types
         moduleStmt.declarations = nonGenericDecls;        
         
-        for(ImportStmt imp : moduleStmt.imports) {
-            resolveImport(module, imp);
+        for(ImportStmt imp : moduleStmt.imports) {            
+            tryResolveImport(module, imp);            
         }   
         
         leaveModule();
         
         return module;
+    }
+    
+    private void tryResolveDeclaration(Decl decl, Module module, List<Decl> nonGenericDecls) {
+        try {
+            resolveDeclaration(decl, module, nonGenericDecls);
+        }
+        catch(TypeCheckException e) {
+            this.result.addError(e.pos, e.getMessage());
+        }
+    }
+    
+    private void resolveDeclaration(Decl decl, Module module, List<Decl> nonGenericDecls) {
+        switch(decl.kind) {
+            case CONST:  {
+                Symbol sym = module.addIncomplete(decl);
+                if(!checkResolveValue(sym)) {
+                    this.pendingValues.add(sym);
+                }
+                nonGenericDecls.add(decl);
+                break;
+            }
+            case VAR: {
+                Symbol sym = module.addIncomplete(decl);
+                this.pendingValues.add(sym);
+                nonGenericDecls.add(decl);
+                break;
+            }
+            case FUNC: {
+                FuncDecl funcDecl = (FuncDecl) decl;
+                String funcName = funcDecl.name;
+                if(funcDecl.isMethod()) {
+                    funcName = Names.methodName(funcDecl.params.params.get(0).type, funcName);
+                }
+                Symbol sym = module.declareFunc(funcDecl, funcName);
+                sym.maskAsIncomplete();
+                
+                sym.type = new FuncTypeInfo(funcName, null, new ArrayList<>(), funcDecl.flags, funcDecl.genericParams);
+                sym.type.sym = sym;
+                
+                this.moduleFuncs.add(sym);
+                
+                if(!funcDecl.hasGenericParams()) {
+                    nonGenericDecls.add(funcDecl);
+                }
+                else {
+                    sym.markAsGenericTemplate();
+                }
+                
+                break;
+            }                
+            case ENUM: {
+                EnumDecl enumDecl = (EnumDecl) decl;
+                Symbol sym = module.declareEnum(enumDecl, enumDecl.name);
+                sym.maskAsIncomplete();
+                
+                this.moduleSymbols.add(sym);
+                break;
+            }
+            case STRUCT: {
+                StructDecl structDecl = (StructDecl) decl;
+                Symbol sym = module.declareStruct(structDecl, structDecl.name);
+                sym.maskAsIncomplete();
+                
+                this.moduleSymbols.add(sym);
+                
+                if(!structDecl.hasGenericParams()) {
+                    nonGenericDecls.add(structDecl);
+                }
+                else {
+                    sym.markAsGenericTemplate();
+                }
+                
+                break;
+            }
+            case UNION: {
+                UnionDecl unionDecl = (UnionDecl) decl;
+                Symbol sym = module.declareUnion(unionDecl, unionDecl.name);
+                sym.maskAsIncomplete();
+                
+                this.moduleSymbols.add(sym);
+                
+                if(!unionDecl.hasGenericParams()) {
+                    nonGenericDecls.add(unionDecl);
+                }
+                else {
+                    sym.markAsGenericTemplate();
+                }
+                
+                break;
+            }
+            case TYPEDEF: {
+                TypedefDecl typeDecl = (TypedefDecl) decl;
+                Symbol sym = module.declareTypedef(typeDecl, typeDecl.alias);
+                
+                this.moduleSymbols.add(sym);
+                nonGenericDecls.add(typeDecl);
+                break;
+            }
+            default:
+                break;
+        }        
+    }
+    
+    private void tryResolveImport(Module parentModule, ImportStmt importStmt) {
+        try {
+            resolveImport(parentModule, importStmt);
+        }
+        catch(TypeCheckException e) {
+            this.result.addError(e.pos, e.getMessage());
+        }
     }
     
     private void resolveImport(Module parentModule, ImportStmt importStmt) {
@@ -445,6 +476,15 @@ public class TypeResolver {
         
         Module module = createModule(moduleStmt);
         parentModule.importModule(importStmt, module, importStmt.alias);
+    }
+    
+    private void tryResolveSym(Symbol sym) {
+        try {
+            resolveSym(sym);
+        }
+        catch(TypeCheckException e) {
+            this.result.addError(e.pos, e.getMessage());
+        }
     }
     
     private void resolveSym(Symbol sym) {
@@ -477,13 +517,6 @@ public class TypeResolver {
                             }
                             
                             TypeInfo aliasedType = resolveTypeSpec(typedefDecl.type);
-                            //sym.declared = current();
-                            /*if(sym.type.sym != null) {
-                                //sym.genericDeclaration = sym.type.sym.getDeclaredModule();
-                            }
-                            else {
-                                System.out.println("here");
-                            }*/
                             
                             // Allow foreign types to be aliased and referenced
                             // in our type system                            
@@ -571,6 +604,15 @@ public class TypeResolver {
         
     }
     
+    private void tryTypeCheck(SrcPos pos, TypeInfo a, TypeInfo b) {
+        try {
+            typeCheck(pos, a, b);
+        }
+        catch(TypeCheckException e) {
+            this.result.addError(pos, e.getMessage());
+        }
+    }
+    
     private void typeCheck(SrcPos pos, TypeInfo a, TypeInfo b) {
         typeCheck(pos, a, b, false);
     }
@@ -588,17 +630,22 @@ public class TypeResolver {
         }
     }
     
-    private boolean tryResolveValue(Symbol sym) {
+    private boolean checkResolveValue(Symbol sym) {
         try {
-            isTrying = true;
             resolveValue(sym);
             return true;
         }
         catch(TypeCheckException | NullPointerException e ) {
             return false;
         }
-        finally {
-            isTrying = false;
+    }
+    
+    private void tryResolveValue(Symbol sym) {
+        try {
+            resolveValue(sym);
+        }
+        catch(TypeCheckException e) {
+            this.result.addError(e.pos, e.getMessage());
         }
     }
     
@@ -686,6 +733,15 @@ public class TypeResolver {
             default: {
                 return type;
             }
+        }
+    }
+    
+    private void tryFinishResolveSym(Symbol sym) {
+        try {
+            finishResolveSym(sym);
+        }
+        catch(TypeCheckException e) {
+            this.result.addError(e.pos, e.getMessage());
         }
     }
     
@@ -1986,7 +2042,7 @@ public class TypeResolver {
             sym.type = field.type;
             sym.usingParent = rootType;
             
-            resolveSym(sym);            
+            tryResolveSym(sym);            
         }
         
         if(aggInfo.hasUsingFields()) {
@@ -1994,6 +2050,17 @@ public class TypeResolver {
                 addTypeToScope(p, scope, rootType, field.type);
             }
         }
+    }
+    
+    private Symbol tryAddSymbol(Decl d, TypeSpec typeSpec) {
+        try {
+            return addSymbol(d, typeSpec);
+        }
+        catch(TypeCheckException e) {
+            result.addError(e.pos, e.getMessage());
+        }
+        
+        return null;
     }
     
     private Symbol addSymbol(Decl d, TypeSpec typeSpec) {
@@ -2304,7 +2371,12 @@ public class TypeResolver {
 
         @Override
         public void visit(VarFieldStmt stmt) {
-            resolveTypeSpec(stmt.type);
+            try {
+                resolveTypeSpec(stmt.type);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
@@ -2394,18 +2466,18 @@ public class TypeResolver {
         public void visit(ReturnStmt stmt) {
             if(stmt.returnExpr != null) {
                 stmt.returnExpr.visit(this);
-                typeCheck(stmt.getSrcPos(), stmt.returnExpr.getResolvedType().type, currentFunc.returnType);
+                tryTypeCheck(stmt.getSrcPos(), stmt.returnExpr.getResolvedType().type, currentFunc.returnType);
             }
             else {
-                typeCheck(stmt.getSrcPos(), TypeInfo.VOID_TYPE, currentFunc.returnType);
+                tryTypeCheck(stmt.getSrcPos(), TypeInfo.VOID_TYPE, currentFunc.returnType);
             }
         }
 
         @Override
         public void visit(BlockStmt stmt) {
             current().pushScope();
-            for(Stmt s : stmt.stmts) {
-                s.visit(this);
+            for(Stmt s : stmt.stmts) {                
+                s.visit(this);                
             }
             current().popScope();
         }
@@ -2430,11 +2502,21 @@ public class TypeResolver {
                 }
                 else if(hasDefault) {
                     Decl decl = (Decl)stmt.getParentNode();
-                    error(stmt, "'%s' must have default arguments defined last", decl.name);
+                    addError(stmt, "'%s' must have default arguments defined last", decl.name);
                 }
             }
         }
 
+        @Override
+        public void visit(CompStmt stmt) {
+            preprocessor.putContext("module", current());
+            preprocessor.putContext("scope", current().currentScope());
+            Stmt s = stmt.evaluateForBody(preprocessor);
+            if(s != null) {
+                s.visit(this);
+            }            
+        }
+        
         @Override
         public void visit(VarDeclsStmt stmt) {
             for(Stmt s : stmt.vars) {
@@ -2492,7 +2574,7 @@ public class TypeResolver {
                 if(field.value != null) {
                     field.value.visit(this);
                     Operand op = field.value.getResolvedType();
-                    typeCheck(field.value.getSrcPos(), op.type, TypeInfo.I32_TYPE);
+                    tryTypeCheck(field.value.getSrcPos(), op.type, TypeInfo.I32_TYPE);
                 }
                 
                 if(definedFields.containsKey(field.name)) {
@@ -2505,15 +2587,25 @@ public class TypeResolver {
         }
         
         @Override
-        public void visit(ConstDecl d) {            
-            TypeInfo type = resolveValueDecl(d, d.type, d.expr, !d.attributes.isForeign());            
-            addSymbol(d, type);
+        public void visit(ConstDecl d) {  
+            try {
+                TypeInfo type = resolveValueDecl(d, d.type, d.expr, !d.attributes.isForeign());            
+                addSymbol(d, type);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(VarDecl d) {
-            TypeInfo type = resolveValueDecl(d, d.type, d.expr, false);            
-            addSymbol(d, type);
+            try {
+                TypeInfo type = resolveValueDecl(d, d.type, d.expr, false);            
+                addSymbol(d, type);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
             
         }
 
@@ -2551,13 +2643,13 @@ public class TypeResolver {
                 d.defaultValue.visit(this);
             }
             
-            d.sym = addSymbol(d, d.type);
+            d.sym = tryAddSymbol(d, d.type);
 
             if(d.attributes.isUsing()) {
                 TypeInfo type = d.sym.type;
                 if (!TypeInfo.isAggregate(type) && 
                     !TypeInfo.isPtrAggregate(type)) {
-                    error(d, "'%s' is not an aggregate type (or pointer to an aggregate), can't use 'using'", d.name);
+                    addError(d, "'%s' is not an aggregate type (or pointer to an aggregate), can't use 'using'", d.name);
                 }
                 else {                    
                     addTypeToScope(d, current().currentScope(), type, type);
@@ -2567,27 +2659,52 @@ public class TypeResolver {
 
         @Override
         public void visit(CastExpr expr) {
-            resolveCastExpr(expr);            
+            try {
+                resolveCastExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(SizeOfExpr expr) {
-            resolveSizeOfExpr(expr);
+            try {
+                resolveSizeOfExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(TypeOfExpr expr) {
-            resolveTypeOfExpr(expr);
+            try {
+                resolveTypeOfExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(InitArgExpr expr) {
-            resolveInitArgExpr(expr);
+            try {
+                resolveInitArgExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(InitExpr expr) {
-            resolveInitExpr(expr);            
+            try {
+                resolveInitExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
@@ -2612,76 +2729,137 @@ public class TypeResolver {
 
         @Override
         public void visit(GroupExpr expr) {
-            resolveGroupExpr(expr);
+            try {
+                resolveGroupExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(FuncCallExpr expr) {
-            resolveFuncCallExpr(expr);
+            try {
+                resolveFuncCallExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(IdentifierExpr expr) {
-            resolveIdentifier(expr);
+            try {
+                resolveIdentifier(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(FuncIdentifierExpr expr) {
-            resolveFuncIdentifier(expr);
+            try {
+                resolveFuncIdentifier(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
-        /* (non-Javadoc)
-         * @see litac.ast.NodeVisitor#visit(litac.ast.Expr.TypeIdentifierExpr)
-         */
         @Override
         public void visit(TypeIdentifierExpr expr) {
             // TODO Auto-generated method stub
-            
         }
 
         @Override
         public void visit(GetExpr expr) {
-            resolveGetExpr(expr);
+            try {
+                resolveGetExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(SetExpr expr) {
-            resolveSetExpr(expr);
+            try {
+                resolveSetExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(UnaryExpr expr) {
-            resolveUnaryExpr(expr);
+            try {
+                resolveUnaryExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(BinaryExpr expr) {
-            resolveBinaryExpr(expr);
+            try {
+                resolveBinaryExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(TernaryExpr expr) {
-            resolveTernaryExpr(expr);
+            try {
+                resolveTernaryExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(ArrayInitExpr expr) {
-            resolveArrayInitExpr(expr);
+            try {
+                resolveArrayInitExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(ArrayDesignationExpr expr) {
-            resolveArrayDesExpr(expr);
+            try {
+                resolveArrayDesExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(SubscriptGetExpr expr) {
-            resolveSubGetExpr(expr);
+            try {
+                resolveSubGetExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
 
         @Override
         public void visit(SubscriptSetExpr expr) {
-            resolveSubSetExpr(expr);
+            try {
+                resolveSubSetExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
         }
     }
 }

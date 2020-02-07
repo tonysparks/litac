@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import litac.ast.Node.SrcPos;
 import litac.ast.Stmt;
+import litac.parser.tokens.Token;
 
 /**
  * Compilation phase result.
@@ -76,6 +77,10 @@ public class PhaseResult {
     
     public void addErrors(List<PhaseError> errors) {
         this.errors.addAll(errors);
+    }
+    
+    public void addError(Token token, String message, Object ... args) {
+        addError(token.getPos(), message, args);
     }
 
     public void addError(SrcPos pos, String message, Object ... args) {

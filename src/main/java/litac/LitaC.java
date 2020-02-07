@@ -8,6 +8,7 @@ import java.io.File;
 import litac.compiler.BackendOptions;
 import litac.compiler.BackendOptions.*;
 import litac.compiler.PhaseResult.PhaseError;
+import litac.lsp.LitaCLanguageServer;
 import litac.util.Profiler;
 import litac.util.Profiler.Segment;
 import litac.compiler.Compiler;
@@ -31,6 +32,7 @@ public class LitaC {
     private static void printHelp() {
         System.out.println("<usage> litac [options] [source file to compile]");
         System.out.println("OPTIONS:");
+        System.out.println("  -languageServer      Start the LitaC language server");
         System.out.println("  -lib <arg>           The LitaC library path");
         System.out.println("  -cPrefix <arg>       The symbol prefix to use on the generated C code output");
         System.out.println("  -run                 Runs the program after a successful compile");
@@ -49,6 +51,7 @@ public class LitaC {
         System.out.println("                         all         Means all types will have reflection values");
         System.out.println("                         tagged      Means only basic types and types annoted with @typeinfo will have reflection values");        
         System.out.println("  -test <arg>          Runs functions annotated with @test.  <arg> is a regex of which tests should be run");
+        System.out.println("  -testFile            Runs functions annotated with @test in the supplied source file only");
         System.out.println("  -buildCmd            The underlying C compiler build and compile command.  Variables will ");
         System.out.println("                       be substituted if found: ");
         System.out.println("                          %output%         The executable name ");
@@ -89,10 +92,15 @@ public class LitaC {
         }
         
         BackendOptions options = new BackendOptions(BackendType.C);
+        boolean isLanguageServer = false;
         
         for(int i = 0; i < args.length; i++) {
             String arg = args[i];
             switch(arg) {
+                case "-languageServer": {
+                    isLanguageServer = true;
+                    break;
+                }
                 case "-h":
                 case "-help": {
                     printHelp();
@@ -165,36 +173,47 @@ public class LitaC {
                     options.testRegex = args[++i];
                     break;
                 }
+                case "-testFile": {
+                    options.outputType = OutputType.Test;
+                    options.testFile = true;
+                    break;
+                }
                 default:                    
                     options.buildFile = new File(args[i]);
                     break;
             }
         }
         
-        if(options.buildFile == null) {
-            System.err.println("No input file supplied");
-            System.exit(1);
+        if(isLanguageServer) {
+            LitaCLanguageServer server = new LitaCLanguageServer(options);
+            server.start();
         }
-        
-        try {
-            PhaseResult result = compile(options);
-            
-            if(result.hasErrors()) {
-                for(PhaseError error : result.getErrors()) {
-                    Errors.typeCheckError(error.pos, error.message);
-                }            
-            }  
-            
-            if(options.profile) {
-                printProfileResults();
-            }
-        }
-        catch(Exception e) {
-            if(options.isVerbose) {
-                throw e;
+        else {
+            if(options.buildFile == null) {
+                System.err.println("No input file supplied");
+                System.exit(1);
             }
             
-            System.err.println(e.getMessage());
+            try {
+                PhaseResult result = compile(options);
+                
+                if(result.hasErrors()) {
+                    for(PhaseError error : result.getErrors()) {
+                        Errors.typeCheckError(error.pos, error.message);
+                    }            
+                }  
+                
+                if(options.profile) {
+                    printProfileResults();
+                }
+            }
+            catch(Exception e) {
+                if(options.isVerbose) {
+                    throw e;
+                }
+                
+                System.err.println(e.getMessage());
+            }
         }
     }
 

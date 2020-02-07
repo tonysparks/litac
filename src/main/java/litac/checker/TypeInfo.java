@@ -234,11 +234,15 @@ public abstract class TypeInfo {
     }
     
     public static boolean isFieldAccessible(TypeInfo type) {
-        if(isAggregate(type) || isPtrAggregate(type)) {
+        if(isAggregate(type) || isPtrAggregate(type) || isEnum(type)) {
             return true;
         }
         
         return false;
+    }
+    
+    public static boolean isEnum(TypeInfo type) {
+        return type.isKind(TypeKind.Enum);
     }
     
     public static boolean isPtrLike(TypeInfo type) {
@@ -285,7 +289,7 @@ public abstract class TypeInfo {
         return false;
     }
     
-    public static boolean isPrimitiveType(TypeInfo type) {
+    public static boolean isPrimitive(TypeInfo type) {
         if(type == null ) {
             return false;
         }
@@ -306,6 +310,50 @@ public abstract class TypeInfo {
             case u64:
             case u8:
                 return true;
+            default:
+                return false;
+        }
+    }
+    
+    public static boolean isArray(TypeInfo type) {
+        if(type == null) {
+            return false;
+        }
+        
+        return type.isKind(TypeKind.Array);
+    }
+    
+    public static boolean isBool(TypeInfo type) {
+        if(type == null) {
+            return false;
+        }
+        
+        return type.isKind(TypeKind.Bool);
+    }
+    
+    public static boolean isString(TypeInfo type) {
+        if(type == null) {
+            return false;
+        }
+        
+        switch(type.kind) {
+            case Str:
+                return true;
+            case Ptr: {
+                PtrTypeInfo ptrInfo = type.as();
+                switch(ptrInfo.ptrOf.kind) {
+                    case Char:
+                    case u8:
+                    case i8:
+                        return true;
+                    default:
+                        return false;
+                }                
+            }
+            case Const: {                
+                ConstTypeInfo constInfo = type.as();
+                return isString(constInfo.constOf);                
+            }
             default:
                 return false;
         }

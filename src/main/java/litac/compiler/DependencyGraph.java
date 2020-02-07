@@ -91,7 +91,7 @@ public class DependencyGraph {
             switch(d.kind) {
                 case CONST:
                 case VAR:
-                    if(d.sym.isConstant() && TypeInfo.isPrimitiveType(d.sym.type)) {
+                    if(d.sym.isConstant() && TypeInfo.isPrimitive(d.sym.type)) {
                         this.primitiveGlobals.add(d);
                     }
                     else {

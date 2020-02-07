@@ -26,6 +26,7 @@ public class Module {
     private Module root;
     private String name;        
     private Scope currentScope;
+    private Scope moduleScope;
     
     private Map<String, Module> imports;
     private ModuleStmt moduleStmt;
@@ -88,7 +89,8 @@ public class Module {
             this.symbols = new ArrayList<>();
         }
         
-        this.currentScope = new Scope(result, ScopeType.MODULE);
+        this.moduleScope = new Scope(result, ScopeType.MODULE);
+        this.currentScope = this.moduleScope;
     }
 
     @Override
@@ -109,6 +111,13 @@ public class Module {
         }
         
         return this.symbols;
+    }
+    
+    /**
+     * @return the moduleScope
+     */
+    public Scope getModuleScope() {
+        return moduleScope;
     }
     
     public PhaseResult getPhaseResult() {

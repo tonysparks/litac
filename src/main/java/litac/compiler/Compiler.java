@@ -33,7 +33,7 @@ public class Compiler {
         PhaseResult result = new PhaseResult();
         
         try {
-            CompilationUnit unit = parse(this.options, rootModule);
+            CompilationUnit unit = parse(this.options, rootModule, result);
             Program program = typeCheck(options, result, unit);
             
             if(!result.hasErrors() && !options.checkerOnly) {
@@ -50,24 +50,18 @@ public class Compiler {
         return result;
     }
     
-    private CompilationUnit parse(BackendOptions options, File rootModule) throws IOException {
+    private CompilationUnit parse(BackendOptions options, File rootModule, PhaseResult result) throws IOException {
         try(Segment s = Profiler.startSegment("Lexing/Parsing")) {
-            CompilationUnit unit = CompilationUnit.modules(this.options, rootModule);
+            CompilationUnit unit = CompilationUnit.modules(this.options, rootModule, result);
             return unit;
         }
     }
     
     private Program typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
         try(Segment s = Profiler.startSegment("Type Checker")) {
-//            TypeResolver resolver = new TypeResolver(result, unit);        
-//            TypeChecker checker = new TypeChecker(result);
-            TypeResolver resolver = new TypeResolver(result, unit);
+            TypeResolver resolver = new TypeResolver(options.preprocessor(), result, unit);
                     
             Program program = resolver.resolveTypes();
-            if(!result.hasErrors()) {
-                //checker.typeCheck(program.getMainModule());
-            }
-            
             return program;
         }
     }
