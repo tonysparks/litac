@@ -5,12 +5,13 @@ package litac.compiler;
 
 import java.util.*;
 
-import litac.ast.Decl;
+import litac.ast.*;
 import litac.ast.Decl.*;
-import litac.ast.Expr;
 import litac.ast.Expr.*;
+import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.checker.TypeResolver.Operand;
 import litac.compiler.BackendOptions.TypeInfoOption;
 import litac.parser.tokens.TokenType;
 
@@ -23,14 +24,37 @@ import litac.parser.tokens.TokenType;
  */
 public class Reflection {
     
-    public static List<Decl> createTypeInfos(List<Decl> declarations, Program program, TypeInfoOption option) {
-        return Arrays.asList();
-        /*Module typeModule = program.getModule("type");
+    private Program program;
+    private TypeInfoOption option;
+    private NameTypeSpec typeInfoNameSpec;
+    private NameTypeSpec typeKindNameSpec;
+    
+    public Reflection(Program program, TypeInfoOption option) {
+        this.program = program;
+        this.option = option;
+        
+    }
+    
+    public List<Decl> createTypeInfos(List<Decl> declarations) {
+        Module typeModule = program.getModule("type");
         if(typeModule == null) {
             return Arrays.asList();
         }
         
+        TypeInfo typeKind = typeModule.getType("TypeKind").type;
         TypeInfo typeInfo = typeModule.getType("TypeInfo").type;
+        typeInfoNameSpec = program.getResolvedTypeMap().entrySet()
+                                    .stream()
+                                    .filter((e) -> e.getValue().equals(typeInfo))
+                                    .map(e -> e.getKey())
+                                    .findFirst().map(s -> (NameTypeSpec)s.as()).orElse(null);
+        
+        typeKindNameSpec = program.getResolvedTypeMap().entrySet()
+                                  .stream()
+                                  .filter((e) -> e.getValue().equals(typeKind))
+                                  .map(e -> e.getKey())
+                                  .findFirst().map(s -> (NameTypeSpec)s.as()).orElse(null);
+        
         long numOfTypeInfos = 0;
         
         List<Symbol> symbols = program.getSymbols();
@@ -46,23 +70,35 @@ public class Reflection {
             }
         }
         
+        TypeSpec typeSpec = typeInfo.asTypeSpec();
+        ArrayTypeSpec arrayInfo = new ArrayTypeSpec(null, typeSpec, new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(numOfTypeInfos)));
         
-        ArrayTypeInfo arrayInfo = new ArrayTypeInfo(typeInfo, numOfTypeInfos, null);
-        
-        List<Expr> infos = addTypeInfos(symbols, typeModule, option);
+        List<Expr> infos = addTypeInfos(symbols, typeModule);
         ArrayInitExpr initExpr = new ArrayInitExpr(arrayInfo, infos);
 
-        Decl typeTable = new ConstDecl("typeTable", new ArrayTypeInfo(new PtrTypeInfo(typeInfo), numOfTypeInfos, null), initExpr, 0);
-        typeModule.currentScope().addSymbol(typeModule, typeTable, "typeTable", typeTable.type, true);
+        ArrayTypeSpec typeTableType = new ArrayTypeSpec(null, new PtrTypeSpec(null, typeSpec), new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(numOfTypeInfos)));
+        Decl typeTable = new ConstDecl("typeTable", typeTableType, initExpr, 0);
+        typeModule.currentScope().addSymbol(typeModule, typeTable, "typeTable", true);
+        typeTable.sym.type = new ArrayTypeInfo(new PtrTypeInfo(typeInfo), numOfTypeInfos, null);
+        initExpr.resolveTo(Operand.op(typeTable.sym.type));
         
         Symbol sym = typeModule.currentScope().getSymbol("typeInfos");
         if(sym.decl instanceof ConstDecl) {
             ConstDecl typeInfoArray = (ConstDecl)sym.decl;
             typeInfoArray.attributes.notes.removeIf(n -> n.name.equals("foreign"));
             
-            IdentifierExpr idExpr = new IdentifierExpr("typeTable", typeTable.sym.getType());
+            NameTypeSpec name = new NameTypeSpec(null, "typeTable");
+            IdentifierExpr idExpr = new IdentifierExpr(name);
             idExpr.sym = typeTable.sym;
-            typeInfoArray.expr = new CastExpr(new PtrTypeInfo(new PtrTypeInfo(typeInfo)), idExpr);
+            
+            TypeSpec castTo = new PtrTypeSpec(null, new PtrTypeSpec(null, typeSpec));
+            TypeInfo castToInfo = new PtrTypeInfo(new PtrTypeInfo(typeInfo));
+            program.getResolvedTypeMap().put(castTo, castToInfo);
+            
+            CastExpr castExpr = new CastExpr(castTo, idExpr);
+            castExpr.resolveTo(Operand.op(castToInfo));            
+            typeInfoArray.expr = castExpr;
+            
             
             sym.removeForeign();
         }
@@ -76,11 +112,11 @@ public class Reflection {
             size.removeForeign();
         }
                 
-        return Arrays.asList(typeTable);*/
+        return Arrays.asList(typeTable);
     }
 
-    private static List<Expr> addTypeInfos(List<Symbol> symbols, Module main, TypeInfoOption option) {
-        /*if(option.equals(TypeInfoOption.None)) {
+    private List<Expr> addTypeInfos(List<Symbol> symbols, Module main) {        
+        if(option.equals(TypeInfoOption.None)) {
             return Collections.emptyList();
         }
         
@@ -99,7 +135,7 @@ public class Reflection {
                         continue;                        
                     }
                     
-                    exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(s.getType().getTypeId())), toExpr(s.decl, main)));
+               //     exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(s.getType().getTypeId())), toExpr(s.decl, main)));
                     break;
                 default:
             }            
@@ -120,15 +156,13 @@ public class Reflection {
         exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.NULL_TYPE.getTypeId())), toExpr(TypeInfo.NULL_TYPE, main)));
         exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.VOID_TYPE.getTypeId())), toExpr(TypeInfo.VOID_TYPE, main)));
         
-        return exprs;*/
-        return null;
+        return exprs;      
     }
     
-    private static Expr toExpr(TypeInfo prim, Module main) {
-        /*StructTypeInfo typeInfo = main.getType("TypeInfo").as();
-        EnumTypeInfo typeKind = main.getType("TypeKind").as();
+    private Expr toExpr(TypeInfo prim, Module main) {
+        StructTypeInfo typeInfo = main.getType("TypeInfo").type.as();
+        EnumTypeInfo typeKind = main.getType("TypeKind").type.as();
         
-
         int argPosition = 0;
         List<InitArgExpr> args = new ArrayList<>();
         args.add(new InitArgExpr("name", argPosition++, new StringExpr(prim.getName())));
@@ -136,14 +170,24 @@ public class Reflection {
         
         String name = Character.isLowerCase(prim.getKind().name().charAt(0)) ? prim.getKind().name().toUpperCase() : prim.getKind().name();
         
-        TypeInfo kindName = new IdentifierTypeInfo(name, Collections.emptyList());
-        args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(name, kindName))));
+        GetExpr getExpr = new GetExpr(new IdentifierExpr(typeKindNameSpec), 
+                                      new IdentifierExpr(new NameTypeSpec(null, name)));
+        getExpr.object.resolveTo(Operand.op(typeKind));
         
-        return new UnaryExpr(TokenType.BAND, new InitExpr(typeInfo, args));*/
-        return null;
+        args.add(new InitArgExpr("kind", argPosition++, getExpr));
+        
+        
+        InitExpr initExpr = new InitExpr(this.typeInfoNameSpec, args);
+        initExpr.resolveTo(Operand.op(typeInfo));
+        initExpr.type = this.typeInfoNameSpec;
+        
+        UnaryExpr unaryExpr = new UnaryExpr(TokenType.BAND, initExpr);
+        unaryExpr.resolveTo(Operand.op(new PtrTypeInfo(typeInfo)));
+        
+        return unaryExpr;
     }
     
-    private static Expr toExpr(Decl d, Module main) {
+    private Expr toExpr(Decl d, Module main) {
         /*StructTypeInfo typeInfo = main.getType("TypeInfo").as();
         EnumTypeInfo typeKind = main.getType("TypeKind").as();
         

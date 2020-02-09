@@ -1545,12 +1545,17 @@ public class TypeResolver {
     }
     
     private Operand resolveTypeOfExpr(TypeOfExpr c) {
+        Operand op = null;
         if(c.expr != null) {
-            resolveExpr(c.expr);
+            op = resolveExpr(c.expr);            
+        }
+        else {
+            TypeInfo type = resolveTypeSpec(c.type);
+            op = Operand.opConst(TypeInfo.I64_TYPE, type.typeId);
         }
         
-        // TODO: calculate real value
-        return Operand.opConst(TypeInfo.U64_TYPE, 0);
+        c.resolveTo(op);
+        return op;
     }
     
     private Operand resolveSizeOfExpr(SizeOfExpr c) {

@@ -2,6 +2,7 @@
     description: "Single Test",
     disabled: false,
     debug: true,
+    includeTypeInfos: true,
     program: '''                
         @include("assert.h");
         @foreign func assert(e:bool):void;
@@ -258,7 +259,7 @@
                 assert(a[0][1] == 2)
                 assert(a[0][2] == 3)
             ''',                      
-        },*/
+        },
         {
             name: "Parsing",
             definitions: '''                
@@ -270,6 +271,19 @@
                 test("b");                                          
             ''',
             error: "Unknown type 'test'"                      
+        },*/
+        {
+            name: "Reflection",
+            definitions: '''
+                import "io"                
+                import "type"
+                            
+            ''',                       
+            code: '''                
+                var i = typeof(i32);
+                printf("TypeId: %llu\n", i)    
+                var info = getTypeInfo(i)                                      
+            ''',                      
         },
     ]
 }

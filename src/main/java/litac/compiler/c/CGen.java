@@ -133,7 +133,8 @@ public class CGen {
         this.main.getModuleStmt().visit(this.cgen);
         
         DependencyGraph graph = new DependencyGraph(this.main.getPhaseResult());
-        List<Decl> typeInfos = Reflection.createTypeInfos(this.declarations, this.program, this.options.options.typeInfo);
+        Reflection reflection = new Reflection(this.program, this.options.options.typeInfo);
+        List<Decl> typeInfos = reflection.createTypeInfos(this.declarations);
         this.declarations.addAll(0, typeInfos); 
         
         List<Decl> tests = new ArrayList<>();
@@ -1509,7 +1510,12 @@ public class CGen {
         
         @Override
         public void visit(TypeOfExpr expr) {
-            buf.out("(%s)", expr.expr.getResolvedType().type.getTypeId());
+            if(expr.expr != null) {
+                buf.out("(%s)", expr.expr.getResolvedType().type.getTypeId());
+            }
+            else {
+                buf.out("(%s)", expr.getResolvedType().val);
+            }
         }
         
         @Override
