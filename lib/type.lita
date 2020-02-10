@@ -1,6 +1,7 @@
 @foreign public const typeInfos: TypeInfo**;
 @foreign public const numOfTypeInfos : i64;
 
+@asStr
 public enum TypeKind {
     Bool,
     Char,

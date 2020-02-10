@@ -578,7 +578,11 @@ public abstract class Expr extends Stmt {
     
     public static class NumberExpr extends ConstExpr {
         public String number;
-                
+        
+        public static NumberExpr expr(TypeInfo type, long number) {
+            return new NumberExpr(type, String.valueOf(number));
+        }
+        
         public NumberExpr(NumberToken token) {
             this(token.getTypeInfo(), (Number)token.getValue());
         }

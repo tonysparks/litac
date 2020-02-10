@@ -280,10 +280,19 @@
                             
             ''',                       
             code: '''                
-                var i = typeof(i32);
-                printf("TypeId: %llu\n", i)    
-                var info = getTypeInfo(i)                                      
+                var i = typeof(TypeKind);
+                //var i = typeof(i32)
+                printf("TypeId: %llu num of types: %ld\n", i, numOfTypeInfos)    
+                //var info = getTypeInfo(i) 
+                //if(!info) {
+                //    printf("Info not found!")
+                //    return 1;
+                //}
+                //var str = TypeKindAsStr(info.kind)
+                var str = "Unknown"
+                //printf("Name: '%s' Kind: %s\n", info.name, str) 
+                // TypeKindAsStr(info.kind)) wtf?                                     
             ''',                      
-        },
+        }
     ]
 }
