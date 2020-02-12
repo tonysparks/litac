@@ -241,6 +241,8 @@ public class SourceToAst implements NodeVisitor {
         if(isNodeAtPos(stmt)) {
             findFromDecl(stmt.decl);
         }
+        
+        stmt.decl.visit(this);
     }
 
     @Override
@@ -248,6 +250,8 @@ public class SourceToAst implements NodeVisitor {
         if(isNodeAtPos(stmt)) {
             findFromDecl(stmt.decl);
         }
+        
+        stmt.decl.visit(this);
     }
 
     @Override
@@ -255,6 +259,8 @@ public class SourceToAst implements NodeVisitor {
         if(isNodeAtPos(stmt)) {
             findFromDecl(stmt.decl);
         }
+        
+        stmt.decl.visit(this);
     }
 
     @Override

@@ -29,6 +29,7 @@ public class Workspace {
     private Map<String, String> modules;
     private Program latestProgram;
     private File srcDir;
+    private String latestDocumentUri;
     
     private LspLogger log;
     
@@ -64,7 +65,7 @@ public class Workspace {
         if(path.startsWith(options.libDir.toPath())) {
             packages = path.relativize(options.libDir.toPath()).toString();
         }
-        if(path.startsWith(this.srcDir.toPath())) {
+        if(this.srcDir != null && path.startsWith(this.srcDir.toPath())) {
             packages = path.relativize(this.srcDir.toPath()).toString();
         }
         
@@ -100,7 +101,8 @@ public class Workspace {
     }
             
     public void addDocument(TextDocument document) {
-        this.documents.put(canonicalPath(document.uri), new Document(getModuleName(document.uri), document));
+        this.latestDocumentUri = canonicalPath(document.uri);
+        this.documents.put(this.latestDocumentUri, new Document(getModuleName(document.uri), document));
     }
     
     public void removeDocument(String documentUri) {
@@ -246,8 +248,11 @@ public class Workspace {
     }
     
     public PhaseResult processSource() {
-        return processSourceModule(this.rootModule);
-        //return new PhaseResult();
+        String moduleName = this.rootModule;
+        if(moduleName == null) {
+            moduleName = canonicalPath(this.latestDocumentUri);
+        }
+        return processSourceModule(moduleName);
     }
     
     public PhaseResult processSource(String documentUri) {
