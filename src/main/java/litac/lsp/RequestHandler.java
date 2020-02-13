@@ -34,17 +34,21 @@ public class RequestHandler {
     }
 
     public void handleInitialize(RpcRequest rpc, InitializationParams msg) {
-        File sourcePath = new File(msg.rootPath);
-        File rootModule;
+        String path = msg.rootPath != null ? msg.rootPath : msg.rootUri;
         
-        if(sourcePath.isFile()) {
-            rootModule = sourcePath;
+        if(path != null) {
+            File sourcePath = new File(path);
+            File rootModule;
+            
+            if(sourcePath.isFile()) {
+                rootModule = sourcePath;
+            }
+            else {
+                rootModule = scanRootModule(sourcePath);
+            }
+                    
+            this.workspace.setRoot(rootModule);
         }
-        else {
-            rootModule = scanRootModule(sourcePath);
-        }
-                
-        this.workspace.setRoot(rootModule);
         
         Capabilities capabilities = new Capabilities();
         capabilities.capabilities = new ServerCapabilities();
