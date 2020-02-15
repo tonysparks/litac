@@ -1,17 +1,20 @@
 @raw("""
 
 #if _MSC_VER
-#define THREADLOCAL __declspec(thread)
-#define INLINE static inline __forceinline
-#define NOINLINE __declspec(noinline)
+#define LITAC_THREADLOCAL __declspec(thread)
+#define LITAC_INLINE static inline __forceinline
+#define LITAC_NOINLINE __declspec(noinline)
+#define LITAC_PACKED __pragma(pack(push, 1))
+#define LITAC_PACKED_POP __pragma(pack(pop))
 #endif
 
 #if __GNUC__
-#define THREADLOCAL __thread
-#define INLINE static inline __attribute__((always_inline))
-#define NOINLINE __attribute__((noinline))
+#define LITAC_THREADLOCAL __thread
+#define LITAC_INLINE static inline __attribute__((always_inline))
+#define LITAC_NOINLINE __attribute__((noinline))
+#define LITAC_PACKED __attribute__((__packed__))
+#define LITAC_PACKED_POP 
 #endif
-
 """);
 
 

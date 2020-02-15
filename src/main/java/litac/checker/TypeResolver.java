@@ -1254,6 +1254,10 @@ public class TypeResolver {
             SizeOfExpr s = expr.as();
             return resolveSizeOfExpr(s);
         }
+        case OFFSET_OF: {
+            OffsetOfExpr s = expr.as();
+            return resolveOffsetOfExpr(s);
+        }
         case SUBSCRIPT_GET: {
             SubscriptGetExpr s = expr.as();
             return resolveSubGetExpr(s);
@@ -1617,6 +1621,23 @@ public class TypeResolver {
         }
         
         c.resolveTo(op);
+        return op;
+    }
+    
+    private Operand resolveOffsetOfExpr(OffsetOfExpr c) {
+        TypeInfo type = resolveTypeSpec(c.type);
+        if(!TypeInfo.isAggregate(type)) {
+            error(c.getSrcPos(), "%s must be an aggreate type", c.type.toString());
+        }
+        AggregateTypeInfo aggInfo = type.as();
+        FieldPath path = aggInfo.getFieldPath(c.field);
+        if(path == null || !path.hasPath()) {
+            error(c.getSrcPos(), "%s does not have field '%s'", c.type.toString(), c.field);
+        }
+        
+        Operand op = Operand.op(TypeInfo.I64_TYPE);        
+        c.resolveTo(op);
+        
         return op;
     }
     
@@ -2748,6 +2769,16 @@ public class TypeResolver {
         public void visit(TypeOfExpr expr) {
             try {
                 resolveTypeOfExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
+        }
+        
+        @Override
+        public void visit(OffsetOfExpr expr) {
+            try {
+                resolveOffsetOfExpr(expr);
             }
             catch(TypeCheckException e) {
                 result.addError(e.pos, e.getMessage());

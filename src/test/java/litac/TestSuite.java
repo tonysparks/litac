@@ -206,6 +206,6 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/string_buffer.json");        
+        singleFileTest("/offsetof.json");        
     }
 }

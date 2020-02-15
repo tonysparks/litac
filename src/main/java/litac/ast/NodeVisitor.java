@@ -52,6 +52,7 @@ public interface NodeVisitor {
     void visit(CastExpr expr);
     void visit(SizeOfExpr expr);
     void visit(TypeOfExpr expr);
+    void visit(OffsetOfExpr expr);
     void visit(InitArgExpr expr);    
     void visit(InitExpr expr);    
     void visit(NullExpr expr);
@@ -236,6 +237,10 @@ public interface NodeVisitor {
         
         @Override
         public void visit(TypeOfExpr expr) {
+        }
+        
+        @Override
+        public void visit(OffsetOfExpr expr) {
         }
 
         @Override

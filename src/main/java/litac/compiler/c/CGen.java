@@ -64,6 +64,7 @@ public class CGen {
     private Stack<FuncTypeInfo> currentFuncType;
     private Stack<Stack<DeferStmt>> defers;
     private Stack<Stack<String>> constDefs;
+    private Stack<Boolean> noteStack;
     private int aggregateLevel;
     private Pattern testPattern;
     private boolean testMainOnly;
@@ -107,6 +108,7 @@ public class CGen {
         this.moduleInitFunc = new ArrayList<>();
         this.moduleDestroyFunc = new ArrayList<>();
         this.currentFuncType = new Stack<>();
+        this.noteStack = new Stack<>();
         
         this.writtenModules = new HashSet<>();
         this.defers = new Stack<>();
@@ -765,15 +767,21 @@ public class CGen {
     private class CGenNodeVisitor implements NodeVisitor { 
     
         private Buf buf;
-        
+                
         public CGenNodeVisitor(Buf buf) {
             this.buf = buf;
         }
         
         private void visitNotes(List<NoteStmt> notes) {
+            visitNotes(notes, true);
+        }
+        
+        private void visitNotes(List<NoteStmt> notes, boolean isPrelude) {
+            noteStack.push(isPrelude);
             if(notes != null) {
                 notes.forEach(n -> n.visit(this));
             }
+            noteStack.pop();
         }
             
         @Override
@@ -803,6 +811,21 @@ public class CGen {
     
         @Override
         public void visit(NoteStmt note) {
+            boolean isPrelude = noteStack.isEmpty() || noteStack.peek();
+            
+            // postlude note
+            if(!isPrelude) {
+                switch(note.name) {
+                    case "packed": {
+                        buf.out(" LITAC_PACKED_POP ");
+                        break;
+                    }
+                }
+                
+                return;
+            }
+            
+            // Prelude Notes
             switch(note.name) {
                 case "include": {
                     if(note.attributes != null) {
@@ -858,7 +881,11 @@ public class CGen {
                     break;
                 }
                 case "inline": {
-                    buf.out("INLINE ");
+                    buf.out("LITAC_INLINE ");
+                    break;
+                }
+                case "noinline": {
+                    buf.out("LITAC_NOINLINE ");
                     break;
                 }
                 case "static": {
@@ -870,7 +897,11 @@ public class CGen {
                     break;
                 }
                 case "threadlocal": {
-                    buf.out("THREADLOCAL ");
+                    buf.out("LITAC_THREADLOCAL ");
+                    break;
+                }
+                case "packed": {
+                    buf.out("LITAC_PACKED ");
                     break;
                 }
             }
@@ -1175,6 +1206,7 @@ public class CGen {
                 f.visit(this);
             }
             buf.out("};\n");
+            visitNotes(d.attributes.notes, false);
             buf.outln();
             aggregateLevel--;
         }
@@ -1516,6 +1548,11 @@ public class CGen {
             else {
                 buf.out("(%s)", expr.getResolvedType().val);
             }
+        }
+        
+        @Override
+        public void visit(OffsetOfExpr expr) {
+            buf.out("offsetof(%s, %s)", getTypeNameForC(expr.type), expr.field);
         }
         
         @Override

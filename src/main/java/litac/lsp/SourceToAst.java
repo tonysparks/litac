@@ -473,6 +473,13 @@ public class SourceToAst implements NodeVisitor {
     public void visit(SizeOfExpr expr) {
         expr.expr.visit(this);
     }
+    
+    @Override
+    public void visit(OffsetOfExpr expr) {
+        if(isNodeAtPos(expr.type)) {
+            findFromTypeSpec(expr.type);
+        }
+    }
 
     @Override
     public void visit(TypeOfExpr expr) {
