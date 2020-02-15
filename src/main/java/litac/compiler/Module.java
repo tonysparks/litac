@@ -92,14 +92,12 @@ public class Module {
         this.currentScope = this.moduleScope;
     }
     
-    private void addSymbol(Symbol sym) {
-        System.out.println("Checking: " + sym.name + " against: " + this.symbols);
+    private void addSymbol(Symbol sym) {        
         if(!this.symbols.stream()
-                        .anyMatch(s -> sym.decl == s.decl)) {
+                        .anyMatch(s -> {                            
+                            return sym.name.equals(s.name) && (sym.decl == s.decl || s.isBuiltin());
+                        })) {
             this.symbols.add(sym);
-        }
-        else {
-            System.out.println("Didn't match!");
         }
     }
 
@@ -415,8 +413,6 @@ public class Module {
     
     public Symbol addBuiltin(TypeInfo type) {
         Symbol newSym = this.currentScope.addSymbol(this, new NativeDecl(type), type.name);
-        addSymbol(newSym);
-        
         newSym.state = ResolveState.RESOLVED;
         newSym.type = type;
         newSym.markAsBuiltin();
@@ -424,6 +420,7 @@ public class Module {
         
         this.builtins.put(type.name, newSym);
         
+        addSymbol(newSym);        
         return newSym;
     }
     

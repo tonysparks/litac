@@ -1527,7 +1527,9 @@ public class CGen {
                 InitExpr initExpr = (InitExpr)parent;
                 AggregateTypeInfo type = initExpr.getResolvedType().type.as();
                 FieldInfo field = type.getFieldWithAnonymous(expr.fieldName);
-                fieldName = fieldName(field);           
+                if(field != null) {
+                    fieldName = fieldName(field);
+                }
             }
             
             if(fieldName != null) {

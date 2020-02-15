@@ -29,6 +29,7 @@ public class Reflection {
     private NameTypeSpec typeInfoNameSpec;
     private NameTypeSpec typeKindNameSpec;
     
+    
     public Reflection(Program program, TypeInfoOption option) {
         this.program = program;
         this.option = option;
@@ -125,7 +126,6 @@ public class Reflection {
         
         List<Expr> exprs = new ArrayList<>();
         for(Symbol s : symbols) {
-            System.out.println("Type: " + s.decl.name);
             switch(s.decl.kind) {            
                 case FUNC:
                 case STRUCT:
@@ -217,7 +217,7 @@ public class Reflection {
             case FUNC: {                
                 GetExpr getExpr = getTypeKindAst("Func", typeKind);
                 args.add(new InitArgExpr("kind", argPosition++, getExpr));
-               // args.add(new InitArgExpr("funcType", argPosition++, newFunc((FuncDecl)d, main, anonInfo.getField("funcType").type.as())));
+                args.add(new InitArgExpr("funcType", argPosition++, newFunc((FuncDecl)d, main, anonInfo.getField("funcType").type.as())));
                 break;
             }
             case STRUCT: {                
@@ -248,14 +248,16 @@ public class Reflection {
         return unaryExpr;
     }
     
-    private static Expr newEnum(EnumDecl d, Module main, StructTypeInfo enumType) {
+    private Expr newEnum(EnumDecl d, Module main, StructTypeInfo enumType) {
         int argPosition = 0;
         List<InitArgExpr> args = new ArrayList<>();
-        args.add(new InitArgExpr("name", argPosition++, new StringExpr(d.name)));
         args.add(new InitArgExpr("numOfFields", argPosition++, NumberExpr.expr(TypeInfo.I32_TYPE, d.fields.size())));
         
         StructTypeInfo enumFieldInfo = main.getType("EnumFieldInfo").type.as();
         NameTypeSpec enumNameSpec = enumFieldInfo.asTypeSpec().as();
+        program.getResolvedTypeMap().put(enumNameSpec, enumFieldInfo);
+        NameTypeSpec enumTypeSpec = enumType.asTypeSpec().as();
+        program.getResolvedTypeMap().put(enumTypeSpec, enumType);
         
         List<Expr> arrayValues = new ArrayList<>();
 
@@ -266,8 +268,7 @@ public class Reflection {
             
             Expr value = (field.value != null) 
                     ? field.value : new NumberExpr(TypeInfo.I32_TYPE, String.valueOf(i));
-            arrayArg.add(new InitArgExpr("value", 1, value)); // TODO: get REAL value
-            //arrayValues.add(new UnaryExpr(TokenType.BAND, new InitExpr(enumFieldInfo, arrayArg)));
+            arrayArg.add(new InitArgExpr("value", 1, value));
             
             InitExpr initExpr = new InitExpr(enumNameSpec, arrayArg);
             initExpr.resolveTo(Operand.op(enumFieldInfo));
@@ -276,26 +277,38 @@ public class Reflection {
             i++;
         }
         
+        ArrayTypeInfo arrayInfo = new ArrayTypeInfo(enumFieldInfo, arrayValues.size(), null);
         ArrayInitExpr arrayInitExpr = new ArrayInitExpr(enumNameSpec, arrayValues);
-        CastExpr castExpr = new CastExpr(new ArrayTypeSpec(null, enumNameSpec, NumberExpr.expr(TypeInfo.I64_TYPE, i)), arrayInitExpr);
-        castExpr.resolveTo(Operand.op(new ArrayTypeInfo(enumFieldInfo, i, null)));
-        args.add(new InitArgExpr("fields", argPosition++, castExpr));
+        arrayInitExpr.resolveTo(Operand.op(arrayInfo));
         
-        InitExpr initExpr = new InitExpr(enumType.asTypeSpec().as(), args);
+        ArrayTypeSpec arrayTypeSpec = new ArrayTypeSpec(null, enumNameSpec, NumberExpr.expr(TypeInfo.I64_TYPE, i));
+        program.getResolvedTypeMap().put(arrayTypeSpec, arrayInfo);
+                
+        InitArgExpr initArgExpr = new InitArgExpr("fields", argPosition++, arrayInitExpr);
+        initArgExpr.resolveTo(Operand.op(arrayInfo));
+        args.add(initArgExpr);
+        
+        InitExpr initExpr = new InitExpr(enumTypeSpec, args);
         initExpr.resolveTo(Operand.op(enumFieldInfo));
         
         return initExpr;
     }
     
-    private static Expr newFunc(FuncDecl d, Module main, StructTypeInfo funcType) {
-        /*int argPosition = 0;
-        List<InitArgExpr> args = new ArrayList<>();
-        args.add(new InitArgExpr("name", argPosition++, new StringExpr(d.name)));
-        args.add(new InitArgExpr("numOfParams", argPosition++, new NumberExpr(TypeInfo.I32_TYPE, String.valueOf(d.params.params.size()))));
-        args.add(new InitArgExpr("isVararg", argPosition++, new BooleanExpr(d.params.isVararg)));
+    private Expr newFunc(FuncDecl d, Module main, StructTypeInfo funcType) {
+
+        FuncTypeInfo funcInfo = d.sym.type.as();
+        NameTypeSpec funcTypeSpec = funcType.asTypeSpec().as();
+        program.getResolvedTypeMap().put(funcTypeSpec, funcType);
         
-//        StructTypeInfo enumFieldInfo = main.getType("EnumFieldInfo").as();
-//        List<Expr> arrayValues = new ArrayList<>();
+        int argPosition = 0;
+        List<InitArgExpr> args = new ArrayList<>();
+        args.add(new InitArgExpr("numOfParams", argPosition++, NumberExpr.expr(TypeInfo.I32_TYPE, d.params.params.size())));
+        args.add(new InitArgExpr("isVararg", argPosition++, new BooleanExpr(d.params.isVararg)));
+        args.add(new InitArgExpr("returnType", argPosition++, NumberExpr.expr(TypeInfo.I64_TYPE, funcInfo.returnType.getTypeId())));
+        
+        // args, numOrArgs
+        StructTypeInfo genericInfo = main.getType("GenericInfo").type.as();
+        List<Expr> arrayValues = new ArrayList<>();
 //
 //        int i = 0;
 //        for(EnumFieldInfo field : d.fields) {
@@ -313,7 +326,10 @@ public class Reflection {
 //        
 //        args.add(new InitArgExpr("fields", argPosition++, new CastExpr(new ArrayTypeInfo(enumFieldInfo, i, null), new ArrayInitExpr(enumFieldInfo, arrayValues))));
         
-        return new InitExpr(funcType, args);*/
-        return null;
+        
+        InitExpr initExpr = new InitExpr(funcTypeSpec, args);
+        initExpr.resolveTo(Operand.op(funcType));
+        
+        return initExpr;        
     }
 }

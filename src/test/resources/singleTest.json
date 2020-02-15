@@ -283,14 +283,18 @@
                 var i = typeof(TypeKind);
                 //var i = typeof(i32)
                 printf("TypeId: %llu num of types: %ld\n", i, numOfTypeInfos)    
-                //var info = getTypeInfo(i) 
-                //if(!info) {
-                //    printf("Info not found!")
-                //    return 1;
-                //}
-                //var str = TypeKindAsStr(info.kind)
-                var str = "Unknown"
-                //printf("Name: '%s' Kind: %s\n", info.name, str) 
+                var info = getTypeInfo(i) 
+                if(!info) {
+                    printf("Info not found!")
+                    return 1;
+                }
+                var str = TypeKindAsStr(info.kind)
+                //var str = "Unknown"
+                printf("Name: '%s' Kind: %s\n", info.name, str)
+                for(var i = 0; i < info.enumType.numOfFields; i+=1) {
+                    var field = info.enumType.fields[i]
+                    printf("Field '%s' = '%d'\n", field.name, field.value)
+                } 
                 // TypeKindAsStr(info.kind)) wtf?                                     
             ''',                      
         }
