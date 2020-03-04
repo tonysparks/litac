@@ -1,6 +1,7 @@
 @foreign public const typeInfos: TypeInfo**;
 @foreign public const numOfTypeInfos : i64;
 
+@asStr
 public enum TypeKind {
     Bool,
     Char,
@@ -24,35 +25,6 @@ public enum TypeKind {
     Void,
     
     MaxTypeKind
-}
-
-const kindStr = [TypeKind.MaxTypeKind]char const* {
-    [TypeKind.Bool]   = "Bool",
-    [TypeKind.Char]   = "Char",
-    [TypeKind.I8]     = "I8",  
-    [TypeKind.U8]     = "U8",
-    [TypeKind.I16]    = "I16", 
-    [TypeKind.U16]    = "U16",
-    [TypeKind.I32]    = "I32", 
-    [TypeKind.U32]    = "U32",
-    [TypeKind.I64]    = "I64", 
-    [TypeKind.U64]    = "U64",
-    //    i128,u128,
-    [TypeKind.F32]    = "F32", 
-    [TypeKind.F64]    = "F64",
-        
-    [TypeKind.Str]    = "Str",
-    [TypeKind.Array]  = "Array",
-    [TypeKind.Ptr]    = "Ptr",
-    [TypeKind.Null]   = "Null",
-    [TypeKind.FuncPtr]= "FuncPtr",
-        
-    [TypeKind.Struct] = "Struct",
-    [TypeKind.Func]   = "Func",
-    [TypeKind.Enum]   = "Enum",
-    [TypeKind.Union]  = "Union",
-        
-    [TypeKind.Void]   = "Void",
 }
 
 typedef i64 as typeid;
@@ -105,24 +77,20 @@ public struct TypeInfo {
         }
         struct funcType {
             genInfo: using GenericInfo
-            name: char const*
             isVararg: bool
-            returnType: TypeInfo*
+            returnType: typeid
             params: ParamInfo*
             numOfParams: i32
         }
         struct structType {
-            name: char const*
             fields: FieldInfo*
             numOfFields: i32
         }
         struct unionType {
-            name: char const*
             fields: FieldInfo*
             numOfFields: i32
         }
         struct enumType {
-            name: char const*
             fields: EnumFieldInfo*
             numOfFields: i32
         }
@@ -135,12 +103,4 @@ public func getTypeInfo(id: typeid) : TypeInfo* {
     }
     
     return typeInfos[id];
-}
-
-public func typeKindStr(kind: TypeKind) : char const* {
-    if(kind < 0 || kind > TypeKind.MaxTypeKind) {
-        return null;
-    }
-    
-    return kindStr[kind]
 }

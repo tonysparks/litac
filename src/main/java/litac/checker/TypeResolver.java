@@ -91,6 +91,7 @@ public class TypeResolver {
     private Module root;
     
     // Types pending to be completed
+    private List<Symbol> programSymbols;
     private List<Symbol> pendingTypes;
     private List<Symbol> pendingValues;
     private Map<String, Symbol> genericTypes;
@@ -111,6 +112,7 @@ public class TypeResolver {
         this.result = result;
         this.unit = unit;
         
+        this.programSymbols = new ArrayList<>();
         this.moduleSymbols = new ArrayList<>();
         this.moduleFuncs = new ArrayList<>();
         this.pendingTypes = new ArrayList<>();
@@ -165,7 +167,6 @@ public class TypeResolver {
             for(Symbol sym : syms) {
                 tryFinishResolveSym(sym);
             }
-            
         }
         while(!syms.isEmpty());
 
@@ -329,7 +330,12 @@ public class TypeResolver {
             return resolvedModules.get(moduleName);
         }
         
-        Module module = new Module(this.root, this.genericTypes, result, moduleStmt, moduleName);
+        Module module = new Module(this.root, 
+                                   this.programSymbols, 
+                                   this.genericTypes, 
+                                   this.result, 
+                                   moduleStmt, 
+                                   moduleName);
         addBuiltins(module);
         
         resolvedModules.put(moduleName, module);
@@ -408,6 +414,11 @@ public class TypeResolver {
                 sym.maskAsIncomplete();
                 
                 this.moduleSymbols.add(sym);
+                
+                Symbol enumAsStrSym = createEnumAsStrFunc(enumDecl, sym);
+                if(enumAsStrSym != null) {
+                    this.moduleSymbols.add(enumAsStrSym);
+                }
                 break;
             }
             case STRUCT: {
@@ -507,8 +518,18 @@ public class TypeResolver {
                             EnumDecl enumDecl = (EnumDecl)sym.decl;
                             sym.type = enumTypeInfo(enumDecl);     
                             sym.type.sym = sym;
+                            // required to avoid cyclic
+                            sym.state = ResolveState.RESOLVED; 
                             
-                            createEnumAsStr(enumDecl, sym);
+                            // Done during declaration resolution (so that public types can
+                            // be properly imported to other modules.
+                            // However, we need to check and see if we need to do this again
+                            // for enum declared in structs/union because those are NOT
+                            // part of module declarations.
+                            Symbol enumAsStrSym = createEnumAsStrFunc(enumDecl, sym);
+                            if(enumAsStrSym != null) {
+                                resolveSym(enumAsStrSym);
+                            }
                             break;
                         case TYPEDEF:
                             TypedefDecl typedefDecl = (TypedefDecl) sym.decl;
@@ -571,7 +592,47 @@ public class TypeResolver {
         }
     }        
     
-    private Symbol createEnumAsStr(EnumDecl enumDecl, Symbol enumSym) {
+    private Symbol createEnumAsStrFunc(EnumDecl enumDecl, Symbol enumSym) {
+        NoteStmt asStr = enumDecl.attributes.getNote("asStr");
+        if(asStr == null) {
+            return null;
+        }
+        
+        String funcName = asStr.getAttr(0, enumDecl.name + "AsStr");
+        FuncTypeInfo asStrFuncInfo = new FuncTypeInfo(funcName, 
+                                                      new PtrTypeInfo(new ConstTypeInfo(TypeInfo.CHAR_TYPE)), 
+                                                      new ArrayList<>(), 
+                                                      0, 
+                                                      Collections.emptyList());
+        
+        ParameterDecl param = new ParameterDecl(new NameTypeSpec(enumDecl.getSrcPos(), enumDecl.name), "e", null, 0);
+        FuncDecl funcDecl = new FuncDecl(asStrFuncInfo.name, 
+                                         new ParametersStmt(Arrays.asList(param), false),   
+                                         new EmptyStmt(),
+                                         asStrFuncInfo.returnType.asTypeSpec(), 
+                                         Collections.emptyList(), 0);
+        
+        // Name must match CGen.visit(EnumDecl)
+        funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + current().name() + "_" + enumDecl.name + "_AsStr")));
+        funcDecl.attributes.isGlobal = enumSym.decl.attributes.isGlobal;
+        funcDecl.attributes.isPublic = enumSym.decl.attributes.isPublic;
+        Module module = current();
+        
+        // this was already created via a declaration
+        if(module.getFuncType(asStrFuncInfo.name) != null && !enumSym.isLocal()) {
+            return null;
+        }
+        
+        Symbol sym = current().declareFunc(funcDecl, asStrFuncInfo.name);
+        sym.type = asStrFuncInfo;
+        sym.type.sym = sym;
+        //sym.state = ResolveState.RESOLVED;
+                
+        return sym;       
+    }
+    
+    /*
+    private Symbol createEnumAsStrFunc(EnumDecl enumDecl, Symbol enumSym) {
         NoteStmt asStr = enumDecl.attributes.getNote("asStr");
         if(asStr == null) {
             return null;
@@ -593,16 +654,16 @@ public class TypeResolver {
         
         // Name must match CGen.visit(EnumDecl)
         funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + current().name() + "_" + enumDecl.name + "_AsStr")));
-        funcDecl.attributes.isGlobal = true;
-        funcDecl.attributes.isPublic = true;
+        funcDecl.attributes.isGlobal = enumSym.decl.attributes.isGlobal;
+        funcDecl.attributes.isPublic = enumSym.decl.attributes.isPublic;
         
         Symbol sym = current().declareFunc(funcDecl, asStrFuncInfo.name);
         sym.type = asStrFuncInfo;
         sym.type.sym = sym;
+        sym.state = ResolveState.RESOLVED;
                 
-        return sym;
-        
-    }
+        return sym;       
+    }*/
     
     private void tryTypeCheck(SrcPos pos, TypeInfo a, TypeInfo b) {
         try {
@@ -1193,6 +1254,10 @@ public class TypeResolver {
             SizeOfExpr s = expr.as();
             return resolveSizeOfExpr(s);
         }
+        case OFFSET_OF: {
+            OffsetOfExpr s = expr.as();
+            return resolveOffsetOfExpr(s);
+        }
         case SUBSCRIPT_GET: {
             SubscriptGetExpr s = expr.as();
             return resolveSubGetExpr(s);
@@ -1547,7 +1612,8 @@ public class TypeResolver {
     private Operand resolveTypeOfExpr(TypeOfExpr c) {
         Operand op = null;
         if(c.expr != null) {
-            op = resolveExpr(c.expr);            
+            Operand exprOp = resolveExpr(c.expr);
+            op = Operand.opConst(TypeInfo.I64_TYPE, exprOp.type.typeId);
         }
         else {
             TypeInfo type = resolveTypeSpec(c.type);
@@ -1555,6 +1621,23 @@ public class TypeResolver {
         }
         
         c.resolveTo(op);
+        return op;
+    }
+    
+    private Operand resolveOffsetOfExpr(OffsetOfExpr c) {
+        TypeInfo type = resolveTypeSpec(c.type);
+        if(!TypeInfo.isAggregate(type)) {
+            error(c.getSrcPos(), "%s must be an aggreate type", c.type.toString());
+        }
+        AggregateTypeInfo aggInfo = type.as();
+        FieldPath path = aggInfo.getFieldPath(c.field);
+        if(path == null || !path.hasPath()) {
+            error(c.getSrcPos(), "%s does not have field '%s'", c.type.toString(), c.field);
+        }
+        
+        Operand op = Operand.op(TypeInfo.I64_TYPE);        
+        c.resolveTo(op);
+        
         return op;
     }
     
@@ -2686,6 +2769,16 @@ public class TypeResolver {
         public void visit(TypeOfExpr expr) {
             try {
                 resolveTypeOfExpr(expr);
+            }
+            catch(TypeCheckException e) {
+                result.addError(e.pos, e.getMessage());
+            }
+        }
+        
+        @Override
+        public void visit(OffsetOfExpr expr) {
+            try {
+                resolveOffsetOfExpr(expr);
             }
             catch(TypeCheckException e) {
                 result.addError(e.pos, e.getMessage());

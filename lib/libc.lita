@@ -3,6 +3,7 @@
 @include("<stdlib.h>");
 @include("<math.h>");
 @include("<ctype.h>");
+@include("<limits.h>");
 
 @raw("""
     #define MIN(x, y) ((x) <= (y) ? (x) : (y))

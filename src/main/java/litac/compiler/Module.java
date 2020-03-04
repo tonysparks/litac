@@ -55,6 +55,7 @@ public class Module {
     private List<Symbol> symbols;
         
     public Module(Module root,
+                  List<Symbol> programSymbols,
                   Map<String, Symbol> genericTypes,
                   PhaseResult result, 
                   ModuleStmt moduleStmt, 
@@ -85,12 +86,19 @@ public class Module {
         this.genericTypes = genericTypes;
         this.notes = new ArrayList<>();
         
-        if(this.root == null) {
-            this.symbols = new ArrayList<>();
-        }
+        this.symbols = programSymbols;
         
         this.moduleScope = new Scope(result, ScopeType.MODULE);
         this.currentScope = this.moduleScope;
+    }
+    
+    private void addSymbol(Symbol sym) {        
+        if(!this.symbols.stream()
+                        .anyMatch(s -> {                            
+                            return sym.name.equals(s.name) && (sym.decl == s.decl || s.isBuiltin());
+                        })) {
+            this.symbols.add(sym);
+        }
     }
 
     @Override
@@ -105,11 +113,7 @@ public class Module {
     /**
      * @return the symbols
      */
-    public List<Symbol> getSymbols() {
-        if(this.root != null) {
-            return this.root.getSymbols();
-        }
-        
+    public List<Symbol> getSymbols() {        
         return this.symbols;
     }
     
@@ -274,7 +278,7 @@ public class Module {
     
     private Symbol addPublicDecl(Decl decl, String name) {
         Symbol sym = this.currentScope.addSymbol(this, decl, name);
-        getSymbols().add(sym);
+        addSymbol(sym);
         
         if(decl.attributes.isPublic) {
             if(decl.kind == DeclKind.FUNC) {                                
@@ -402,15 +406,13 @@ public class Module {
         }
         
         Symbol newSym = this.currentScope.addSymbol(this, decl, decl.name, Symbol.IS_INCOMPLETE);
-        getSymbols().add(newSym);
+        addSymbol(newSym);
         
         return newSym;
     }
     
     public Symbol addBuiltin(TypeInfo type) {
         Symbol newSym = this.currentScope.addSymbol(this, new NativeDecl(type), type.name);
-        getSymbols().add(newSym);
-        
         newSym.state = ResolveState.RESOLVED;
         newSym.type = type;
         newSym.markAsBuiltin();
@@ -418,6 +420,7 @@ public class Module {
         
         this.builtins.put(type.name, newSym);
         
+        addSymbol(newSym);        
         return newSym;
     }
     

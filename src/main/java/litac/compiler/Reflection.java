@@ -17,7 +17,7 @@ import litac.parser.tokens.TokenType;
 
 /**
  * Builds an array of TypeInfo objects so that types can
- * be reflected
+ * be reflected.
  * 
  * @author Tony
  *
@@ -28,6 +28,7 @@ public class Reflection {
     private TypeInfoOption option;
     private NameTypeSpec typeInfoNameSpec;
     private NameTypeSpec typeKindNameSpec;
+    
     
     public Reflection(Program program, TypeInfoOption option) {
         this.program = program;
@@ -71,16 +72,17 @@ public class Reflection {
         }
         
         TypeSpec typeSpec = typeInfo.asTypeSpec();
-        ArrayTypeSpec arrayInfo = new ArrayTypeSpec(null, typeSpec, new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(numOfTypeInfos)));
+        ArrayTypeSpec arrayInfo = new ArrayTypeSpec(null, typeSpec, NumberExpr.expr(TypeInfo.I64_TYPE, numOfTypeInfos));
         
         List<Expr> infos = addTypeInfos(symbols, typeModule);
         ArrayInitExpr initExpr = new ArrayInitExpr(arrayInfo, infos);
 
-        ArrayTypeSpec typeTableType = new ArrayTypeSpec(null, new PtrTypeSpec(null, typeSpec), new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(numOfTypeInfos)));
+        ArrayTypeSpec typeTableType = new ArrayTypeSpec(null, new PtrTypeSpec(null, typeSpec), NumberExpr.expr(TypeInfo.I64_TYPE, numOfTypeInfos));
         Decl typeTable = new ConstDecl("typeTable", typeTableType, initExpr, 0);
-        typeModule.currentScope().addSymbol(typeModule, typeTable, "typeTable", true);
-        typeTable.sym.type = new ArrayTypeInfo(new PtrTypeInfo(typeInfo), numOfTypeInfos, null);
-        initExpr.resolveTo(Operand.op(typeTable.sym.type));
+        Symbol tableSym = typeModule.currentScope().addSymbol(typeModule, typeTable, "typeTable", true);
+        tableSym.type = new ArrayTypeInfo(new PtrTypeInfo(typeInfo), numOfTypeInfos, null);
+        
+        initExpr.resolveTo(Operand.op(tableSym.type));
         
         Symbol sym = typeModule.currentScope().getSymbol("typeInfos");
         if(sym.decl instanceof ConstDecl) {
@@ -135,7 +137,7 @@ public class Reflection {
                         continue;                        
                     }
                     
-               //     exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(s.getType().getTypeId())), toExpr(s.decl, main)));
+                    exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(s.getType().getTypeId())), toExpr(s.decl, main)));
                     break;
                 default:
             }            
@@ -170,16 +172,11 @@ public class Reflection {
         
         String name = Character.isLowerCase(prim.getKind().name().charAt(0)) ? prim.getKind().name().toUpperCase() : prim.getKind().name();
         
-        GetExpr getExpr = new GetExpr(new IdentifierExpr(typeKindNameSpec), 
-                                      new IdentifierExpr(new NameTypeSpec(null, name)));
-        getExpr.object.resolveTo(Operand.op(typeKind));
-        
+        GetExpr getExpr = getTypeKindAst(name, typeKind);
         args.add(new InitArgExpr("kind", argPosition++, getExpr));
-        
         
         InitExpr initExpr = new InitExpr(this.typeInfoNameSpec, args);
         initExpr.resolveTo(Operand.op(typeInfo));
-        initExpr.type = this.typeInfoNameSpec;
         
         UnaryExpr unaryExpr = new UnaryExpr(TokenType.BAND, initExpr);
         unaryExpr.resolveTo(Operand.op(new PtrTypeInfo(typeInfo)));
@@ -187,9 +184,17 @@ public class Reflection {
         return unaryExpr;
     }
     
+    private GetExpr getTypeKindAst(String name, EnumTypeInfo typeKind) {
+        GetExpr getExpr = new GetExpr(new IdentifierExpr(typeKindNameSpec), 
+                                      new IdentifierExpr(new NameTypeSpec(null, name)));
+        
+        getExpr.object.resolveTo(Operand.op(typeKind));
+        return getExpr;
+    }
+    
     private Expr toExpr(Decl d, Module main) {
-        /*StructTypeInfo typeInfo = main.getType("TypeInfo").as();
-        EnumTypeInfo typeKind = main.getType("TypeKind").as();
+        StructTypeInfo typeInfo = main.getType("TypeInfo").type.as();
+        EnumTypeInfo typeKind = main.getType("TypeKind").type.as();
         
         UnionTypeInfo anonInfo = typeInfo.fieldInfos.stream()
                 .filter(f -> f.type.isAnonymous())
@@ -200,29 +205,29 @@ public class Reflection {
         int argPosition = 0;
         List<InitArgExpr> args = new ArrayList<>();
         args.add(new InitArgExpr("name", argPosition++, new StringExpr(d.name)));
-        args.add(new InitArgExpr("id", argPosition++, new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(d.type.getTypeId()))));
+        args.add(new InitArgExpr("id", argPosition++, NumberExpr.expr(TypeInfo.I64_TYPE, d.sym.type.getTypeId())));
         
         switch(d.kind) {
             case ENUM: {
-                TypeInfo kindName = new IdentifierTypeInfo("Enum", Collections.emptyList());
-                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(kindName.name, kindName))));
+                GetExpr getExpr = getTypeKindAst("Enum", typeKind);
+                args.add(new InitArgExpr("kind", argPosition++, getExpr));
                 args.add(new InitArgExpr("enumType", argPosition++, newEnum((EnumDecl)d, main, anonInfo.getField("enumType").type.as())));
                 break;
             }
-            case FUNC: {
-                TypeInfo kindName = new IdentifierTypeInfo("Func", Collections.emptyList());
-                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(kindName.name, kindName))));
+            case FUNC: {                
+                GetExpr getExpr = getTypeKindAst("Func", typeKind);
+                args.add(new InitArgExpr("kind", argPosition++, getExpr));
                 args.add(new InitArgExpr("funcType", argPosition++, newFunc((FuncDecl)d, main, anonInfo.getField("funcType").type.as())));
                 break;
             }
-            case STRUCT: {
-                TypeInfo kindName = new IdentifierTypeInfo("Struct", Collections.emptyList());
-                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(kindName.name, kindName))));
+            case STRUCT: {                
+                GetExpr getExpr = getTypeKindAst("Struct", typeKind);
+                args.add(new InitArgExpr("kind", argPosition++, getExpr));
                 break;
             }
             case UNION: {
-                TypeInfo kindName = new IdentifierTypeInfo("Union", Collections.emptyList());
-                args.add(new InitArgExpr("kind", argPosition++, new GetExpr(new IdentifierExpr("TypeKind", typeKind), new IdentifierExpr(kindName.name, kindName))));
+                GetExpr getExpr = getTypeKindAst("Union", typeKind);
+                args.add(new InitArgExpr("kind", argPosition++, getExpr));
                 break;
             }
             case CONST:
@@ -234,17 +239,26 @@ public class Reflection {
         
         }
         
-        return new UnaryExpr(TokenType.BAND, new InitExpr(typeInfo, args));*/
-        return null;
+        InitExpr initExpr = new InitExpr(this.typeInfoNameSpec, args);
+        initExpr.resolveTo(Operand.op(typeInfo));
+                
+        UnaryExpr unaryExpr = new UnaryExpr(TokenType.BAND, initExpr);
+        unaryExpr.resolveTo(Operand.op(new PtrTypeInfo(typeInfo)));
+        
+        return unaryExpr;
     }
     
-    private static Expr newEnum(EnumDecl d, Module main, StructTypeInfo enumType) {
-        /*int argPosition = 0;
+    private Expr newEnum(EnumDecl d, Module main, StructTypeInfo enumType) {
+        int argPosition = 0;
         List<InitArgExpr> args = new ArrayList<>();
-        args.add(new InitArgExpr("name", argPosition++, new StringExpr(d.name)));
-        args.add(new InitArgExpr("numOfFields", argPosition++, new NumberExpr(TypeInfo.I32_TYPE, String.valueOf(d.fields.size()))));
+        args.add(new InitArgExpr("numOfFields", argPosition++, NumberExpr.expr(TypeInfo.I32_TYPE, d.fields.size())));
         
-        StructTypeInfo enumFieldInfo = main.getType("EnumFieldInfo").as();
+        StructTypeInfo enumFieldInfo = main.getType("EnumFieldInfo").type.as();
+        NameTypeSpec enumNameSpec = enumFieldInfo.asTypeSpec().as();
+        program.getResolvedTypeMap().put(enumNameSpec, enumFieldInfo);
+        NameTypeSpec enumTypeSpec = enumType.asTypeSpec().as();
+        program.getResolvedTypeMap().put(enumTypeSpec, enumType);
+        
         List<Expr> arrayValues = new ArrayList<>();
 
         int i = 0;
@@ -254,28 +268,47 @@ public class Reflection {
             
             Expr value = (field.value != null) 
                     ? field.value : new NumberExpr(TypeInfo.I32_TYPE, String.valueOf(i));
-            arrayArg.add(new InitArgExpr("value", 1, value)); // TODO: get REAL value
-            //arrayValues.add(new UnaryExpr(TokenType.BAND, new InitExpr(enumFieldInfo, arrayArg)));
-            arrayValues.add(new InitExpr(enumFieldInfo, arrayArg));
+            arrayArg.add(new InitArgExpr("value", 1, value));
+            
+            InitExpr initExpr = new InitExpr(enumNameSpec, arrayArg);
+            initExpr.resolveTo(Operand.op(enumFieldInfo));
+            arrayValues.add(initExpr);
             
             i++;
         }
         
-        args.add(new InitArgExpr("fields", argPosition++, new CastExpr(new ArrayTypeInfo(enumFieldInfo, i, null), new ArrayInitExpr(enumFieldInfo, arrayValues))));
+        ArrayTypeInfo arrayInfo = new ArrayTypeInfo(enumFieldInfo, arrayValues.size(), null);
+        ArrayInitExpr arrayInitExpr = new ArrayInitExpr(enumNameSpec, arrayValues);
+        arrayInitExpr.resolveTo(Operand.op(arrayInfo));
         
-        return new InitExpr(enumType, args);*/
-        return null;
+        ArrayTypeSpec arrayTypeSpec = new ArrayTypeSpec(null, enumNameSpec, NumberExpr.expr(TypeInfo.I64_TYPE, i));
+        program.getResolvedTypeMap().put(arrayTypeSpec, arrayInfo);
+                
+        InitArgExpr initArgExpr = new InitArgExpr("fields", argPosition++, arrayInitExpr);
+        initArgExpr.resolveTo(Operand.op(arrayInfo));
+        args.add(initArgExpr);
+        
+        InitExpr initExpr = new InitExpr(enumTypeSpec, args);
+        initExpr.resolveTo(Operand.op(enumFieldInfo));
+        
+        return initExpr;
     }
     
-    private static Expr newFunc(FuncDecl d, Module main, StructTypeInfo funcType) {
-        /*int argPosition = 0;
-        List<InitArgExpr> args = new ArrayList<>();
-        args.add(new InitArgExpr("name", argPosition++, new StringExpr(d.name)));
-        args.add(new InitArgExpr("numOfParams", argPosition++, new NumberExpr(TypeInfo.I32_TYPE, String.valueOf(d.params.params.size()))));
-        args.add(new InitArgExpr("isVararg", argPosition++, new BooleanExpr(d.params.isVararg)));
+    private Expr newFunc(FuncDecl d, Module main, StructTypeInfo funcType) {
+
+        FuncTypeInfo funcInfo = d.sym.type.as();
+        NameTypeSpec funcTypeSpec = funcType.asTypeSpec().as();
+        program.getResolvedTypeMap().put(funcTypeSpec, funcType);
         
-//        StructTypeInfo enumFieldInfo = main.getType("EnumFieldInfo").as();
-//        List<Expr> arrayValues = new ArrayList<>();
+        int argPosition = 0;
+        List<InitArgExpr> args = new ArrayList<>();
+        args.add(new InitArgExpr("numOfParams", argPosition++, NumberExpr.expr(TypeInfo.I32_TYPE, d.params.params.size())));
+        args.add(new InitArgExpr("isVararg", argPosition++, new BooleanExpr(d.params.isVararg)));
+        args.add(new InitArgExpr("returnType", argPosition++, NumberExpr.expr(TypeInfo.I64_TYPE, funcInfo.returnType.getTypeId())));
+        
+        // args, numOrArgs
+        StructTypeInfo genericInfo = main.getType("GenericInfo").type.as();
+        List<Expr> arrayValues = new ArrayList<>();
 //
 //        int i = 0;
 //        for(EnumFieldInfo field : d.fields) {
@@ -293,7 +326,10 @@ public class Reflection {
 //        
 //        args.add(new InitArgExpr("fields", argPosition++, new CastExpr(new ArrayTypeInfo(enumFieldInfo, i, null), new ArrayInitExpr(enumFieldInfo, arrayValues))));
         
-        return new InitExpr(funcType, args);*/
-        return null;
+        
+        InitExpr initExpr = new InitExpr(funcTypeSpec, args);
+        initExpr.resolveTo(Operand.op(funcType));
+        
+        return initExpr;        
     }
 }

@@ -24,7 +24,7 @@ public class CTranspiler {
         public boolean useTabs;
         public int indentWidth;
         public String compileCmd;
-        public String symbolPrefix;        
+        public String symbolPrefix;
         public BackendOptions options;
         
         
@@ -34,7 +34,7 @@ public class CTranspiler {
             this.indentWidth = 4;
             this.symbolPrefix = "litaC__";
             
-            this.compileCmd = "clang.exe -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
+            this.compileCmd = "clang -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
         }
         
         public String getBinaryOutputFile() {

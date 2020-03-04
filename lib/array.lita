@@ -130,6 +130,10 @@ public func (a: Array<T>*) size<T>() : i32 {
     return a.length
 }
 
+public func (a: Array<T>*) clear<T>() {
+    a.length = 0
+}
+
 func ArrayGrow<T>(a: Array<T>*, increment: i32) {
     var doubleCurrent = a.capacity * 2
     var minReq = a.length + increment

@@ -1275,6 +1275,15 @@ public class Parser {
         return new TypeOfExpr(type);
     }
     
+    private Expr offsetofExpr() {
+        consume(TokenType.LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
+        TypeSpec type = type();
+        consume(COMMA, ErrorCode.MISSING_COMMA);
+        String field = consume(TokenType.IDENTIFIER, ErrorCode.MISSING_IDENTIFIER).getText();
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+        return node(new OffsetOfExpr(type, field));        
+    }
+    
     private Expr functionCall() {        
         SrcPos pos = pos();
         Expr expr = primary().setSrcPos(pos);
@@ -1329,9 +1338,13 @@ public class Parser {
                 
         if(match(LEFT_PAREN))   return groupExpr();
         if(check(LEFT_BRACKET)) return arrayInitExpr();
-        if(match(LEFT_BRACE))   return aggregateInitExpr();  
+        if(match(LEFT_BRACE))   return aggregateInitExpr();
+        
+        // TODO: Should probably be compile time functions and not keywords...
+        // perhaps: #sizeof(..), #typeof(..), #offsetof(..)
         if(match(SIZEOF))       return sizeofExpr();
         if(match(TYPEOF))       return typeofExpr();
+        if(match(OFFSETOF))     return offsetofExpr();
         
         if(check(IDENTIFIER)) {
             NameTypeSpec name = identifierType(true);

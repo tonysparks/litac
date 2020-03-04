@@ -45,6 +45,7 @@ public abstract class Expr extends Stmt {
         CAST,
         SIZE_OF,
         TYPE_OF,
+        OFFSET_OF,
         INIT_ARG,
         INIT,
         TERNARY,
@@ -239,6 +240,28 @@ public abstract class Expr extends Stmt {
                 return new TypeOfExpr(this.expr.copy());
             }
             return new TypeOfExpr(TypeSpec.copy(this.type));
+        }
+    }
+    
+    public static class OffsetOfExpr extends Expr {        
+        public TypeSpec type;
+        public String field;
+                
+        public OffsetOfExpr(TypeSpec type, String field) {
+            super(ExprKind.OFFSET_OF);
+            this.type = type;
+            this.field = field;
+            resolveTo(Operand.op(TypeInfo.I64_TYPE));
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {             
+            return new OffsetOfExpr(TypeSpec.copy(this.type), this.field);
         }
     }
     
@@ -578,7 +601,11 @@ public abstract class Expr extends Stmt {
     
     public static class NumberExpr extends ConstExpr {
         public String number;
-                
+        
+        public static NumberExpr expr(TypeInfo type, long number) {
+            return new NumberExpr(type, String.valueOf(number));
+        }
+        
         public NumberExpr(NumberToken token) {
             this(token.getTypeInfo(), (Number)token.getValue());
         }

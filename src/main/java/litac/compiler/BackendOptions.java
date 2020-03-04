@@ -6,6 +6,7 @@ package litac.compiler;
 import java.io.File;
 
 import litac.compiler.c.CTranspiler;
+import litac.util.OS;
 import litac.util.OS.OsType;
 
 /**
@@ -89,7 +90,7 @@ public class BackendOptions {
         this.srcDir = wd;
         this.libDir = new File("./lib");
         
-        this.targetOS = OsType.WINDOWS;
+        this.targetOS = OS.getOS();
         this.typeInfo = TypeInfoOption.None;
         
         this.run = false;
