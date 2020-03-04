@@ -406,7 +406,7 @@ public class CGen {
               .forEach(type -> types.put(getTypeNameForC(type.type), type.type));
         
     }
-    
+        
     private void writeTestMain(Buf buf, List<Decl> tests) {
         buf.outln();
         buf.out("// Tests").outln();
@@ -1579,7 +1579,7 @@ public class CGen {
         public void visit(InitExpr expr) {                        
             Node parent = expr.getParentNode();
             if(!(parent instanceof Decl)) {
-                if(expr.getResolvedType().type.isKind(TypeKind.Array) && (parent instanceof InitArgExpr)) {
+                if(expr.getResolvedType().type.isKind(TypeKind.Array) || (parent instanceof InitArgExpr)) {
                     // if this is an array initializer and we are already in an initializer, don't output
                     // the type hint
                 }
@@ -1975,7 +1975,10 @@ public class CGen {
         @Override
         public void visit(ArrayInitExpr expr) {
             if(!expr.values.isEmpty()) {
-                if(!(expr.getParentNode() instanceof ArrayInitExpr)) {
+                
+                // TODO: This might not work in all cases???
+                //if(!(expr.getParentNode() instanceof ArrayInitExpr)) {
+                if(expr.getParentNode() instanceof UnaryExpr) {
                     Operand op = expr.getResolvedType();
                     String typeName = getTypeNameForC(op.type);
                     buf.out("(%s)", typeName);

@@ -272,7 +272,7 @@
             ''',
             error: "Unknown type 'test'"                      
         },*/
-        {
+        /*{
             name: "Reflection",
             definitions: '''
                 import "io"                
@@ -297,6 +297,17 @@
                 } 
                 // TypeKindAsStr(info.kind)) wtf?                                     
             ''',                      
-        }
+        },*/
+        {
+            name: "Ptr type array", 
+            definitions: '''
+                                
+            ''',                       
+            code: '''
+                const t = &[2] i32 { 4, 5 };
+                const z = *t[0];
+                assert(z == 4)              
+            ''',
+        }, 
     ]
 }

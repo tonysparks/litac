@@ -102,6 +102,12 @@ public class TestSuite {
                                          ? test.debug  
                                          : suite.debug != null ? suite.debug : false;
                 
+                String compileCmd = System.getProperty("buildCmd");
+                if(compileCmd != null && !compileCmd.isEmpty()) {
+                    options.cOptions.compileCmd = compileCmd;
+                }
+                
+                System.out.println("build command: '" + options.cOptions.compileCmd + "'");
                 //options.cOptions.compileCmd =
                 //        "clang.exe -g -fsanitize=undefined,address -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
                 //+= " -g -fsanitize=undefined,address ";
@@ -206,6 +212,6 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/offsetof.json");        
+        singleFileTest("/arena.json");        
     }
 }

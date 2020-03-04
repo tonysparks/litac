@@ -1,5 +1,7 @@
 @raw("""
 
+#include <stddef.h>
+
 #if _MSC_VER
 #define LITAC_THREADLOCAL __declspec(thread)
 #define LITAC_INLINE static inline __forceinline
@@ -12,7 +14,7 @@
 #define LITAC_THREADLOCAL __thread
 #define LITAC_INLINE static inline __attribute__((always_inline))
 #define LITAC_NOINLINE __attribute__((noinline))
-#define LITAC_PACKED __attribute__((__packed__))
+#define LITAC_PACKED __attribute__((packed))
 #define LITAC_PACKED_POP 
 #endif
 """);

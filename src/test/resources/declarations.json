@@ -152,6 +152,17 @@
             ''',
         },        
         {
+            name: "Ptr to array", 
+            definitions: '''
+                                
+            ''',                       
+            code: '''
+                const t = &[2] i32 { 4, 5 };
+                const z = *t[0];
+                assert(z == 4)              
+            ''',
+        },
+        {
             name: "Array assign inference", 
             definitions: '''
                                 
