@@ -279,6 +279,13 @@ cd litac
 mvn clean install
 ```
 
+This will default to using `clang` as the compiler.  If you want to use another compiler you may overwrite the default behavior by:
+
+```
+mvn clean install -D"buildCmd=gcc -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS"
+```
+ 
+
 # Using LitaC Compiler
 Once you have built the `litac.jar` file (which will be located in the `/target` folder after `mvn clean install`), you can verify your jar file is valid by:
 
