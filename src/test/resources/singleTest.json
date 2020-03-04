@@ -2,6 +2,7 @@
     description: "Single Test",
     disabled: false,
     debug: true,
+    disableLines: true,
     includeTypeInfos: true,
     program: '''                
         @include("assert.h");
@@ -272,6 +273,7 @@
             ''',
             error: "Unknown type 'test'"                      
         },*/
+        // Still broken
         /*{
             name: "Reflection",
             definitions: '''
@@ -299,15 +301,16 @@
             ''',                      
         },*/
         {
-            name: "Ptr type array", 
-            definitions: '''
-                                
+            name: "Parsing",
+            definitions: '''                
+                
+                            
             ''',                       
-            code: '''
-                const t = &[2] i32 { 4, 5 };
-                const z = *t[0];
-                assert(z == 4)              
+            code: '''                
+                test("a");
+                test("b");                                          
             ''',
-        }, 
+            error: "Unknown type 'test'"                      
+        },        
     ]
 }

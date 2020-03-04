@@ -1579,7 +1579,12 @@ public class CGen {
         public void visit(InitExpr expr) {                        
             Node parent = expr.getParentNode();
             if(!(parent instanceof Decl)) {
-                if(expr.getResolvedType().type.isKind(TypeKind.Array) || (parent instanceof InitArgExpr)) {
+                boolean isArray = expr.getResolvedType().type.isKind(TypeKind.Array);
+                boolean requiresCast = (parent instanceof UnaryExpr ||
+                                        parent instanceof ReturnStmt ||
+                                        parent instanceof FuncCallExpr);
+                
+                if((isArray && !requiresCast) || parent instanceof InitArgExpr) {
                     // if this is an array initializer and we are already in an initializer, don't output
                     // the type hint
                 }
@@ -1978,7 +1983,10 @@ public class CGen {
                 
                 // TODO: This might not work in all cases???
                 //if(!(expr.getParentNode() instanceof ArrayInitExpr)) {
-                if(expr.getParentNode() instanceof UnaryExpr) {
+                Node parent = expr.getParentNode();
+                if(parent instanceof UnaryExpr ||
+                   parent instanceof ReturnStmt ||
+                   parent instanceof FuncCallExpr) {
                     Operand op = expr.getResolvedType();
                     String typeName = getTypeNameForC(op.type);
                     buf.out("(%s)", typeName);

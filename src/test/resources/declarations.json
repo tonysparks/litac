@@ -1261,5 +1261,146 @@
                 """        
             '''
         },
+        
+        {
+            name: "Return array", 
+            definitions: '''
+                func test() : [2]u32 {
+                    return []u32 { 0, 1 }
+                }
+            ''',                       
+            code: '''
+                const t = test()
+                assert(t[1] == 1)              
+            ''',
+        },
+        {
+            name: "Array as argument", 
+            definitions: '''
+                func test(a: [2]u32) : [2]u32 {
+                    return a
+                }
+            ''',                       
+            code: '''
+                const t = test([]u32 { 0, 1 })
+                assert(t[1] == 1)              
+            ''',
+        },
+        {
+            name: "Struct as argument", 
+            definitions: '''
+                struct A {
+                    a: u32
+                }
+                func test(a: A) : A {
+                    return a
+                }
+            ''',                       
+            code: '''
+                const t = test(A { 1 })
+                assert(t.a == 1)              
+            ''',
+        },
+        {
+            name: "Struct as a return", 
+            definitions: '''
+                struct A {
+                    a: u32
+                }
+                func test() : A {
+                    return A {1}
+                }
+            ''',                       
+            code: '''
+                const t = test()
+                assert(t.a == 1)              
+            ''',
+        },
+        {
+            name: "Typedef Array as argument", 
+            definitions: '''
+                typedef [2]u32 as vec;
+                
+                func test(a: vec) : vec {
+                    return a
+                }
+            ''',                       
+            code: '''
+                const t = test(vec { 0, 1 })
+                assert(t[1] == 1)              
+            ''',
+        },
+        {
+            name: "Typedef Array as return", 
+            definitions: '''
+                typedef [2]u32 as vec;
+                
+                func test() : vec {
+                    return vec {0, 1}
+                }
+            ''',                       
+            code: '''
+                const t = test()
+                assert(t[1] == 1)              
+            ''',
+        },
+        {
+            name: "Struct Initializer", 
+            definitions: '''
+                struct A {
+                    b: B
+                }
+                
+                struct B {
+                    v: u32
+                }
+                
+            ''',                       
+            code: '''
+                const t = A {
+                    B{4}
+                }
+                assert(t.b.v == 4)              
+            ''',
+        },  
+        {
+            name: "Struct With Array Initializer", 
+            definitions: '''
+                struct A {
+                    b: B
+                    array: [2]u32
+                }
+                
+                struct B {
+                    v: u32
+                }
+                
+            ''',                       
+            code: '''
+                const t = A {
+                    B{4},
+                    [2]u32 {8,12}
+                }
+                assert(t.b.v == 4)
+                assert(t.array[1] == 12)                  
+            ''',
+        },
+        {
+            name: "Array Initializer with Struct", 
+            definitions: '''                
+                struct A {
+                    v: u32
+                }
+                
+            ''',                       
+            code: '''
+                const t = []A {
+                    A{4},
+                    A{12},
+                }
+                
+                assert(t[1].v == 12)                  
+            ''',
+        },
     ]
 }

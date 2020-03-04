@@ -40,6 +40,7 @@ public class TestSuite {
         public String error;
         public boolean disabled;
         public Boolean debug;
+        public Boolean disableLines;
         public String symbolPrefix = "";
         public TestModule[] modules;
     }
@@ -49,6 +50,7 @@ public class TestSuite {
     public boolean includeTypeInfos;
     public boolean disabled;
     public Boolean debug;
+    public Boolean disableLines = false;
     public List<TestCase> tests;
     
     private int numberOfTestsRan;
@@ -97,7 +99,8 @@ public class TestSuite {
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = test.symbolPrefix;
                 options.run = true;
-                options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;        
+                options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;
+                options.disableLines = suite.disableLines;
                 options.debugMode = test.debug != null  
                                          ? test.debug  
                                          : suite.debug != null ? suite.debug : false;
