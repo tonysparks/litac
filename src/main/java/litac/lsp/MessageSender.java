@@ -45,7 +45,7 @@ public class MessageSender {
         params.diagnostics = Collections.emptyList();
         if(!errors.isEmpty()) {
             for(PhaseError error : errors) {
-                if(error.pos == null) {
+                if(error.pos == null || error.pos.sourceFile == null) {
                     continue;
                 }
                 
