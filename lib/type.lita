@@ -1,5 +1,5 @@
-@foreign public const typeInfos: TypeInfo**;
-@foreign public const numOfTypeInfos : i64;
+@generated public const typeInfos: TypeInfo** = null;
+@generated public const numOfTypeInfos : i64 = 0;
 
 @asStr
 public enum TypeKind {
