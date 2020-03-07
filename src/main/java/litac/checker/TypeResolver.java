@@ -131,13 +131,18 @@ public class TypeResolver {
     }
 
     public Program resolveTypes() {
-        Module module = resolveModule(this.unit.getMain());                
+        Module module = resolveMainModule(this.unit.getMain());                
         return new Program(module, 
                            resolvedModules, 
                            module.getSymbols(), 
                            this.resolvedTypeMap);
     }
     
+    public void resolveModuleTypes(Module module) {
+        resolveModule(module);
+        finishResolveModule(module);
+    }
+        
     private void error(Stmt stmt, String message, Object ... args) {        
         throw new TypeCheckException(stmt != null ? stmt.getSrcPos() : null, message, args);        
     }
@@ -150,10 +155,13 @@ public class TypeResolver {
         this.result.addError(stmt != null ? stmt.getSrcPos() : null, message, args);
     }
         
-    private Module resolveModule(ModuleStmt moduleStmt) {
+    private Module resolveMainModule(ModuleStmt moduleStmt) {
         this.root = createModule(moduleStmt);
-        
-        enterModule(this.root);
+        return finishResolveModule(this.root);
+    }
+    
+    private Module finishResolveModule(Module module) {                
+        enterModule(module);
         
         List<Symbol> syms = null;
         do {
@@ -212,13 +220,13 @@ public class TypeResolver {
                     tryFinishResolveSym(sym);
                 }
                 
-                moduleStmt.declarations.add(sym.decl);
+                module.getModuleStmt().declarations.add(sym.decl);
             }
             
         } 
         while(true);
                 
-        return this.root;
+        return module;
     }
     
     private void tryResolveFunc(Symbol sym) {
@@ -339,6 +347,13 @@ public class TypeResolver {
         addBuiltins(module);
         
         resolvedModules.put(moduleName, module);
+        resolveModule(module);
+        
+        return module;
+    }
+    
+    private void resolveModule(Module module) {
+        ModuleStmt moduleStmt = module.getModuleStmt();        
         enterModule(module);
         
         List<Decl> nonGenericDecls = new ArrayList<>();
@@ -356,8 +371,6 @@ public class TypeResolver {
         }   
         
         leaveModule();
-        
-        return module;
     }
     
     private void tryResolveDeclaration(Decl decl, Module module, List<Decl> nonGenericDecls) {
@@ -764,13 +777,16 @@ public class TypeResolver {
                     inferredType = decayType(op.type);    
                 }                
             }
+                        
+            expr.expectedType = declaredType != null ? declaredType : inferredType;
         }
         
         if(declaredType != null && inferredType != null) {            
             typeCheck(expr.getSrcPos(), inferredType, declaredType);
         }
                 
-        return declaredType != null ? declaredType : inferredType;        
+        return declaredType != null ? declaredType : inferredType;
+        
     }
     
     /**
@@ -1485,6 +1501,7 @@ public class TypeResolver {
         }
         
         typeCheck(c.getSrcPos(), valOp.type, objectInfo);
+                
         Operand result = Operand.op(valOp.type);
         c.resolveTo(result);
         
@@ -1696,7 +1713,7 @@ public class TypeResolver {
         }
         
         typeCheck(c.getSrcPos(), valOp.type, field);
-        
+                
         Operand result = Operand.op(valOp.type);
         c.resolveTo(result);
         
@@ -1804,6 +1821,7 @@ public class TypeResolver {
                 resolveExpr(arg);
                 
                 typeCheck(arg.getSrcPos(), arg.getResolvedType().type, p);
+                arg.expectedType = p;
             }
         }
         
@@ -1935,13 +1953,22 @@ public class TypeResolver {
         Operand operand = Operand.op(type);
         expr.resolveTo(operand);
         
+        ArrayTypeInfo arrayInfo = null;
+        TypeInfo arrayOf = null;
+        
+        if(TypeInfo.isArray(type)) {
+            arrayInfo = type.as();
+            arrayOf = arrayInfo.arrayOf;
+        }
+        
+        
         if(expr.values != null) {
             for(Expr val : expr.values) {
                 resolveExpr(val);
+                val.expectedType = arrayOf;
             }
             
-            if(type.isKind(TypeKind.Array)) {
-                ArrayTypeInfo arrayInfo = type.as();
+            if(arrayInfo != null) {                
                 if(arrayInfo.length < 0 && arrayInfo.lengthExpr == null) {
                     arrayInfo.length = expr.values.size();
                 }
@@ -2098,6 +2125,8 @@ public class TypeResolver {
                 if(arg.fieldName != null) {
                     TypeInfo fieldType = getAggregateField(arg.getSrcPos(), aggInfo, new NameTypeSpec(arg.getSrcPos(), arg.fieldName), false, true);
                     typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
+                    arg.expectedType = fieldType;
+                    arg.value.expectedType = fieldType;
                 }
                 else {
                     FieldInfo field = aggInfo.getFieldByPosition(arg.argPosition);
@@ -2107,6 +2136,8 @@ public class TypeResolver {
                     
                     TypeInfo fieldType = field.type;
                     typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, fieldType);
+                    arg.expectedType = fieldType;
+                    arg.value.expectedType = fieldType;
                 }
             }
         }
@@ -2116,6 +2147,8 @@ public class TypeResolver {
             
             for(InitArgExpr arg : expr.arguments) {                
                 typeCheck(arg.getSrcPos(), arg.value.getResolvedType().type, baseType);
+                arg.expectedType = baseType;
+                arg.value.expectedType = baseType;
             }
         }
     }
@@ -2555,6 +2588,7 @@ public class TypeResolver {
             if(stmt.returnExpr != null) {
                 stmt.returnExpr.visit(this);
                 tryTypeCheck(stmt.getSrcPos(), stmt.returnExpr.getResolvedType().type, currentFunc.returnType);
+                stmt.returnExpr.expectedType = currentFunc.returnType;
             }
             else {
                 tryTypeCheck(stmt.getSrcPos(), TypeInfo.VOID_TYPE, currentFunc.returnType);

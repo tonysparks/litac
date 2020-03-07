@@ -110,4 +110,8 @@ public class BackendOptions {
         
         return this.preprocessor;
     }
+    
+    public boolean reflectionEnabled() {
+        return this.typeInfo != null && !this.typeInfo.equals(TypeInfoOption.None);
+    }
 }

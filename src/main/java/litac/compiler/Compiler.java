@@ -4,10 +4,12 @@
 package litac.compiler;
 
 import java.io.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import litac.ast.*;
 import litac.ast.Node.SrcPos;
-import litac.ast.Stmt;
-import litac.checker.*;
+import litac.checker.TypeResolver;
 import litac.compiler.c.CTranspiler;
 import litac.util.Profiler;
 import litac.util.Profiler.Segment;
@@ -36,6 +38,10 @@ public class Compiler {
             CompilationUnit unit = parse(this.options, rootModule, result);
             Program program = typeCheck(options, result, unit);
             
+            if(this.options.reflectionEnabled()) {
+                reflection(program, unit);
+            }
+            
             if(!result.hasErrors() && !options.checkerOnly) {
                 compile(options, result, unit, program);
             }
@@ -63,6 +69,31 @@ public class Compiler {
                     
             Program program = resolver.resolveTypes();
             return program;
+        }
+    }
+    
+    
+    /**
+     * Will scan all global declarations and depending on the configuration create
+     * the appropriate TypeInfo's representing the declarations.
+     * 
+     * @param program
+     * @param unit
+     */
+    private void reflection(Program program, CompilationUnit unit) {
+        try(Segment s = Profiler.startSegment("Reflection Generation")) {
+            List<Decl> declarations = program.getSymbols().stream()
+                    .filter(sym -> !sym.isLocal() && !sym.isBuiltin())
+                    .map(sym -> sym.decl)
+                    .collect(Collectors.toList());
+            
+            PhaseResult result = new PhaseResult();
+            TypeResolver resolver = new TypeResolver(this.options.preprocessor(), result, unit);
+            Reflection reflection = new Reflection(program, 
+                                                   this.options.typeInfo);
+            
+            Module typeModule = program.getModule("type");
+            reflection.createTypeInfos(typeModule, resolver, declarations);
         }
     }
     

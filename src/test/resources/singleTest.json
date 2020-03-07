@@ -274,7 +274,7 @@
             error: "Unknown type 'test'"                      
         },*/
         // Still broken
-        /*{
+        {
             name: "Reflection",
             definitions: '''
                 import "io"                
@@ -299,18 +299,7 @@
                 } 
                 // TypeKindAsStr(info.kind)) wtf?                                     
             ''',                      
-        },*/
-        {
-            name: "Parsing",
-            definitions: '''                
-                
-                            
-            ''',                       
-            code: '''                
-                test("a");
-                test("b");                                          
-            ''',
-            error: "Unknown type 'test'"                      
-        },        
+        },
+        
     ]
 }

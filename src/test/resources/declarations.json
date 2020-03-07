@@ -1,5 +1,6 @@
 {
     description: "Tests Declarations",
+    disableLines: true,
     program: '''                
         @include("assert.h");
         @foreign func assert(e:bool):void;
@@ -1362,29 +1363,7 @@
                 }
                 assert(t.b.v == 4)              
             ''',
-        },  
-        {
-            name: "Struct With Array Initializer", 
-            definitions: '''
-                struct A {
-                    b: B
-                    array: [2]u32
-                }
-                
-                struct B {
-                    v: u32
-                }
-                
-            ''',                       
-            code: '''
-                const t = A {
-                    B{4},
-                    [2]u32 {8,12}
-                }
-                assert(t.b.v == 4)
-                assert(t.array[1] == 12)                  
-            ''',
-        },
+        },          
         {
             name: "Array Initializer with Struct", 
             definitions: '''                
@@ -1401,6 +1380,209 @@
                 
                 assert(t[1].v == 12)                  
             ''',
+        },
+        {
+            name: "Global Array of Structs init in initializer",
+            definitions: '''                
+                struct A {
+                    b: B*
+                }
+                
+                struct B {
+                    v: i32
+                }
+                
+                var a = A {
+                    .b = [2]B {
+                        B{4},
+                        B{8}
+                    }
+                }
+                            
+            ''',                       
+            code: '''                
+                assert(a.b)
+                assert(a.b[0].v == 4)
+                assert(a.b[1].v == 8)                                         
+            '''                      
+        },
+        {
+            name: "Global Array of primitive init in initializer",
+            definitions: '''                
+                struct A {
+                    b: i32*
+                }
+                                
+                var a = A {
+                    .b = [2]i32 {
+                        4,
+                        8
+                    }
+                }
+                            
+            ''',                       
+            code: '''                
+                assert(a.b)
+                assert(a.b[0] == 4)
+                assert(a.b[1] == 8)                                         
+            '''                      
+        },
+        {
+            name: "Array of Structs init in initializer",
+            definitions: '''                
+                struct A {
+                    z: u32
+                    b: B*
+                }
+                
+                struct B {
+                    v: i32
+                }
+
+                            
+            ''',                       
+            code: '''    
+                            
+                var a = A {
+                    .z = 1,
+                    .b = [2]B {
+                        B{4},
+                        B{8}
+                    }
+                }            
+                assert(a.b)
+                assert(a.b[0].v == 4)
+                assert(a.b[1].v == 8)                                         
+            '''                      
+        },
+        {
+            name: "Array of primitive init in initializer",
+            definitions: '''                
+                struct A {
+                    b: i32*
+                }
+                            
+            ''',                       
+            code: '''
+                                            
+                var a = A {
+                    .b = [2]i32 {
+                        4,
+                        8
+                    }
+                }                
+                assert(a.b)
+                assert(a.b[0] == 4)
+                assert(a.b[1] == 8)                                         
+            '''                      
+        },
+        {
+            name: "Struct With Array Initializer", 
+            definitions: '''
+                struct A {
+                    b: B
+                    array: u32*
+                }
+                
+                struct B {
+                    v: u32
+                }
+                
+            ''',                       
+            code: '''
+                var t = A {
+                    B{4},
+                    .array: [2]u32 {8,12}
+                }
+                assert(t.b.v == 4)
+                assert(t.array[1] == 12)                  
+            ''',
+        },       
+        {
+            name: "Struct With Static Array Initializer", 
+            definitions: '''
+                struct A {
+                    b: B
+                    array: [2]u32
+                }
+                
+                struct B {
+                    v: u32
+                }
+                
+            ''',                       
+            code: '''
+                const t = A {
+                    .b = B{4},
+                    .array = [2]u32 {8, 12}
+                }
+                assert(t.b.v == 4)
+                assert(t.array[0] == 8)   
+                assert(t.array[1] == 12)                  
+            ''',
+        }, 
+        {
+            name: "Struct init in Function Call Arg",
+            definitions: '''                
+                struct A {
+                    a: i32
+                }
+                
+                func test(a: A) : A {
+                    return a
+                }
+                
+                func test2(a: A*) : A* {
+                    return a
+                }
+                            
+            ''',                       
+            code: '''                
+                assert(test(A{4}).a == 4)
+                assert(test2(&A{4}).a == 4)
+            '''                      
+        },
+        {
+            name: "Array init in Function Call Arg",
+            definitions: '''                
+                                
+                func test(a: [2]i32) : [2]i32 {
+                    return a
+                }
+                
+                func test2(a: i32*) : i32* {
+                    return a
+                }            
+            ''',                       
+            code: '''                
+                assert(test([2]i32{4, 8})[0] == 4)
+                assert(test([2]i32{4, 8})[0] == 4)
+            '''                      
+        },
+        {
+            name: "Global Structs of Struct init in initializer",
+            definitions: '''                
+                struct A {
+                    b: B
+                }
+                
+                struct B {
+                    v: i32
+                }
+                
+                var array = [1]A* {
+                    [0] = &A {
+                        .b = B {
+                            4
+                        }
+                    }
+                }
+                        
+            ''',                       
+            code: '''
+                assert(array)                       
+                assert(array[0].b.v == 4)                                         
+            '''                      
         },
     ]
 }

@@ -9,14 +9,13 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
-import litac.LitaC;
+import litac.*;
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
-import litac.checker.TypeInfo;
+import litac.checker.*;
 import litac.checker.TypeInfo.*;
-import litac.checker.TypeResolver.Operand;
 import litac.compiler.*;
 import litac.compiler.BackendOptions.OutputType;
 import litac.compiler.FieldPath.FieldPathNode;
@@ -134,10 +133,8 @@ public class CGen {
         
         this.main.getModuleStmt().visit(this.cgen);
         
-        DependencyGraph graph = new DependencyGraph(this.main.getPhaseResult());
-        Reflection reflection = new Reflection(this.program, this.options.options.typeInfo);
-        List<Decl> typeInfos = reflection.createTypeInfos(this.declarations);
-        this.declarations.addAll(0, typeInfos); 
+        PhaseResult result = this.main.getPhaseResult();
+        DependencyGraph graph = new DependencyGraph(result);
         
         List<Decl> tests = new ArrayList<>();
         
@@ -795,7 +792,7 @@ public class CGen {
             for(ImportStmt i : stmt.imports) {
                 i.visit(this);
             }
-                    
+            
             declarations.addAll(stmt.declarations);
         }
     
@@ -1577,21 +1574,14 @@ public class CGen {
         
         @Override
         public void visit(InitExpr expr) {                        
-            Node parent = expr.getParentNode();
-            if(!(parent instanceof Decl)) {
-                boolean isArray = expr.getResolvedType().type.isKind(TypeKind.Array);
-                boolean requiresCast = (parent instanceof UnaryExpr ||
-                                        parent instanceof ReturnStmt ||
-                                        parent instanceof FuncCallExpr);
-                
-                if((isArray && !requiresCast) || parent instanceof InitArgExpr) {
-                    // if this is an array initializer and we are already in an initializer, don't output
-                    // the type hint
-                }
-                else {
-                    buf.out("(%s)", getTypeNameForC(expr.type));
-                }
-                
+            Node parent = expr.getParentNode();                        
+            boolean requiresCast = parent instanceof ReturnStmt ||
+                                   parent instanceof FuncCallExpr;
+            
+            TypeInfo expectedType = expr.expectedType;
+            if(expectedType == null || TypeInfo.isPtr(expectedType) || requiresCast) {
+                String typeName = getTypeNameForC(expr.type);
+                buf.out("(%s)", typeName);
             }
             
             buf.out(" {");
@@ -1955,8 +1945,9 @@ public class CGen {
     
         @Override
         public void visit(UnaryExpr expr) {
-            buf.out("%s", expr.operator.getText());
+            buf.out("%s(", expr.operator.getText());
             expr.expr.visit(this);
+            buf.out(")");
         }
     
     
@@ -1976,19 +1967,17 @@ public class CGen {
             buf.out(" : ");
             expr.other.visit(this);        
         }
-    
+                
         @Override
         public void visit(ArrayInitExpr expr) {
             if(!expr.values.isEmpty()) {
+                Node parent = expr.getParentNode();                
+                boolean requiresCast = parent instanceof ReturnStmt ||
+                                       parent instanceof FuncCallExpr;
                 
-                // TODO: This might not work in all cases???
-                //if(!(expr.getParentNode() instanceof ArrayInitExpr)) {
-                Node parent = expr.getParentNode();
-                if(parent instanceof UnaryExpr ||
-                   parent instanceof ReturnStmt ||
-                   parent instanceof FuncCallExpr) {
-                    Operand op = expr.getResolvedType();
-                    String typeName = getTypeNameForC(op.type);
+                TypeInfo expectedType = expr.expectedType;
+                if(expectedType == null || TypeInfo.isPtr(expectedType) || requiresCast) {
+                    String typeName = getTypeNameForC(expr.getResolvedType().type);
                     buf.out("(%s)", typeName);
                 }
                 

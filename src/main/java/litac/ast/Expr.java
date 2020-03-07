@@ -109,6 +109,7 @@ public abstract class Expr extends Stmt {
     
     private Operand resolvedTo;
     protected ExprKind kind;
+    public TypeInfo expectedType;
     
     Expr(ExprKind kind) {
         this.kind = kind;
@@ -145,6 +146,7 @@ public abstract class Expr extends Stmt {
     public <T extends Node> T copy() {
         Expr expr = super.copy();
         expr.resolvedTo = this.resolvedTo; 
+        expr.expectedType = this.expectedType;
         return (T)expr;
     }
     

@@ -57,7 +57,7 @@ public class Scope {
     }
     
     public Symbol addSymbol(Module module, Decl decl, String symbolName, int flags) {
-        if(this.symbols.containsKey(symbolName)) {
+        if(this.symbols.containsKey(symbolName) && !decl.attributes.hasNote("generated")) {
             this.result.addError(decl, "symbol '%s' already defined", symbolName);
         }
         

@@ -400,7 +400,7 @@ public class Module {
         }
         
         Symbol sym = this.currentScope.getSymbol(decl.name); 
-        if(sym != null) {
+        if(sym != null && !decl.attributes.hasNote("generated")) {
             this.result.addError(decl, "%s is already defined", decl.name);
             return null;
         }
