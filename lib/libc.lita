@@ -6,9 +6,9 @@
 @include("<limits.h>");
 
 @raw("""
-    #define MIN(x, y) ((x) <= (y) ? (x) : (y))
-    #define MAX(x, y) ((x) >= (y) ? (x) : (y))
-    #define ABS(x)    ((x < 0) ? (x) * -1 : (x))
+#define MIN(x, y) ((x) <= (y) ? (x) : (y))
+#define MAX(x, y) ((x) >= (y) ? (x) : (y))
+#define ABS(x)    ((x < 0) ? (x) * -1 : (x))
 """);
 
 
@@ -49,6 +49,7 @@
 @foreign public func va_end(args: va_list);
 @foreign public func vfprintf(f:FILE*, format: char const*, args: va_list);
 @foreign public func vsprintf_s(ptr: void*, len: u64, format: char const*, args: va_list) : i32;
+@foreign public func vsnprintf(buffer: char*, len: u64, format: char const*, args: va_list) : i32;
 @foreign public func vsnprintf_s(ptr: void*, len: u64, max: u64, format: char const*, args: va_list) : i32;
 @foreign public func exit(code: i32);
 @foreign public func fputs(format: char const*,f:FILE*);

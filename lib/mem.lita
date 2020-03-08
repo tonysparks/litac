@@ -399,7 +399,7 @@ public func (d: DebugAllocator*) report() {
     c::printf("Leaked Allocations: {\n")
     for(var i = 0; i < d.allocations.size(); i += 1) {
         var a = d.allocations.get(i)
-        c::printf("   Leak at %p allocated in '%s' at line: %lu\n", a.addr, a.filename, a.line)
+        c::printf("   Leak at %p allocated in '%s' at line: %ju\n", a.addr, a.filename, a.line)
     }
     c::printf("}\n")
 }

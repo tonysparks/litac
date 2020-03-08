@@ -673,7 +673,7 @@ func (p: Parser*) error(format: char const*, ...) {
     var args: va_list;
     va_start(args, format);
     
-    vsprintf_s(p.errorMsg, MAX_MESSAGE_SIZE, format, args);            
+    vsnprintf(p.errorMsg, MAX_MESSAGE_SIZE, format, args);            
     va_end(args);        
 
     p.status = ParserStatus.ERROR
