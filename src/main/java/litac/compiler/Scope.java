@@ -10,6 +10,7 @@ import litac.ast.Decl.*;
 import litac.ast.TypeSpec.TypeSpecKind;
 import litac.compiler.Symbol.SymbolKind;
 import litac.util.Names;
+import litac.compiler.Module;
 
 /**
  * @author Tony

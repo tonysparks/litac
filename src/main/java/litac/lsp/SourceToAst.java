@@ -15,6 +15,7 @@ import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.checker.TypeResolver.Operand;
 import litac.compiler.*;
+import litac.compiler.Module;
 import litac.lsp.JsonRpc.*;
 
 /**

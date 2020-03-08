@@ -13,6 +13,7 @@ import litac.checker.TypeResolver;
 import litac.compiler.c.CTranspiler;
 import litac.util.Profiler;
 import litac.util.Profiler.Segment;
+import litac.compiler.Module;
 
 /**
  * @author Tony

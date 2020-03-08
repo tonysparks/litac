@@ -14,6 +14,7 @@ import litac.checker.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.BackendOptions.TypeInfoOption;
 import litac.parser.tokens.TokenType;
+import litac.compiler.Module;
 
 /**
  * Builds an array of TypeInfo objects so that types can

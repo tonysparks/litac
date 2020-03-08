@@ -9,6 +9,7 @@ import litac.ast.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.TypeKind;
 import litac.generics.GenericParam;
+import litac.compiler.Module;
 
 /**
  * @author Tony

@@ -17,6 +17,7 @@ import litac.compiler.*;
 import litac.lsp.JsonRpc.*;
 import litac.parser.*;
 import litac.parser.Scanner;
+import litac.compiler.Module;
 
 /**
  * Represents a project workspace, manages open documents and the corresponding AST

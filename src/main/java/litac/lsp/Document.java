@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import litac.compiler.*;
+import litac.compiler.Module;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.lsp.JsonRpc.*;
 

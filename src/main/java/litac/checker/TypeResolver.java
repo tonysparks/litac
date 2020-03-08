@@ -19,6 +19,7 @@ import litac.generics.*;
 import litac.parser.tokens.TokenType;
 import litac.util.*;
 import litac.util.Stack;
+import litac.compiler.Module;
 
 /**
  * @author antho

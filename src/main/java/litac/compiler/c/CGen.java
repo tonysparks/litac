@@ -22,6 +22,7 @@ import litac.compiler.FieldPath.FieldPathNode;
 import litac.compiler.c.CTranspiler.COptions;
 import litac.util.*;
 import litac.util.Stack;
+import litac.compiler.Module;
 
 /**
  * Writes out the AST nodes into a single C file.  It will place all type

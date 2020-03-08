@@ -7,6 +7,7 @@ import java.util.*;
 
 import litac.ast.TypeSpec;
 import litac.checker.TypeInfo;
+import litac.compiler.Module;
 
 /**
  * Represents the program in Modules/Symbols
