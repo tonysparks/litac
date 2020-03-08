@@ -2,7 +2,7 @@
 	"name": "litac",
 	"displayName": "litac",
 	"description": "LitaC Programming Language",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"publisher": "tonysparks",
 	"engines": {
 		"vscode": "^1.35.0"
@@ -46,7 +46,7 @@
 				},
 				"litac.languageServerArguments": {
 					"type": "string",
-					"default": "",
+					"default": "-languageServer",
 					"description": "Command line arguments for the LitaC language server"
 				},
 				"litac.failFast": {
