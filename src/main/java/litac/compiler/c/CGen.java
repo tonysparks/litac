@@ -51,6 +51,34 @@ public class CGen {
         //escapeChars.put('\?', "\\?");
         escapeChars.put('\0', "\\0");
     }
+    
+    private class Scope {
+        Stack<DeferStmt> defers;
+        boolean isLoop = false;
+        
+        public void addDefer(DeferStmt d) {
+            if(this.defers == null) {
+                this.defers = new Stack<>();
+            }
+            this.defers.add(d);
+        }
+                
+        public boolean hasDefers() {
+            return defers != null && !defers.isEmpty();
+        }
+        
+        
+        public void leave(Buf buf, NodeVisitor visitor, boolean includeConsts) {            
+            if(hasDefers()) {
+                ListIterator<DeferStmt> it = defers.listIterator(defers.size());
+                while(it.hasPrevious()) {
+                    DeferStmt s = it.previous();
+                    s.stmt.visit(visitor);
+                    buf.out(";\n");
+                }
+            }
+        }
+    }
 
     
     private COptions options;
@@ -62,9 +90,8 @@ public class CGen {
     private Program program;    
     
     private Stack<FuncTypeInfo> currentFuncType;
-    private Stack<Stack<DeferStmt>> defers;
-    private Stack<Stack<String>> constDefs;
     private Stack<Boolean> noteStack;
+    private Stack<Scope> scope;
     private int aggregateLevel;
     private Pattern testPattern;
     private boolean testMainOnly;
@@ -109,11 +136,9 @@ public class CGen {
         this.moduleDestroyFunc = new ArrayList<>();
         this.currentFuncType = new Stack<>();
         this.noteStack = new Stack<>();
+        this.scope = new Stack<>();
         
         this.writtenModules = new HashSet<>();
-        this.defers = new Stack<>();
-        this.constDefs = new Stack<>();
-        
         
         this.cgen = new CGenNodeVisitor(this.buf);
     }
@@ -125,10 +150,7 @@ public class CGen {
         this.currentFuncType.clear();
         
         this.writtenModules.clear();
-        this.defers.clear();
-        this.constDefs.clear();
-        
-        this.constDefs.add(new Stack<>());
+        this.scope.clear();
         
         preface();
         
@@ -1006,26 +1028,14 @@ public class CGen {
             
             checkLine(d);
                         
-            if(Expr.isConstExpr(d.expr)) {
-                buf.out("#define ");
-                buf.out("%s (", name);
-                d.expr.visit(this);
-                buf.out(")\n"); 
-                
-                // globals are not undef (are namespaced by the compiler)
-                if(!d.attributes.isGlobal) {
-                    constDefs.peek().add(name);
-                }
+            if(d.sym.type.isPrimitive()) {
+                buf.out("const ");
             }
-            else {
-                if(d.sym.type.isPrimitive()) {
-                    buf.out("const ");
-                }
-                
-                buf.out("%s = ", typeDeclForC(d.sym.type, name));
-                d.expr.visit(this);
-                buf.out(";\n");
-            }
+            
+            buf.out("%s = ", typeDeclForC(d.sym.type, name));
+            d.expr.visit(this);
+            buf.out(";\n");
+
         }
     
         private String name(String name, Attributes attributes) {
@@ -1290,16 +1300,22 @@ public class CGen {
             
             buf.out("if (");
             stmt.condExpr.visit(this);
-            buf.out(") \n");            
-            stmt.thenStmt.visit(this);
+            buf.out(") {\n");
+            pushScope();
+            stmt.thenStmt.visit(this);            
             if(stmt.thenStmt instanceof Expr) buf.out(";");
             buf.out("\n");
+            popScope();
+            buf.out("}\n");
             
             if(stmt.elseStmt != null) {
-                buf.out("else \n");                
+                buf.out("else {\n");   
+                pushScope();
                 stmt.elseStmt.visit(this);
                 if(stmt.elseStmt instanceof Expr) buf.out(";");
                 buf.out("\n");
+                popScope();
+                buf.out("}\n");
             }
         }
     
@@ -1309,10 +1325,13 @@ public class CGen {
             
             buf.out("while (");
             stmt.condExpr.visit(this);
-            buf.out(")\n");
+            buf.out(") {\n");
+            pushLoopScope();
             stmt.bodyStmt.visit(this);
             if(stmt.bodyStmt instanceof Expr) buf.out(";");
             buf.out("\n");
+            popScope();
+            buf.out("}\n");
         }
     
     
@@ -1321,8 +1340,12 @@ public class CGen {
             checkLine(stmt);
             
             buf.out("do {");
+            pushLoopScope();
             stmt.bodyStmt.visit(this);
-            buf.out("}\n while (");
+            if(stmt.bodyStmt instanceof Expr) buf.out(";");
+            buf.out("\n");
+            popScope();            
+            buf.out("\n}\n while (");
             stmt.condExpr.visit(this);
             buf.out(");");
         }
@@ -1346,8 +1369,12 @@ public class CGen {
             buf.out(";");
             if(stmt.postStmt != null) stmt.postStmt.visit(this);
             buf.out(") {");
+            pushLoopScope();
             stmt.bodyStmt.visit(this);
-            buf.out("}\n");
+            if(stmt.bodyStmt instanceof Expr) buf.out(";");
+            buf.out("\n");
+            popScope();            
+            buf.out("\n}\n");
         }
         
         @Override
@@ -1380,48 +1407,42 @@ public class CGen {
             
             buf.out("}\n");
         }
+         
+        private void pushLoopScope() {
+            Scope s = new Scope();
+            s.isLoop = true;
+            scope.add(s);
+        }
+        private void pushScope() {
+            scope.add(new Scope());
+        }        
         
-        
-        private void outputDefer() {
-            if(!defers.isEmpty()) {
-                outputDefer(defers.peek());
-            }
+        private void popScope() {
+            Scope s = scope.pop();
+            s.leave(buf, this, true);
         }
         
-        private void outputDefer(Stack<DeferStmt> q) {
-            ListIterator<DeferStmt> it = q.listIterator(q.size());
-            while(it.hasPrevious()) {
-                DeferStmt s = it.previous();
-                s.stmt.visit(this);
-                buf.out(";\n");
-            }
-        }
-        
-        private void pushConst() {
-            constDefs.add(new Stack<>());
-        }
-        
-        private void popConst() {
-            if(constDefs.isEmpty()) {
-                return;
-            }
-            
-            Stack<String> consts = constDefs.pop();
-            for(String c : consts) {
-                buf.out("#undef %s\n", c);
+        private void leaveLoopScope() {
+            for(int i = scope.size() - 1; i >= 0; i--) {
+                Scope s = scope.get(i);
+                s.leave(buf, this, false);
+                
+                if(s.isLoop) {
+                    break;
+                }
             }
         }
     
         @Override
         public void visit(BreakStmt stmt) {
-            outputDefer();
+            leaveLoopScope();
             checkLine(stmt);
             buf.out("break;\n");
         }
     
         @Override
         public void visit(ContinueStmt stmt) {
-            outputDefer();
+            leaveLoopScope();
             checkLine(stmt);
             buf.out("continue;\n");
         }
@@ -1431,25 +1452,21 @@ public class CGen {
         public void visit(ReturnStmt stmt) {
             checkLine(stmt);
             
-            if(!defers.isEmpty() && 
-                defers.stream().anyMatch(s->!s.isEmpty()) && 
-                stmt.returnExpr != null) {
-                
-                //TypeInfo type = stmt.returnExpr.getResolvedType().getResolvedType();
+            if(scope.stream().anyMatch(s -> s.hasDefers()) && stmt.returnExpr != null) {                
                 TypeInfo type = currentFuncType.peek().returnType;
                 buf.out("{\n%s = ", typeDeclForC(type, "___result"));
                 stmt.returnExpr.visit(this);
                 buf.out(";\n");
                 
-                for(Stack<DeferStmt> d : defers) {
-                    outputDefer(d);
+                for(Scope s : scope) {
+                    s.leave(buf, this, false);
                 }
                 
                 buf.out("return ___result;\n}\n");                        
             }
             else {
-                for(Stack<DeferStmt> d : defers) {
-                    outputDefer(d);
+                for(Scope s : scope) {
+                    s.leave(buf, this, false);
                 }
             
                 buf.out("return");
@@ -1466,9 +1483,7 @@ public class CGen {
             checkLine(stmt);
             buf.out("{");
             
-            pushConst();
-            
-            int deferCount = defers.size();
+            pushScope();
             for(Stmt s : stmt.stmts) {
                 boolean isExpr = s instanceof Expr;
                 if(isExpr) {
@@ -1481,11 +1496,7 @@ public class CGen {
                     buf.out(";\n");
                 }
             }
-            
-            popConst();
-            if(defers.size() > deferCount) {
-                outputDefer(defers.pop());
-            }
+            popScope();
             
             buf.out("}\n");
         }
@@ -1494,11 +1505,7 @@ public class CGen {
         public void visit(DeferStmt stmt) {
             checkLine(stmt);
             
-            if(defers.isEmpty()) {
-                defers.add(new Stack<>());
-            }
-            
-            defers.peek().add(stmt);
+            scope.peek().addDefer(stmt);
         }
         
         @Override
