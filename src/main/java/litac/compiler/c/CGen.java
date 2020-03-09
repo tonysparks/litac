@@ -53,6 +53,7 @@ public class CGen {
     }
     
     private class Scope {
+        Stack<String> constDefs;
         Stack<DeferStmt> defers;
         boolean isLoop = false;
         
@@ -62,13 +63,24 @@ public class CGen {
             }
             this.defers.add(d);
         }
+        
+        public void addConsts(String name) {
+            if(this.constDefs == null) {
+                this.constDefs = new Stack<>();
+            }
+            this.constDefs.add(name);
+        }
+        
+        public boolean hasConsts() {
+            return this.constDefs != null && !this.constDefs.isEmpty();
+        }
                 
         public boolean hasDefers() {
             return defers != null && !defers.isEmpty();
         }
         
         
-        public void leave(Buf buf, NodeVisitor visitor, boolean includeConsts) {            
+        public void leave(Buf buf, NodeVisitor visitor) {
             if(hasDefers()) {
                 ListIterator<DeferStmt> it = defers.listIterator(defers.size());
                 while(it.hasPrevious()) {
@@ -92,6 +104,7 @@ public class CGen {
     private Stack<FuncTypeInfo> currentFuncType;
     private Stack<Boolean> noteStack;
     private Stack<Scope> scope;
+    private List<String> localConsts;
     private int aggregateLevel;
     private Pattern testPattern;
     private boolean testMainOnly;
@@ -137,6 +150,7 @@ public class CGen {
         this.currentFuncType = new Stack<>();
         this.noteStack = new Stack<>();
         this.scope = new Stack<>();
+        this.localConsts = new ArrayList<>();
         
         this.writtenModules = new HashSet<>();
         
@@ -1028,11 +1042,16 @@ public class CGen {
             
             checkLine(d);
             
-            if(Expr.isConstExpr(d.expr) && d.attributes.isGlobal) {
+            if(Expr.isConstExpr(d.expr)) {
                 buf.out("#define ");                   
                 buf.out("%s (", name);  
                 d.expr.visit(this); 
-                buf.out(")\n");     
+                buf.out(")\n");
+                
+                // globals are not undef (are namespaced by the compiler)   
+                if(!d.attributes.isGlobal) {
+                    scope.peek().addConsts(name);
+                }
             }
             else {
                 if(d.sym.type.isPrimitive()) {
@@ -1188,6 +1207,13 @@ public class CGen {
             boolean isBlock = (d.bodyStmt instanceof BlockStmt);
             if(!isBlock) buf.out("{");
             d.bodyStmt.visit(this);
+            
+            
+            for(String c: localConsts) {
+                buf.out("#undef %s\n", c);
+            }
+            localConsts.clear();
+            
             if(!isBlock) buf.out("}");
             buf.outln();
             
@@ -1427,13 +1453,17 @@ public class CGen {
         
         private void popScope() {
             Scope s = scope.pop();
-            s.leave(buf, this, true);
+            s.leave(buf, this);
+            
+            if(s.hasConsts()) {
+                localConsts.addAll(s.constDefs);
+            }
         }
         
         private void leaveLoopScope() {
             for(int i = scope.size() - 1; i >= 0; i--) {
                 Scope s = scope.get(i);
-                s.leave(buf, this, false);
+                s.leave(buf, this);
                 
                 if(s.isLoop) {
                     break;
@@ -1467,14 +1497,14 @@ public class CGen {
                 buf.out(";\n");
                 
                 for(Scope s : scope) {
-                    s.leave(buf, this, false);
+                    s.leave(buf, this);
                 }
                 
                 buf.out("return ___result;\n}\n");                        
             }
             else {
                 for(Scope s : scope) {
-                    s.leave(buf, this, false);
+                    s.leave(buf, this);
                 }
             
                 buf.out("return");
