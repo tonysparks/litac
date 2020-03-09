@@ -1027,14 +1027,22 @@ public class CGen {
             visitNotes(d.attributes.notes);
             
             checkLine(d);
-                        
-            if(d.sym.type.isPrimitive()) {
-                buf.out("const ");
-            }
             
-            buf.out("%s = ", typeDeclForC(d.sym.type, name));
-            d.expr.visit(this);
-            buf.out(";\n");
+            if(Expr.isConstExpr(d.expr) && d.attributes.isGlobal) {
+                buf.out("#define ");                   
+                buf.out("%s (", name);  
+                d.expr.visit(this); 
+                buf.out(")\n");     
+            }
+            else {
+                if(d.sym.type.isPrimitive()) {
+                    buf.out("const ");
+                }
+                
+                buf.out("%s = ", typeDeclForC(d.sym.type, name));
+                d.expr.visit(this);
+                buf.out(";\n");
+            }
 
         }
     
