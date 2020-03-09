@@ -61,7 +61,7 @@
 @foreign public func strncmp(a: char const*, b: char const*, num: u64) : i32;
 @foreign public func strcmp(a: char const*, b: char const*) : i32;
 @foreign public func snprintf(s: char*, n: u64, format: char const*, ...): i32;
-
+@foreign public func strtok(str: char*, delim: char const*) : char*;
 @foreign public func strtol(str: char const*, end: char**, base: i32) : i64;
 @foreign public func strtoul(str: char const*, end: char**, base: i32) : u64;
 @foreign public func strtod(str: char const*, end: char**) : f64;
