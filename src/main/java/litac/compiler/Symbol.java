@@ -192,6 +192,14 @@ public class Symbol {
         return !isIncomplete();
     }
     
+    public boolean isPublic() {
+        if(this.decl == null) {
+            return false;
+        }
+        
+        return this.decl.attributes.isPublic;
+    }
+    
     /**
      * Removes the foreign designation
      */

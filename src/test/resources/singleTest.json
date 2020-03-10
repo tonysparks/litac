@@ -275,23 +275,34 @@
         },*/
         // Still broken
         {
-            name: "Defer outside of loop",
+            name: "Doc Test",
             definitions: '''
-                                            
+                @doc("""
+                    Module documentation
+                    <i>this is an italic test</i>
+                """);
+            
+                @doc("""
+                    some documentation
+                """)
+                public var a = 1
+                
+                @doc("""
+                    *b* is some other stuff
+                """)
+                public const b = 2
+                const z = 3
+                
+                public typedef i32 as Int;
+                
+                public struct X {}
+                
+                public func test(a: i32) : f32 {
+                    return 0
+                }
             ''',                       
             code: '''                
-                var x = 0
-                {
-                    defer x += 1
-                    for(var i = 0; i < 1; i+=1) {
-                        if(i == 0) {
-                            break;
-                        }
-                    }             
-                    
-                    assert(x == 0)
-                }   
-                assert(x == 1)                     
+                                     
             ''',                      
         },
         

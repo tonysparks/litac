@@ -42,6 +42,7 @@ public class LitaC {
         System.out.println("  -disableLine         Disables #line directive in C output");
         System.out.println("  -debug               Enables debug mode");
         System.out.println("  -verbose             Enables verbose output");
+        System.out.println("  -doc                 Generates document output");
         System.out.println("  -o, -output <arg>    The name of the compiled binary");
         System.out.println("  -outpuDir <arg>      The directory in which the C output files are stored");
         System.out.println("  -v, -version         Displays the LitaC version");
@@ -113,6 +114,10 @@ public class LitaC {
                 }
                 case "-verbose": {
                     options.isVerbose = true;
+                    break;
+                }
+                case "-docs": {
+                    options.generateDocs = true;
                     break;
                 }
                 case "-profile": {

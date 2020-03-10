@@ -11,6 +11,7 @@ import litac.ast.*;
 import litac.ast.Node.SrcPos;
 import litac.checker.TypeResolver;
 import litac.compiler.c.CTranspiler;
+import litac.doc.DocGen;
 import litac.util.Profiler;
 import litac.util.Profiler.Segment;
 import litac.compiler.Module;
@@ -41,6 +42,10 @@ public class Compiler {
             
             if(this.options.reflectionEnabled()) {
                 reflection(program, unit);
+            }
+            
+            if(this.options.generateDocs) {
+                generateDocs(options, program);
             }
             
             if(!result.hasErrors() && !options.checkerOnly) {
@@ -98,7 +103,12 @@ public class Compiler {
         }
     }
     
-    private static void compile(BackendOptions options, 
+    private void generateDocs(BackendOptions options, Program program) {
+        DocGen docGen = new DocGen(options);
+        docGen.generate(program);
+    }
+    
+    private void compile(BackendOptions options, 
                                 PhaseResult checkerResult, 
                                 CompilationUnit unit,
                                 Program program) throws Exception {

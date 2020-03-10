@@ -200,6 +200,7 @@ public class Workspace {
         Source source = new Source(physicalFileName, new StringReader(text));                                    
         Parser parser = new Parser(this.options.preprocessor(), result, new Scanner(source));
         ModuleStmt module = parser.parseModule();
+        importAssertModule(module);
         
         return module;
     }
@@ -267,7 +268,9 @@ public class Workspace {
             ModuleStmt rootModule = readModule(moduleName, result);
             ModuleStmt builtin = readModule("builtins", result);
             
-            CompilationUnit unit = new CompilationUnit(builtin, rootModule);
+            CompilationUnit unit = new CompilationUnit(builtin, rootModule);            
+            importAssertModule(rootModule);                
+                        
             CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(unit.getImports(), result);
             visitor.visit(rootModule);
             visitor.visit(builtin);
@@ -283,6 +286,12 @@ public class Workspace {
         }
         
         return result;
+    }
+    
+    private void importAssertModule(ModuleStmt main) {
+        if(!main.imports.stream().anyMatch(imp -> imp.moduleName.equals("assert"))) {
+            main.imports.add(new ImportStmt("assert", null, false));
+        }
     }
     
     

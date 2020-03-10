@@ -99,6 +99,7 @@ public class TestSuite {
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = test.symbolPrefix;
                 options.run = true;
+                options.generateDocs = true;
                 options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;
                 options.disableLines = suite.disableLines;
                 options.debugMode = test.debug != null  
@@ -215,6 +216,6 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/stmts.json");        
+        singleFileTest("/string_view.json");        
     }
 }

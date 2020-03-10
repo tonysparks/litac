@@ -1,0 +1,30 @@
+/*
+ * see license.txt
+ */
+package litac.doc;
+
+import litac.compiler.Module;
+import litac.compiler.*;
+
+/**
+ * @author Tony
+ *
+ */
+public class DocGen {
+
+    private BackendOptions options;
+        
+    public DocGen(BackendOptions options) {
+        this.options = options;
+    }
+
+    public void generate(Program program) {
+        DocWriter writer = new MarkdownDocWriter(this.options);
+        
+        writer.start();
+        for(Module module : program.getModules()) {
+            writer.writeModule(module);
+        }
+        writer.end();
+    }
+}

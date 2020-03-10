@@ -1,6 +1,7 @@
 import "mem" as mem;
 import "io";
 import "assert";
+import "string_view";
 
 @include("<stdarg.h>");
 @include("<stdio.h>");
@@ -15,9 +16,9 @@ import "assert";
 
 
 public struct StringBuffer {
+    buffer: char*
     length: i32
     capacity: i32
-    buffer: char*
     alloc: mem::Allocator const*
 }
 
@@ -178,45 +179,8 @@ public func (b: StringBuffer*) indexOf(str: char const*, len: i32 = -1) : i32 {
 }
 
 public func (b: StringBuffer*) indexOfAt(str: char const*, len: i32 = -1, fromIndex: i32 = 0) : i32 {
-    var target = str
-    var source = b.buffer
-
-    var targetOffset = 0;
-    var sourceOffset = 0;
-
-    var first = target[0];
-
-    var targetCount = len
-    if(len < 0) {
-        targetCount = strlen(str);
-    }
-
-    var max = sourceOffset + (b.length - targetCount);
-
-    for (var i = sourceOffset + fromIndex; i <= max; i += 1) {
-        /* Look for first character. */
-        if (source[i] != first) {
-            while (i <= max && source[i] != first) {
-                i+=1
-            }
-        }
-
-        /* Found first character, now look at the rest of v2 */
-        if (i <= max) {
-            var j = i + 1;
-            var end = j + targetCount - 1;
-            for (var k = targetOffset + 1; j < end && source[j] == target[k];) {
-                j += 1;
-                k += 1;
-            }
-
-            if (j == end) {
-                /* Found whole string. */
-                return i - sourceOffset;
-            }
-        }
-    }
-    return -1;
+    var view = b.asStringView()
+    return view.indexOfAt(str, len, fromIndex)
 }
 
 
@@ -295,17 +259,9 @@ public func (b: StringBuffer*) insert(index: i32, format: char const*, ...) : i3
 }
 
 
-public func (b: StringBuffer*) copyTo(buf: char*, len: i32) : i32 {
-    var bytesCopied = len
-    if(b.length < len) {
-        bytesCopied = b.length
-    }
-    
-    mem::memcpy(buf as (void*),
-                (&b.buffer[0]) as (void const*), 
-                bytesCopied * sizeof(:char))
-
-    return (bytesCopied)
+public func (b: StringBuffer*) copyTo(buf: char*, len: i32, addZero: bool = true) : i32 {
+    var view = b.asStringView()
+    return view.copyTo(buf, len, addZero)
 }
 
 public func (b: StringBuffer*) forEach(fn : func(char) : bool) {
@@ -316,14 +272,17 @@ public func (b: StringBuffer*) forEach(fn : func(char) : bool) {
     }
 }
 
+@inline
 public func (b: StringBuffer*) empty() : bool {
     return b.length == 0
 }
 
+@inline
 public func (b: StringBuffer*) size() : i32 {
     return b.length
 }
 
+@inline
 public func (b: StringBuffer*) clear() {
     b.length = 0
 }
@@ -337,6 +296,13 @@ public func (b: StringBuffer*) cStr() : char const* {
     return (b.buffer) as (char const*)
 }
 
+@inline
+public func (b: StringBuffer*) asStringView() : StringView {
+    return StringView {
+        .buffer = b.buffer,
+        .length = b.length
+    }
+}
 
 public func (b: StringBuffer*) get(index: i32) : char {
     if(index < 0 || index >= b.length) {

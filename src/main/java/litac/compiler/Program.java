@@ -33,6 +33,10 @@ public class Program {
         return this.modules.get(name);
     }
     
+    public List<Module> getModules() {
+        return new ArrayList<>(this.modules.values());
+    }
+    
     public Module getMainModule() {
         return this.main;
     }

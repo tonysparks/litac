@@ -65,6 +65,7 @@ public class BackendOptions {
     public boolean disableLines;
     public boolean debugMode;
     public boolean isVerbose;
+    public boolean generateDocs;
     public OutputType outputType;
     public String testRegex;
     public boolean testFile;
@@ -99,6 +100,7 @@ public class BackendOptions {
         this.profile = false;
         this.disableLines = false;
         this.debugMode = false;
+        this.generateDocs = false;
         
         this.cOptions = type == BackendType.C ? new CTranspiler.COptions(this) : null;
     }
