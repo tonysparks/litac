@@ -22,9 +22,10 @@ public struct StringBuffer {
     alloc: mem::Allocator const*
 }
 
-public func StringBufferInit() : StringBuffer {
+public func StringBufferInit(initialSize: i32 = 16, 
+                             alloc: mem::Allocator const* = null) : StringBuffer {
     var sb = StringBuffer{}
-    sb.init()
+    sb.init(initialSize, alloc)
 
     return sb;
 }

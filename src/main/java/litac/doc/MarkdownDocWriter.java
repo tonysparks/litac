@@ -12,6 +12,7 @@ import litac.ast.Stmt.NoteStmt;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
+import litac.compiler.Module;
 
 /**
  * @author Tony
