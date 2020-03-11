@@ -99,7 +99,7 @@ public class TestSuite {
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = test.symbolPrefix;
                 options.run = true;
-                options.generateDocs = true;
+                options.generateDocs = false;
                 options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;
                 options.disableLines = suite.disableLines;
                 options.debugMode = test.debug != null  

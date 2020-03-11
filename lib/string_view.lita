@@ -1,12 +1,13 @@
 import "libc"
 import "mem" as mem
+import "assert"
 
 public struct StringView {
     buffer: char const*
     length: i32
 }
 
-public func StringViewInit(str: char*, len: i32 = -1) : StringView {
+public func StringViewInit(str: char const*, len: i32 = -1) : StringView {
     if(str == null) {
         return StringView {
             .buffer = null,
