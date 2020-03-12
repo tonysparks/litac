@@ -274,6 +274,7 @@
             error: "Unknown type 'test'"                      
         },*/
         // Still broken
+        /*
         {
             name: "Doc Test",
             definitions: '''
@@ -303,6 +304,26 @@
             ''',                       
             code: '''                
                                      
+            ''',                      
+        },*/
+        {
+            name: "Defer Double with statement",
+            definitions: '''
+                func test() {
+                    var x = 1
+                    {
+                        defer if(true) x += 1
+                        defer x *= 2
+                        
+                        if(x == 2) {
+                            return;
+                        }
+                    }
+                    assert(x == 3) 
+                }
+            ''',                       
+            code: '''                
+                test()                         
             ''',                      
         },
         

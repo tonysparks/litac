@@ -1496,14 +1496,16 @@ public class CGen {
                 stmt.returnExpr.visit(this);
                 buf.out(";\n");
                 
-                for(Scope s : scope) {
+                List<Scope> currentScope = new ArrayList<>(scope);
+                for(Scope s : currentScope) {
                     s.leave(buf, this);
                 }
                 
                 buf.out("return ___result;\n}\n");                        
             }
             else {
-                for(Scope s : scope) {
+                List<Scope> currentScope = new ArrayList<>(scope);
+                for(Scope s : currentScope) {
                     s.leave(buf, this);
                 }
             
