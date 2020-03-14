@@ -2,12 +2,12 @@
 
 ## json Imports
 
-* [array](array)
-* [assert](assert)
-* [libc](libc)
-* [map](map)
-* [mem](mem)
-* [string\_buffer](string\_buffer)
+* [array](array\.md)
+* [assert](assert\.md)
+* [libc](libc\.md)
+* [map](map\.md)
+* [mem](mem\.md)
+* [string\_buffer](string\_buffer\.md)
 
 
 ## json Variables

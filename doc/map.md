@@ -2,9 +2,9 @@
 
 ## map Imports
 
-* [assert](assert)
-* [io](io)
-* [mem](mem)
+* [assert](assert\.md)
+* [io](io\.md)
+* [mem](mem\.md)
 
 
 ## map Variables

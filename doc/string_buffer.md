@@ -2,10 +2,10 @@
 
 ## string\_buffer Imports
 
-* [assert](assert)
-* [io](io)
-* [mem](mem)
-* [string\_view](string\_view)
+* [assert](assert\.md)
+* [io](io\.md)
+* [mem](mem\.md)
+* [string\_view](string\_view\.md)
 
 
 ## string\_buffer Variables

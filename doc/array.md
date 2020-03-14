@@ -2,8 +2,8 @@
 
 ## array Imports
 
-* [assert](assert)
-* [mem](mem)
+* [assert](assert\.md)
+* [mem](mem\.md)
 
 
 ## array Variables

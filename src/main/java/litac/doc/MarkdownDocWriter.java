@@ -101,7 +101,7 @@ public class MarkdownDocWriter implements DocWriter {
         buf.append(subSection(m + " Imports"));
         {        
             List<String> moduleNames = module.getImports().stream()
-                    .map(x -> urlTo(x.name()))
+                    .map(x -> urlTo(x.name(), x.name()+".md"))
                     .sorted()
                     .collect(Collectors.toList());
             

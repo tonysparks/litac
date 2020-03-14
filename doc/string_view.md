@@ -2,9 +2,9 @@
 
 ## string\_view Imports
 
-* [assert](assert)
-* [libc](libc)
-* [mem](mem)
+* [assert](assert\.md)
+* [libc](libc\.md)
+* [mem](mem\.md)
 
 
 ## string\_view Variables

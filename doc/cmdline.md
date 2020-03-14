@@ -2,9 +2,9 @@
 
 ## cmdline Imports
 
-* [io](io)
-* [libc](libc)
-* [map](map)
+* [io](io\.md)
+* [libc](libc\.md)
+* [map](map\.md)
 
 
 ## cmdline Variables

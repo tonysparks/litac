@@ -2,8 +2,8 @@
 
 ## mem Imports
 
-* [array](array)
-* [libc](libc)
+* [array](array\.md)
+* [libc](libc\.md)
 
 
 ## mem Variables
