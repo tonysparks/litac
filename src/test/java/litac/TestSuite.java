@@ -42,6 +42,7 @@ public class TestSuite {
         public Boolean debug;
         public Boolean disableLines;
         public String symbolPrefix = "";
+        public boolean genDoc = false;
         public TestModule[] modules;
     }
     
@@ -99,7 +100,7 @@ public class TestSuite {
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = test.symbolPrefix;
                 options.run = true;
-                options.generateDocs = false;
+                options.generateDocs = test.genDoc;
                 options.typeInfo = suite.includeTypeInfos ? TypeInfoOption.All : TypeInfoOption.None;
                 options.disableLines = suite.disableLines;
                 options.debugMode = test.debug != null  

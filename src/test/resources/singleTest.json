@@ -273,10 +273,10 @@
             ''',
             error: "Unknown type 'test'"                      
         },*/
-        // Still broken
-        /*
+        // Still broken        
         {
             name: "Doc Test",
+            genDoc: true,
             definitions: '''
                 @doc("""
                     Module documentation
@@ -296,34 +296,38 @@
                 
                 public typedef i32 as Int;
                 
-                public struct X {}
+                public struct X {
+                    x: Int
+                    v: char
+                }
                 
+                public union Y {
+                    z: i32
+                    x: X
+                }
+                
+                @doc("""
+                    E is a special enum
+                """)
+                public enum E {
+                    @doc("not sure this will work?")
+                    STATE_X,
+                    STATE_Y
+                }
+                
+                @doc("""
+                This function does stuff 
+                
+                *a* the input to the fuction 
+                
+                *returns* the return of the function
+                """)
                 public func test(a: i32) : f32 {
                     return 0
                 }
             ''',                       
             code: '''                
                                      
-            ''',                      
-        },*/
-        {
-            name: "Defer Double with statement",
-            definitions: '''
-                func test() {
-                    var x = 1
-                    {
-                        defer if(true) x += 1
-                        defer x *= 2
-                        
-                        if(x == 2) {
-                            return;
-                        }
-                    }
-                    assert(x == 3) 
-                }
-            ''',                       
-            code: '''                
-                test()                         
             ''',                      
         },
         

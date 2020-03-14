@@ -43,6 +43,8 @@ public class LitaC {
         System.out.println("  -debug               Enables debug mode");
         System.out.println("  -verbose             Enables verbose output");
         System.out.println("  -doc                 Generates document output");
+        System.out.println("  -docDir <arg>        Directory where the generated documents are written to, defaults to './output'");
+        System.out.println("  -docAll              Includes non-public types in the documentation generation");
         System.out.println("  -o, -output <arg>    The name of the compiled binary");
         System.out.println("  -outpuDir <arg>      The directory in which the C output files are stored");
         System.out.println("  -v, -version         Displays the LitaC version");
@@ -116,8 +118,17 @@ public class LitaC {
                     options.isVerbose = true;
                     break;
                 }
-                case "-docs": {
+                case "-doc": {
                     options.generateDocs = true;
+                    break;
+                }
+                case "-docAll": {
+                    options.docsAll = true;
+                    break;
+                }
+                case "-docDir": {
+                    checkArg(args, i, "-docDir");
+                    options.outputDocDir = new File(args[++i]);
                     break;
                 }
                 case "-profile": {
@@ -225,7 +236,10 @@ public class LitaC {
     public static PhaseResult compile(BackendOptions options) throws Exception {
         File moduleFile = options.buildFile;
         options.srcDir = moduleFile.getParentFile();
-                
+        if(options.srcDir == null) {
+            options.srcDir = new File(System.getProperty("user.dir"));
+        }
+                        
         Compiler compiler = new Compiler(options);
         return compiler.compile(moduleFile);        
     }

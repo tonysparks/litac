@@ -55,6 +55,8 @@ public class BackendOptions {
     public File libDir;
     public File buildFile;
     public File outputDir;        
+    public File outputDocDir;
+    
     public String outputFileName;
     public OsType targetOS;
     public TypeInfoOption typeInfo;
@@ -66,6 +68,8 @@ public class BackendOptions {
     public boolean debugMode;
     public boolean isVerbose;
     public boolean generateDocs;
+    public boolean docsAll;
+    
     public OutputType outputType;
     public String testRegex;
     public boolean testFile;
@@ -100,7 +104,9 @@ public class BackendOptions {
         this.profile = false;
         this.disableLines = false;
         this.debugMode = false;
+        
         this.generateDocs = false;
+        this.outputDocDir = new File(wd, "output");
         
         this.cOptions = type == BackendType.C ? new CTranspiler.COptions(this) : null;
     }

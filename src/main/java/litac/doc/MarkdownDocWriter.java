@@ -3,8 +3,10 @@
  */
 package litac.doc;
 
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import litac.ast.Decl.DeclKind;
@@ -20,36 +22,65 @@ import litac.compiler.Module;
  */
 public class MarkdownDocWriter implements DocWriter {
 
-    private Map<String, StringBuilder> docs;
     private StringBuilder buf;
     private BackendOptions options;
     private boolean includePrivate;
-    private Module current;
+    private List<Module> modules;
+    private File outputDir;
     /**
      * 
      */
     public MarkdownDocWriter(BackendOptions options) {
         this.options = options;
         this.buf = new StringBuilder();
-        this.includePrivate = false;
+        this.includePrivate = options.docsAll;
+        this.modules = new ArrayList<>();
+        this.outputDir = options.outputDocDir;
     }
 
     @Override
     public void start() {
         //System.out.println("Starting doc generation");
+        
+        this.outputDir.mkdirs();        
         this.buf.append("# LitaC API Documentation - ").append(this.options.outputFileName).append("\n\n");
     }
     
     @Override
     public void end() {
         //System.out.println("Finished doc generation");
-        
-        System.out.println(this.buf);
+        for(Module module : this.modules) {
+            module(module);
+            
+            listImports(module);
+            listVariables(module);
+            listStructures(module);
+            listFunctions(module);
+            
+            buf.append("\n***\n");
+            
+            listVariableDetails(module);
+            listStructureDetails(module);
+            listFunctionDetails(module);
+                        
+            try {
+                Files.write(new File(this.outputDir, module.name() + ".md").toPath(), this.buf.toString().getBytes(),
+                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            }
+            catch(Exception e) {
+                throw new RuntimeException(e);
+            }
+            
+            this.buf.delete(0, this.buf.length());
+        }
     }
     
     @Override
-    public void writeModule(Module module) {      
-        current = module;        
+    public void writeModule(Module module) {
+        this.modules.add(module);
+    }
+    
+    private void module(Module module) {
         buf.append(section(module.name()));
         if(module.getModuleStmt().notes != null) {
             for(NoteStmt note : module.getModuleStmt().notes) {
@@ -62,17 +93,6 @@ public class MarkdownDocWriter implements DocWriter {
                 }
             }
         }
-        
-        listImports(module);
-        listVariables(module);
-        listStructures(module);
-        listFunctions(module);
-        
-        buf.append("\n***\n");
-        
-        listVariableDetails(module);
-        listStructureDetails(module);
-        listFunctionDetails(module);
     }
     
     private void listImports(Module module) {
@@ -81,7 +101,7 @@ public class MarkdownDocWriter implements DocWriter {
         buf.append(subSection(m + " Imports"));
         {        
             List<String> moduleNames = module.getImports().stream()
-                    .map(x -> linkTo(x.name()))
+                    .map(x -> urlTo(x.name()))
                     .sorted()
                     .collect(Collectors.toList());
             
@@ -160,12 +180,29 @@ public class MarkdownDocWriter implements DocWriter {
                     buf.append(blockquote(attr)).append("\n");
                 }
             }
+            
+            buf.append(symbolDetail(sym)).append("\n");
         }
             
     }
     
-    private void listFunctionDetails(Module module) {
-        String m = module.name();
+    private void listFunctionDetails(Module module) {        
+        List<Symbol> functions  = module.getModuleScope().getSymbols().stream()
+                .filter(sym -> sym.decl.kind.equals(DeclKind.FUNC) && (includePrivate || sym.isPublic()))                
+                .sorted((a,b) -> a.name.compareTo(b.name))
+                .collect(Collectors.toList());
+        
+        for(Symbol sym : functions) {
+            buf.append(sub2Section(sym.name)).append("\n");
+            NoteStmt note = sym.decl.attributes.getNote("doc");
+            if(note != null && note.attributes != null) {
+                for(String attr : note.attributes) {
+                    buf.append(blockquote(attr)).append("\n");
+                }
+            }
+            
+            buf.append(symbolDetail(sym)).append("\n");
+        }
     }
     
     private String type(TypeInfo type) {
@@ -231,10 +268,14 @@ public class MarkdownDocWriter implements DocWriter {
     private String symbolDetail(Symbol sym) {
         StringBuilder sb = new StringBuilder();
         switch(sym.decl.kind) {        
-        case ENUM:
-            sb.append("enum ").append(linkTo(sym.name));
+        case ENUM: {
+            sb.append("enum ").append(linkTo(sym.name)).append("\n\n");
+            EnumTypeInfo enumInfo = sym.type.as();
+            List<String> fieldNames = enumInfo.fields.stream().map(f -> f.name).collect(Collectors.toList());
+            sb.append(list(fieldNames));
             break;
-        case FUNC:
+        }
+        case FUNC: {
             sb.append("func ").append(linkTo(sym.name)).append("(");
             FuncTypeInfo funcInfo = sym.type.as();
             
@@ -249,20 +290,37 @@ public class MarkdownDocWriter implements DocWriter {
             if(!funcInfo.returnType.isKind(TypeKind.Void)) {
                 sb.append(" : ").append(type(funcInfo.returnType));
             }
-            break;        
-        case STRUCT:
-            sb.append("struct ").append(linkTo(sym.name));
+            break;  
+        }
+        case STRUCT: {
+            sb.append("struct ").append(linkTo(sym.name)).append("\n\n");
+            AggregateTypeInfo aggInfo = sym.type.as();
+            List<String> fieldNames = aggInfo.fieldInfos.stream()
+                    .map(f -> f.name + ": " + type(f.type))
+                    .collect(Collectors.toList());
+            
+            sb.append(list(fieldNames));
             break;
-        case TYPEDEF:            
+        }
+        case TYPEDEF: {            
             sb.append("typedef ").append(type(sym.type)).append(" as ").append(linkTo(sym.name));
             break;
-        case UNION:
-            sb.append("union ").append(linkTo(sym.name));
-            break;        
+        }
+        case UNION: {
+            sb.append("union ").append(linkTo(sym.name)).append("\n\n");
+            AggregateTypeInfo aggInfo = sym.type.as();
+            List<String> fieldNames = aggInfo.fieldInfos.stream()
+                    .map(f -> f.name + ": " + type(f.type))
+                    .collect(Collectors.toList());
+            
+            sb.append(list(fieldNames));
+            break;   
+        }
         default:
             break;
         
-        }
+        }  
+        sb.append("\n\n");
         return sb.toString();
     }
     
@@ -303,6 +361,16 @@ public class MarkdownDocWriter implements DocWriter {
         for(String line : lines) {
             sb.append("> ").append(line).append("\n");
         }
+        return sb.toString();
+    }
+    
+    private String urlTo(String section) {
+        return urlTo(section, section);
+    }
+    
+    private String urlTo(String text, String url) {
+        StringBuilder sb = new StringBuilder();        
+        sb.append("[").append(escape(text)).append("](").append(escape(url)).append(")");
         return sb.toString();
     }
     

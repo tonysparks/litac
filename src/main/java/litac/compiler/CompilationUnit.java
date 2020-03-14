@@ -63,7 +63,7 @@ public class CompilationUnit {
      * @return
      */
     public static CompilationUnit modules(BackendOptions options, File moduleFile, PhaseResult result) throws IOException {   
-        ModuleStmt builtin = readModule(options.preprocessor(), new File(options.libDir, "builtins.lita"), result);
+        ModuleStmt builtin = readModule(options.preprocessor(), findModule(options, "builtins.lita"), result);
         ModuleStmt main = readModule(options.preprocessor(), moduleFile, result);
         main.imports.add(new ImportStmt("builtins", null, false));
      
@@ -88,7 +88,7 @@ public class CompilationUnit {
     
     private static ModuleStmt readModule(Preprocessor pp, File moduleFile, PhaseResult result) throws IOException {    
         // TODO: should this be a phaseresult or an exception??
-        if(!moduleFile.exists()) {
+        if(!moduleFile.exists()) {            
             throw new FileNotFoundException(moduleFile.getAbsolutePath());
         }
         
@@ -97,6 +97,21 @@ public class CompilationUnit {
         ModuleStmt module = parser.parseModule();
         
         return module;                       
+    }
+    
+    private static File findModule(BackendOptions options, String fileName) {        
+        File importFile = new File(options.srcDir.getAbsolutePath(), fileName);
+        if(!importFile.exists()) {
+            importFile = new File(options.libDir, fileName);
+            if(!importFile.exists()) {
+                String path = System.getenv("LITAC_HOME");                
+                if(path != null) {
+                    importFile = new File(path + "/lib", fileName);                
+                }
+            }
+        }
+        
+        return importFile;
     }
     
     private static class CompilationUnitNodeVisitor extends AbstractNodeVisitor {
@@ -128,10 +143,8 @@ public class CompilationUnit {
                 return null;                
             }
             
-            File importFile = new File(this.options.srcDir.getAbsolutePath(), moduleName + ".lita");
-            if(!importFile.exists()) {
-                importFile = new File(this.options.libDir, moduleName + ".lita");
-            }
+            String fileName = moduleName + ".lita";
+            File importFile = findModule(options, fileName);
             
             try {
                 ModuleStmt module = readModule(this.options.preprocessor(), importFile, this.result);
