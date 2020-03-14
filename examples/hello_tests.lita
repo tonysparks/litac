@@ -1,0 +1,23 @@
+
+/**
+    run with java -jar litac.jar -testFile -run ./examples/hello_tests.lita
+
+    This will run all of the functions with the @test annotation
+*/    
+@test("Test Something")
+func testSomething() {
+    var x: i32 = 100
+    var y: i32 = 200
+    assert(true)
+    assert(x + y == 300)
+}
+
+func square(x: i32) : i32 {
+    return x*x;
+}
+
+@test("Test Something Else")
+func testSomethingElse() {
+    assert(square(2) == 4)
+    assert(square(4) == 16)
+}

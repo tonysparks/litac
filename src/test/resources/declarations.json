@@ -602,7 +602,7 @@
                 @foreign public func fopen(fileName:char*, openType:char*) : File*;
             ''',                       
             code: '''   
-                var t: File* = fopen("../examples/unions.lita", "r")
+                var t: File* = fopen("../examples/hello_world.lita", "r")
                 assert(t != null)             
             ''',
         },

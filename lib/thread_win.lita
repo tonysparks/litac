@@ -89,8 +89,24 @@ static void NTAPI _tinycthread_tss_callback(PVOID h, DWORD dwReason, PVOID pv)
 
 """);
 
-import "thread"
 import "mem"
+
+
+@asStr
+public enum ThreadStatus {
+    ERROR    = 0,
+    SUCCESS  = 1,
+    TIMEDOUT = 2,
+    BUSY     = 3,
+    NOMEM    = 4,
+}
+
+@asStr
+public enum MutexType {
+    PLAIN     = 0,
+    TIMED     = 1,
+    RECURSIVE = 2,
+}
 
 /*==============================================================
     Windows specific Types bindings
@@ -98,13 +114,13 @@ import "mem"
 */    
 
 @foreign
-typedef void as DWORD;
+typedef i32 as DWORD;
 
 @foreign
-typedef void as LPDWORD;
+typedef i32 as LPDWORD;
 
 @foreign
-typedef void as LPVOID;
+typedef void* as LPVOID;
 
 @foreign
 struct CRITICAL_SECTION;
@@ -362,7 +378,7 @@ public func (mtx: Mutex*) timedLock(ts: TimeSpec*) : ThreadStatus {
         timeoutMs = 0;
     }
     else {
-        timeoutMs  = (ts.sec  - current_ts.sec) as (DWORD) * 1_000;
+        timeoutMs  = (ts.sec  - current_ts.sec) * 1_000;
         timeoutMs += (ts.nsec - current_ts.nsec) / 1_000_000;
         timeoutMs += 1;
     }
@@ -560,7 +576,7 @@ func _thrd_wrapper_function(aArg: LPVOID) : DWORD {
     var res: i32;
 
     /* Get thread startup information */
-    var ti = aArg as (ThreadStartInfo*);
+    var ti: ThreadStartInfo* = aArg as (ThreadStartInfo*);
     fun = ti.mFunction;
     arg = ti.mArg;
 

@@ -122,4 +122,19 @@ public class BackendOptions {
     public boolean reflectionEnabled() {
         return this.typeInfo != null && !this.typeInfo.equals(TypeInfoOption.None);
     }
+    
+    public File findModule(String fileName) {        
+        File importFile = new File(this.srcDir.getAbsolutePath(), fileName);
+        if(!importFile.exists()) {
+            importFile = new File(this.libDir, fileName);
+            if(!importFile.exists()) {
+                String path = System.getenv("LITAC_HOME");                
+                if(path != null) {
+                    importFile = new File(path + "/lib", fileName);                
+                }
+            }
+        }
+        
+        return importFile;
+    }
 }

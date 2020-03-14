@@ -94,19 +94,22 @@ public class Parser {
      * @return the {@link ModuleStmt}
      */
     public ModuleStmt parseModule() {
-        SrcPos pos = pos();
         List<ImportStmt> imports = new ArrayList<>();
         List<NoteStmt> moduleNotes = new ArrayList<>();
         List<Decl> declarations = new ArrayList<>();
-        
+
+        SrcPos pos = null;
         String moduleName = Names.getModuleName(this.scanner.getSourceFile());
-        while(!isAtEnd()) {
-            try {
-                tryModuleStatement(imports, moduleNotes, declarations);
-            }
-            catch(ParseException e) {
-                this.result.addError(e.getToken(), e.getMessage());
-                adjust(); // advance the tokens to avoid infinite loop
+        if(!isAtEnd()) {
+            pos = pos();
+            while(!isAtEnd()) {
+                try {
+                    tryModuleStatement(imports, moduleNotes, declarations);
+                }
+                catch(ParseException e) {
+                    this.result.addError(e.getToken(), e.getMessage());
+                    adjust(); // advance the tokens to avoid infinite loop
+                }
             }
         }
         
@@ -1821,7 +1824,9 @@ public class Parser {
      * source line and number information
      */
     private void source() {
-        this.startToken = peek();        
+        if(!isAtEnd()) {
+            this.startToken = peek();
+        }
     }
     
     private SrcPos pos() {        
@@ -1959,7 +1964,7 @@ public class Parser {
      * @return true if we're at the end
      */
     private boolean isAtEnd() {
-        return peek().getType() == END_OF_FILE;
+        return this.tokens.isEmpty() || peek().getType() == END_OF_FILE;
     }
     
     /**

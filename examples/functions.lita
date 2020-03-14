@@ -1,0 +1,31 @@
+/**
+    run with java -jar litac.jar -run ./examples/functions.lita
+*/    
+import "io"  // import the 'io' module, which allows us to use functions/types from the module
+
+
+func main(n: i32, args: char**) {
+    var result = function(4)
+    printf("Result: %d\n", result)
+}
+
+
+// Requires no forward declaration, can be defined
+// anywhere in the module and referenced
+func function(input: i32) : i32 {
+    printf("someOtherFunction() == %f\n", someOtherFunction())
+    return input * 2
+}
+
+
+// Doesn't need to be declared before calling this function
+func someOtherFunction() : f32 {
+    return 4.0f    
+}
+
+// the 'public' keyword makes this function available to other modules when importing this
+// module.  Otherwise, if the 'public' keyword is not present, the function is only visible within
+// the module it is defined
+public func someModulePublicFunction() {
+    printf("Hi!");
+}

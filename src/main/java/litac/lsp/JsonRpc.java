@@ -107,6 +107,9 @@ public class JsonRpc {
                 return Variable;
             case TYPE:
                 TypeInfo type = sym.getType();
+                if(type == null) {
+                    return Null;
+                }
                 switch(type.getKind()) {
                     case Array:
                         return Array;

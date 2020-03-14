@@ -151,11 +151,7 @@ public class Workspace {
                         //canonicalPath(document.document.uri));
             }
             else {
-                File moduleFile = new File(this.srcDir, moduleName + ".lita");
-                if(!moduleFile.exists()) {
-                    moduleFile = new File(this.options.libDir, moduleName + ".lita");
-                }
-                
+                File moduleFile = this.options.findModule(moduleName + ".lita");                
                 if(moduleFile.exists()) {                    
                     this.modules.put(moduleName, normalizePath(moduleFile.getAbsolutePath()));
                 }

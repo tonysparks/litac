@@ -298,6 +298,7 @@ Which will print out the command line help contents.
 ```
 usage> litac [options] [source file to compile]
 OPTIONS:
+  -languageServer      Start the LitaC language server
   -lib <arg>           The LitaC library path
   -cPrefix <arg>       The symbol prefix to use on the generated C code output
   -run                 Runs the program after a successful compile
@@ -306,6 +307,10 @@ OPTIONS:
   -profile             Reports profile metrics of the compiler
   -disableLine         Disables #line directive in C output
   -debug               Enables debug mode
+  -verbose             Enables verbose output
+  -doc                 Generates document output
+  -docDir <arg>        Directory where the generated documents are written to; defaults to './output'
+  -docAll              Includes non-public types in the documentation generation; defaults to false
   -o, -output <arg>    The name of the compiled binary
   -outpuDir <arg>      The directory in which the C output files are stored
   -v, -version         Displays the LitaC version
@@ -315,6 +320,7 @@ OPTIONS:
                          all         Means all types will have reflection values
                          tagged      Means only basic types and types annoted with @typeinfo will have reflection values                         
   -test <arg>          Runs functions annotated with @test.  <arg> is a regex of which tests should be run
+  -testFile            Runs functions annotated with @test in the supplied source file only
   -buildCmd            The underlying C compiler build and compile command.  Variables will
                        be substituted if found:
                           %output%         The executable name
@@ -329,3 +335,15 @@ java -jar litac.jar -run -lib "%LITAC_PATH%" -buildCmd "clang.exe -o %%output%% 
 ```
 
 This example, builds an executable named `mini` from the `./src/main.lita` source file.  It will run the executable after it compiles (only if there are no errors).  It uses clang to compile the generated C code, I also set some clang compiler options such as an include directory and static libraries to use in my project.  This also specifies where the litac standard library exists (which is the `lib` folder in the litac project source.
+
+Environment Variable
+==
+
+
+The LitaC compiler will also look at the `LITAC_HOME` environment variable to search for the standard library files if the `-lib` is not set.  When setting the `LITAC_HOME` environment variable, there is no need to set the `-lib` command line option, the `LITAC_HOME` variable should be set to the parent directory of the `lib` folder of the `litac` git project.
+
+Ex.
+
+```
+LITAC_HOME=/home/tony/projects/litac
+```

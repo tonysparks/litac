@@ -1,0 +1,68 @@
+/**
+    run with java -jar litac.jar -run ./examples/types.lita
+*/    
+import "io"  // import the 'io' module, which allows us to use functions/types from the module
+
+// Defines a structure -- grouped elements 
+struct MyStruct {
+    someField: i32
+    someOtherField: f32
+}
+
+// Defines a union -- shared memory
+union MyUnion {
+    str: char*
+    real: f32
+    integer: i32
+}
+
+// Defines an enumeration
+enum MyEnum {
+    STRING,
+    REAL,
+    INTEGER
+}
+
+// Defines a struct within a structure
+struct OtherStruct {
+    a: i32
+
+    struct embedded {
+        b: i32
+    }
+}
+
+// Defines a type alias. Syntax: 'typedef' 'type' 'as' 'alias name'
+typedef i32 as Integer;
+
+func main(n: i32, args: char**) {
+    // initialization
+    var s = MyStruct{} // uninitialized fields
+    var s2 = MyStruct {  // field initializer syntax
+        .someField = 4,
+        .someOtherField = 100f
+    }
+    var s3 = MyStruct { // initialize in the order of the definition of the fields.  As a best practice, field initializer syntax should be used
+        22, 4f
+    }
+
+    var u = MyUnion{}
+    var u2 = MyUnion{.str = "Hi"} // must only initialize with one field populated
+
+    var e = MyEnum.STRING
+
+
+    var o = OtherStruct{
+        .a = 4,
+        .embedded = embedded {  // the field name takes on the struct name
+            18
+        }
+    }
+
+    var e2 = embedded { // this is also available outside the scope of the OtherStruct definition (NOTE: this is subject to change)
+        41
+    }
+
+    var x : Integer = 30 // using the aliased type
+    var y : Integer = x
+}

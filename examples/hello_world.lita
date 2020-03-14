@@ -1,0 +1,5 @@
+import "io"
+
+func main(n: i32, args: char**) {
+    printf("Hello World\n")
+}

@@ -5,7 +5,7 @@ package litac;
 
 import java.io.*;
 import java.nio.file.*;
-import java.util.List;
+import java.util.*;
 
 import org.hjson.JsonValue;
 import org.junit.Ignore;
@@ -218,5 +218,60 @@ public class TestSuite {
     @Test
     public void fileTest() throws Exception {
         singleFileTest("/string_view.json");        
+    }
+    
+    
+    @Test
+    public void generateStdLibDocumentation() throws Exception {
+        File libDir = new File("./lib");                
+        File outputDir = new File(System.getProperty("user.dir") + "/output_tests");
+        if(!outputDir.exists()) {
+            assertTrue(outputDir.mkdirs());
+        }
+        
+        final String program = "%definitions%\n\nfunc main(n: i32, args:char**) {}";
+        Set<String> ignoreModules = new HashSet<>();
+        ignoreModules.add("opengl.lita");
+        ignoreModules.add("glad.lita");
+        ignoreModules.add("thread.lita");
+        ignoreModules.add("thread_win.lita");
+        
+        StringBuilder sb = new StringBuilder();
+        File[] moduleFiles = libDir.listFiles(file -> file.getName().toLowerCase().endsWith(".lita"));
+        
+        int id = 0;
+        for(File file : moduleFiles) {
+            if(ignoreModules.contains(file.getName())) {
+                continue;
+            }
+            sb.append("import \"").append(file.getName().replace(".lita", ""))
+                .append("\" as id").append(id++).append("\n");
+        }
+        
+        String fullProgram = program.replace("%definitions%", sb.toString());
+
+        File tmp = new File(outputDir, "documentationGenerator.lita");            
+        Files.write(tmp.toPath(), fullProgram.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        tmp.deleteOnExit();
+
+                        
+        BackendOptions options = new BackendOptions();
+        options.buildFile = tmp;            
+        options.generateDocs = true;
+        options.outputDocDir = new File("./doc");                        
+        String compileCmd = System.getProperty("buildCmd");
+        if(compileCmd != null && !compileCmd.isEmpty()) {
+            options.cOptions.compileCmd = compileCmd;
+        }
+        
+        System.out.println("build command: '" + options.cOptions.compileCmd + "'");
+        
+        PhaseResult result = LitaC.compile(options);
+        if(result.hasErrors()) {
+            for(PhaseError error : result.getErrors()) {
+                Errors.typeCheckError(error.pos, error.message);
+            }            
+        } 
+        
     }
 }

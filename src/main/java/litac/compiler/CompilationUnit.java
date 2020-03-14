@@ -63,12 +63,12 @@ public class CompilationUnit {
      * @return
      */
     public static CompilationUnit modules(BackendOptions options, File moduleFile, PhaseResult result) throws IOException {   
-        ModuleStmt builtin = readModule(options.preprocessor(), findModule(options, "builtins.lita"), result);
+        ModuleStmt builtin = readModule(options.preprocessor(), options.findModule("builtins.lita"), result);
         ModuleStmt main = readModule(options.preprocessor(), moduleFile, result);
         main.imports.add(new ImportStmt("builtins", null, false));
      
         if(options.outputType == OutputType.Test) {
-            importAssertModule(main);
+            importTestModules(main);
         }
         
         
@@ -80,9 +80,12 @@ public class CompilationUnit {
         return unit;
     }
     
-    private static void importAssertModule(ModuleStmt main) {
+    private static void importTestModules(ModuleStmt main) {
         if(!main.imports.stream().anyMatch(imp -> imp.moduleName.equals("assert"))) {
             main.imports.add(new ImportStmt("assert", null, false));
+        }
+        if(!main.imports.stream().anyMatch(imp -> imp.moduleName.equals("io"))) {
+            main.imports.add(new ImportStmt("io", null, false));
         }
     }
     
@@ -98,22 +101,7 @@ public class CompilationUnit {
         
         return module;                       
     }
-    
-    private static File findModule(BackendOptions options, String fileName) {        
-        File importFile = new File(options.srcDir.getAbsolutePath(), fileName);
-        if(!importFile.exists()) {
-            importFile = new File(options.libDir, fileName);
-            if(!importFile.exists()) {
-                String path = System.getenv("LITAC_HOME");                
-                if(path != null) {
-                    importFile = new File(path + "/lib", fileName);                
-                }
-            }
-        }
-        
-        return importFile;
-    }
-    
+            
     private static class CompilationUnitNodeVisitor extends AbstractNodeVisitor {
         
         BackendOptions options;
@@ -144,7 +132,7 @@ public class CompilationUnit {
             }
             
             String fileName = moduleName + ".lita";
-            File importFile = findModule(options, fileName);
+            File importFile = options.findModule(fileName);
             
             try {
                 ModuleStmt module = readModule(this.options.preprocessor(), importFile, this.result);

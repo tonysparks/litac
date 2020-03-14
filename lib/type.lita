@@ -1,4 +1,4 @@
-@generated public const typeInfos: TypeInfo** = null;
+@generated public const typeInfos: TypeInfo** = [1]TypeInfo*{0};
 @generated public const numOfTypeInfos : i64 = 0;
 
 @asStr
