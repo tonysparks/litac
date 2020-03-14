@@ -114,7 +114,8 @@ public class MarkdownDocWriter implements DocWriter {
         buf.append(subSection(m + " Variables"));
         {
             List<String> globals = module.getModuleScope().getSymbols().stream()
-                    .filter(sym -> !sym.isType() && (includePrivate || sym.isPublic()))
+                    .filter(sym -> !sym.isType() && sym.declared.name().equals(module.name()) 
+                            && (includePrivate || sym.isPublic()))
                     .map(sym -> (sym.isConstant() ? "const " : "") + linkTo(sym.name) + ": " + type(sym.type))
                     .sorted()
                     .collect(Collectors.toList());
@@ -128,7 +129,8 @@ public class MarkdownDocWriter implements DocWriter {
         buf.append(subSection(m + " Types"));
         {
             List<String> types = module.getModuleScope().getSymbols().stream()
-                    .filter(sym -> sym.isType() && !sym.decl.kind.equals(DeclKind.FUNC) && (includePrivate || sym.isPublic()))
+                    .filter(sym -> sym.isType() && sym.declared.name().equals(module.name()) 
+                            && !sym.decl.kind.equals(DeclKind.FUNC) && (includePrivate || sym.isPublic()))
                     .map(sym -> symbolSummary(sym))
                     .sorted()
                     .collect(Collectors.toList());
@@ -141,7 +143,8 @@ public class MarkdownDocWriter implements DocWriter {
         String m = module.name();
         buf.append(subSection(m + " Functions"));
         List<String> types = module.getModuleScope().getSymbols().stream()
-                .filter(sym -> sym.decl.kind.equals(DeclKind.FUNC) && (includePrivate || sym.isPublic()))
+                .filter(sym -> sym.decl.kind.equals(DeclKind.FUNC) && sym.declared.name().equals(module.name()) 
+                        && (includePrivate || sym.isPublic()))
                 .map(sym -> symbolSummary(sym))
                 .sorted()
                 .collect(Collectors.toList());
@@ -151,7 +154,8 @@ public class MarkdownDocWriter implements DocWriter {
     
     private void listVariableDetails(Module module) {        
         List<Symbol> globals = module.getModuleScope().getSymbols().stream()
-                                        .filter(sym -> !sym.isType() && (includePrivate || sym.isPublic()))                
+                                        .filter(sym -> !sym.isType() && sym.declared.name().equals(module.name()) 
+                                                && (includePrivate || sym.isPublic()))                
                                         .sorted((a,b) -> a.name.compareTo(b.name))
                                         .collect(Collectors.toList());
         
@@ -168,7 +172,8 @@ public class MarkdownDocWriter implements DocWriter {
     
     private void listStructureDetails(Module module) {
         List<Symbol> globals = module.getModuleScope().getSymbols().stream()
-                                        .filter(sym -> sym.isType() && !sym.decl.kind.equals(DeclKind.FUNC) && (includePrivate || sym.isPublic()))                
+                                        .filter(sym -> sym.isType() && sym.declared.name().equals(module.name()) && 
+                                                !sym.decl.kind.equals(DeclKind.FUNC) && (includePrivate || sym.isPublic()))                
                                         .sorted((a,b) -> a.name.compareTo(b.name))
                                         .collect(Collectors.toList());
         
@@ -188,7 +193,8 @@ public class MarkdownDocWriter implements DocWriter {
     
     private void listFunctionDetails(Module module) {        
         List<Symbol> functions  = module.getModuleScope().getSymbols().stream()
-                .filter(sym -> sym.decl.kind.equals(DeclKind.FUNC) && (includePrivate || sym.isPublic()))                
+                .filter(sym -> sym.decl.kind.equals(DeclKind.FUNC) && sym.declared.name().equals(module.name()) 
+                        && (includePrivate || sym.isPublic()))                
                 .sorted((a,b) -> a.name.compareTo(b.name))
                 .collect(Collectors.toList());
         
