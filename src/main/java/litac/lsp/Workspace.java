@@ -103,7 +103,7 @@ public class Workspace {
             
     public void addDocument(TextDocument document) {
         this.latestDocumentUri = canonicalPath(document.uri);
-        this.documents.put(this.latestDocumentUri, new Document(getModuleName(document.uri), document));
+        this.documents.put(this.latestDocumentUri, new Document(getModuleName(document.uri), document, this.log));
     }
     
     public void removeDocument(String documentUri) {
@@ -141,17 +141,16 @@ public class Workspace {
     public List<Document> getDocuments() {
         return new ArrayList<>(this.documents.values());
     }
-    
+        
     private String getModulePhysicalFileName(String moduleName) {
         if(!this.modules.containsKey(moduleName)) {
             Document document = this.documents.get(moduleName);
             if(document != null) {
                 File file = new File(URI.create(document.document.uri));
                 this.modules.put(moduleName, normalizePath(file.getAbsolutePath()));
-                        //canonicalPath(document.document.uri));
             }
             else {
-                File moduleFile = this.options.findModule(moduleName + ".lita");                
+                File moduleFile = this.options.findModule(this.srcDir, moduleName + ".lita");                
                 if(moduleFile.exists()) {                    
                     this.modules.put(moduleName, normalizePath(moduleFile.getAbsolutePath()));
                 }

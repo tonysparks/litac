@@ -124,7 +124,11 @@ public class BackendOptions {
     }
     
     public File findModule(String fileName) {        
-        File importFile = new File(this.srcDir.getAbsolutePath(), fileName);
+        return findModule(this.srcDir, fileName);
+    }
+    
+    public File findModule(File srcDir, String fileName) {
+        File importFile = new File(srcDir, fileName);
         if(!importFile.exists()) {
             importFile = new File(this.libDir, fileName);
             if(!importFile.exists()) {

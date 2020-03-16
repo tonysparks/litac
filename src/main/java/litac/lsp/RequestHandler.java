@@ -19,12 +19,15 @@ public class RequestHandler {
 
     private Workspace workspace;
     private MessageSender sender;
+    private LspLogger log;
     
     public RequestHandler(BackendOptions options,
                           Workspace workspace, 
-                          MessageSender sender) {
+                          MessageSender sender,
+                          LspLogger log) {
         this.workspace = workspace;
         this.sender = sender;
+        this.log = log;
     }
     
     private File scanRootModule(File sourcePath) {
@@ -48,6 +51,10 @@ public class RequestHandler {
             }
                     
             this.workspace.setRoot(rootModule);
+            this.log.log("Workspace rootModule: '" + rootModule + "'");
+        }
+        else {
+            this.log.log("No root URI or path!");
         }
         
         Capabilities capabilities = new Capabilities();
@@ -104,7 +111,7 @@ public class RequestHandler {
         if(doc != null) {
             location = doc.getDefinitionLocation(this.workspace, params.position);
         }
-        
+
         RpcResponse resp = new RpcResponse();
         resp.id = rpc.id;
         resp.result = location;

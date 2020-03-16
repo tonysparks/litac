@@ -32,7 +32,7 @@ public class LitaCLanguageServer {
         this.log = new LspLogger(options.isVerbose);
         
         this.sender = new MessageSender(this.gson, this.log);
-        this.handler = new RequestHandler(options, new Workspace(options, log), sender);
+        this.handler = new RequestHandler(options, new Workspace(options, log), sender, this.log);
     }
     
     

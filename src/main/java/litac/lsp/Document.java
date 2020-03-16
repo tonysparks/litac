@@ -23,9 +23,12 @@ public class Document {
     public List<PhaseError> errors;
     public final String moduleName;
     
-    public Document(String moduleName, TextDocument document) {
+    private LspLogger log;
+    
+    public Document(String moduleName, TextDocument document, LspLogger log) {
         this.moduleName = moduleName;
         this.document = document;
+        this.log = log;
         this.lineMap = new ArrayList<>();
         this.errors = new ArrayList<>();
         
@@ -72,11 +75,12 @@ public class Document {
         if(program == null) {
             workspace.processSource(this.document.uri);
             program = workspace.getLatestProgram();
-            if(program == null) {    
+            if(program == null) {
+                this.log.log("Unable to compile program: '" + this.document.uri +"'");
                 return null;
             }
         }
-                
+        
         Module module = program.getModule(this.moduleName);
         if(module == null) {            
             workspace.processSource(this.document.uri);

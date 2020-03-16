@@ -23,7 +23,7 @@ public class RequestHandlerTest {
         Gson gson = new GsonBuilder().create();
         LspLogger log = new LspLogger(false);
         MessageSender sender = new MessageSender(gson, log);
-        RequestHandler handler = new RequestHandler(options, new Workspace(options, log), sender);
+        RequestHandler handler = new RequestHandler(options, new Workspace(options, log), sender, log);
         
         String initJson = "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"initialize\",\"params\":{\"processId\":12372,\"rootPath\":\"c:\\\\Users\\\\antho\\\\git\\\\kraft\",\"rootUri\":\"file:///c%3A/Users/antho/git/kraft\",\"capabilities\":{\"workspace\":{\"applyEdit\":true,\"workspaceEdit\":{\"documentChanges\":true},\"didChangeConfiguration\":{\"dynamicRegistration\":true},\"didChangeWatchedFiles\":{\"dynamicRegistration\":true},\"symbol\":{\"dynamicRegistration\":true,\"symbolKind\":{\"valueSet\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26]}},\"executeCommand\":{\"dynamicRegistration\":true},\"configuration\":true,\"workspaceFolders\":true},\"textDocument\":{\"publishDiagnostics\":{\"relatedInformation\":true},\"synchronization\":{\"dynamicRegistration\":true,\"willSave\":true,\"willSaveWaitUntil\":true,\"didSave\":true},\"completion\":{\"dynamicRegistration\":true,\"contextSupport\":true,\"completionItem\":{\"snippetSupport\":true,\"commitCharactersSupport\":true,\"documentationFormat\":[\"markdown\",\"plaintext\"],\"deprecatedSupport\":true,\"preselectSupport\":true},\"completionItemKind\":{\"valueSet\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]}},\"hover\":{\"dynamicRegistration\":true,\"contentFormat\":[\"markdown\",\"plaintext\"]},\"signatureHelp\":{\"dynamicRegistration\":true,\"signatureInformation\":{\"documentationFormat\":[\"markdown\",\"plaintext\"]}},\"definition\":{\"dynamicRegistration\":true},\"references\":{\"dynamicRegistration\":true},\"documentHighlight\":{\"dynamicRegistration\":true},\"documentSymbol\":{\"dynamicRegistration\":true,\"symbolKind\":{\"valueSet\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26]},\"hierarchicalDocumentSymbolSupport\":true},\"codeAction\":{\"dynamicRegistration\":true,\"codeActionLiteralSupport\":{\"codeActionKind\":{\"valueSet\":[\"\",\"quickfix\",\"refactor\",\"refactor.extract\",\"refactor.inline\",\"refactor.rewrite\",\"source\",\"source.organizeImports\"]}}},\"codeLens\":{\"dynamicRegistration\":true},\"formatting\":{\"dynamicRegistration\":true},\"rangeFormatting\":{\"dynamicRegistration\":true},\"onTypeFormatting\":{\"dynamicRegistration\":true},\"rename\":{\"dynamicRegistration\":true},\"documentLink\":{\"dynamicRegistration\":true},\"typeDefinition\":{\"dynamicRegistration\":true},\"implementation\":{\"dynamicRegistration\":true},\"colorProvider\":{\"dynamicRegistration\":true},\"foldingRange\":{\"dynamicRegistration\":true,\"rangeLimit\":5000,\"lineFoldingOnly\":true}}},\"trace\":\"off\",\"workspaceFolders\":[{\"uri\":\"file:///c%3A/Users/antho/git/kraft\",\"name\":\"kraft\"}]}}";
         RpcRequest initReq = gson.fromJson(initJson, RpcRequest.class);
@@ -59,7 +59,7 @@ public class RequestHandlerTest {
         String defJson = "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"textDocument/definition\",\"params\":{\"textDocument\":{\"uri\":\"file:///c%3A/Users/antho/git/kraft/src/test.lita\"},\"position\":{\"line\":0,\"character\":9}}}";
         RpcRequest defReq = gson.fromJson(defJson, RpcRequest.class);
         TextDocumentPositionParams defParams = gson.fromJson(defReq.params, TextDocumentPositionParams.class);
-  //      handler.handleTextDocumentDefinition(defReq, defParams);
+        handler.handleTextDocumentDefinition(defReq, defParams);
         
         String symbolJson = "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"textDocument/completion\",\"params\":{\"textDocument\":{\"uri\":\"file:///c%3A/Users/antho/git/kraft/src/test.lita\"},\"position\":{\"line\":26,\"character\":6},\"context\":{\"triggerKind\":1}}}";
         RpcRequest symReq = gson.fromJson(symbolJson, RpcRequest.class);
@@ -70,7 +70,7 @@ public class RequestHandlerTest {
         String compJson = "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"textDocument/completion\",\"params\":{\"textDocument\":{\"uri\":\"file:///c%3A/Users/antho/git/kraft/src/test.lita\"},\"position\":{\"line\":26,\"character\":7},\"context\":{\"triggerKind\":1}}}";
         RpcRequest compReq = gson.fromJson(compJson, RpcRequest.class);
         CompletionParams compParams = gson.fromJson(compReq.params, CompletionParams.class);
-        handler.handleTextDocumentCompletion(compReq, compParams);
+        //handler.handleTextDocumentCompletion(compReq, compParams);
     }
 
 }
