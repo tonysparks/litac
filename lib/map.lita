@@ -234,7 +234,8 @@ func MapGrow<K, V>(m: Map<K, V>*, newlength: i32) {
 public func (m: Map<K, V>*) iter<K, V>() : MapIterator<K, V> {
     return MapIterator<K, V> {
         .m: m,
-        .it: 0
+        .it: 0,
+        .count: 0
     }
 }
 

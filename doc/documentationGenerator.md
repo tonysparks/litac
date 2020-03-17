@@ -60,6 +60,7 @@
 * func [MIN<i32>](#MIN<i32>)(a: i32, b: i32) : i32
 * func [MapIterator\_hasNext<char const\*,JsonNode\*>](#MapIterator\_hasNext<char\-const\*,JsonNode\*>)(iter: [MapIterator<char const\*,JsonNode\*>\*](#MapIterator<char\-const\*,JsonNode\*>)) : bool
 * func [MapIterator\_next<char const\*,JsonNode\*>](#MapIterator\_next<char\-const\*,JsonNode\*>)(iter: [MapIterator<char const\*,JsonNode\*>\*](#MapIterator<char\-const\*,JsonNode\*>)) : [documentationGenerator](#documentationGenerator)::[MapEntry<char const\*,JsonNode\*>](#MapEntry<char\-const\*,JsonNode\*>)
+* func [Map\_contains<char const\*,JsonNode\*>](#Map\_contains<char\-const\*,JsonNode\*>)(m: [Map<char const\*,JsonNode\*>\*](#Map<char\-const\*,JsonNode\*>), key: char const*) : bool
 * func [Map\_contains<char const\*,Option>](#Map\_contains<char\-const\*,Option>)(m: [Map<char const\*,Option>\*](#Map<char\-const\*,Option>), key: char const*) : bool
 * func [Map\_free<char const\*,JsonNode\*>](#Map\_free<char\-const\*,JsonNode\*>)(m: [Map<char const\*,JsonNode\*>\*](#Map<char\-const\*,JsonNode\*>))
 * func [Map\_free<char const\*,Option>](#Map\_free<char\-const\*,Option>)(m: [Map<char const\*,Option>\*](#Map<char\-const\*,Option>))
@@ -331,6 +332,12 @@ func [MapIterator\_hasNext<char const\*,JsonNode\*>](#MapIterator\_hasNext<char\
 
 
 func [MapIterator\_next<char const\*,JsonNode\*>](#MapIterator\_next<char\-const\*,JsonNode\*>)(iter: [MapIterator<char const\*,JsonNode\*>\*](#MapIterator<char\-const\*,JsonNode\*>)) : [documentationGenerator](#documentationGenerator)::[MapEntry<char const\*,JsonNode\*>](#MapEntry<char\-const\*,JsonNode\*>)
+
+
+### Map\_contains<char const\*,JsonNode\*>
+
+
+func [Map\_contains<char const\*,JsonNode\*>](#Map\_contains<char\-const\*,JsonNode\*>)(m: [Map<char const\*,JsonNode\*>\*](#Map<char\-const\*,JsonNode\*>), key: char const*) : bool
 
 
 ### Map\_contains<char const\*,Option>

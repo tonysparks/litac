@@ -196,6 +196,15 @@ public func (node: JsonNode*) put(key: char const*, n: JsonNode*, len: i32 = -1)
     node.objValue.put(copy, n)
 }
 
+
+public func (node: JsonNode*) contains(key: char const*) : bool {
+    if(node.type != JsonType.OBJECT) {
+        return false;
+    }
+
+    return node.objValue.contains(key)
+}
+
 public func (node: JsonNode*) get(key: char const*) : JsonNode* {
     if(node.type != JsonType.OBJECT) {
         return null;

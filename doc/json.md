@@ -45,6 +45,7 @@
 * func [JsonNode\_asObject](#JsonNode\_asObject)(node: [JsonNode\*](#JsonNode)) : [Map<char const\*,JsonNode\*>\*](#Map<char\-const\*,JsonNode\*>)
 * func [JsonNode\_asString](#JsonNode\_asString)(node: [JsonNode\*](#JsonNode)) : char const*
 * func [JsonNode\_at](#JsonNode\_at)(node: [JsonNode\*](#JsonNode), index: i32) : [JsonNode\*](#JsonNode)
+* func [JsonNode\_contains](#JsonNode\_contains)(node: [JsonNode\*](#JsonNode), key: char const*) : bool
 * func [JsonNode\_free](#JsonNode\_free)(node: [JsonNode\*](#JsonNode))
 * func [JsonNode\_getArray](#JsonNode\_getArray)(node: [JsonNode\*](#JsonNode), key: char const*) : [JsonNode\*](#JsonNode)
 * func [JsonNode\_getBool](#JsonNode\_getBool)(node: [JsonNode\*](#JsonNode), key: char const*, defaultValue: bool) : bool
@@ -249,6 +250,12 @@ func [JsonNode\_asString](#JsonNode\_asString)(node: [JsonNode\*](#JsonNode)) : 
 
 
 func [JsonNode\_at](#JsonNode\_at)(node: [JsonNode\*](#JsonNode), index: i32) : [JsonNode\*](#JsonNode)
+
+
+### JsonNode\_contains
+
+
+func [JsonNode\_contains](#JsonNode\_contains)(node: [JsonNode\*](#JsonNode), key: char const*) : bool
 
 
 ### JsonNode\_free
