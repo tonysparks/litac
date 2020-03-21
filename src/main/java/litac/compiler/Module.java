@@ -6,7 +6,7 @@ package litac.compiler;
 import java.util.*;
 import java.util.Map.Entry;
 
-import litac.ast.Decl;
+import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Stmt.*;
 import litac.checker.TypeInfo;
@@ -24,7 +24,8 @@ import litac.util.Names;
 public class Module {
 
     private Module root;
-    private String name;        
+    private final ModuleId id;
+    private final String simpleName;
     private Scope currentScope;
     private Scope moduleScope;
     
@@ -58,12 +59,16 @@ public class Module {
                   List<Symbol> programSymbols,
                   Map<String, Symbol> genericTypes,
                   PhaseResult result, 
-                  ModuleStmt moduleStmt, 
-                  String name) {
+                  ModuleStmt moduleStmt) {
         this.root = root;
         this.result = result;
         this.moduleStmt = moduleStmt;
-        this.name = name;
+        this.id = moduleStmt.id;
+        
+        // normalize the name
+        this.simpleName = this.id.fullModuleName
+                                    .replaceAll("\\\\", "/")
+                                    .replaceAll("/", "__");
         
         this.imports = new HashMap<>();         
         this.funcTypes = new HashMap<>();
@@ -103,7 +108,7 @@ public class Module {
 
     @Override
     public String toString() {
-        return this.name();
+        return this.id.fullModuleName;
     }
     
     public Module getRoot() {
@@ -195,7 +200,7 @@ public class Module {
                                  .forEach(s -> currentScope().addSymbol(alias, s));
         }
         else {
-            this.imports.put(module.name(), module);
+            this.imports.put(module.id.fullModuleName, module);
             
             for(Entry<String, Symbol> funcType: module.publicFuncTypes.entrySet()) {
                 this.funcTypes.put(funcType.getKey(), funcType.getValue());
@@ -520,15 +525,22 @@ public class Module {
         return this.currentScope;
     }
     
-    public String name() {
-        return this.name;
+    /**
+     * @return the id
+     */
+    public ModuleId getId() {
+        return id;
+    }
+    
+    public String simpleName() {
+        return this.simpleName;
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((id == null) ? 0 : id.hashCode());
         return result;
     }
 
@@ -541,14 +553,13 @@ public class Module {
         if (getClass() != obj.getClass())
             return false;
         Module other = (Module) obj;
-        if (name == null) {
-            if (other.name != null)
+        if (id == null) {
+            if (other.id != null)
                 return false;
         }
-        else if (!name.equals(other.name))
+        else if (!id.equals(other.id))
             return false;
         return true;
     }
-    
     
 }

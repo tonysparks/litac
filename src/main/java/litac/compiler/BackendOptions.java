@@ -51,7 +51,7 @@ public class BackendOptions {
     
     public BackendType backendType;
     
-    public File srcDir;
+    private File srcDir;
     public File libDir;
     public File buildFile;
     public File outputDir;        
@@ -76,6 +76,7 @@ public class BackendOptions {
     
     public CTranspiler.COptions cOptions;
     
+    private boolean hasCustomSrcDir;
     private Preprocessor preprocessor;
     
     public BackendOptions() {
@@ -124,7 +125,7 @@ public class BackendOptions {
     }
     
     public File findModule(String fileName) {        
-        return findModule(this.srcDir, fileName);
+        return findModule(getSrcDir(), fileName);
     }
     
     public File findModule(File srcDir, String fileName) {
@@ -140,5 +141,24 @@ public class BackendOptions {
         }
         
         return importFile;
+    }
+    
+    public void setSrcDir(File srcDir) {
+        this.hasCustomSrcDir = true;
+        this.srcDir = srcDir;
+    }
+    
+    public File getSrcDir() {
+        if(this.hasCustomSrcDir) {
+            return this.srcDir;
+        }
+        
+        File moduleFile = this.buildFile;
+        this.srcDir = moduleFile != null ? moduleFile.getParentFile() : this.srcDir;
+        if(this.srcDir == null) {
+            this.srcDir = new File(System.getProperty("user.dir"));
+        }
+        
+        return this.srcDir;
     }
 }

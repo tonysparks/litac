@@ -30,7 +30,8 @@ public class Token {
         this.lineNum = source.getLineNum();
         this.position = source.getPosition();
 
-        this.pos = new SrcPos(source.getSourceName(), 
+        this.pos = new SrcPos(source.getSourceFile(), 
+                              source.getSourceName(), 
                               source.getCurrentLine(), 
                               this.lineNum,
                               this.position,

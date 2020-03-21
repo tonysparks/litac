@@ -3,6 +3,8 @@
  */
 package litac.util;
 
+import java.io.*;
+
 /**
  * @author Tony
  *
@@ -89,4 +91,12 @@ public class OS {
         return System.getProperty("user.dir");
     }
     
+    public static File canonicalize(File file) {
+        try {
+            return file.getCanonicalFile().toPath().normalize().toFile();
+        }
+        catch(IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

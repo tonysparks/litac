@@ -3,6 +3,8 @@
  */
 package litac.util;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
@@ -10,6 +12,7 @@ import litac.ast.TypeSpec;
 import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
+import litac.compiler.BackendOptions;
 
 /**
  * @author Tony
@@ -30,6 +33,47 @@ public class Names {
         }
         
         return fileName.substring(startIndex, endIndex);
+    }
+    
+    public static String getPackagePath(File libDir, File srcDir, File moduleFile) {        
+        Path path = (moduleFile.isFile() ? moduleFile.getParentFile().toPath() : moduleFile.toPath()).normalize();
+        
+        String packages = "";
+        if(path.startsWith(libDir.toPath())) {
+            packages = libDir.toPath().relativize(path).toString();
+        }
+        if(srcDir != null && path.startsWith(srcDir.toPath())) {
+            packages = srcDir.toPath().relativize(path).toString();
+        }
+        
+        if(packages.length() > 0) {
+            packages += "/";
+        }
+        
+        return packages;
+    }
+    
+    public static File getModuleFile(File parentModuleFile, BackendOptions options, String moduleName) {
+        // Find the full module path based on the module importing this module
+        File parentDir = OS.canonicalize(parentModuleFile.getParentFile());        
+        File moduleFile = options.findModule(parentDir, moduleName + ".lita");
+        
+        return moduleFile;
+    }
+    
+    public static String getRelativeModulePath(File parentModuleFile, BackendOptions options, File srcDir, String moduleName) {        
+        File moduleFile = getModuleFile(parentModuleFile, options, moduleName);
+        
+        // now that we have the full module path, we can make it relative to either the root source
+        // directory or it is a standard library module
+        return getRelativeModulePath(options.libDir, srcDir, moduleFile);
+    }
+    
+    public static String getRelativeModulePath(File libDir, File srcDir, File moduleFile) {                
+        // now that we have the full module path, we can make it relative to either the root source
+        // directory or it is a standard library module
+        String packages = getPackagePath(libDir, srcDir, moduleFile);
+        return packages + Names.getModuleName(moduleFile.getName());
     }
     
     public static final String identifierFrom(String name) {

@@ -308,6 +308,7 @@ OPTIONS:
   -disableLine         Disables #line directive in C output
   -debug               Enables debug mode
   -verbose             Enables verbose output
+  -srcDir              Specifies the source code directory, defaults to the parent folder of the supplied source file
   -doc                 Generates document output
   -docDir <arg>        Directory where the generated documents are written to; defaults to './output'
   -docAll              Includes non-public types in the documentation generation; defaults to false

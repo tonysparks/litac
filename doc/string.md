@@ -1,5 +1,3 @@
-# LitaC API Documentation - a
-
 # string
 
 ## string Imports

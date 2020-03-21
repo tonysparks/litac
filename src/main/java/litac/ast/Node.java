@@ -3,6 +3,7 @@
  */
 package litac.ast;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +20,8 @@ import litac.util.Tuple;
 public abstract class Node {
 
     public static class SrcPos {
-        public String sourceFile;
+        public File sourceFile;
+        public String sourceName;
         public String sourceLine;
         public int lineNumber;
         public int position;
@@ -28,12 +30,14 @@ public abstract class Node {
         public SrcPos() {            
         }
         
-        public SrcPos(String sourceFile, 
+        public SrcPos(File sourceFile,
+                      String sourceName, 
                       String sourceLine, 
                       int lineNumber,
                       int position,
                       Token token) {
             this.sourceFile = sourceFile;
+            this.sourceName = sourceName;
             this.sourceLine = sourceLine;
             this.lineNumber = lineNumber;
             this.position = position;
@@ -42,7 +46,7 @@ public abstract class Node {
         
         @Override
         public String toString() {        
-            return String.format("'%s' at line %d:\n%s", this.sourceFile, this.lineNumber, this.sourceLine);
+            return String.format("'%s' at line %d:\n%s", this.sourceName, this.lineNumber, this.sourceLine);
         }
     }
     
@@ -77,18 +81,26 @@ public abstract class Node {
         return pos;
     }
     
-    /**
-     * @return the sourceFile
-     */
-    public String getSourceFile() {
+    public File getSourceFile() {
         return this.pos.sourceFile;
     }
     
+    public void setSourceFile(File file) {
+        this.pos.sourceFile = file;
+    }
+    
     /**
-     * @param sourceFile the sourceFile to set
+     * @return the sourceName
      */
-    public void setSourceFile(String sourceFile) {
-        this.pos.sourceFile = sourceFile;
+    public String getSourceName() {
+        return this.pos.sourceName;
+    }
+    
+    /**
+     * @param sourceName the sourceName to set
+     */
+    public void setSourceName(String sourceName) {
+        this.pos.sourceName = sourceName;
     }
     
     /**
@@ -131,6 +143,7 @@ public abstract class Node {
         this.pos.lineNumber = srcPos.lineNumber;
         this.pos.position = srcPos.position;
         this.pos.sourceFile = srcPos.sourceFile;
+        this.pos.sourceName = srcPos.sourceName;
         this.pos.sourceLine = srcPos.sourceLine;
         this.pos.token = srcPos.token;
     }

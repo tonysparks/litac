@@ -42,6 +42,7 @@ public class LitaC {
         System.out.println("  -disableLine         Disables #line directive in C output");
         System.out.println("  -debug               Enables debug mode");
         System.out.println("  -verbose             Enables verbose output");
+        System.out.println("  -srcDir              Specifies the source code directory, defaults to the parent folder of the supplied source file");
         System.out.println("  -doc                 Generates document output");
         System.out.println("  -docDir <arg>        Directory where the generated documents are written to, defaults to './output'");
         System.out.println("  -docAll              Includes non-public types in the documentation generation");
@@ -116,6 +117,11 @@ public class LitaC {
                 }
                 case "-verbose": {
                     options.isVerbose = true;
+                    break;
+                }
+                case "-srcDir": {
+                    checkArg(args, i, "-srcDir");
+                    options.setSrcDir(new File(args[++i]));
                     break;
                 }
                 case "-doc": {
@@ -235,11 +241,6 @@ public class LitaC {
 
     public static PhaseResult compile(BackendOptions options) throws Exception {
         File moduleFile = options.buildFile;
-        options.srcDir = moduleFile.getParentFile();
-        if(options.srcDir == null) {
-            options.srcDir = new File(System.getProperty("user.dir"));
-        }
-                        
         Compiler compiler = new Compiler(options);
         return compiler.compile(moduleFile);        
     }

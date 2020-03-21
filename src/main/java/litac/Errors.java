@@ -16,7 +16,7 @@ public class Errors {
     public static void compileError(SrcPos pos, String message) {
         // TODO: Rethrow the exception?? or???
         if(pos != null) {
-            System.err.println(String.format("*** ERROR: %s at line: %d in '%s'", message, pos.lineNumber, pos.sourceFile));
+            System.err.println(String.format("*** ERROR: %s at line: %d in '%s'", message, pos.lineNumber, pos.sourceName));
             System.err.println("\t" +pos.sourceLine);
             System.err.println();
         }
@@ -29,7 +29,7 @@ public class Errors {
     
     public static void typeCheckError(SrcPos pos, String message) {
         if(pos != null) {
-            System.err.println(String.format("*** ERROR: %s at line: %d in '%s'", message, pos.lineNumber, pos.sourceFile));
+            System.err.println(String.format("*** ERROR: %s at line: %d in '%s'", message, pos.lineNumber, pos.sourceName));
             System.err.println("\t" +pos.sourceLine);
             System.err.println();
         }
@@ -73,7 +73,7 @@ public class Errors {
             flagBuffer.append(" '").append(tokenText).append("'");
         }
         
-        flagBuffer.append(" in '").append(scanner.getSourceFile()).append("'");
+        flagBuffer.append(" in '").append(scanner.getSourceName()).append("'");
         
         flagBuffer.append("]");
 

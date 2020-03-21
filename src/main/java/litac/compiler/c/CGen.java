@@ -92,6 +92,7 @@ public class CGen {
         }
     }
 
+    private final ModuleId BUILTIN_MODULE_NAME;
     
     private COptions options;
     private Buf buf;
@@ -140,6 +141,8 @@ public class CGen {
         if(options.options.testFile) {
             this.testMainOnly = true;
         }
+        
+        this.BUILTIN_MODULE_NAME = ModuleId.fromDirectory(options.options.libDir, "builtins");
         
         this.main = program.getMainModule();
         this.resolvedTypeMap = program.getResolvedTypeMap();
@@ -670,8 +673,8 @@ public class CGen {
     
     public boolean isTestIncluded(NoteStmt note) { 
         if(this.testMainOnly) {
-            String mainFile = program.getMainModule().getModuleStmt().getSourceFile();
-            return (note.getSourceFile().equals(mainFile));
+            String mainFile = program.getMainModule().getModuleStmt().getSourceName();
+            return (note.getSourceName().equals(mainFile));
         }
         
         if(this.testPattern == null) {
@@ -743,7 +746,7 @@ public class CGen {
             return getForeignName(sym.decl, Names.baseTypeName(sym.decl.name));
         }
         
-        return prefix(Names.backendName(sym.declared.name(), typeName));
+        return prefix(Names.backendName(sym.declared.simpleName(), typeName));
     }
     
     private String cName(Symbol sym) {
@@ -766,7 +769,7 @@ public class CGen {
             }
         }
         
-        return prefix(Names.backendName(sym.declared.name(), declName));
+        return prefix(Names.backendName(sym.declared.simpleName(), declName));
     }
     
     private void checkLine(Stmt stmt) {
@@ -774,7 +777,7 @@ public class CGen {
             return;
         }
         
-        String sourceFile = stmt.getSourceFile();
+        String sourceFile = stmt.getSourceName();
         int line = stmt.getLineNumber();
         
         if(this.currentLine != line ||
@@ -820,11 +823,11 @@ public class CGen {
             
         @Override
         public void visit(ModuleStmt stmt) {
-            if(writtenModules.contains(stmt.name)) {
+            if(writtenModules.contains(stmt.id.fullModuleName)) {
                 return;
             }
             
-            writtenModules.add(stmt.name);
+            writtenModules.add(stmt.id.fullModuleName);
             
             for(ImportStmt i : stmt.imports) {
                 i.visit(this);
@@ -835,11 +838,11 @@ public class CGen {
     
         @Override
         public void visit(ImportStmt stmt) {
-            if(stmt.moduleName.equals("builtin")) {
+            if(stmt.moduleId.equals(BUILTIN_MODULE_NAME)) {
                 return;
             }
             
-            ModuleStmt module = unit.getModule(stmt.moduleName);
+            ModuleStmt module = unit.getModule(stmt.moduleId);
             module.visit(this);
         }
     
@@ -1085,7 +1088,7 @@ public class CGen {
             NoteStmt asStr = d.attributes.getNote("asStr");
             if(asStr != null) {            
                 buf.outln();
-                buf.out("const char* __%s_%s_AsStr(%s __e) {", d.sym.declared.name(), d.name, name);            
+                buf.out("const char* __%s_%s_AsStr(%s __e) {", d.sym.declared.simpleName(), d.name, name);            
                 buf.out("switch(__e) {");            
                 for(EnumFieldInfo f : d.fields) {      
                     String strValue = f.attributes.hasNote("asStr") ? f.attributes.getNote("asStr").getAttr(0, f.name) : f.name;

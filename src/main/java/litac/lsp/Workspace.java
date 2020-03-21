@@ -9,6 +9,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import litac.ast.ModuleId;
 import litac.ast.Node.SrcPos;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.*;
@@ -24,10 +25,9 @@ import litac.compiler.Module;
  */
 public class Workspace {
 
-    private String rootModule;
+    private ModuleId rootModule;
     private BackendOptions options;
     private Map<String, Document> documents;
-    private Map<String, String> modules;
     private Program latestProgram;
     private File srcDir;
     private String latestDocumentUri;
@@ -42,57 +42,32 @@ public class Workspace {
         this.log = log;
                 
         this.documents = new HashMap<>();
-        this.modules = new HashMap<>();
+        
+        this.rootModule = null;
+        this.srcDir = options.getSrcDir();
     }
     
-    public void setRoot(File rootModule) {
-        this.rootModule = rootModule.getName().replace(".lita", "");
-        this.srcDir = rootModule.getParentFile();
+    public void setRoot(File rootModule, File sourceDir) {
+        if(rootModule != null) {
+            this.rootModule = ModuleId.from(options.libDir, sourceDir, rootModule);
+        }
+        if(sourceDir != null) {
+            this.srcDir = sourceDir;
+        }
+        
+        log.log("Source Directory: '" + this.srcDir + "' and RootModule: " + rootModule);
     }
     
-    private String normalizePath(String path) {
-        String fileName = path.replace("\\", "/");
-        return fileName;        
-    }
     
     private String canonicalPath(String docUri) {
-        URI uri = URI.create(docUri);
-        return canonicalPath(new File(uri));
+        return new File(URI.create(docUri)).toString();
     }
     
-    private String canonicalPath(File file) {        
-        Path path = file.isFile() ? file.getParentFile().toPath() : file.toPath();
-        String packages = "";
-        if(path.startsWith(options.libDir.toPath())) {
-            packages = path.relativize(options.libDir.toPath()).toString();
-        }
-        if(this.srcDir != null && path.startsWith(this.srcDir.toPath())) {
-            packages = path.relativize(this.srcDir.toPath()).toString();
-        }
-        
-        if(packages.length() > 0) {
-            packages += "/";
-        }
-        
-        return normalizePath(packages + file.getName()).replace(".lita", "");
-        
-        /*
-        Path path = file.toPath();        
-        if(path.startsWith(options.libDir.toPath())) {
-            return path.relativize(options.libDir.toPath()).toString();
-        }
-        if(path.startsWith(this.srcDir.toPath())) {
-            return path.relativize(this.srcDir.toPath()).toString();
-        }
-        
-        return path.getFileName().toString();
-        */
+    private ModuleId getModuleId(String docUri) {
+        ModuleId module = ModuleId.from(options.libDir, this.srcDir, new File(URI.create(docUri)));
+        return module;
     }
     
-    private String getModuleName(String docUri) {
-        String name = canonicalPath(docUri);
-        return name.replace(".lita", "");
-    }
     
     /**
      * @return the latestProgram
@@ -103,13 +78,12 @@ public class Workspace {
             
     public void addDocument(TextDocument document) {
         this.latestDocumentUri = canonicalPath(document.uri);
-        this.documents.put(this.latestDocumentUri, new Document(getModuleName(document.uri), document, this.log));
+        this.documents.put(this.latestDocumentUri, new Document(getModuleId(document.uri), document, this.log));
     }
     
     public void removeDocument(String documentUri) {
         String moduleName = canonicalPath(documentUri);
         this.documents.remove(moduleName);
-        this.modules.remove(moduleName);
     }
 
     public void changedDocument(String documentUri, DidChangeParams change) {
@@ -131,7 +105,7 @@ public class Workspace {
             document.setText(params.text);
         }
         
-        log.log("Saving: \n" + document.getText());
+        log.log("Saving: " + params.textDocument.uri);
     }
     
     public Document getDocument(String documentUri) {
@@ -141,59 +115,38 @@ public class Workspace {
     public List<Document> getDocuments() {
         return new ArrayList<>(this.documents.values());
     }
-        
-    private String getModulePhysicalFileName(String moduleName) {
-        if(!this.modules.containsKey(moduleName)) {
-            Document document = this.documents.get(moduleName);
-            if(document != null) {
-                File file = new File(URI.create(document.document.uri));
-                this.modules.put(moduleName, normalizePath(file.getAbsolutePath()));
-            }
-            else {
-                File moduleFile = this.options.findModule(this.srcDir, moduleName + ".lita");                
-                if(moduleFile.exists()) {                    
-                    this.modules.put(moduleName, normalizePath(moduleFile.getAbsolutePath()));
-                }
-                else {
-                    this.modules.put(moduleName, null);
-                }
-            }
-        }
-        return this.modules.get(moduleName); 
-    }
     
-    private String getDocumentText(String moduleName) {
-        Document document = this.documents.get(moduleName);
+    private String getDocumentText(ModuleId moduleId) {
+        Document document = this.documents.get(moduleId.id);
         if(document != null) {
             return document.getText();
         }
         
-        String physicalName = getModulePhysicalFileName(moduleName);
-        if(physicalName == null) {
+        if(!moduleId.moduleFile.exists()) {
             return null;
         }
-        
-        File moduleFile = new File(physicalName);        
+                       
         try {
-            return new String(Files.readAllBytes(moduleFile.toPath()));
+            return new String(Files.readAllBytes(moduleId.moduleFile.toPath()));
         }
         catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
     
-    private ModuleStmt readModule(String moduleName, PhaseResult result ) {                
-        String physicalFileName = getModulePhysicalFileName(moduleName);
-        String text = getDocumentText(moduleName);
+    private ModuleStmt readModule(ModuleId importedModule, PhaseResult result ) {                
+        String physicalFileName = importedModule.moduleFile.getAbsolutePath(); 
+        String text = getDocumentText(importedModule);
         
-        //log.log("Reading module: '" + moduleName +"' mapped to physical name: '" + physicalFileName + "'");
+        log.log("Reading module: '" + importedModule.fullModuleName +"' mapped to physical name: '" + physicalFileName + "'");
         
         if(physicalFileName == null || text == null) {
+            log.log("ReadModule null: " + physicalFileName + " Text: \n" + text);
             return null;
         }
         
-        Source source = new Source(physicalFileName, new StringReader(text));                                    
-        Parser parser = new Parser(this.options.preprocessor(), result, new Scanner(source));
+        Source source = new Source(new File(physicalFileName != null ? physicalFileName : "<unknown>"), new StringReader(text));                                    
+        Parser parser = new Parser(this.options, result, new Scanner(source));
         ModuleStmt module = parser.parseModule();
         importAssertModule(module);
         
@@ -201,15 +154,15 @@ public class Workspace {
     }
     
     private void buildSymbols(Module module, Map<String, Symbol> symbols, Set<String> visitedModules) {
-        if(visitedModules.contains(module.name())) {
+        if(visitedModules.contains(module.getId().id)) {
             return;
         }
         
-        visitedModules.add(module.name());        
+        visitedModules.add(module.getId().id);
         module.getModuleScope().getSymbols()
             .forEach(sym -> {
                 if(module == sym.declared) {
-                    symbols.put(module.name() + "::" + sym.name, sym);
+                    symbols.put(module.simpleName() + "::" + sym.name, sym);
                 }
             });
         module.getImports().forEach(mod -> buildSymbols(mod, symbols, visitedModules));
@@ -245,23 +198,32 @@ public class Workspace {
     }
     
     public PhaseResult processSource() {
-        String moduleName = this.rootModule;
-        if(moduleName == null) {
-            moduleName = canonicalPath(this.latestDocumentUri);
+        ModuleId module = this.rootModule;        
+        if(module == null && this.latestDocumentUri != null) {
+            module = ModuleId.from(options.libDir, this.srcDir, new File(this.latestDocumentUri));
         }
-        return processSourceModule(moduleName);
+        
+        // we can't compile any source
+        if(module == null) {
+            return new PhaseResult();
+        }
+        
+        return processSourceModule(module);
     }
     
     public PhaseResult processSource(String documentUri) {
-        return processSourceModule(canonicalPath(documentUri));
+        ModuleId module = getModuleId(documentUri);        
+        return processSourceModule(module);
     }
     
-    private PhaseResult processSourceModule(String moduleName) {
+    private PhaseResult processSourceModule(ModuleId module) {
         PhaseResult result = new PhaseResult();
         try {
             
-            ModuleStmt rootModule = readModule(moduleName, result);
-            ModuleStmt builtin = readModule("builtins", result);
+            ModuleStmt rootModule = readModule(module, result);
+                        
+            ModuleId builtinsId = ModuleId.fromDirectory(this.options.libDir, "builtins");
+            ModuleStmt builtin = readModule(builtinsId, result);
             
             CompilationUnit unit = new CompilationUnit(builtin, rootModule);            
             importAssertModule(rootModule);                
@@ -269,32 +231,39 @@ public class Workspace {
             CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(unit.getImports(), result);
             visitor.visit(rootModule);
             visitor.visit(builtin);
-                    
-            TypeResolver resolver = new TypeResolver(options.preprocessor(), result, unit);        
+            
+            log.log("Imports: " + unit.getImports().entrySet());
+            
+            TypeResolver resolver = new TypeResolver(options, result, unit);        
             this.latestProgram = resolver.resolveTypes();            
         }
         catch(ParseException e) {
+            log.log("ParseException: " + e.getMessage());
             result.addError(e.getToken().getPos(), e.getErrorCode().toString());            
         }
         catch(Exception e) {
+            StringWriter writer = new StringWriter();
+            e.printStackTrace(new PrintWriter(writer));
+            log.log("Exception: " + writer.toString());
             result.addError((SrcPos)null, "internal compiler error: %s", e.getMessage());
         }
         
         return result;
     }
     
-    private void importAssertModule(ModuleStmt main) {
-        if(!main.imports.stream().anyMatch(imp -> imp.moduleName.equals("assert"))) {
-            main.imports.add(new ImportStmt("assert", null, false));
+    private void importAssertModule(ModuleStmt main) {        
+        ModuleId assertId = ModuleId.fromDirectory(options.libDir, "assert");
+        if(!main.imports.stream().anyMatch(imp -> imp.moduleId.equals(assertId))) {
+            main.imports.add(new ImportStmt("assert", null, assertId, false));
         }
     }
     
     
     private class CompilationUnitNodeVisitor extends AbstractNodeVisitor {
-        Map<String, ModuleStmt> imports;
+        Map<ModuleId, ModuleStmt> imports;
         PhaseResult result;
         
-        CompilationUnitNodeVisitor(Map<String, ModuleStmt> imports, PhaseResult result) {
+        CompilationUnitNodeVisitor(Map<ModuleId, ModuleStmt> imports, PhaseResult result) {
             this.imports = imports;
             this.result = result;
         }
@@ -310,14 +279,13 @@ public class Workspace {
         }
         
         private ModuleStmt loadModule(ImportStmt stmt) {
-            String moduleName = stmt.moduleName;
-            
-            if(this.imports.containsKey(moduleName)) {
+            // check and see if we've already imported this module..
+            if(this.imports.containsKey(stmt.moduleId)) {
                 return null;                
             }
             
-            ModuleStmt module = readModule(moduleName, this.result);
-            this.imports.put(moduleName, module);
+            ModuleStmt module = readModule(stmt.moduleId, this.result);
+            this.imports.put(stmt.moduleId, module);
             
             return module;
         }

@@ -3,8 +3,6 @@
  */
 package litac.lsp;
 
-import java.io.File;
-
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
@@ -188,7 +186,7 @@ public class SourceToAst implements NodeVisitor {
         }
         
         Location location = new Location();
-        location.uri = new File(srcPos.sourceFile).toURI().toString();
+        location.uri = srcPos.sourceFile.toURI().toString();
         location.range = LspUtil.fromSrcPosToken(srcPos);        
         throw new AstNodeFound(location);
     }
@@ -215,8 +213,8 @@ public class SourceToAst implements NodeVisitor {
     @Override
     public void visit(ImportStmt stmt) {
         if(isNodeAtPos(stmt)) {
-            String moduleName = stmt.alias != null ? stmt.alias : stmt.moduleName;
-            Module m = this.module.getModule(moduleName);
+            String importName = stmt.getImportName();
+            Module m = this.module.getModule(importName);
             if(m != null) {
                 findFromSrcPos(m.getModuleStmt().getSrcPos());
             }

@@ -3,6 +3,7 @@ package litac.parser;
 import static litac.parser.Source.EOF;
 import static litac.parser.Source.EOL;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,7 +60,14 @@ public class Scanner {
     /**
      * @return The source file of this code
      */
-    public String getSourceFile() {
+    public File getSourceFile() {
+        return this.source.getSourceFile();
+    }
+    
+    /**
+     * @return The source name of this code
+     */
+    public String getSourceName() {
         return this.source.getSourceName();
     }
     

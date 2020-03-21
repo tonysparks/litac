@@ -5,7 +5,7 @@ package litac.compiler;
 
 import java.util.*;
 
-import litac.ast.TypeSpec;
+import litac.ast.*;
 import litac.checker.TypeInfo;
 import litac.compiler.Module;
 
@@ -15,12 +15,12 @@ import litac.compiler.Module;
 public class Program {
 
     private Module main;
-    private Map<String, Module> modules;
+    private Map<ModuleId, Module> modules;
     private List<Symbol> symbols;
     private Map<TypeSpec, TypeInfo> resolvedTypeMap;
 
     public Program(Module main, 
-                   Map<String, Module> modules, 
+                   Map<ModuleId, Module> modules, 
                    List<Symbol> symbols,
                    Map<TypeSpec, TypeInfo> resolvedTypeMap) {
         this.main = main;
@@ -29,8 +29,8 @@ public class Program {
         this.resolvedTypeMap = resolvedTypeMap;
     }
     
-    public Module getModule(String name) {
-        return this.modules.get(name);
+    public Module getModule(ModuleId module) {
+        return this.modules.get(module);
     }
     
     public List<Module> getModules() {

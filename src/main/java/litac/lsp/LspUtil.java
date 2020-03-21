@@ -3,8 +3,6 @@
  */
 package litac.lsp;
 
-import java.io.File;
-
 import litac.ast.Decl;
 import litac.ast.Node.SrcPos;
 import litac.ast.Stmt.NoteStmt;
@@ -56,7 +54,7 @@ public class LspUtil {
         
         Decl decl = sym.decl;
         if(decl != null && decl.getSrcPos().sourceFile != null) {
-            String uri = new File(decl.getSrcPos().sourceFile).toURI().toString();
+            String uri = decl.getSrcPos().sourceFile.toURI().toString();
             
             info.location = new Location();
             info.location.uri = uri;

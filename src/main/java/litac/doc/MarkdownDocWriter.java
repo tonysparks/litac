@@ -43,7 +43,7 @@ public class MarkdownDocWriter implements DocWriter {
         //System.out.println("Starting doc generation");
         
         this.outputDir.mkdirs();        
-        this.buf.append("# LitaC API Documentation - ").append(this.options.outputFileName).append("\n\n");
+        //this.buf.append("# LitaC API Documentation - ").append(this.options.outputFileName).append("\n\n");
     }
     
     @Override
@@ -64,7 +64,7 @@ public class MarkdownDocWriter implements DocWriter {
             listFunctionDetails(module);
                         
             try {
-                Files.write(new File(this.outputDir, module.name() + ".md").toPath(), this.buf.toString().getBytes(),
+                Files.write(new File(this.outputDir, module.simpleName() + ".md").toPath(), this.buf.toString().getBytes(),
                         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             }
             catch(Exception e) {
@@ -81,7 +81,7 @@ public class MarkdownDocWriter implements DocWriter {
     }
     
     private void module(Module module) {
-        buf.append(section(module.name()));
+        buf.append(section(module.simpleName()));
         if(module.getModuleStmt().notes != null) {
             for(NoteStmt note : module.getModuleStmt().notes) {
                 if(note.name.equals("doc")) {
@@ -96,12 +96,12 @@ public class MarkdownDocWriter implements DocWriter {
     }
     
     private void listImports(Module module) {
-        String m = module.name();
+        String m = module.simpleName();
         // List out Imports
         buf.append(subSection(m + " Imports"));
         {        
             List<String> moduleNames = module.getImports().stream()
-                    .map(x -> urlTo(x.name(), x.name()+".md"))
+                    .map(x -> urlTo(x.simpleName(), x.simpleName()+".md"))
                     .sorted()
                     .collect(Collectors.toList());
             
@@ -110,11 +110,11 @@ public class MarkdownDocWriter implements DocWriter {
     }
     
     private void listVariables(Module module) {
-        String m = module.name();
+        String m = module.simpleName();
         buf.append(subSection(m + " Variables"));
         {
             List<String> globals = module.getModuleScope().getSymbols().stream()
-                    .filter(sym -> !sym.isType() && sym.declared.name().equals(module.name()) 
+                    .filter(sym -> !sym.isType() && sym.declared.getId().equals(module.getId()) 
                             && (includePrivate || sym.isPublic()))
                     .map(sym -> (sym.isConstant() ? "const " : "") + linkTo(sym.name) + ": " + type(sym.type))
                     .sorted()
@@ -125,11 +125,11 @@ public class MarkdownDocWriter implements DocWriter {
     }
     
     private void listStructures(Module module) {
-        String m = module.name();
+        String m = module.simpleName();
         buf.append(subSection(m + " Types"));
         {
             List<String> types = module.getModuleScope().getSymbols().stream()
-                    .filter(sym -> sym.isType() && sym.declared.name().equals(module.name()) 
+                    .filter(sym -> sym.isType() && sym.declared.getId().equals(module.getId()) 
                             && !sym.decl.kind.equals(DeclKind.FUNC) && (includePrivate || sym.isPublic()))
                     .map(sym -> symbolSummary(sym))
                     .sorted()
@@ -140,10 +140,10 @@ public class MarkdownDocWriter implements DocWriter {
     }
     
     private void listFunctions(Module module) {
-        String m = module.name();
+        String m = module.simpleName();
         buf.append(subSection(m + " Functions"));
         List<String> types = module.getModuleScope().getSymbols().stream()
-                .filter(sym -> sym.decl.kind.equals(DeclKind.FUNC) && sym.declared.name().equals(module.name()) 
+                .filter(sym -> sym.decl.kind.equals(DeclKind.FUNC) && sym.declared.getId().equals(module.getId()) 
                         && (includePrivate || sym.isPublic()))
                 .map(sym -> symbolSummary(sym))
                 .sorted()
@@ -154,7 +154,7 @@ public class MarkdownDocWriter implements DocWriter {
     
     private void listVariableDetails(Module module) {        
         List<Symbol> globals = module.getModuleScope().getSymbols().stream()
-                                        .filter(sym -> !sym.isType() && sym.declared.name().equals(module.name()) 
+                                        .filter(sym -> !sym.isType() && sym.declared.getId().equals(module.getId()) 
                                                 && (includePrivate || sym.isPublic()))                
                                         .sorted((a,b) -> a.name.compareTo(b.name))
                                         .collect(Collectors.toList());
@@ -172,7 +172,7 @@ public class MarkdownDocWriter implements DocWriter {
     
     private void listStructureDetails(Module module) {
         List<Symbol> globals = module.getModuleScope().getSymbols().stream()
-                                        .filter(sym -> sym.isType() && sym.declared.name().equals(module.name()) && 
+                                        .filter(sym -> sym.isType() && sym.declared.getId().equals(module.getId()) && 
                                                 !sym.decl.kind.equals(DeclKind.FUNC) && (includePrivate || sym.isPublic()))                
                                         .sorted((a,b) -> a.name.compareTo(b.name))
                                         .collect(Collectors.toList());
@@ -193,7 +193,7 @@ public class MarkdownDocWriter implements DocWriter {
     
     private void listFunctionDetails(Module module) {        
         List<Symbol> functions  = module.getModuleScope().getSymbols().stream()
-                .filter(sym -> sym.decl.kind.equals(DeclKind.FUNC) && sym.declared.name().equals(module.name()) 
+                .filter(sym -> sym.decl.kind.equals(DeclKind.FUNC) && sym.declared.getId().equals(module.getId()) 
                         && (includePrivate || sym.isPublic()))                
                 .sorted((a,b) -> a.name.compareTo(b.name))
                 .collect(Collectors.toList());
@@ -219,7 +219,7 @@ public class MarkdownDocWriter implements DocWriter {
         StringBuilder sb = new StringBuilder();
         Symbol sym = type.sym;
         if(sym != null && sym.declared != null && !sym.isBuiltin()) {
-            sb.append(linkTo(sym.declared.name())).append("::");
+            sb.append(linkTo(sym.declared.simpleName())).append("::");
         }
         
         TypeInfo base = TypeInfo.getBase(type);

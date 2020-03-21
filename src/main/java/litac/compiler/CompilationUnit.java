@@ -7,6 +7,7 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import litac.ast.ModuleId;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.ImportStmt;
 import litac.ast.Stmt.ModuleStmt;
@@ -21,24 +22,24 @@ public class CompilationUnit {
 
     private ModuleStmt main;
     private ModuleStmt builtin;
-    private Map<String, ModuleStmt> imports;
+    private Map<ModuleId, ModuleStmt> imports;
     
     public CompilationUnit(ModuleStmt builtin, ModuleStmt main) {
         this.builtin = builtin;
         this.main = main;
         this.imports = new HashMap<>();
-        this.imports.put("builtins", builtin);
+        this.imports.put(builtin.id, builtin);
     }
     
     /**
      * @return the imports
      */
-    public Map<String, ModuleStmt> getImports() {
+    public Map<ModuleId, ModuleStmt> getImports() {
         return imports;
     }
     
-    public ModuleStmt getModule(String moduleName) {
-        return this.imports.get(moduleName);
+    public ModuleStmt getModule(ModuleId module) {
+        return this.imports.get(module);
     }
     
     /**
@@ -63,12 +64,15 @@ public class CompilationUnit {
      * @return
      */
     public static CompilationUnit modules(BackendOptions options, File moduleFile, PhaseResult result) throws IOException {   
-        ModuleStmt builtin = readModule(options.preprocessor(), options.findModule("builtins.lita"), result);
-        ModuleStmt main = readModule(options.preprocessor(), moduleFile, result);
-        main.imports.add(new ImportStmt("builtins", null, false));
+        
+        ModuleId builtinId = ModuleId.fromDirectory(options.libDir, "builtins");
+        ModuleStmt builtin = readModule(options, builtinId.moduleFile, result);
+        ModuleStmt main = readModule(options, moduleFile, result);
+        
+        main.imports.add(new ImportStmt("builtins", null, builtinId, false));
      
         if(options.outputType == OutputType.Test) {
-            importTestModules(main);
+            importTestModules(options, main);
         }
         
         
@@ -80,23 +84,26 @@ public class CompilationUnit {
         return unit;
     }
     
-    private static void importTestModules(ModuleStmt main) {
-        if(!main.imports.stream().anyMatch(imp -> imp.moduleName.equals("assert"))) {
-            main.imports.add(new ImportStmt("assert", null, false));
+    private static void importTestModules(BackendOptions options, ModuleStmt module) {
+        ModuleId assertId = ModuleId.fromDirectory(options.libDir, "assert");
+        ModuleId ioId = ModuleId.fromDirectory(options.libDir, "io");
+        
+        if(!module.imports.stream().anyMatch(imp -> imp.moduleId.equals(assertId))) {
+            module.imports.add(new ImportStmt("assert", null, assertId, false));
         }
-        if(!main.imports.stream().anyMatch(imp -> imp.moduleName.equals("io"))) {
-            main.imports.add(new ImportStmt("io", null, false));
+        if(!module.imports.stream().anyMatch(imp -> imp.moduleId.equals(ioId))) {
+            module.imports.add(new ImportStmt("io", null, ioId, false));
         }
     }
     
-    private static ModuleStmt readModule(Preprocessor pp, File moduleFile, PhaseResult result) throws IOException {    
+    private static ModuleStmt readModule(BackendOptions options, File moduleFile, PhaseResult result) throws IOException {    
         // TODO: should this be a phaseresult or an exception??
         if(!moduleFile.exists()) {            
             throw new FileNotFoundException(moduleFile.getAbsolutePath());
         }
         
-        Source source = new Source(moduleFile.getName(), new FileReader(moduleFile));                                    
-        Parser parser = new Parser(pp, result, new Scanner(source));
+        Source source = new Source(moduleFile, new FileReader(moduleFile));                                    
+        Parser parser = new Parser(options, result, new Scanner(source));
         ModuleStmt module = parser.parseModule();
         
         return module;                       
@@ -125,22 +132,19 @@ public class CompilationUnit {
         }
         
         private ModuleStmt loadModule(ImportStmt stmt) {
-            String moduleName = stmt.moduleName;
+            ModuleId moduleId = stmt.moduleId;
             
-            if(this.unit.imports.containsKey(moduleName)) {
+            if(this.unit.imports.containsKey(moduleId)) {
                 return null;                
             }
             
-            String fileName = moduleName + ".lita";
-            File importFile = options.findModule(fileName);
-            
             try {
-                ModuleStmt module = readModule(this.options.preprocessor(), importFile, this.result);
-                this.unit.imports.put(moduleName, module);
+                ModuleStmt module = readModule(this.options, moduleId.moduleFile, this.result);
+                this.unit.imports.put(moduleId, module);
                 return module;
             }
             catch (FileNotFoundException e) {
-                throw Compiler.error(stmt, "could not find module '%s' at '%s'", moduleName, importFile.getAbsolutePath());
+                throw Compiler.error(stmt, "could not find module '%s' at '%s'", stmt.moduleName, moduleId.moduleFile.getAbsolutePath());
             }
             catch (IOException e) {
                 throw Compiler.error(stmt, "I/O error '%s'", e.getMessage());

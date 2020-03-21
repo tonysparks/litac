@@ -16,15 +16,13 @@ import litac.compiler.*;
 public abstract class Stmt extends Node {
     
     public static class ModuleStmt extends Stmt {
-
-        public String name;
         public List<ImportStmt> imports;
         public List<NoteStmt> notes;
         public List<Decl> declarations;
-        
-        
-        public ModuleStmt(String name, List<ImportStmt> imports, List<NoteStmt> notes, List<Decl> declarations) {
-            this.name = name;
+        public ModuleId id;
+
+        public ModuleStmt(ModuleId id, List<ImportStmt> imports, List<NoteStmt> notes, List<Decl> declarations) {
+            this.id = id;
             this.imports = becomeParentOf(imports);
             this.notes = becomeParentOf(notes);
             this.declarations = becomeParentOf(declarations);
@@ -37,22 +35,30 @@ public abstract class Stmt extends Node {
 
         @Override
         protected Node doCopy() {            
-            return new ModuleStmt(this.name, copy(this.imports), copy(this.notes), copy(this.declarations));
+            return new ModuleStmt(this.id, copy(this.imports), copy(this.notes), copy(this.declarations));
         }
     }
 
     
     public static class ImportStmt extends Stmt {
-        public String moduleName;
+        public String moduleName;        
         public String alias;
+        public ModuleId moduleId;
         public boolean isUsing;
         
-        public ImportStmt(String moduleName, 
+        public ImportStmt(String moduleName,                          
                           String alias,
+                          ModuleId moduleId,
                           boolean isUsing) {
-            this.moduleName = moduleName;
+            this.moduleName = moduleName;            
             this.alias = alias;
+            this.moduleId = moduleId;
             this.isUsing = isUsing;
+        }
+        
+        public String getImportName() {
+            String importName = this.alias != null ? this.alias : this.moduleId.fullModuleName;
+            return importName;
         }
         
         @Override
@@ -62,7 +68,7 @@ public abstract class Stmt extends Node {
         
         @Override
         protected Node doCopy() {            
-            return new ImportStmt(this.moduleName, this.alias, this.isUsing);
+            return new ImportStmt(this.moduleName, this.alias, this.moduleId, this.isUsing);
         }
     }
     

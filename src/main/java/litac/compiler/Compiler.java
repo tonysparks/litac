@@ -30,7 +30,7 @@ public class Compiler {
     
     public static CompileException error(Stmt stmt, String message, Object ...args) {
         return new CompileException(String.format(message, args) + 
-                String.format(" at line %d in '%s'", stmt.getLineNumber(), stmt.getSourceFile()));
+                String.format(" at line %d in '%s'", stmt.getLineNumber(), stmt.getSourceName()));
     }
     
     public PhaseResult compile(File rootModule) throws Exception {
@@ -71,7 +71,7 @@ public class Compiler {
     
     private Program typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
         try(Segment s = Profiler.startSegment("Type Checker")) {
-            TypeResolver resolver = new TypeResolver(options.preprocessor(), result, unit);
+            TypeResolver resolver = new TypeResolver(options, result, unit);
                     
             Program program = resolver.resolveTypes();
             return program;
@@ -94,11 +94,12 @@ public class Compiler {
                     .collect(Collectors.toList());
             
             PhaseResult result = new PhaseResult();
-            TypeResolver resolver = new TypeResolver(this.options.preprocessor(), result, unit);
+            TypeResolver resolver = new TypeResolver(this.options, result, unit);
             Reflection reflection = new Reflection(program, 
                                                    this.options.typeInfo);
             
-            Module typeModule = program.getModule("type");
+            ModuleId type = ModuleId.fromDirectory(options.libDir, "type");
+            Module typeModule = program.getModule(type);
             reflection.createTypeInfos(typeModule, resolver, declarations);
         }
     }

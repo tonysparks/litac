@@ -1,8 +1,6 @@
 package litac.parser;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.Reader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +30,7 @@ public class Source implements AutoCloseable {
     private List<String> lines;
     
     private String sourceName;
+    private File sourceFile;
 
     /**
      * 
@@ -40,8 +39,9 @@ public class Source implements AutoCloseable {
      * @throws IOException
      *             if an I/O error occurred
      */
-    public Source(String sourceName, Reader reader) {
-        this.sourceName = sourceName;
+    public Source(File sourceFile, Reader reader) {
+        this.sourceFile = sourceFile;
+        this.sourceName = sourceFile.getName();
         this.lineNum = 0;
         this.currentPos = -2; // set to -2 to read the first source line
         this.lines = new ArrayList<>();
@@ -49,6 +49,13 @@ public class Source implements AutoCloseable {
                 (BufferedReader)reader : new BufferedReader(reader);
                 
         this.errorToken = new ErrorToken(this, ErrorCode.UNKNOWN_ERROR, "");
+    }
+    
+    /**
+     * @return the sourceFile
+     */
+    public File getSourceFile() {
+        return sourceFile;
     }
     
     /**

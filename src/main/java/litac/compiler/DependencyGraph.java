@@ -69,14 +69,22 @@ public class DependencyGraph {
             
             AggregateTypeInfo aggInfo = state.decl.sym.type.as();
             for(FieldInfo field : aggInfo.fieldInfos) {
+                Symbol sym = null;
                 if(TypeInfo.isAggregate(field.type)) {
-                    Symbol sym = field.type.sym;
-                    if(sym != null) {
-                        DeclState other = states.get(sym.decl);
-                        if(other != null) {
-                            state.dependsOn.add(other);
-//                            other.referenced++;
-                        }
+                    sym = field.type.sym;
+                }
+                else if(TypeInfo.isArray(field.type)) {
+                    ArrayTypeInfo arrayInfo = field.type.as();
+                    TypeInfo baseType = arrayInfo.getBaseType();
+                    if(TypeInfo.isAggregate(baseType)) {
+                        sym = baseType.sym;
+                    }
+                }
+                
+                if(sym != null) {
+                    DeclState other = states.get(sym.decl);
+                    if(other != null) {
+                        state.dependsOn.add(other);
                     }
                 }
             }

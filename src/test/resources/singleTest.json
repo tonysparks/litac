@@ -276,8 +276,10 @@
         // Still broken        
         {
             name: "Doc Test",
-            genDoc: true,
+            genDoc: false,
             definitions: '''
+                import "array"
+                
                 @doc("""
                     Module documentation
                     <i>this is an italic test</i>

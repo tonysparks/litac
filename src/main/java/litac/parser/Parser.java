@@ -3,6 +3,7 @@ package litac.parser;
 
 import static litac.parser.tokens.TokenType.*;
 
+import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,7 @@ import litac.checker.TypeInfo.AggregateTypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
 import litac.compiler.PhaseResult;
 import litac.compiler.Preprocessor;
+import litac.compiler.BackendOptions;
 import litac.generics.GenericParam;
 import litac.parser.tokens.*;
 import litac.util.Names;
@@ -44,6 +46,7 @@ public class Parser {
         
     private Token startToken;
     private Preprocessor pp;
+    private BackendOptions options;
     
     private PhaseResult result;
     
@@ -73,15 +76,16 @@ public class Parser {
      * @param scanner
      *            the scanner to be used with this parser.
      */
-    public Parser(Preprocessor pp,
+    public Parser(BackendOptions options,
                   PhaseResult result,
                   Scanner scanner) {
+        this.options = options;
         this.scanner = scanner;
         this.result = result;
         this.tokens = scanner.getTokens();
         
         this.current = 0;    
-        this.pp = pp;
+        this.pp = options.preprocessor();
     }
     
     public PhaseResult getPhaseResult() {
@@ -98,8 +102,9 @@ public class Parser {
         List<NoteStmt> moduleNotes = new ArrayList<>();
         List<Decl> declarations = new ArrayList<>();
 
+        ModuleId id = ModuleId.from(options.libDir, options.getSrcDir(), this.scanner.getSourceFile());
+        
         SrcPos pos = null;
-        String moduleName = Names.getModuleName(this.scanner.getSourceFile());
         if(!isAtEnd()) {
             pos = pos();
             while(!isAtEnd()) {
@@ -113,7 +118,10 @@ public class Parser {
             }
         }
         
-        return new ModuleStmt(moduleName, imports, moduleNotes, declarations).setSrcPos(pos);
+        return new ModuleStmt(id,
+                              imports, 
+                              moduleNotes, 
+                              declarations).setSrcPos(pos);
     }
     
     private void tryModuleStatement(List<ImportStmt> imports, 
@@ -180,7 +188,9 @@ public class Parser {
         String libTxt = library.getText();
         moduleName = libTxt.substring(1, libTxt.length() - 1);
         
-        return new ImportStmt(moduleName, aliasName, isUsing).setSrcPos(pos);
+        File moduleFile = Names.getModuleFile(this.scanner.getSourceFile(), options, moduleName);
+        ModuleId module = ModuleId.from(options.libDir, options.getSrcDir(), moduleFile);
+        return new ImportStmt(moduleName, aliasName, module, isUsing).setSrcPos(pos);
     }
         
     private VarDecl varDeclaration() {
@@ -1842,7 +1852,7 @@ public class Parser {
      */
     private <T extends Node> T node(T node) {
         if(this.startToken != null) {
-            node.setSourceFile(this.scanner.getSourceFile());
+            node.setSourceName(this.scanner.getSourceName());
             node.setSourceLine(this.scanner.getSourceLine(this.startToken.getLineNumber()));
             node.setLineNumber(this.startToken.getLineNumber());
             node.setPosition(this.startToken.getPosition());

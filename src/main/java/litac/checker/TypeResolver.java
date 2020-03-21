@@ -83,7 +83,7 @@ public class TypeResolver {
     
     private CompilationUnit unit;
     private PhaseResult result;
-    private Map<String, Module> resolvedModules;
+    private Map<ModuleId, Module> resolvedModules;
     private Map<String, Boolean> labels;
     
     private List<Symbol> moduleSymbols;
@@ -103,13 +103,14 @@ public class TypeResolver {
     private Stack<List<GenericParam>> genericStack;
         
     private FuncTypeInfo currentFunc;
+    
     private Preprocessor preprocessor;
     
-    public TypeResolver(Preprocessor pp,
+    public TypeResolver(BackendOptions options,
                         PhaseResult result, 
                         CompilationUnit unit) {
         
-        this.preprocessor = pp;
+        this.preprocessor = options.preprocessor();
         this.result = result;
         this.unit = unit;
         
@@ -334,20 +335,20 @@ public class TypeResolver {
     }
     
     private Module createModule(ModuleStmt moduleStmt) {
-        String moduleName = moduleStmt.name;
-        if(resolvedModules.containsKey(moduleName)) {
-            return resolvedModules.get(moduleName);
+        ModuleId moduleId = moduleStmt.id;
+        
+        if(resolvedModules.containsKey(moduleId)) {
+            return resolvedModules.get(moduleId);
         }
         
         Module module = new Module(this.root, 
                                    this.programSymbols, 
                                    this.genericTypes, 
                                    this.result, 
-                                   moduleStmt, 
-                                   moduleName);
+                                   moduleStmt);
         addBuiltins(module);
         
-        resolvedModules.put(moduleName, module);
+        resolvedModules.put(moduleId, module);
         resolveModule(module);
         
         return module;
@@ -490,14 +491,17 @@ public class TypeResolver {
     }
     
     private void resolveImport(Module parentModule, ImportStmt importStmt) {
-        String moduleName = importStmt.alias != null ? importStmt.alias : importStmt.moduleName;
         
-        if(parentModule.getModule(moduleName) != null) {
-            error(importStmt, "duplicate import of module '%s'", moduleName); 
+        String importName = importStmt.getImportName();
+        if(parentModule.getModule(importName) != null) {
+            error(importStmt, "duplicate import of module '%s'", importName); 
             return;
         }
         
-        ModuleStmt moduleStmt = unit.getImports().get(importStmt.moduleName);
+        ModuleStmt moduleStmt = unit.getModule(importStmt.moduleId);
+        if(moduleStmt == null) {
+            error(importStmt.getSrcPos(), "Could not find module name: '%s'", importStmt.moduleId.id);
+        }
         
         Module module = createModule(moduleStmt);
         parentModule.importModule(importStmt, module, importStmt.alias);
@@ -627,7 +631,7 @@ public class TypeResolver {
                                          Collections.emptyList(), 0);
         
         // Name must match CGen.visit(EnumDecl)
-        funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + current().name() + "_" + enumDecl.name + "_AsStr")));
+        funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + current().simpleName() + "_" + enumDecl.name + "_AsStr")));
         funcDecl.attributes.isGlobal = enumSym.decl.attributes.isGlobal;
         funcDecl.attributes.isPublic = enumSym.decl.attributes.isPublic;
         Module module = current();

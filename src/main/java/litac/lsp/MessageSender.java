@@ -3,7 +3,6 @@
  */
 package litac.lsp;
 
-import java.io.File;
 import java.util.*;
 
 import com.google.gson.*;
@@ -49,7 +48,7 @@ public class MessageSender {
                     continue;
                 }
                 
-                String uri = new File(error.pos.sourceFile).toURI().toString();
+                String uri = error.pos.sourceFile.toURI().toString();
                 Document doc = workspace.getDocument(uri);
                 if(doc == null) {
                     continue;
@@ -90,7 +89,11 @@ public class MessageSender {
         }
         
         for(PhaseError error : errors) {
-            String uri = new File(error.pos.sourceFile).toURI().toString();
+            if(error.pos.sourceFile == null) {
+                continue;
+            }
+            
+            String uri = error.pos.sourceFile.toURI().toString();
             Document doc = workspace.getDocument(uri);
             if(doc == null) {
                 continue;

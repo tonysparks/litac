@@ -20,11 +20,13 @@ public class RequestHandler {
     private Workspace workspace;
     private MessageSender sender;
     private LspLogger log;
+    private BackendOptions options;
     
     public RequestHandler(BackendOptions options,
                           Workspace workspace, 
                           MessageSender sender,
                           LspLogger log) {
+        this.options = options;
         this.workspace = workspace;
         this.sender = sender;
         this.log = log;
@@ -33,7 +35,12 @@ public class RequestHandler {
     private File scanRootModule(File sourcePath) {
         // TODO: Scan the folder structures and look for the 'main' class?
         // or should this be an arg???
-        return new File(sourcePath, "/src/main.lita");
+        File root = new File(sourcePath, "/src/main.lita");
+        if(!root.exists()) {
+            root = new File(sourcePath, "/src/" + options.outputFileName + ".lita");
+        }
+        
+        return root;
     }
 
     public void handleInitialize(RpcRequest rpc, InitializationParams msg) {
@@ -44,13 +51,14 @@ public class RequestHandler {
             File rootModule;
             
             if(sourcePath.isFile()) {
-                rootModule = sourcePath;
+                rootModule = new File(sourcePath.getAbsolutePath());
+                sourcePath = sourcePath.getParentFile();
             }
             else {
                 rootModule = scanRootModule(sourcePath);
             }
                     
-            this.workspace.setRoot(rootModule);
+            this.workspace.setRoot(rootModule, sourcePath);
             this.log.log("Workspace rootModule: '" + rootModule + "'");
         }
         else {

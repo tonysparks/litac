@@ -6,6 +6,7 @@ package litac.lsp;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import litac.ast.ModuleId;
 import litac.compiler.*;
 import litac.compiler.Module;
 import litac.compiler.PhaseResult.PhaseError;
@@ -21,12 +22,12 @@ public class Document {
     
     public TextDocument document;
     public List<PhaseError> errors;
-    public final String moduleName;
+    public final ModuleId moduleId;
     
     private LspLogger log;
     
-    public Document(String moduleName, TextDocument document, LspLogger log) {
-        this.moduleName = moduleName;
+    public Document(ModuleId moduleId, TextDocument document, LspLogger log) {
+        this.moduleId = moduleId;
         this.document = document;
         this.log = log;
         this.lineMap = new ArrayList<>();
@@ -73,24 +74,34 @@ public class Document {
     public Location getDefinitionLocation(Workspace workspace, Position pos) {
         Program program = workspace.getLatestProgram();
         if(program == null) {
-            workspace.processSource(this.document.uri);
+            PhaseResult result = workspace.processSource(this.document.uri);
             program = workspace.getLatestProgram();
             if(program == null) {
                 this.log.log("Unable to compile program: '" + this.document.uri +"'");
+                if(result.hasErrors()) {
+                    this.log.log("Errors: " + result.getErrors().stream().map(e -> e.message).reduce((a,b) -> a + ", " + b).orElse(""));
+                }
                 return null;
             }
         }
         
-        Module module = program.getModule(this.moduleName);
+        Module module = program.getModule(this.moduleId);
         if(module == null) {            
-            workspace.processSource(this.document.uri);
+            PhaseResult result = workspace.processSource(this.document.uri);
             program = workspace.getLatestProgram();
             if(program == null) {
+                this.log.log("Unable to compile program: '" + this.document.uri +"' for module: '" + this.moduleId + "'");
+                if(result.hasErrors()) {
+                    this.log.log("Errors: " + result.getErrors().stream().map(e -> e.message).reduce((a,b) -> a + ", " + b).orElse(""));
+                }
                 return null;
             }
             
-            module = program.getModule(this.moduleName);            
+            module = program.getModule(this.moduleId);
             if(module == null) {
+                this.log.log("Unable to find module: '" + this.moduleId + "'");
+               // program.getModules().stream().map(m -> m.name()).reduce((a,b) -> a + ", " + b).ifPresent(log::log);
+                
                 return null;
             }
         }
@@ -109,7 +120,7 @@ public class Document {
             }
         }
                 
-        Module module = program.getModule(this.moduleName);
+        Module module = program.getModule(this.moduleId);
         if(module == null) {            
             workspace.processSource(this.document.uri);
             program = workspace.getLatestProgram();
@@ -117,7 +128,7 @@ public class Document {
                 return null;
             }
             
-            module = program.getModule(this.moduleName);            
+            module = program.getModule(this.moduleId);            
             if(module == null) {
                 return null;
             }
@@ -180,7 +191,7 @@ public class Document {
         }
         
         
-        Module module = program.getModule(this.moduleName);
+        Module module = program.getModule(this.moduleId);
         if(module == null) {
             return null;
         }
