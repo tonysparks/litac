@@ -1,13 +1,82 @@
 import "mem" as mem;
-import "io";
+import "io" as io;
 import "assert";
+import "string_view";
+import "libc";
 
-// TODO
-/*
-public func Length(str: char const*) : i32 {
+public struct String {
+    str: char*
+    length: i32
+    capacity: i32
 }
 
-public func StartsWith(str: char const*, s: char const*) : bool {
+public func StringInit(str: char*, capacity: i32, len: i32 = -1) : String {
+    if(str == null) {
+        return String {
+            .str = null,
+            .length = 0,
+            .capacity = 0
+        }
+    }
 
+    if(len < 0) {
+        len = strlen(str)
+    }
+
+    if(len > capacity) {
+        len = capacity
+    }
+
+    return String {
+        .str = str,
+        .length = len,
+        .capacity = capacity
+    }
 }
-*/
+
+public func (s: String*) format(format: char const*, ...) : i32{
+    const MAX_BUFFER_SIZE = 32;
+
+    // get the variable args
+    var args1:va_list;
+    va_start(args1, format);
+
+    // need to copy the args even though we won't know if we
+    // need them until after we use the first set
+    var args2: va_list; 
+    va_copy(args2, args1);
+
+    // have to call vsnprintf at least once - might as well use a small
+    // fixed-size buffer just in case the final string fits in it
+    var len = vsnprintf(s.str, s.capacity, format, args1);
+    va_end(args1);
+    
+    if(len < 0) {
+        return len
+    }
+
+    s.length = len
+    return len
+}
+
+
+public func (s: String) asView() : StringView {
+    return StringView {
+        .buffer = s.str,
+        .length = s.length
+    }
+}
+
+public func (s: String) memset(value: i32 = 0) {
+    if(s.capacity < 1) return;
+
+    mem::memset(s.str as (void*), value, s.capacity)
+}
+
+public func (s: String) empty() : bool {
+    return s.length < 1
+}
+
+public func (s: String) size() : i32 {
+    return s.length
+}
