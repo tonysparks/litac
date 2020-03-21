@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import com.google.gson.*;
 
-import litac.compiler.BackendOptions;
+import litac.LitaOptions;
 import litac.lsp.JsonRpc.*;
 
 /**
@@ -18,7 +18,7 @@ public class RequestHandlerTest {
 
     @Test
     public void test() {
-        BackendOptions options = new BackendOptions();
+        LitaOptions options = new LitaOptions();
         
         Gson gson = new GsonBuilder().create();
         LspLogger log = new LspLogger(false);

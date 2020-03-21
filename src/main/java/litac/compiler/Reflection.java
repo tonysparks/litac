@@ -5,6 +5,7 @@ package litac.compiler;
 
 import java.util.*;
 
+import litac.LitaOptions.TypeInfoOption;
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
@@ -12,7 +13,6 @@ import litac.ast.Stmt.*;
 import litac.ast.TypeSpec.*;
 import litac.checker.*;
 import litac.checker.TypeInfo.*;
-import litac.compiler.BackendOptions.TypeInfoOption;
 import litac.parser.tokens.TokenType;
 import litac.compiler.Module;
 

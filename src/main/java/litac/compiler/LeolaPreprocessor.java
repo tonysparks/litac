@@ -5,6 +5,7 @@ package litac.compiler;
 
 import leola.vm.Leola;
 import leola.vm.types.LeoObject;
+import litac.LitaOptions;
 import litac.checker.TypeInfo;
 import litac.util.OS;
 
@@ -16,7 +17,7 @@ import litac.util.OS;
 public class LeolaPreprocessor implements Preprocessor {
     private Leola runtime;
     
-    public LeolaPreprocessor(BackendOptions options) {
+    public LeolaPreprocessor(LitaOptions options) {
         this.runtime = Leola.builder()
                 .setBarebones(true)
                 .setSandboxed(true)

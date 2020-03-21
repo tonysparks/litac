@@ -1,19 +1,22 @@
 /*
  * see license.txt
  */
-package litac.compiler;
+package litac;
 
 import java.io.File;
 
+import litac.compiler.*;
 import litac.compiler.c.CTranspiler;
 import litac.util.OS;
 import litac.util.OS.OsType;
 
 /**
+ * Options for the LitaC compiler
+ * 
  * @author Tony
  *
  */
-public class BackendOptions {
+public class LitaOptions {
 
     public static enum BackendType {
         C,        
@@ -79,11 +82,11 @@ public class BackendOptions {
     private boolean hasCustomSrcDir;
     private Preprocessor preprocessor;
     
-    public BackendOptions() {
+    public LitaOptions() {
         this(BackendType.C);
     }
     
-    public BackendOptions(BackendType type) {
+    public LitaOptions(BackendType type) {
         this.backendType = type;
         this.outputType = OutputType.Executable;
         this.testRegex = ".*";

@@ -7,7 +7,7 @@ import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import litac.Errors;
+import litac.*;
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
@@ -17,9 +17,7 @@ import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.AggregateTypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
-import litac.compiler.PhaseResult;
-import litac.compiler.Preprocessor;
-import litac.compiler.BackendOptions;
+import litac.compiler.*;
 import litac.generics.GenericParam;
 import litac.parser.tokens.*;
 import litac.util.Names;
@@ -46,7 +44,7 @@ public class Parser {
         
     private Token startToken;
     private Preprocessor pp;
-    private BackendOptions options;
+    private LitaOptions options;
     
     private PhaseResult result;
     
@@ -76,7 +74,7 @@ public class Parser {
      * @param scanner
      *            the scanner to be used with this parser.
      */
-    public Parser(BackendOptions options,
+    public Parser(LitaOptions options,
                   PhaseResult result,
                   Scanner scanner) {
         this.options = options;

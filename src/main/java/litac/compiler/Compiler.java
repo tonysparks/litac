@@ -7,6 +7,7 @@ import java.io.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import litac.LitaOptions;
 import litac.ast.*;
 import litac.ast.Node.SrcPos;
 import litac.checker.TypeResolver;
@@ -22,9 +23,9 @@ import litac.compiler.Module;
  */
 public class Compiler {
 
-    private BackendOptions options;
+    private LitaOptions options;
     
-    public Compiler(BackendOptions options) {
+    public Compiler(LitaOptions options) {
         this.options = options;
     }
     
@@ -62,14 +63,14 @@ public class Compiler {
         return result;
     }
     
-    private CompilationUnit parse(BackendOptions options, File rootModule, PhaseResult result) throws IOException {
+    private CompilationUnit parse(LitaOptions options, File rootModule, PhaseResult result) throws IOException {
         try(Segment s = Profiler.startSegment("Lexing/Parsing")) {
             CompilationUnit unit = CompilationUnit.modules(this.options, rootModule, result);
             return unit;
         }
     }
     
-    private Program typeCheck(BackendOptions options, PhaseResult result, CompilationUnit unit) {
+    private Program typeCheck(LitaOptions options, PhaseResult result, CompilationUnit unit) {
         try(Segment s = Profiler.startSegment("Type Checker")) {
             TypeResolver resolver = new TypeResolver(options, result, unit);
                     
@@ -104,12 +105,12 @@ public class Compiler {
         }
     }
     
-    private void generateDocs(BackendOptions options, Program program) {
+    private void generateDocs(LitaOptions options, Program program) {
         DocGen docGen = new DocGen(options);
         docGen.generate(program);
     }
     
-    private void compile(BackendOptions options, 
+    private void compile(LitaOptions options, 
                                 PhaseResult checkerResult, 
                                 CompilationUnit unit,
                                 Program program) throws Exception {

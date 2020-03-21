@@ -6,6 +6,7 @@ package litac.checker;
 import java.math.BigDecimal;
 import java.util.*;
 
+import litac.LitaOptions;
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
@@ -106,7 +107,7 @@ public class TypeResolver {
     
     private Preprocessor preprocessor;
     
-    public TypeResolver(BackendOptions options,
+    public TypeResolver(LitaOptions options,
                         PhaseResult result, 
                         CompilationUnit unit) {
         

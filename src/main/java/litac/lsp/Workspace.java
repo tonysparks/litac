@@ -9,6 +9,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import litac.LitaOptions;
 import litac.ast.ModuleId;
 import litac.ast.Node.SrcPos;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
@@ -26,7 +27,7 @@ import litac.compiler.Module;
 public class Workspace {
 
     private ModuleId rootModule;
-    private BackendOptions options;
+    private LitaOptions options;
     private Map<String, Document> documents;
     private Program latestProgram;
     private File srcDir;
@@ -37,7 +38,7 @@ public class Workspace {
     /**
      * 
      */
-    public Workspace(BackendOptions options, LspLogger log) {        
+    public Workspace(LitaOptions options, LspLogger log) {        
         this.options = options;        
         this.log = log;
                 

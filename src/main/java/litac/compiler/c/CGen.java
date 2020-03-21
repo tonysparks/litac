@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import litac.*;
+import litac.LitaOptions.OutputType;
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
@@ -17,7 +18,6 @@ import litac.ast.Stmt.*;
 import litac.checker.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
-import litac.compiler.BackendOptions.OutputType;
 import litac.compiler.FieldPath.FieldPathNode;
 import litac.compiler.c.CTranspiler.COptions;
 import litac.util.*;

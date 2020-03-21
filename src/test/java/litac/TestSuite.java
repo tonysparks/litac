@@ -15,9 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.junit.Assert.*;
 
-import litac.compiler.BackendOptions;
+import litac.LitaOptions.TypeInfoOption;
 import litac.compiler.PhaseResult;
-import litac.compiler.BackendOptions.TypeInfoOption;
 import litac.compiler.PhaseResult.PhaseError;
 
 /**
@@ -96,7 +95,7 @@ public class TestSuite {
             tmp.deleteOnExit();
             
             try {                
-                BackendOptions options = new BackendOptions();
+                LitaOptions options = new LitaOptions();
                 options.buildFile = tmp;
                 options.cOptions.symbolPrefix = test.symbolPrefix;
                 options.run = true;
@@ -255,7 +254,7 @@ public class TestSuite {
         tmp.deleteOnExit();
 
                         
-        BackendOptions options = new BackendOptions();
+        LitaOptions options = new LitaOptions();
         options.buildFile = tmp;            
         options.generateDocs = true;
         options.outputDocDir = new File("./doc");                        

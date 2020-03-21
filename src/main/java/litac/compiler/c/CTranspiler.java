@@ -7,7 +7,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
-import litac.Errors;
+import litac.*;
 import litac.compiler.*;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.util.Exec;
@@ -25,10 +25,10 @@ public class CTranspiler {
         public int indentWidth;
         public String compileCmd;
         public String symbolPrefix;
-        public BackendOptions options;
+        public LitaOptions options;
         
         
-        public COptions(BackendOptions options) {
+        public COptions(LitaOptions options) {
             this.options = options;
             this.useTabs = false;
             this.indentWidth = 4;
@@ -60,7 +60,7 @@ public class CTranspiler {
     public static void transpile(PhaseResult checkerResult, 
                                  CompilationUnit unit, 
                                  Program program,
-                                 BackendOptions options) throws Exception {
+                                 LitaOptions options) throws Exception {
         
         Buf buf = toC(unit, program, options);        
         File cOutput = writeCFile(buf, options);
@@ -83,7 +83,7 @@ public class CTranspiler {
         }
     }
     
-    private static Buf toC(CompilationUnit unit, Program program, BackendOptions options) throws Exception {
+    private static Buf toC(CompilationUnit unit, Program program, LitaOptions options) throws Exception {
         try(Segment s = Profiler.startSegment("C Genaration")) {
             COptions cOptions = options.cOptions;
             Buf buf = new Buf(cOptions.indentWidth, cOptions.useTabs);        
@@ -96,7 +96,7 @@ public class CTranspiler {
     }
     
     
-    private static File writeCFile(Buf buf, BackendOptions options) throws Exception {
+    private static File writeCFile(Buf buf, LitaOptions options) throws Exception {
         try(Segment s = Profiler.startSegment("C Write")) {
             options.outputDir.mkdirs();
             
@@ -106,7 +106,7 @@ public class CTranspiler {
         }
     }
     
-    private static void compileC(File cOutput, BackendOptions options) throws Exception {
+    private static void compileC(File cOutput, LitaOptions options) throws Exception {
         try(Segment s = Profiler.startSegment("C Compile")) {
             String compileCmd = options.cOptions.getCompileCmd(cOutput);
             int status = Exec.run(options.outputDir, compileCmd);
@@ -116,7 +116,7 @@ public class CTranspiler {
         }
     }
     
-    private static void runProgram(BackendOptions options) throws Exception {
+    private static void runProgram(LitaOptions options) throws Exception {
         int status = Exec.run(options.outputDir, options.cOptions.getBinaryOutputFile());
         if(status != 0) {
             System.exit(status);

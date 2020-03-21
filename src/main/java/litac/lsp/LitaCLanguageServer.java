@@ -7,6 +7,7 @@ import java.io.*;
 
 import com.google.gson.*;
 
+import litac.LitaOptions;
 import litac.compiler.*;
 import litac.lsp.JsonRpc.*;
 
@@ -22,7 +23,7 @@ public class LitaCLanguageServer {
     private RequestHandler handler;
     private MessageSender sender;
     
-    public LitaCLanguageServer(BackendOptions options) {        
+    public LitaCLanguageServer(LitaOptions options) {        
         this.isInitialized = false;
         
         this.gson = new GsonBuilder()

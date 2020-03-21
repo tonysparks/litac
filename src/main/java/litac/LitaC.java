@@ -5,12 +5,11 @@ package litac;
 
 import java.io.File;
 
-import litac.compiler.BackendOptions;
-import litac.compiler.BackendOptions.*;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.lsp.LitaCLanguageServer;
 import litac.util.Profiler;
 import litac.util.Profiler.Segment;
+import litac.LitaOptions.*;
 import litac.compiler.Compiler;
 import litac.compiler.PhaseResult;
 
@@ -95,7 +94,7 @@ public class LitaC {
             return;
         }
         
-        BackendOptions options = new BackendOptions(BackendType.C);
+        LitaOptions options = new LitaOptions(BackendType.C);
         boolean isLanguageServer = false;
         
         for(int i = 0; i < args.length; i++) {
@@ -239,7 +238,7 @@ public class LitaC {
         }
     }
 
-    public static PhaseResult compile(BackendOptions options) throws Exception {
+    public static PhaseResult compile(LitaOptions options) throws Exception {
         File moduleFile = options.buildFile;
         Compiler compiler = new Compiler(options);
         return compiler.compile(moduleFile);        

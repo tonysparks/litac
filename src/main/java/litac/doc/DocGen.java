@@ -4,6 +4,7 @@
 package litac.doc;
 
 import litac.compiler.Module;
+import litac.LitaOptions;
 import litac.compiler.*;
 
 /**
@@ -12,9 +13,9 @@ import litac.compiler.*;
  */
 public class DocGen {
 
-    private BackendOptions options;
+    private LitaOptions options;
         
-    public DocGen(BackendOptions options) {
+    public DocGen(LitaOptions options) {
         this.options = options;
     }
 

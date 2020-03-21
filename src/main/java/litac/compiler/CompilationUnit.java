@@ -7,11 +7,12 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import litac.LitaOptions;
+import litac.LitaOptions.OutputType;
 import litac.ast.ModuleId;
 import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.ImportStmt;
 import litac.ast.Stmt.ModuleStmt;
-import litac.compiler.BackendOptions.OutputType;
 import litac.parser.*;
 
 /**
@@ -63,7 +64,7 @@ public class CompilationUnit {
      * @param main
      * @return
      */
-    public static CompilationUnit modules(BackendOptions options, File moduleFile, PhaseResult result) throws IOException {   
+    public static CompilationUnit modules(LitaOptions options, File moduleFile, PhaseResult result) throws IOException {   
         
         ModuleId builtinId = ModuleId.fromDirectory(options.libDir, "builtins");
         ModuleStmt builtin = readModule(options, builtinId.moduleFile, result);
@@ -84,7 +85,7 @@ public class CompilationUnit {
         return unit;
     }
     
-    private static void importTestModules(BackendOptions options, ModuleStmt module) {
+    private static void importTestModules(LitaOptions options, ModuleStmt module) {
         ModuleId assertId = ModuleId.fromDirectory(options.libDir, "assert");
         ModuleId ioId = ModuleId.fromDirectory(options.libDir, "io");
         
@@ -96,7 +97,7 @@ public class CompilationUnit {
         }
     }
     
-    private static ModuleStmt readModule(BackendOptions options, File moduleFile, PhaseResult result) throws IOException {    
+    private static ModuleStmt readModule(LitaOptions options, File moduleFile, PhaseResult result) throws IOException {    
         // TODO: should this be a phaseresult or an exception??
         if(!moduleFile.exists()) {            
             throw new FileNotFoundException(moduleFile.getAbsolutePath());
@@ -111,11 +112,11 @@ public class CompilationUnit {
             
     private static class CompilationUnitNodeVisitor extends AbstractNodeVisitor {
         
-        BackendOptions options;
+        LitaOptions options;
         CompilationUnit unit;
         PhaseResult result;
         
-        CompilationUnitNodeVisitor(BackendOptions options, CompilationUnit unit, PhaseResult result) {
+        CompilationUnitNodeVisitor(LitaOptions options, CompilationUnit unit, PhaseResult result) {
             this.options = options;
             this.unit = unit;
             this.result = result;

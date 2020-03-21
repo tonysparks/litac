@@ -6,7 +6,7 @@ package litac.lsp;
 import java.io.File;
 import java.util.*;
 
-import litac.compiler.BackendOptions;
+import litac.LitaOptions;
 import litac.lsp.JsonRpc.*;
 
 /**
@@ -20,9 +20,9 @@ public class RequestHandler {
     private Workspace workspace;
     private MessageSender sender;
     private LspLogger log;
-    private BackendOptions options;
+    private LitaOptions options;
     
-    public RequestHandler(BackendOptions options,
+    public RequestHandler(LitaOptions options,
                           Workspace workspace, 
                           MessageSender sender,
                           LspLogger log) {

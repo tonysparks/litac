@@ -9,6 +9,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import litac.LitaOptions;
 import litac.ast.Decl.DeclKind;
 import litac.ast.Stmt.NoteStmt;
 import litac.checker.TypeInfo;
@@ -23,14 +24,14 @@ import litac.compiler.Module;
 public class MarkdownDocWriter implements DocWriter {
 
     private StringBuilder buf;
-    private BackendOptions options;
+    private LitaOptions options;
     private boolean includePrivate;
     private List<Module> modules;
     private File outputDir;
     /**
      * 
      */
-    public MarkdownDocWriter(BackendOptions options) {
+    public MarkdownDocWriter(LitaOptions options) {
         this.options = options;
         this.buf = new StringBuilder();
         this.includePrivate = options.docsAll;

@@ -8,11 +8,11 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
+import litac.LitaOptions;
 import litac.ast.TypeSpec;
 import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
-import litac.compiler.BackendOptions;
 
 /**
  * @author Tony
@@ -53,7 +53,7 @@ public class Names {
         return packages;
     }
     
-    public static File getModuleFile(File parentModuleFile, BackendOptions options, String moduleName) {
+    public static File getModuleFile(File parentModuleFile, LitaOptions options, String moduleName) {
         // Find the full module path based on the module importing this module
         File parentDir = OS.canonicalize(parentModuleFile.getParentFile());        
         File moduleFile = options.findModule(parentDir, moduleName + ".lita");
@@ -61,7 +61,7 @@ public class Names {
         return moduleFile;
     }
     
-    public static String getRelativeModulePath(File parentModuleFile, BackendOptions options, File srcDir, String moduleName) {        
+    public static String getRelativeModulePath(File parentModuleFile, LitaOptions options, File srcDir, String moduleName) {        
         File moduleFile = getModuleFile(parentModuleFile, options, moduleName);
         
         // now that we have the full module path, we can make it relative to either the root source
