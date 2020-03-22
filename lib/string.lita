@@ -70,7 +70,7 @@ public func (s: String) asView() : StringView {
 public func (s: String) memset(value: i32 = 0) {
     if(s.capacity < 1) return;
 
-    mem::memset(s.str as (void*), value, s.capacity)
+    mem::memset(s.str as (void*), value, s.capacity * sizeof(:char))
 }
 
 public func (s: String) empty() : bool {
