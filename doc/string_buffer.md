@@ -24,12 +24,13 @@
 * func [StringBuffer\_appendFloat](#StringBuffer\_appendFloat)(b: [StringBuffer\*](#StringBuffer), f: f64) : i32
 * func [StringBuffer\_appendI32](#StringBuffer\_appendI32)(b: [StringBuffer\*](#StringBuffer), i: i32) : i32
 * func [StringBuffer\_appendI64](#StringBuffer\_appendI64)(b: [StringBuffer\*](#StringBuffer), i: i64) : i32
-* func [StringBuffer\_appendStr](#StringBuffer\_appendStr)(b: [StringBuffer\*](#StringBuffer), str: char*, len: i32)
+* func [StringBuffer\_appendStr](#StringBuffer\_appendStr)(b: [StringBuffer\*](#StringBuffer), str: char const*, len: i32)
 * func [StringBuffer\_appendU32](#StringBuffer\_appendU32)(b: [StringBuffer\*](#StringBuffer), i: u32) : i32
 * func [StringBuffer\_appendU64](#StringBuffer\_appendU64)(b: [StringBuffer\*](#StringBuffer), i: u64) : i32
 * func [StringBuffer\_append](#StringBuffer\_append)(b: [StringBuffer\*](#StringBuffer), format: char const*) : i32
 * func [StringBuffer\_asStringView](#StringBuffer\_asStringView)(b: [StringBuffer\*](#StringBuffer)) : [string\_view](#string\_view)::[StringView](#StringView)
-* func [StringBuffer\_cStr](#StringBuffer\_cStr)(b: [StringBuffer\*](#StringBuffer)) : char const*
+* func [StringBuffer\_cStrConst](#StringBuffer\_cStrConst)(b: [StringBuffer\*](#StringBuffer)) : char const*
+* func [StringBuffer\_cStr](#StringBuffer\_cStr)(b: [StringBuffer\*](#StringBuffer)) : char*
 * func [StringBuffer\_clear](#StringBuffer\_clear)(b: [StringBuffer\*](#StringBuffer))
 * func [StringBuffer\_contains](#StringBuffer\_contains)(b: [StringBuffer\*](#StringBuffer), str: char const*, len: i32) : bool
 * func [StringBuffer\_copyTo](#StringBuffer\_copyTo)(b: [StringBuffer\*](#StringBuffer), buf: char*, len: i32, addZero: bool) : i32
@@ -98,7 +99,7 @@ func [StringBuffer\_appendI64](#StringBuffer\_appendI64)(b: [StringBuffer\*](#St
 ### StringBuffer\_appendStr
 
 
-func [StringBuffer\_appendStr](#StringBuffer\_appendStr)(b: [StringBuffer\*](#StringBuffer), str: char*, len: i32)
+func [StringBuffer\_appendStr](#StringBuffer\_appendStr)(b: [StringBuffer\*](#StringBuffer), str: char const*, len: i32)
 
 
 ### StringBuffer\_appendU32
@@ -122,7 +123,13 @@ func [StringBuffer\_asStringView](#StringBuffer\_asStringView)(b: [StringBuffer\
 ### StringBuffer\_cStr
 
 
-func [StringBuffer\_cStr](#StringBuffer\_cStr)(b: [StringBuffer\*](#StringBuffer)) : char const*
+func [StringBuffer\_cStr](#StringBuffer\_cStr)(b: [StringBuffer\*](#StringBuffer)) : char*
+
+
+### StringBuffer\_cStrConst
+
+
+func [StringBuffer\_cStrConst](#StringBuffer\_cStrConst)(b: [StringBuffer\*](#StringBuffer)) : char const*
 
 
 ### StringBuffer\_clear

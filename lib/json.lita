@@ -133,7 +133,7 @@ public func CreateJsonString(str: char const*, len: i32 = -1, alloc: mem::Alloca
         len = strlen(str);
     }
 
-    var copy = mem::memduplicate(str as (void const*), len + 1, alloc) as (char*)
+    var copy = mem::memduplicate(str as (void const*), (len + 1) * sizeof(:char), alloc) as (char*)
     copy[len] = '\0'
 
     return CreateJsonStringNoDup(copy, alloc)

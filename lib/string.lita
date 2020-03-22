@@ -73,6 +73,25 @@ public func (s: String) memset(value: i32 = 0) {
     mem::memset(s.str as (void*), value, s.capacity * sizeof(:char))
 }
 
+public func (s: String) copy(allocator: mem::Allocator const* = mem::defaultAllocator) : String {
+    if(s.length < 1) {
+        return String {
+            .str = null,
+            .length = 0,
+            .capacity = 0
+        }
+    }
+
+    var copiedStr = allocator.alloc((s.length + 1) * sizeof(:char)) as (char*)
+    copiedStr[s.length] = '\0'
+
+    return String{
+        .str = copiedStr,
+        .length = s.length,
+        .capacity = s.length
+    }
+}
+
 public func (s: String) empty() : bool {
     return s.length < 1
 }

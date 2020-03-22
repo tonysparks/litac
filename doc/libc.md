@@ -60,6 +60,7 @@
 * func [strtoul](#strtoul)(str: char const*, end: char**, base: i32) : u64
 * func [tan](#tan)(v: f64) : f64
 * func [tolower](#tolower)(arg: i32) : i32
+* func [va\_copy](#va\_copy)(a: [libc](#libc)::[va\_list](#va\_list), b: [libc](#libc)::[va\_list](#va\_list))
 * func [va\_end](#va\_end)(args: [libc](#libc)::[va\_list](#va\_list))
 * func [va\_start](#va\_start)(args: [libc](#libc)::[va\_list](#va\_list), format: char const*)
 * func [vfprintf](#vfprintf)(f: [FILE\*](#FILE), format: char const*, args: [libc](#libc)::[va\_list](#va\_list))
@@ -324,6 +325,12 @@ func [tan](#tan)(v: f64) : f64
 
 
 func [tolower](#tolower)(arg: i32) : i32
+
+
+### va\_copy
+
+
+func [va\_copy](#va\_copy)(a: [libc](#libc)::[va\_list](#va\_list), b: [libc](#libc)::[va\_list](#va\_list))
 
 
 ### va\_end

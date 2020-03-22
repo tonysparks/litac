@@ -41,7 +41,7 @@ public func (b: StringBuffer*) init(initialSize: i32 = 16,
     b.capacity = initialSize;    
     
     var length = (sizeof(:char) * initialSize as (u64));    
-    b.buffer = alloc.calloc(1, length) as (char*)
+    b.buffer = alloc.calloc(length, sizeof(:char)) as (char*)
 }
 
 public func (b: StringBuffer*) free() {
@@ -53,7 +53,7 @@ public func (b: StringBuffer*) free() {
     }
 }
 
-public func (b: StringBuffer*) appendStr(str: char*, len: i32) {
+public func (b: StringBuffer*) appendStr(str: char const*, len: i32) {
     if(str == null || len < 1) {
         return;
     }
@@ -288,13 +288,17 @@ public func (b: StringBuffer*) clear() {
     b.length = 0
 }
 
-public func (b: StringBuffer*) cStr() : char const* {
+public func (b: StringBuffer*) cStrConst() : char const* {
+    return b.cStr() as (char const*)    
+}
+
+public func (b: StringBuffer*) cStr() : char* {
     if(b.length + 1 > b.capacity) {
         BufferGrow(b, 1)
     }
 
     b.buffer[b.length] = '\0'
-    return (b.buffer) as (char const*)
+    return b.buffer
 }
 
 @inline
