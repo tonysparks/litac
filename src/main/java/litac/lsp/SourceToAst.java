@@ -337,6 +337,13 @@ public class SourceToAst implements NodeVisitor {
             s.visit(this);            
         }
     }
+    
+    @Override
+    public void visit(FuncBodyStmt stmt) {
+        for(Stmt s: stmt.stmts) {
+            s.visit(this);            
+        }
+    }
 
     @Override
     public void visit(DeferStmt stmt) {

@@ -221,7 +221,7 @@
                 
             ''',                       
             code: '''
-                var c = [4] char;
+                var c = [4] char{'\0', '\0', '\0', '\0'};
                 test(c as (void*))
             ''',
         },
@@ -1113,6 +1113,7 @@
                 var x = test(&A{.x: 4});
                 assert(x == 43)
             ''', 
+            error: "symbol 'x' already defined"
         },
         { 
             name: "Func arg scoped shadow scoping using",
@@ -1583,6 +1584,54 @@
                 assert(array)                       
                 assert(array[0].b.v == 4)                                         
             '''                      
+        },
+        {
+            name: "Var null inference bug",
+            definitions: '''                
+                
+                            
+            ''',                       
+            code: '''                
+                var x = null
+            ''',
+            error: "invalid variable declaration, can't infer type from 'null' for 'x' variable"                      
+        },
+        {
+            name: "Const null inference bug",
+            definitions: '''                
+                
+                            
+            ''',                       
+            code: '''                
+                const x = null
+            ''',
+            error: "invalid variable declaration, can't infer type from 'null' for 'x' variable"                      
+        },
+        {
+            name: "Func parameter scopes",
+            definitions: '''
+                func test(a: i32) {
+                    var a = 14
+                }
+            ''',                       
+            code: '''   
+                             
+            ''',
+            error: "symbol 'a' already defined"
+        },
+        {
+            name: "Func parameter scopes shadow",
+            definitions: '''
+                func test(a: i32) : i32 {
+                    {
+                        var a = 14
+                        return a
+                    }
+                }
+            ''',                       
+            code: '''   
+                assert(test(4) == 14)
+            ''',
         },
     ]
 }

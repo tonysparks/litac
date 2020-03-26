@@ -30,6 +30,7 @@ public interface NodeVisitor {
     void visit(ContinueStmt stmt);
     void visit(ReturnStmt stmt);
     void visit(BlockStmt stmt);
+    void visit(FuncBodyStmt stmt);
     void visit(DeferStmt stmt);
     void visit(EmptyStmt stmt);
     void visit(ParametersStmt stmt);
@@ -152,6 +153,10 @@ public interface NodeVisitor {
 
         @Override
         public void visit(BlockStmt stmt) {
+        }
+        
+        @Override
+        public void visit(FuncBodyStmt stmt) {
         }
         
         @Override

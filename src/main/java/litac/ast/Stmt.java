@@ -429,6 +429,24 @@ public abstract class Stmt extends Node {
         }
     }
     
+    public static class FuncBodyStmt extends Stmt {
+        public List<Stmt> stmts;
+        
+        public FuncBodyStmt(List<Stmt> stmts) {
+            this.stmts = becomeParentOf(stmts);
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+            v.visit(this);
+        }
+        
+        @Override
+        protected Node doCopy() {            
+            return new FuncBodyStmt(copy(this.stmts));
+        }
+    }
+    
     public static class DeferStmt extends Stmt {
         public Stmt stmt;
         

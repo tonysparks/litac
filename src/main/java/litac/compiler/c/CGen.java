@@ -1206,9 +1206,8 @@ public class CGen {
             }
             
             buf.out(" ");
-            
-            boolean isBlock = (d.bodyStmt instanceof BlockStmt);
-            if(!isBlock) buf.out("{");
+                        
+            buf.out("{");
             d.bodyStmt.visit(this);
             
             
@@ -1217,7 +1216,7 @@ public class CGen {
             }
             localConsts.clear();
             
-            if(!isBlock) buf.out("}");
+            buf.out("}");
             buf.outln();
             
             currentFuncType.pop();
@@ -1542,6 +1541,26 @@ public class CGen {
             popScope();
             
             buf.out("}\n");
+        }
+        
+        @Override
+        public void visit(FuncBodyStmt stmt) {
+            checkLine(stmt);
+            
+            pushScope();
+            for(Stmt s : stmt.stmts) {
+                boolean isExpr = s instanceof Expr;
+                if(isExpr) {
+                    checkLine(s);
+                }
+                
+                s.visit(this);
+                
+                if(isExpr) {
+                    buf.out(";\n");
+                }
+            }
+            popScope();
         }
     
         @Override

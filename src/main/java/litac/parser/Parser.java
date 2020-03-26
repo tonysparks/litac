@@ -287,8 +287,16 @@ public class Parser {
         if(match(SEMICOLON)) {
             body = emptyStmt();
         }
-        else {        
+        else {
             body = statement();
+            
+            // convert to FuncBodyStmt from a block stmt, so that
+            // downstream systems don't have to do funky scope management
+            // with function parameters
+            if(body instanceof BlockStmt) {
+                body = new FuncBodyStmt(((BlockStmt) body).stmts);
+                body.setSrcPos(body.getSrcPos());
+            }
         }
         
         this.funcLevel--;

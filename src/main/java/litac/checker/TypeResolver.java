@@ -779,6 +779,9 @@ public class TypeResolver {
                    expr.getKind() == ExprKind.INIT) {
                     inferredType = op.type;
                 }
+                else if(op.type.isKind(TypeKind.Null) && declaredType == null) {
+                    error(decl.getSrcPos(), "invalid variable declaration, can't infer type from 'null' for '%s' variable", decl.name);
+                }
                 else {
                     inferredType = decayType(op.type);    
                 }                
@@ -1866,6 +1869,8 @@ public class TypeResolver {
         TypeInfo leftType = left.type;
         TypeInfo rightType = right.type;
         
+        TypeInfo targetType = leftType;
+        
         switch(expr.operator) {
             case EQUALS: {                    
                 checkConstant(expr.left);
@@ -1898,10 +1903,12 @@ public class TypeResolver {
                 
             case AND:
             case OR:
+                targetType = TypeInfo.BOOL_TYPE;
                 break;
             
             case EQUALS_EQUALS:
             case NOT_EQUALS:
+                targetType = TypeInfo.BOOL_TYPE;
                 break;
                 
             case GREATER_EQUALS:
@@ -1915,7 +1922,7 @@ public class TypeResolver {
                 if(!TypeInfo.isNumber(rightType)) {
                     error(expr.right, "illegal, right operand has type '%s'", rightType.getName());
                 }
-                
+                targetType = TypeInfo.BOOL_TYPE;
                 break;
             
             case MINUS_EQ:
@@ -1946,8 +1953,9 @@ public class TypeResolver {
         }
 
         // TODO: Cast to appropriate type
-        Operand op = Operand.op(leftType);
+        Operand op = Operand.op(targetType);        
         op.isConst = left.isConst && right.isConst;
+        
         
         expr.resolveTo(op);
         
@@ -2608,6 +2616,13 @@ public class TypeResolver {
                 s.visit(this);                
             }
             current().popScope();
+        }
+        
+        @Override
+        public void visit(FuncBodyStmt stmt) {            
+            for(Stmt s : stmt.stmts) {                
+                s.visit(this);                
+            }            
         }
 
         @Override
