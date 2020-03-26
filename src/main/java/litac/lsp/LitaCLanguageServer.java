@@ -4,6 +4,7 @@
 package litac.lsp;
 
 import java.io.*;
+import java.net.ServerSocket;
 
 import com.google.gson.*;
 
@@ -23,8 +24,21 @@ public class LitaCLanguageServer {
     private RequestHandler handler;
     private MessageSender sender;
     
-    public LitaCLanguageServer(LitaOptions options) {        
+    public LitaCLanguageServer(LitaOptions options, Integer port) {        
         this.isInitialized = false;
+        
+        InputStream inputStream;
+        PrintStream outStream;
+        
+        if(port != null) {
+            try {
+                ServerSocket socket = new ServerSocket(port);
+                socket.
+            }
+            catch(Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
         
         this.gson = new GsonBuilder()
                 .serializeNulls()

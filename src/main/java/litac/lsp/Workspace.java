@@ -139,7 +139,7 @@ public class Workspace {
         String physicalFileName = importedModule.moduleFile.getAbsolutePath(); 
         String text = getDocumentText(importedModule);
         
-        log.log("Reading module: '" + importedModule.fullModuleName +"' mapped to physical name: '" + physicalFileName + "'");
+        //log.log("Reading module: '" + importedModule.fullModuleName +"' mapped to physical name: '" + physicalFileName + "'");
         
         if(physicalFileName == null || text == null) {
             log.log("ReadModule null: " + physicalFileName + " Text: \n" + text);
