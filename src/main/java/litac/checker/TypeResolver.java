@@ -629,7 +629,8 @@ public class TypeResolver {
                                          new ParametersStmt(Arrays.asList(param), false),   
                                          new EmptyStmt(),
                                          asStrFuncInfo.returnType.asTypeSpec(), 
-                                         Collections.emptyList(), 0);
+                                         Collections.emptyList(), 0).
+                                         setSrcPos(asStr.getSrcPos());
         
         // Name must match CGen.visit(EnumDecl)
         funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + current().simpleName() + "_" + enumDecl.name + "_AsStr")));
