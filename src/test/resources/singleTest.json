@@ -367,32 +367,20 @@
                 // var c = [4] char;
                 test(c as (void*))
             ''',
-        },*/
+        },*/       
         {
-            name: "Func parameter scopes",
+            name: "Union default values",
             definitions: '''
-                func test(a: i32) {
-                    var a = 14
+                union X {
+                    a: i32 = 1
+                    b: f32 = 1.0f
                 }
             ''',                       
             code: '''   
-                             
-            ''',
-            error: "symbol 'a' already defined"
-        },
-        {
-            name: "Func parameter scopes shadow",
-            definitions: '''
-                func test(a: i32) : i32 {
-                    {
-                        var a = 14
-                        return a
-                    }
-                }
-            ''',                       
-            code: '''   
-                assert(test(4) == 14)
-            ''',
+                
+                var x1:X = X{}                
+            ''',    
+            error: "Invalid default assignment statement, only allowed for 'struct'"        
         },
         
     ]

@@ -148,11 +148,13 @@ public abstract class Stmt extends Node {
         public String name;
         public TypeSpec type;
         public Attributes attributes;
+        public Expr defaultExpr;
         
-        public VarFieldStmt(String name, TypeSpec type, Attributes attributes) {
+        public VarFieldStmt(String name, TypeSpec type, Attributes attributes, Expr defaultExpr) {
             this.name = name;
             this.type = type;
             this.attributes = attributes;
+            this.defaultExpr = defaultExpr;
         }
         
         @Override
@@ -162,8 +164,7 @@ public abstract class Stmt extends Node {
         
         @Override
         protected Node doCopy() {            
-            VarFieldStmt v = new VarFieldStmt(this.name, TypeSpec.copy(this.type), this.attributes);
-            v.attributes = this.attributes;
+            VarFieldStmt v = new VarFieldStmt(this.name, TypeSpec.copy(this.type), this.attributes, copy(this.defaultExpr));            
             return v;
         }
     }

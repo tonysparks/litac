@@ -338,7 +338,7 @@ public class Parser {
                     break;
                 }
                 
-                FieldStmt field = fieldStatement();
+                FieldStmt field = fieldStatement(true);
                 fields.add(field);
                 
                 eatSemicolon();
@@ -385,7 +385,7 @@ public class Parser {
                     break;
                 }
                 
-                FieldStmt field = fieldStatement();
+                FieldStmt field = fieldStatement(false);
                 fields.add(field);
                 
                 eatSemicolon();
@@ -695,7 +695,7 @@ public class Parser {
         return new BlockStmt(stmts);
     }
     
-    private FieldStmt fieldStatement() {
+    private FieldStmt fieldStatement(boolean isStruct) {
         SrcPos pos = pos();
         List<NoteStmt> notes = notes();
         switch(peek().getType()) {
@@ -707,8 +707,15 @@ public class Parser {
                 attributes.srcPos = pos;
                 attributes.addNotes(notes);
                 
-                TypeSpec type = type(false);                 
-                return new VarFieldStmt(identifier.getText(), type, attributes).setSrcPos(pos);
+                TypeSpec type = type(false);
+                Expr defaultExpr = null;
+                if(match(EQUALS)) {
+                    defaultExpr = constExpression();
+                    if(!isStruct) {
+                        throw error(peek(), ErrorCode.INVALID_DEFAULT_ASSIGNMENT);
+                    }
+                }
+                return new VarFieldStmt(identifier.getText(), type, attributes, defaultExpr).setSrcPos(pos);
             }                
             case STRUCT: {
                 advance();

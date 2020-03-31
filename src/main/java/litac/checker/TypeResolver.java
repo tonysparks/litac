@@ -901,6 +901,11 @@ public class TypeResolver {
             VarFieldStmt var = (VarFieldStmt) stmt;
             TypeInfo type = resolveTypeSpec(var.type);
             
+            if(var.defaultExpr != null) {
+                Operand op = resolveExpr(var.defaultExpr);
+                typeCheck(var.defaultExpr.getSrcPos(), op.type, type);
+            }
+            
             return new FieldInfo(type, var.name, var.attributes, null);
         }
         
@@ -2030,6 +2035,8 @@ public class TypeResolver {
             error(expr, "only struct, union or array can use initialization syntax");
         }
         
+        addDefaultArguments(type, expr);
+        
         for(InitArgExpr arg : expr.arguments) {
             resolveInitArgExpr(arg);            
         } 
@@ -2047,6 +2054,58 @@ public class TypeResolver {
         checkInitArguments(expr);
         
         return operand;
+    }
+    
+    private void addDefaultArguments(TypeInfo type, InitExpr expr) {
+        if(!TypeInfo.isAggregate(type)) {
+            return;
+        }
+        
+        AggregateDecl decl = (AggregateDecl)type.sym.decl;
+        
+        List<InitArgExpr> defaultArgs = new ArrayList<>();
+        
+        for(int position = 0; position < decl.fields.size(); position++) {
+            FieldStmt fieldStmt = decl.fields.get(position);
+            
+            if(!(fieldStmt instanceof VarFieldStmt)) {
+                continue;
+            }
+            
+            VarFieldStmt var = (VarFieldStmt)fieldStmt;            
+            if(var.defaultExpr == null) {
+                continue;
+            }
+            
+            boolean isArgDefinedByName = false;
+            boolean isArgDefinedByPosition = false;
+            boolean hasNamedArgs = false;
+            
+            for(InitArgExpr argExpr : expr.arguments) {
+                if(argExpr.fieldName != null) {
+                    hasNamedArgs = true;
+                    
+                    if(argExpr.fieldName.equals(var.name)) {
+                        isArgDefinedByName = true;
+                        break;
+                    }
+                }
+                else {
+                    if(argExpr.argPosition == position) {
+                        isArgDefinedByPosition = true;                        
+                    }
+                }
+            }
+            
+            // the argument wasn't included
+            if(!isArgDefinedByName && !(!hasNamedArgs && isArgDefinedByPosition)) {
+                defaultArgs.add(new InitArgExpr(var.name, position, var.defaultExpr));
+            }
+        }
+        
+        for(InitArgExpr defaultArg : defaultArgs) {
+            expr.addArgument(defaultArg);
+        }
     }
     
     private Operand resolveConstExpr(Expr expr) {

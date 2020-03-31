@@ -22,6 +22,7 @@ public enum ErrorCode {
     INVALID_NOTE_DECL("Invalid note declaration, must preceed either a 'var' or 'const' declaration"),
     INVALID_LABEL_STMT("Invalid label statement, goto labels are only valid in functions"),
     INVALID_COMP_STMT("Invalid compile time statement"),
+    INVALID_DEFAULT_ASSIGNMENT("Invalid default assignment statement, only allowed for 'struct'"),
     
     MISSING_COMMA("Missing ,"),
     MISSING_SEMICOLON("Missing ;"),

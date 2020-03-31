@@ -27,6 +27,7 @@ public class MarkdownDocWriter implements DocWriter {
     private LitaOptions options;
     private boolean includePrivate;
     private List<Module> modules;
+    private Module currentModule;
     private File outputDir;
     /**
      * 
@@ -51,6 +52,8 @@ public class MarkdownDocWriter implements DocWriter {
     public void end() {
         //System.out.println("Finished doc generation");
         for(Module module : this.modules) {
+            this.currentModule = module;
+            
             module(module);
             
             listImports(module);
@@ -217,18 +220,32 @@ public class MarkdownDocWriter implements DocWriter {
             return "";
         }
         
+        boolean isInModule = true;
+        
         StringBuilder sb = new StringBuilder();
         Symbol sym = type.sym;
         if(sym != null && sym.declared != null && !sym.isBuiltin()) {
-            sb.append(linkTo(sym.declared.simpleName())).append("::");
+            isInModule = sym.declared == this.currentModule;
+            
+            if(isInModule) {
+                sb.append(linkTo(sym.declared.simpleName())).append("::");
+            }
+            else {
+                sb.append(urlTo(sym.declared.simpleName())).append("::");
+            }
         }
         
         TypeInfo base = TypeInfo.getBase(type);
         if(base.isPrimitive()) {
             sb.append(type.getName());            
         }
-        else {              
-            sb.append(linkTo(type.getName(), base.name));
+        else {             
+            if(isInModule) {
+                sb.append(linkTo(type.getName(), base.name));
+            }
+            else {
+                sb.append(urlTo(type.getName(), base.name));
+            }
         }
         
         return sb.toString();

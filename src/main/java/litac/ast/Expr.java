@@ -321,7 +321,11 @@ public abstract class Expr extends Stmt {
             this.type = type;
             this.arguments = becomeParentOf(arguments);            
         }
-                
+        
+        public void addArgument(InitArgExpr arg) {
+            this.arguments.add(becomeParentOf(arg));
+        }
+        
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);
