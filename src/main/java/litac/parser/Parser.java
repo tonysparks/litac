@@ -1504,16 +1504,7 @@ public class Parser {
         if(!peek().getType().equals(RIGHT_BRACKET)) {
             Expr expr = expression();
             
-            if(expr instanceof NumberExpr) {
-                lengthExpr = expr;
-            }
-            else if(expr instanceof CharExpr) {
-                lengthExpr = expr;
-            }
-            else if(expr instanceof IdentifierExpr) {
-                lengthExpr = expr;
-            }
-            else if(expr instanceof GetExpr) {
+            if(Expr.isConstNumberExpr(expr)) {
                 lengthExpr = expr;
             }
             else {

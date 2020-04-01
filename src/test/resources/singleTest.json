@@ -369,18 +369,34 @@
             ''',
         },*/       
         {
-            name: "Union default values",
+            name: "Constant Array Declaration",
             definitions: '''
-                union X {
-                    a: i32 = 1
-                    b: f32 = 1.0f
-                }
+                const X = 1 + 1
+                const Y = X + 2
+                const Z = Y + X                
             ''',                       
             code: '''   
-                
-                var x1:X = X{}                
-            ''',    
-            error: "Invalid default assignment statement, only allowed for 'struct'"        
+                var x = [Z + X]i32
+                assert(X == 2)
+                assert(Y == 4)
+                assert(Z == 6)                 
+            ''',            
+        },
+        {
+            name: "Constant Reassign",
+            definitions: '''
+                const X = 1 + 1
+                const Y = X + 2
+                const Z = Y + X
+                const W = X+=1
+            ''',                       
+            code: '''   
+                var x = [Z + X]i32
+                assert(X == 2)
+                assert(Y == 4)
+                assert(Z == 6)                 
+            ''',  
+            error: "can't reassign constant variable 'X'"          
         },
         
     ]

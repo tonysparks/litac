@@ -98,6 +98,10 @@ public class LitaOptions {
         
         this.srcDir = wd;
         this.libDir = new File("./lib");
+        String path = System.getenv("LITAC_HOME");
+        if(path != null) {
+            this.libDir = new File(path, "lib");
+        }
         
         this.targetOS = OS.getOS();
         this.typeInfo = TypeInfoOption.None;

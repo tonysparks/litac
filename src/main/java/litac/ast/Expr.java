@@ -20,24 +20,55 @@ import litac.parser.tokens.*;
  */
 public abstract class Expr extends Stmt {
 
-    public static boolean isConstExpr(Expr expr) {
+    public static boolean isPrimitiveExpr(Expr expr) {
         if(expr instanceof ConstExpr) {
             return true;
         }
         
         if(expr instanceof GroupExpr) {
             GroupExpr groupExpr = (GroupExpr)expr;
-            return isConstExpr(groupExpr.expr);
+            return isPrimitiveExpr(groupExpr.expr);
         }
         else if(expr instanceof BinaryExpr) {
             BinaryExpr binExpr = (BinaryExpr)expr;
-            return isConstExpr(binExpr.left) && isConstExpr(binExpr.right);
+            return isPrimitiveExpr(binExpr.left) && isPrimitiveExpr(binExpr.right);
         }
         else if(expr instanceof UnaryExpr) {
             UnaryExpr uExpr = (UnaryExpr)expr;
-            return isConstExpr(uExpr.expr);
+            return isPrimitiveExpr(uExpr.expr);
         }
         
+        return false;
+    }
+    
+    public static boolean isConstNumberExpr(Expr expr) {        
+        if(expr instanceof NumberExpr) {
+            return true;
+        }
+        else if(expr instanceof CharExpr) {
+            return true;
+        }
+        else if(expr instanceof IdentifierExpr) {
+            return true; // Has the potential to be; but might not be
+        }
+        else if(expr instanceof GetExpr) {
+            return true; // Has the potential to be; but might not be
+        }
+        else {                        
+            if(expr instanceof GroupExpr) {
+                GroupExpr groupExpr = (GroupExpr)expr;
+                return isConstNumberExpr(groupExpr.expr);
+            }
+            else if(expr instanceof BinaryExpr) {
+                BinaryExpr binExpr = (BinaryExpr)expr;
+                return isConstNumberExpr(binExpr.left) && isConstNumberExpr(binExpr.right);
+            }
+            else if(expr instanceof UnaryExpr) {
+                UnaryExpr uExpr = (UnaryExpr)expr;
+                return isConstNumberExpr(uExpr.expr);
+            }
+        }
+                
         return false;
     }
     

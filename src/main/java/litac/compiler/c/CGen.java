@@ -1045,7 +1045,8 @@ public class CGen {
             
             checkLine(d);
             
-            if(Expr.isConstExpr(d.expr)) {
+            boolean isPrimitiveExpr = Expr.isPrimitiveExpr(d.expr) || Expr.isConstNumberExpr(d.expr); 
+            if(isPrimitiveExpr && d.expr.getResolvedType().type.isPrimitive()) {
                 buf.out("#define ");                   
                 buf.out("%s (", name);  
                 d.expr.visit(this); 

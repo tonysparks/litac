@@ -34,7 +34,7 @@
 
 struct [CmdParser](#CmdParser)
 
-* options: [documentationGenerator](#documentationGenerator)::[Map<char const\*,Option>](#Map<char\-const\*,Option>)
+* options: [documentationGenerator](documentationGenerator)::[Map<char const\*,Option>](Map<char const\*,Option>)
 * errors: char[]
 * status: [cmdline](#cmdline)::[CmdParserStatus](#CmdParserStatus)
 

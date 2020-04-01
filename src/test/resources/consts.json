@@ -83,5 +83,35 @@
                 assert(test() == -10)
             '''
         },
+        {
+            name: "Constant Array Declaration",
+            definitions: '''
+                const X = 1 + 1
+                const Y = X + 2
+                const Z = Y + X                
+            ''',                       
+            code: '''   
+                var x = [Z + X]i32
+                assert(X == 2)
+                assert(Y == 4)
+                assert(Z == 6)                 
+            ''',            
+        },
+        {
+            name: "Constant Reassign",
+            definitions: '''
+                const X = 1 + 1
+                const Y = X + 2
+                const Z = Y + X
+                const W = X+=1
+            ''',                       
+            code: '''   
+                var x = [Z + X]i32
+                assert(X == 2)
+                assert(Y == 4)
+                assert(Z == 6)                 
+            ''',  
+            error: "can't reassign constant variable 'X'"          
+        },
     ]
 }
