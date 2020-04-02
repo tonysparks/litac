@@ -709,6 +709,48 @@ public abstract class TypeInfo {
             return null;
         }
         
+        public boolean isUsingType(TypeInfo type) {            
+            return isUsingType(this, type);
+        }
+        
+        private boolean isUsingType(AggregateTypeInfo aggInfo, TypeInfo type) {
+            if(!aggInfo.hasUsingFields()) {
+                return false;
+            }
+            
+            for(FieldInfo field : aggInfo.usingInfos) {
+                if(TypeInfo.getBase(field.type).strictEquals(type)) {
+                    return true;
+                }
+            }
+            
+            for(FieldInfo field : aggInfo.usingInfos) {
+                if(isUsingType(TypeInfo.getBase(field.type).as(), type)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        public FieldInfo getFieldUsingType(TypeInfo type) {
+            if(!hasUsingFields()) {
+                return null;
+            }
+            
+            for(FieldInfo field : this.usingInfos) {
+                if(TypeInfo.getBase(field.type).strictEquals(type)) {
+                    return field;
+                }
+            }
+            
+            return null;
+        }
+        
+        public FieldPath getFieldPathUsingType(TypeInfo type) {
+            return new FieldPath(this, type);
+        }
+        
         @Override
         public TypeSpec asTypeSpec() {
             SrcPos pos = (this.sym != null) ? this.sym.decl.getSrcPos() : null;
@@ -749,6 +791,10 @@ public abstract class TypeInfo {
             
             if(target.isKind(TypeKind.Struct)) {
                 StructTypeInfo targetStruct = target.as();
+                
+                if(isUsingType(target)) {
+                    return true;
+                }
                 
                 if(this.fieldInfos.size() < targetStruct.fieldInfos.size()) {
                     return false;

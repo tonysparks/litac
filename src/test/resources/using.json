@@ -175,5 +175,251 @@
                 assert(p.a == 4.4f)
             '''
         },
+        {
+            name: "Struct Using Function",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                func (e: EntityBase*) getHealth() : i32 {
+                    return e.health
+                }
+                
+                struct Unit {
+                    base: using EntityBase
+                }
+            ''',                       
+            code: '''   
+                var unit = Unit {
+                    .base = EntityBase {.health = 100}
+                }     
+                var i = unit.getHealth()
+                assert(i == 100)
+            ''',            
+        },
+        {
+            name: "Struct Using Function x2",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                func (e: EntityBase*) getHealth() : i32 {
+                    return e.health
+                }
+                
+                struct Unit {
+                    base: using EntityBase
+                }
+                
+                struct HeavyUnit {
+                    unit: using Unit
+                }
+            ''',                       
+            code: '''   
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = EntityBase {.health = 100}
+                    }
+                }
+                     
+                var i = heavy.getHealth()
+                assert(i == 100)
+            ''',            
+        }, 
+        {
+            name: "Struct Using Function x2 with pointer",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                func (e: EntityBase*) getHealth() : i32 {
+                    return e.health
+                }
+                
+                struct Unit {
+                    base: using EntityBase*
+                }
+                
+                struct HeavyUnit {
+                    unit: using Unit
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                     
+                var i = heavy.getHealth()
+                assert(i == 100)
+            ''',            
+        }, 
+        {
+            name: "Struct Using Function with pointer",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                func (e: EntityBase*) getHealth() : i32 {
+                    return e.health
+                }
+                
+                struct Unit {
+                    base: using EntityBase*
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var unit = Unit {
+                    .base = &base
+                }     
+                var i = unit.getHealth()
+                assert(i == 100)
+            ''',            
+        },
+        {
+            name: "Struct Using Function with pointer dereference",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                func (e: EntityBase) getHealth() : i32 {
+                    return e.health
+                }
+                
+                struct Unit {
+                    base: using EntityBase*
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var unit = Unit {
+                    .base = &base
+                }     
+                var i = unit.getHealth()
+                assert(i == 100)
+            ''',            
+        },
+        {
+            name: "Struct Using Function x2 with pointer dereference",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                func (e: EntityBase) getHealth() : i32 {
+                    return e.health
+                }
+                
+                struct Unit {
+                    base: using EntityBase*
+                }
+                
+                struct HeavyUnit {
+                    unit: using Unit
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                     
+                var i = heavy.getHealth()
+                assert(i == 100)
+            ''',            
+        },
+        {
+            name: "Struct Using Function partial with pointer dereference",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                func (e: EntityBase) getHealth() : i32 {
+                    return e.health
+                }
+                
+                struct Unit {
+                    base: using EntityBase*
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var unit = Unit {
+                    .base = &base
+                }     
+                var i = unit.base.getHealth()
+                assert(i == 100)
+            ''',            
+        }, 
+        {
+            name: "Struct Using Function x2 partial with pointer dereference",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                func (e: EntityBase) getHealth() : i32 {
+                    return e.health
+                }
+                
+                struct Unit {
+                    base: using EntityBase*
+                }
+                
+                struct HeavyUnit {
+                    unit: using Unit
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                     
+                var i = heavy.base.getHealth()
+                assert(i == 100)
+            ''',            
+        }, 
+        {
+            name: "Struct Using Function x2 none with pointer dereference",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                func (e: EntityBase) getHealth() : i32 {
+                    return e.health
+                }
+                
+                struct Unit {
+                    base: using EntityBase*
+                }
+                
+                struct HeavyUnit {
+                    unit: using Unit
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                
+                var i = heavy.getHealth()
+                assert(i == 100)
+                     
+                i = heavy.base.getHealth()
+                assert(i == 100)
+                
+                i = heavy.unit.base.getHealth()
+                assert(i == 100)
+            ''',            
+        }, 
     ]
 }

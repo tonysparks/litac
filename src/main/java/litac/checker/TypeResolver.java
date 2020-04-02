@@ -15,6 +15,7 @@ import litac.ast.Stmt.*;
 import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo.*;
 import litac.compiler.*;
+import litac.compiler.FieldPath.FieldPathNode;
 import litac.compiler.Symbol.*;
 import litac.generics.*;
 import litac.parser.tokens.TokenType;
@@ -1634,6 +1635,10 @@ public class TypeResolver {
             return funcInfo;
         }
         
+        if(allowMethods && aggInfo.isUsingType(baseType)) {
+            return funcInfo;
+        }
+        
         if(error) {
             error(pos, "'%s' does not have field '%s'", aggInfo.name, name);
         }
@@ -2516,29 +2521,54 @@ public class TypeResolver {
             return false;
         }
         
+        
         getExpr.isMethodCall = true;
+        
+        
         if(!funcPtr.params.isEmpty()) {
+            SrcPos pos = getExpr.object.getSrcPos();
             TypeInfo paramInfo = funcPtr.params.get(0);                    
             TypeInfo argInfo = getExpr.object.getResolvedType().type;
             
+            // Determine if we need to get the "using" field of this method call
+            if(TypeInfo.isAggregate(TypeInfo.getBase(argInfo))) {
+                AggregateTypeInfo aggInfo = TypeInfo.getBase(argInfo).as();
+                TypeInfo pInfo = TypeInfo.getBase(paramInfo);
+                FieldPath path = aggInfo.getFieldPathUsingType(pInfo);
+                
+                if(path.hasPath()) {
+                    for(FieldPathNode node : path.getPath()) {
+                        NameTypeSpec nameSpec = new NameTypeSpec(pos, node.field.name);
+                        getExpr.object = new GetExpr(getExpr.object, new IdentifierExpr(nameSpec).setSrcPos(pos))
+                                                .setSrcPos(pos);
+                    }
+                    
+                    resolveExpr(getExpr.object);
+                    argInfo = getExpr.object.getResolvedType().type;
+                }
+            }
             
             // Determine if we need to promote the object to a
             // pointer depending on what the method is expecting as an
             // argument
-            if(TypeInfo.isPtrAggregate(paramInfo)) {
-                if(!TypeInfo.isPtrAggregate(argInfo)) {
-                    
-                    // Can't take the address of an R-Value 
-                    if(getExpr.object instanceof FuncCallExpr) {
-                        error(getExpr.object, 
-                                "cannot take the return value address of '%s' as it's an R-Value", getExpr.field.type.name);
-                    }
-                    
-                    getExpr.object = new UnaryExpr(TokenType.BAND, new GroupExpr(getExpr.object).setSrcPos(getExpr.object.getSrcPos()))
-                                            .setSrcPos(getExpr.object.getSrcPos());
-                    
-                    resolveExpr(getExpr.object);
+            if(TypeInfo.isPtrAggregate(paramInfo) && !TypeInfo.isPtrAggregate(argInfo)) {
+                // Can't take the address of an R-Value 
+                if(getExpr.object instanceof FuncCallExpr) {
+                    error(getExpr.object, 
+                            "cannot take the return value address of '%s' as it's an R-Value", getExpr.field.type.name);
                 }
+                                    
+                getExpr.object = new UnaryExpr(TokenType.BAND, new GroupExpr(getExpr.object).setSrcPos(pos))
+                                        .setSrcPos(pos);
+                
+                resolveExpr(getExpr.object);                
+            }
+            // See if we need to dereference the pointer
+            else if(TypeInfo.isAggregate(paramInfo) && TypeInfo.isPtrAggregate(argInfo)) {
+                getExpr.object = new UnaryExpr(TokenType.STAR, new GroupExpr(getExpr.object).setSrcPos(pos))
+                        .setSrcPos(pos);
+
+                resolveExpr(getExpr.object);
             }
         }
         

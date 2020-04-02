@@ -448,7 +448,46 @@ public class Module {
         return null;        
     }
     
-    public Symbol getMethodType(TypeInfo recv, String methodName) {
+    public Symbol getMethodType(AggregateTypeInfo recv, String methodName) {               
+        Symbol funcSym = getMethodTypeFromReceiver(recv, methodName);
+        
+        // if the method wasn't found on the top level, we should look at 
+        // any using fields to determine if this a method call on one of the using fields
+        if(funcSym == null) {            
+            funcSym = getMethodTypeFromUsing(recv, methodName);
+        }
+        
+        return funcSym;
+    }
+    
+    private Symbol getMethodTypeFromUsing(AggregateTypeInfo aggInfo, String methodName) {
+        if(!aggInfo.hasUsingFields()) {
+            return null;
+        }
+        
+        Symbol funcSym = null;
+        for(FieldInfo field : aggInfo.usingInfos) {
+            funcSym = getMethodTypeFromReceiver(field.type, methodName);
+            
+            // we found it!
+            if(funcSym != null) {
+                return funcSym;
+            }
+        }
+        
+        for(FieldInfo field : aggInfo.usingInfos) {
+            funcSym = getMethodTypeFromUsing(field.type.as(), methodName);
+            
+            // we found it!
+            if(funcSym != null) {
+                return funcSym;
+            }
+        }
+        
+        return funcSym;
+    }
+    
+    private Symbol getMethodTypeFromReceiver(TypeInfo recv, String methodName) {
         
         String funcName = FuncTypeInfo.getMethodName(recv, methodName);
         Symbol funcSym = null;

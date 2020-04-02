@@ -90,6 +90,13 @@ public class FieldPath {
         }
     }
     
+    public FieldPath(AggregateTypeInfo ownerInfo, TypeInfo fieldWithType) {
+        this.path = findPath(ownerInfo, fieldWithType);
+        if(hasPath()) {
+            this.targetField = this.path.get(path.size() - 1); 
+        }
+    }
+    
     public boolean hasPath() {
         return this.path != null && !this.path.isEmpty();
     }
@@ -100,6 +107,50 @@ public class FieldPath {
     
     public FieldInfo getTargetField() {
         return this.targetField != null ? this.targetField.field : null;
+    }
+    
+    private List<FieldPathNode> findPath(AggregateTypeInfo ownerInfo, TypeInfo fieldWithType) {
+        FieldInfo info = ownerInfo.getFieldUsingType(fieldWithType);
+        if(info != null) {
+            return Arrays.asList(new FieldPathNode(ownerInfo, info, true));
+        }               
+        
+        if(!ownerInfo.hasUsingFields()) {
+            return Collections.emptyList();
+        }
+        
+        List<FieldPathNode> result = new ArrayList<>();
+        for(FieldInfo usingInfo : ownerInfo.usingInfos) {
+            FieldPathNode node = findNode(usingInfo.type.as(), fieldWithType, result);
+            if(node != null) {
+                result.add(node);    
+                break;
+            }
+        }
+        
+        return result;
+    }
+    
+    private FieldPathNode findNode(AggregateTypeInfo ownerInfo, TypeInfo fieldWithType, List<FieldPathNode> result) {
+        FieldInfo info = ownerInfo.getFieldUsingType(fieldWithType);
+        if(info != null) {
+            FieldPathNode node = new FieldPathNode(ownerInfo, info, false);            
+            return node;            
+        }               
+        
+        if(!ownerInfo.hasUsingFields()) {
+            return null;
+        }
+        
+        for(FieldInfo usingInfo : ownerInfo.usingInfos) {
+            FieldPathNode node = findNode(usingInfo.type.as(), fieldWithType, result);
+            if(node != null) {
+                result.add(node);    
+                return node;
+            }
+        }
+        
+        return null;
     }
     
     private List<FieldPathNode> findPath(AggregateTypeInfo ownerInfo, String field) {
