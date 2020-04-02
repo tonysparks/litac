@@ -1,0 +1,77 @@
+{
+    description: "Doc Generated",
+    disabled: false,
+    debug: true,
+    disableLines: true,
+    includeTypeInfos: true,
+    program: '''                
+        @include("assert.h");
+        @foreign func assert(e:bool):void;
+        
+        %definitions%
+        
+        func main(len:i32, args:char**):i32 {
+            %test%
+        }
+    '''
+    tests: [ 	            
+        {
+            name: "Doc Test",
+            genDoc: true,
+            definitions: '''
+                import "array"
+                
+                @doc("""
+                    Module documentation
+                    <i>this is an italic test</i>
+                """);
+            
+                @doc("""
+                    some documentation
+                """)
+                public var a = 1
+                
+                @doc("""
+                    *b* is some other stuff
+                """)
+                public const b = 2
+                const z = 3
+                
+                public typedef i32 as Int;
+                
+                public struct X {
+                    x: Int
+                    v: char
+                }
+                
+                public union Y {
+                    z: i32
+                    x: X
+                }
+                
+                @doc("""
+                    E is a special enum
+                """)
+                public enum E {
+                    @doc("not sure this will work?")
+                    STATE_X,
+                    STATE_Y
+                }
+                
+                @doc("""
+                This function does stuff 
+                
+                *a* the input to the fuction 
+                
+                *returns* the return of the function
+                """)
+                public func test(a: i32) : f32 {
+                    return 0
+                }
+            ''',                       
+            code: '''                
+                                     
+            ''',                      
+        }        
+    ]
+}
