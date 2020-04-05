@@ -42,15 +42,11 @@ public class MarkdownDocWriter implements DocWriter {
 
     @Override
     public void start() {
-        //System.out.println("Starting doc generation");
-        
         this.outputDir.mkdirs();        
-        //this.buf.append("# LitaC API Documentation - ").append(this.options.outputFileName).append("\n\n");
     }
     
     @Override
     public void end() {
-        //System.out.println("Finished doc generation");
         for(Module module : this.modules) {
             this.currentModule = module;
             
@@ -105,7 +101,7 @@ public class MarkdownDocWriter implements DocWriter {
         buf.append(subSection(m + " Imports"));
         {        
             List<String> moduleNames = module.getImports().stream()
-                    .map(x -> urlTo(x.simpleName(), x.simpleName()+".md"))
+                    .map(x -> urlTo(x.simpleName(), x.simpleName()))
                     .sorted()
                     .collect(Collectors.toList());
             
@@ -394,7 +390,7 @@ public class MarkdownDocWriter implements DocWriter {
     
     private String urlTo(String text, String url) {
         StringBuilder sb = new StringBuilder();        
-        sb.append("[").append(escape(text)).append("](").append(escape(url)).append(")");
+        sb.append("[").append(escape(text)).append("](").append(escape(url + ".md")).append(")");
         return sb.toString();
     }
     

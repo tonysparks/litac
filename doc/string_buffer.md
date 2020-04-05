@@ -28,7 +28,7 @@
 * func [StringBuffer\_appendU32](#StringBuffer\_appendU32)(b: [StringBuffer\*](#StringBuffer), i: u32) : i32
 * func [StringBuffer\_appendU64](#StringBuffer\_appendU64)(b: [StringBuffer\*](#StringBuffer), i: u64) : i32
 * func [StringBuffer\_append](#StringBuffer\_append)(b: [StringBuffer\*](#StringBuffer), format: char const*) : i32
-* func [StringBuffer\_asStringView](#StringBuffer\_asStringView)(b: [StringBuffer\*](#StringBuffer)) : [string\_view](string\_view)::[StringView](StringView)
+* func [StringBuffer\_asStringView](#StringBuffer\_asStringView)(b: [StringBuffer\*](#StringBuffer)) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
 * func [StringBuffer\_cStrConst](#StringBuffer\_cStrConst)(b: [StringBuffer\*](#StringBuffer)) : char const*
 * func [StringBuffer\_cStr](#StringBuffer\_cStr)(b: [StringBuffer\*](#StringBuffer)) : char*
 * func [StringBuffer\_clear](#StringBuffer\_clear)(b: [StringBuffer\*](#StringBuffer))
@@ -117,7 +117,7 @@ func [StringBuffer\_appendU64](#StringBuffer\_appendU64)(b: [StringBuffer\*](#St
 ### StringBuffer\_asStringView
 
 
-func [StringBuffer\_asStringView](#StringBuffer\_asStringView)(b: [StringBuffer\*](#StringBuffer)) : [string\_view](string\_view)::[StringView](StringView)
+func [StringBuffer\_asStringView](#StringBuffer\_asStringView)(b: [StringBuffer\*](#StringBuffer)) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
 
 
 ### StringBuffer\_cStr

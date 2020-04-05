@@ -23,8 +23,8 @@
 * enum [ParserStatus](#ParserStatus)
 * struct [JsonNode](#JsonNode)
 * struct [Parser](#Parser)
-* typedef [documentationGenerator](documentationGenerator)::[Array<JsonNode\*>](Array<JsonNode\*>) as [JsonArray](#JsonArray)
-* typedef [documentationGenerator](documentationGenerator)::[Map<char const\*,JsonNode\*>](Map<char const\*,JsonNode\*>) as [JsonObject](#JsonObject)
+* typedef [documentationGenerator](documentationGenerator\.md)::[Array<JsonNode\*>](Array<JsonNode\*>\.md) as [JsonArray](#JsonArray)
+* typedef [documentationGenerator](documentationGenerator\.md)::[Map<char const\*,JsonNode\*>](Map<char const\*,JsonNode\*>\.md) as [JsonObject](#JsonObject)
 * union [JsonValue](#JsonValue)
 
 
@@ -89,7 +89,7 @@
 ### JsonArray
 
 
-typedef [documentationGenerator](documentationGenerator)::[Array<JsonNode\*>](Array<JsonNode\*>) as [JsonArray](#JsonArray)
+typedef [documentationGenerator](documentationGenerator\.md)::[Array<JsonNode\*>](Array<JsonNode\*>\.md) as [JsonArray](#JsonArray)
 
 
 ### JsonNode
@@ -106,7 +106,7 @@ struct [JsonNode](#JsonNode)
 ### JsonObject
 
 
-typedef [documentationGenerator](documentationGenerator)::[Map<char const\*,JsonNode\*>](Map<char const\*,JsonNode\*>) as [JsonObject](#JsonObject)
+typedef [documentationGenerator](documentationGenerator\.md)::[Map<char const\*,JsonNode\*>](Map<char const\*,JsonNode\*>\.md) as [JsonObject](#JsonObject)
 
 
 ### JsonType
@@ -145,7 +145,7 @@ struct [Parser](#Parser)
 * status: [json](#json)::[ParserStatus](#ParserStatus)
 * errorMsg: char[]
 * token: [json](#json)::[Token](#Token)
-* buffer: [string\_buffer](string\_buffer)::[StringBuffer](StringBuffer)
+* buffer: [string\_buffer](string\_buffer\.md)::[StringBuffer](StringBuffer\.md)
 * stream: char const*
 * lineStart: char const*
 

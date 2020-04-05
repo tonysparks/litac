@@ -8,7 +8,6 @@ import java.io.*;
 import com.google.gson.*;
 
 import litac.LitaOptions;
-import litac.compiler.*;
 import litac.lsp.JsonRpc.*;
 
 /**

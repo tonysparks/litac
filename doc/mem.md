@@ -101,7 +101,7 @@ struct [DebugAllocator](#DebugAllocator)
 
 * alloc: [mem](#mem)::[Allocator](#Allocator)
 * decorated: [Allocator const\*](#Allocator)
-* allocations: [documentationGenerator](documentationGenerator)::[Array<Allocation\*>](Array<Allocation\*>)
+* allocations: [documentationGenerator](documentationGenerator\.md)::[Array<Allocation\*>](Array<Allocation\*>\.md)
 
 
 
