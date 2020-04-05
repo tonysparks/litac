@@ -8,8 +8,8 @@ import java.util.*;
 import litac.ast.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.TypeKind;
-import litac.generics.GenericParam;
 import litac.compiler.Module;
+import litac.generics.*;
 
 /**
  * @author Tony
@@ -71,7 +71,7 @@ public class Symbol {
     /**
      * Map for knowing the generic arguments for this symbol
      */
-    public List<TypeInfo> genericArgs;
+    public List<ResolvedGenericArg> genericArgs;
     
     /**
      * Original declaration parameter names

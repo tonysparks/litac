@@ -651,41 +651,7 @@ public class TypeResolver {
                 
         return sym;       
     }
-    
-    /*
-    private Symbol createEnumAsStrFunc(EnumDecl enumDecl, Symbol enumSym) {
-        NoteStmt asStr = enumDecl.attributes.getNote("asStr");
-        if(asStr == null) {
-            return null;
-        }
         
-        String funcName = asStr.getAttr(0, enumDecl.name + "AsStr");
-        FuncTypeInfo asStrFuncInfo = new FuncTypeInfo(funcName, 
-                                                      new PtrTypeInfo(new ConstTypeInfo(TypeInfo.CHAR_TYPE)), 
-                                                      Arrays.asList(new ParamInfo(enumSym.type, "e", null, new Attributes())), 
-                                                      0, 
-                                                      Collections.emptyList());
-        
-        ParameterDecl param = new ParameterDecl(enumSym.type.asTypeSpec(), "e", null, 0);
-        FuncDecl funcDecl = new FuncDecl(asStrFuncInfo.name, 
-                                         new ParametersStmt(Arrays.asList(param), false),   
-                                         new EmptyStmt(),
-                                         asStrFuncInfo.returnType.asTypeSpec(), 
-                                         Collections.emptyList(), 0);
-        
-        // Name must match CGen.visit(EnumDecl)
-        funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + current().name() + "_" + enumDecl.name + "_AsStr")));
-        funcDecl.attributes.isGlobal = enumSym.decl.attributes.isGlobal;
-        funcDecl.attributes.isPublic = enumSym.decl.attributes.isPublic;
-        
-        Symbol sym = current().declareFunc(funcDecl, asStrFuncInfo.name);
-        sym.type = asStrFuncInfo;
-        sym.type.sym = sym;
-        sym.state = ResolveState.RESOLVED;
-                
-        return sym;       
-    }*/
-    
     private void tryTypeCheck(SrcPos pos, TypeInfo a, TypeInfo b) {
         try {
             typeCheck(pos, a, b);
@@ -880,14 +846,18 @@ public class TypeResolver {
     }
     
     private NameTypeSpec asTypeSpec(AggregateDecl decl, 
-                                    List<TypeInfo> genericArgs,
+                                    List<ResolvedGenericArg> genericArgs,
                                     List<GenericParam> parentGenericParams) {
-        List<TypeSpec> args = new ArrayList<>();
+        List<GenericArg> args = new ArrayList<>();
         for(GenericParam p : decl.genericParams) {
             for(int i = 0; i < parentGenericParams.size(); i++) {
                 GenericParam parentParam = parentGenericParams.get(i);
                 if(parentParam.name.equals(p.name)) {
-                    args.add(genericArgs.get(i).asTypeSpec());
+                    ResolvedGenericArg resolvedArg = genericArgs.get(i);
+                    GenericArg genArg = new GenericArg(resolvedArg.expr, 
+                            resolvedArg.type != null ? resolvedArg.type.asTypeSpec() : null);
+                    
+                    args.add(genArg);
                     break;
                 }
             }
@@ -970,8 +940,13 @@ public class TypeResolver {
         return null;
     }
     
-    private boolean hasGenericParam(List<TypeSpec> genArgs) {
-        for(TypeSpec type : genArgs) {
+    private boolean hasGenericParam(List<GenericArg> genArgs) {
+        for(GenericArg arg : genArgs) {
+            TypeSpec type = arg.type;
+            if(type == null) {
+                continue;
+            }
+            
             NameTypeSpec name = TypeSpec.getBaseType(type);
             if(name != null) {
                 if(isGenericParam(name) != null) {
@@ -984,7 +959,7 @@ public class TypeResolver {
     }
     
     private TypeInfo createTypeFromGenericTemplate(Symbol sym, NameTypeSpec nameSpec) {
-        List<TypeSpec> genArgs = nameSpec.genericArgs;                
+        List<GenericArg> genArgs = nameSpec.genericArgs;                
         String genericsName = nameSpec.toGenericsName();
         
         Symbol genericSym = this.genericTypes.get(genericsName);                
@@ -2598,6 +2573,9 @@ public class TypeResolver {
         public void visit(VarFieldStmt stmt) {
             try {
                 resolveTypeSpec(stmt.type);
+                if(stmt.defaultExpr != null) {
+                    stmt.defaultExpr.visit(this);
+                }
             }
             catch(TypeCheckException e) {
                 result.addError(e.pos, e.getMessage());

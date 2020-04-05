@@ -11,7 +11,7 @@ import litac.ast.*;
 import litac.ast.Node.SrcPos;
 import litac.ast.TypeSpec.*;
 import litac.compiler.*;
-import litac.generics.GenericParam;
+import litac.generics.*;
 import litac.util.Names;
 
 
@@ -754,10 +754,11 @@ public abstract class TypeInfo {
         @Override
         public TypeSpec asTypeSpec() {
             SrcPos pos = (this.sym != null) ? this.sym.decl.getSrcPos() : null;
-            List<TypeSpec> genArgs = new ArrayList<>();
-            // TODO
+            List<GenericArg> genArgs = new ArrayList<>();
+
             for(GenericParam p : this.genericParams) {
-                genArgs.add(new NameTypeSpec(pos, p.name));
+                GenericArg arg = new GenericArg(null, new NameTypeSpec(pos, p.name));
+                genArgs.add(arg);
             }
             
             return new NameTypeSpec(pos, this.name, genArgs);

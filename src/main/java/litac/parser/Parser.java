@@ -18,7 +18,7 @@ import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.AggregateTypeInfo;
 import litac.checker.TypeInfo.EnumFieldInfo;
 import litac.compiler.*;
-import litac.generics.GenericParam;
+import litac.generics.*;
 import litac.parser.tokens.*;
 import litac.util.Names;
 
@@ -1416,12 +1416,12 @@ public class Parser {
         match(SEMICOLON);
     }
     
-    private List<TypeSpec> tryGenericArguments(boolean disambiguiate) {
+    private List<GenericArg> tryGenericArguments(boolean disambiguiate) {
         int backtrack = this.current;
         
         advance(); // eat <
         
-        List<TypeSpec> arguments = null;
+        List<GenericArg> arguments = null;
         try {
             arguments = genericArguments();
             
@@ -1632,7 +1632,7 @@ public class Parser {
             identifier = String.format("%s::%s", identifier, name.getText());
         }
         
-        List<TypeSpec> arguments = null;
+        List<GenericArg> arguments = null;
         if(check(LESS_THAN)) {
             arguments = tryGenericArguments(disambiguate);
         }
@@ -1727,7 +1727,11 @@ public class Parser {
         if(!check(GREATER_THAN)) {        
             do {
                 String typeName = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER).getText();
-                arguments.add(new GenericParam(typeName));
+                TypeSpec type = new NameTypeSpec(pos(), "type");
+                if(match(COLON)) {
+                    type = type();
+                }
+                arguments.add(new GenericParam(typeName, type));
             } 
             while(match(COMMA));            
         }
@@ -1737,11 +1741,26 @@ public class Parser {
         return arguments;
     }
     
-    private List<TypeSpec> genericArguments() {
-        List<TypeSpec> arguments = new ArrayList<>();
+    private List<GenericArg> genericArguments() {
+        List<GenericArg> arguments = new ArrayList<>();
         if(!check(GREATER_THAN)) {        
             do {
-                arguments.add(type(false));
+                int backtrack = this.current;
+                
+                Expr expr = null;
+                TypeSpec type = null;
+                
+                try {
+                    expr = constExpression();
+                }
+                catch(ParseException e) {
+                    this.current = backtrack;
+                }
+                if(expr == null) {
+                    type = type(false);
+                }
+                
+                arguments.add(new GenericArg(expr, type));
             } 
             while(match(COMMA));            
         }

@@ -22,23 +22,23 @@ import litac.checker.TypeInfo;
  */
 public class Generics {
     
-    public static StructDecl createStructDecl(StructDecl decl, String newName, List<TypeSpec> genArgs) {
+    public static StructDecl createStructDecl(StructDecl decl, String newName, List<GenericArg> genArgs) {
         return (StructDecl)createDecl(decl, newName, genArgs);
     }
     
-    public static UnionDecl createUnionDecl(UnionDecl decl, String newName, List<TypeSpec> genArgs) {
+    public static UnionDecl createUnionDecl(UnionDecl decl, String newName, List<GenericArg> genArgs) {
         return (UnionDecl)createDecl(decl, newName, genArgs);
     }
     
-    public static FuncDecl createFuncDecl(FuncDecl decl, String newName, List<TypeSpec> genArgs) {
+    public static FuncDecl createFuncDecl(FuncDecl decl, String newName, List<GenericArg> genArgs) {
         return (FuncDecl)createDecl(decl, newName, genArgs);
     }
 
-    public static TypedefDecl createTypedefDecl(TypedefDecl decl, String newName, List<TypeSpec> genArgs) {
+    public static TypedefDecl createTypedefDecl(TypedefDecl decl, String newName, List<GenericArg> genArgs) {
         return (TypedefDecl)createDecl(decl, newName, genArgs);
     }
     
-    private static Decl createDecl(GenericDecl decl, String newName, List<TypeSpec> genArgs) {
+    private static Decl createDecl(GenericDecl decl, String newName, List<GenericArg> genArgs) {
         GenericDecl newDecl = decl.copy();
         GenericsNodeVisitor replacer = new GenericsNodeVisitor(decl.genericParams, genArgs);
         newDecl.visit(replacer);

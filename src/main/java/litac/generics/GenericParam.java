@@ -3,6 +3,8 @@
  */
 package litac.generics;
 
+import litac.ast.TypeSpec;
+
 /**
  * @author Tony
  *
@@ -10,9 +12,11 @@ package litac.generics;
 public class GenericParam {
 
     public String name;
+    public TypeSpec type;
     
-    public GenericParam(String name) {
+    public GenericParam(String name, TypeSpec type) {
         this.name = name;
+        this.type = type;
     }
     
     @Override

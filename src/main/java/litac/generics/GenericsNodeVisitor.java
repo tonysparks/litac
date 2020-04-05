@@ -20,10 +20,10 @@ import litac.ast.TypeSpec.*;
 public class GenericsNodeVisitor implements NodeVisitor {
 
     private List<GenericParam> genericParams; 
-    private List<TypeSpec> genericArgs;
+    private List<GenericArg> genericArgs;
     
     public GenericsNodeVisitor(List<GenericParam> genericParams, 
-                               List<TypeSpec> genericArgs) {
+                               List<GenericArg> genericArgs) {
         this.genericParams = genericParams;
         this.genericArgs = genericArgs;
     }
@@ -33,7 +33,7 @@ public class GenericsNodeVisitor implements NodeVisitor {
             GenericParam p = this.genericParams.get(i);
             if(p.name.equals(nameSpec.name)) {            
                 if(i < this.genericArgs.size()) {
-                    return this.genericArgs.get(i);
+                    return this.genericArgs.get(i).type;
                 }
             }
         }
@@ -111,9 +111,16 @@ public class GenericsNodeVisitor implements NodeVisitor {
             }
             case NAME: {
                 NameTypeSpec nameSpec = type.as();
-                List<TypeSpec> genArgs = nameSpec.genericArgs;
+                List<GenericArg> genArgs = nameSpec.genericArgs;
                 for(int i = 0; i < genArgs.size(); i++) {
-                    genArgs.set(i, replaceType(genArgs.get(i)));
+                    GenericArg arg = genArgs.get(i);
+                    if(arg.expr != null) {
+                        arg.expr.visit(this);
+                    }
+                    if(arg.type != null) {
+                        arg.type = replaceType(arg.type);
+                    }
+                    //genArgs.set(i, replaceType(genArgs.get(i)));
                 }
                 // TODO: Embedded generic types...
                 type = getReplacedTypeSpec(nameSpec);    
@@ -147,6 +154,9 @@ public class GenericsNodeVisitor implements NodeVisitor {
     @Override
     public void visit(VarFieldStmt stmt) {
         stmt.type = replaceType(stmt.type);
+        if(stmt.defaultExpr != null) {
+            stmt.defaultExpr.visit(this);
+        }
     }
 
     @Override

@@ -8,7 +8,7 @@ import java.util.*;
 
 import litac.ast.Node.SrcPos;
 import litac.checker.TypeResolver.Operand;
-import litac.generics.GenericParam;
+import litac.generics.*;
 import litac.util.Names;
 
 /**
@@ -111,17 +111,17 @@ public abstract class TypeSpec {
     
     public static class NameTypeSpec extends TypeSpec {         
         public String name;
-        public List<TypeSpec> genericArgs;
+        public List<GenericArg> genericArgs;
         
         public NameTypeSpec(SrcPos pos, String name) {
             this(pos, null, name, Collections.emptyList());
         }
         
-        public NameTypeSpec(SrcPos pos, String name, List<TypeSpec> genericArgs) {
+        public NameTypeSpec(SrcPos pos, String name, List<GenericArg> genericArgs) {
             this(pos, null, name, genericArgs);
         }
         
-        public NameTypeSpec(SrcPos pos, TypeSpec base, String name, List<TypeSpec> genericArgs) {
+        public NameTypeSpec(SrcPos pos, TypeSpec base, String name, List<GenericArg> genericArgs) {
             super(TypeSpecKind.NAME, pos, base);
             this.name = name;
             this.genericArgs = genericArgs;
@@ -142,7 +142,14 @@ public abstract class TypeSpec {
         
         @Override
         public TypeSpec copy() {
-            return new NameTypeSpec(pos, this.name, TypeSpec.copy(this.genericArgs));
+            List<GenericArg> copy = Collections.emptyList();
+            if(this.genericArgs != null && !this.genericArgs.isEmpty()) {
+                copy = new ArrayList<>(this.genericArgs.size());
+                for(GenericArg arg : this.genericArgs) {
+                    copy.add(arg.copy());
+                }
+            }
+            return new NameTypeSpec(pos, this.name, copy);
         }
     }
     

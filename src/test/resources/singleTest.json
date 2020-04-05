@@ -368,7 +368,34 @@
                 test(c as (void*))
             ''',
         },*/      
-        
+        {
+            name: "Generics Expr", 
+            definitions: '''
+                struct Bucket<T: type, Size: i32> {
+                    elements: [Size]T
+                    capacity: i32 = Size
+                    length: i32 = 0
+                }
+                /*                
+                func (b: Bucket<T, Size: i32>*) add<T, Size: i32>(e: T) : bool {
+                    if(b.length + 1 >= b.capacity) {
+                        return false
+                    }
+                    b.elements[b.length] = e
+                    b.length += 1
+                    
+                    return true
+                }*/
+                
+            ''',                       
+            code: '''
+                const X = 23
+                var b = Bucket<i32, 12> {}
+                // this is ambigious
+                var b = Bucket<i32, X> {}
+                
+            ''',
+        },
         
         
         
