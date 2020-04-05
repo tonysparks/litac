@@ -849,6 +849,10 @@ public abstract class TypeInfo {
             if(target.isKind(TypeKind.Union)) {
                 UnionTypeInfo targetUnion = target.as();
                 
+                if(isUsingType(target)) {
+                    return true;
+                }
+                
                 if(this.fieldInfos.size() < targetUnion.fieldInfos.size()) {
                     return false;
                 }

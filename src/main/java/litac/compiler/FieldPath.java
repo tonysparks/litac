@@ -121,7 +121,7 @@ public class FieldPath {
         
         List<FieldPathNode> result = new ArrayList<>();
         for(FieldInfo usingInfo : ownerInfo.usingInfos) {
-            FieldPathNode node = findNode(usingInfo.type.as(), fieldWithType, result);
+            FieldPathNode node = findNode(TypeInfo.getBase(usingInfo.type).as(), fieldWithType, result);
             if(node != null) {
                 result.add(node);    
                 break;
@@ -143,7 +143,7 @@ public class FieldPath {
         }
         
         for(FieldInfo usingInfo : ownerInfo.usingInfos) {
-            FieldPathNode node = findNode(usingInfo.type.as(), fieldWithType, result);
+            FieldPathNode node = findNode(TypeInfo.getBase(usingInfo.type).as(), fieldWithType, result);
             if(node != null) {
                 result.add(node);    
                 return node;

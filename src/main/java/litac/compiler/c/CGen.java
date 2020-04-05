@@ -898,11 +898,11 @@ public class CGen {
                     if(note.attributes != null) {
                         for(String fileName: note.attributes) {
                             try {
-                                File file = new File(fileName);
+                                File file = new File(options.options.getSrcDir(), fileName);
                                 if(!file.exists()) {
                                     file = new File(OS.getWorkingDir(), fileName);
                                     if(!file.exists()) {
-                                        file = new File(options.options.libDir.getAbsolutePath(), fileName);
+                                        file = new File(options.options.libDir, fileName);
                                     }
                                 }
                                 
