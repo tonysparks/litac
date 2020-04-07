@@ -7,6 +7,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import litac.ast.*;
+import litac.checker.TypeInfo;
+import litac.checker.TypeInfo.AggregateTypeInfo;
+import litac.checker.TypeResolver.Operand;
 import litac.compiler.*;
 import litac.compiler.Module;
 import litac.compiler.PhaseResult.PhaseError;
@@ -148,56 +151,43 @@ public class Document {
     }
     
     public List<CompletionItem> getAutoCompletionList(Workspace workspace, Position pos) {
+        SourceLocation location = getSourceLocation(workspace, pos, false);
         Program program = workspace.getLatestProgram();
         if(program == null) {
-            workspace.processSource(this.document.uri);
-            program = workspace.getLatestProgram();
-            if(program == null) {    
-                return null;
-            }
-        }
-                
-        Module module = program.getModule(this.moduleId);
-        if(module == null) {            
-            workspace.processSource(this.document.uri);
-            program = workspace.getLatestProgram();
-            if(program == null) {
-                return null;
-            }
-            
-            module = program.getModule(this.moduleId);            
-            if(module == null) {
-                return null;
-            }
+            log.log("No program built");
+            return Collections.emptyList();
         }
         
-        final Module docModule = module;
+        if(location == null) {
+            log.log("No source location found");
+
+            // just look for symbols in this module
+            final Module module = program.getModule(this.moduleId);                
+            return module.getModuleScope().getSymbols().stream()
+                    .filter(sym -> sym.declared == module && !sym.isBuiltin() && !sym.isFromGenericTemplate())
+                    .map(sym -> LspUtil.fromSymbolCompletionItem(sym))
+                    .collect(Collectors.toList());
+        }
         
-        // TODO
-        // Ideas:
-        // index into source and iterate backwards until a . is found, then
-        // look for the object -- this solves object. and object.startOf use cases
-        // what about ctrl+space from empty context or from middle of name (i.e., Load(ctrl+space) for LoadFile, LoadModel, etc.)
-//        int toIndex = getLineStart(pos.line) + pos.character;    
-//        int startingIndex = readIdentifier(toIndex);
-//        if(startingIndex <= toIndex && startingIndex > -1 && toIndex > -1) {
-//            String text = getText();
-//            String identifier = text.substring(startingIndex, toIndex + 1);
-//            
-//            return module.getModuleScope().getSymbols().stream()
-//                    .filter(sym -> sym.declared == docModule && !sym.isBuiltin() && !sym.isFromGenericTemplate() && sym.name.startsWith(identifier))
-//                    .map(sym -> LspUtil.fromSymbolCompletionItem(sym))
-//                    .collect(Collectors.toList()); 
-//        }
+        if(!(location.node instanceof Expr)) {
+            log.log("Location is not an Expression: " + location.node.getClass().getSimpleName());
+            return Collections.emptyList();
+        }
         
-        //SourceToAst sta = new SourceToAst(program, module, pos);
-        //sta.findSourceLocation(stmt)
-        //return sta.findSourceLocation(module.getModuleStmt());
+        // TODO: Move logic into a Intellisense class..
         
-        return module.getModuleScope().getSymbols().stream()
-                .filter(sym -> sym.declared == docModule && !sym.isBuiltin() && !sym.isFromGenericTemplate())
-                .map(sym -> LspUtil.fromSymbolCompletionItem(sym))
-                .collect(Collectors.toList()); 
+        Expr expr = (Expr)location.node;
+        Operand op = expr.getResolvedType();
+        TypeInfo type = op.type;
+        
+        if(TypeInfo.isAggregate(type)) {
+            AggregateTypeInfo agg = type.as();
+            return agg.fieldInfos.stream()
+                    .map(field -> LspUtil.fromSymbolCompletionItem(field.type.sym))
+                    .collect(Collectors.toList());
+        }
+        
+        return Collections.emptyList();
     }
     
 //    private int readIdentifier(int index) {

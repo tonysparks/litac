@@ -8,6 +8,7 @@ import java.util.List;
 import litac.ast.Decl;
 import litac.ast.Node.SrcPos;
 import litac.ast.Stmt.NoteStmt;
+import litac.checker.TypeInfo.*;
 import litac.compiler.Symbol;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.lsp.JsonRpc.*;
@@ -84,8 +85,17 @@ public class LspUtil {
             item.documentation = note.getAttr(0, "");
         }
         
+        String name = sym.name;
+        if(sym.type.isKind(TypeKind.Func)) {
+            FuncTypeInfo funcInfo = sym.type.as();
+            if(funcInfo.isMethod()) {
+                name = funcInfo.name;
+            }
+        }
+        
+        item.kind = CompletionItemKind.fromSymbol(sym).getValue();
         item.detail = sym.name;
-        item.label = sym.name;
+        item.label = name;
         return item;
     }
     
@@ -116,5 +126,5 @@ public class LspUtil {
         }
         
         return false;
-    }
+    }    
 }

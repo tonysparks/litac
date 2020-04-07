@@ -286,7 +286,6 @@ public class SourceToAst implements NodeVisitor {
     
     @Override
     public void visit(EnumFieldEntryStmt stmt) {
-        log.log("Visiting Enum Field: " + stmt.fieldName.identifier);
         if(isNodeAtPos(stmt.fieldName)) {
             findFromSrcPos(stmt.fieldName, stmt.fieldName.getSrcPos());
         }
@@ -453,8 +452,7 @@ public class SourceToAst implements NodeVisitor {
     }
 
     @Override
-    public void visit(EnumDecl d) {
-        log.log("Visiting Enum: " + d.name);
+    public void visit(EnumDecl d) {        
         for(EnumFieldEntryStmt field : d.fields) {
             field.visit(this);
         }

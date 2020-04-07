@@ -156,6 +156,102 @@ public class JsonRpc {
         }
     }
     
+    public static enum CompletionItemKind {
+        Text(1),
+        Method(2),
+        Function(3),
+        Constructor(4),
+        Field(5),
+        Variable(6),
+        Class(7),
+        Interface(8),
+        Module(9),
+        Property(10),
+        Unit(11),
+        Value(12),
+        Enum(13),
+        Keyword(14),
+        Snippet(15),
+        Color(16),
+        File(17),
+        Reference(18),
+        Folder(19),
+        EnumMember(20),
+        Constant(21),
+        Struct(22),
+        Event(23),
+        Operator(24),
+        TypeParameter(25),
+        ;
+        public int value;
+                
+        private CompletionItemKind(int value) {
+            this.value = value;
+        }
+        
+        public int getValue() {
+            return value;
+        }
+        
+        public static CompletionItemKind fromSymbol(Symbol sym) {            
+            switch(sym.kind) {
+            case CONST:
+                return Constant;
+            case FUNC:
+                return Function;
+            case VAR:
+                return Variable;
+            case TYPE:
+                TypeInfo type = sym.getType();
+                if(type == null) {
+                    return Keyword;
+                }
+                switch(type.getKind()) {
+                    case Array:
+                        return Variable;
+                    case Bool:
+                        return Variable;
+                    case Char:
+                        return Variable;
+                    case Const:
+                        return Constant;
+                    case Enum:
+                        return Enum;
+                    case Func:
+                        return Function;
+                    case FuncPtr:
+                        return Function;
+                    case GenericParam:
+                        return TypeParameter;
+                    case Null:
+                        return Variable;
+                    case Ptr:
+                        return Variable;
+                    case Str:
+                        return Variable;
+                    case Struct:
+                        return Struct;
+                    case Union:
+                        return Struct;
+                    case Void:
+                        return Variable;
+                    case f32:
+                    case f64:
+                    case i16:
+                    case i32:
+                    case i64:
+                    case i8:
+                    case u16:
+                    case u32:
+                    case u64:
+                    case u8:
+                        return Variable;
+                }
+            }
+            return Variable;            
+        }
+    }
+    
 //    public static class RpcMessage {
 //        public String jsonrpc = "2.0";       
 //    }
