@@ -11,12 +11,11 @@ import litac.*;
 import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
-import litac.ast.Node.SrcPos;
+import litac.ast.Node.*;
 import litac.ast.Stmt.*;
 import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.AggregateTypeInfo;
-import litac.checker.TypeInfo.EnumFieldInfo;
 import litac.compiler.*;
 import litac.generics.GenericParam;
 import litac.parser.tokens.*;
@@ -197,8 +196,8 @@ public class Parser {
         TypeSpec type = null;
         Expr expr = null;
         int modifiers = 0;
-        
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+                
+        Identifier identifier = identifier();
         if(match(COLON)) {
             modifiers = modifiers();
             type = type(false);
@@ -217,7 +216,7 @@ public class Parser {
             type = null;
         }
                 
-        return new VarDecl(identifier.getText(), type, expr, modifiers).setSrcPos(pos);
+        return new VarDecl(identifier, type, expr, modifiers).setSrcPos(pos);
     }
     
     private ConstDecl constDeclaration() {
@@ -226,7 +225,7 @@ public class Parser {
         TypeSpec type = null;
         int modifiers = 0;
         
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        Identifier identifier = identifier();
         if(match(COLON)) {
             modifiers = modifiers();
             type = type(false);
@@ -234,14 +233,10 @@ public class Parser {
         
         Expr expr = null;
         if(match(EQUALS)) {
-        // TODO: Create module initializer functions, so
-        // that module level variables can be initialized via functions
-        // and NOT just constExpressions
-            expr = // constExpression(); 
-                expression();
+            expr = expression();
         }
         
-        return new ConstDecl(identifier.getText(), type, expr, modifiers).setSrcPos(pos);
+        return new ConstDecl(identifier, type, expr, modifiers).setSrcPos(pos);
     }
     
     
@@ -256,7 +251,7 @@ public class Parser {
             consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         }
         
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        Identifier identifier = identifier();
         
         
         List<GenericParam> genericParams = Collections.emptyList();
@@ -301,7 +296,7 @@ public class Parser {
         
         this.funcLevel--;
         
-        return new FuncDecl(identifier.getText(), parameters, body, returnType, genericParams, flags).setSrcPos(pos);
+        return new FuncDecl(identifier, parameters, body, returnType, genericParams, flags).setSrcPos(pos);
     }
     
     private StructDecl structDeclaration() {
@@ -312,13 +307,13 @@ public class Parser {
             flags |= AggregateTypeInfo.IS_EMBEDDED;
         }
         
-        String structName = null;
-        if(check(IDENTIFIER)) {
-            Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-            structName = identifier.getText();
+        Identifier structName = null;
+        if(check(IDENTIFIER)) {            
+            structName = identifier();
         }
         else {
-            structName = String.format("<anonymous-struct-%d>", anonStructId++);
+            String name = String.format("<anonymous-struct-%d>", anonStructId++);
+            structName = new Identifier(name).setSrcPos(pos);
             flags |= AggregateTypeInfo.IS_ANONYMOUS;
         }
 
@@ -359,13 +354,13 @@ public class Parser {
             flags |= AggregateTypeInfo.IS_EMBEDDED;
         }
         
-        String unionName = null;
+        Identifier unionName = null;
         if(check(IDENTIFIER)) {
-            Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-            unionName = identifier.getText();
+            unionName = identifier();
         }
         else {
-            unionName = String.format("<anonymous-union-%d>", anonUnionId++);
+            String name = String.format("<anonymous-union-%d>", anonUnionId++);
+            unionName = new Identifier(name).setSrcPos(pos);
             flags |= AggregateTypeInfo.IS_ANONYMOUS;
         }
 
@@ -401,26 +396,25 @@ public class Parser {
     private EnumDecl enumDeclaration() {
         SrcPos pos = pos();
 
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-        String enumName = identifier.getText();
+        Identifier identifier = identifier();
         
         consume(LEFT_BRACE, ErrorCode.MISSING_LEFT_BRACE);
         
-        List<EnumFieldInfo> fields = new ArrayList<>();
+        List<EnumFieldEntryStmt> fields = new ArrayList<>();
         
         do {
             if(check(RIGHT_BRACE)) {
                 break;
             }
             
-            EnumFieldInfo field = enumFieldStatement();
+            EnumFieldEntryStmt field = enumFieldStatement();
             fields.add(field);
         }
         while(match(COMMA));
                         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
-        return new EnumDecl(enumName, fields).setSrcPos(pos);
+        return new EnumDecl(identifier, fields).setSrcPos(pos);
     }
 
     private TypedefDecl typedefDeclaration() {
@@ -428,15 +422,14 @@ public class Parser {
         
         TypeSpec aliasedType = type(false);        
         match(AS);
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-        String name = identifier.getText();
+        Identifier identifier = identifier();
         
         List<GenericParam> genericParams = Collections.emptyList();
         if(match(LESS_THAN)) {
             genericParams = genericParameters();
         }
         
-        return new TypedefDecl(name, aliasedType, name, genericParams).setSrcPos(pos);
+        return new TypedefDecl(identifier, aliasedType, identifier.identifier, genericParams).setSrcPos(pos);
     }
     
 
@@ -699,8 +692,8 @@ public class Parser {
         SrcPos pos = pos();
         List<NoteStmt> notes = notes();
         switch(peek().getType()) {
-            case IDENTIFIER: {
-                Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+            case IDENTIFIER: {                
+                Identifier fieldName = identifier();
                 consume(COLON, ErrorCode.MISSING_COLON);
                 Attributes attributes = new Attributes();
                 attributes.modifiers = modifiers();
@@ -715,7 +708,7 @@ public class Parser {
                         throw error(peek(), ErrorCode.INVALID_DEFAULT_ASSIGNMENT);
                     }
                 }
-                return new VarFieldStmt(identifier.getText(), type, attributes, defaultExpr).setSrcPos(pos);
+                return new VarFieldStmt(fieldName, type, attributes, defaultExpr).setSrcPos(pos);
             }                
             case STRUCT: {
                 advance();
@@ -746,10 +739,10 @@ public class Parser {
         }
     }
     
-    private EnumFieldInfo enumFieldStatement() {  
+    private EnumFieldEntryStmt enumFieldStatement() {  
         SrcPos pos = pos();
         List<NoteStmt> notes = notes();
-        Token identifier = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        Identifier identifier = identifier();
         
         Expr expr = null;
         if(match(EQUALS)) {
@@ -760,7 +753,7 @@ public class Parser {
         attrs.notes = notes;
         attrs.srcPos = pos;
         
-        return new EnumFieldInfo(identifier.getText(), expr, attrs);
+        return new EnumFieldEntryStmt(identifier, expr, attrs).setSrcPos(pos);
     }
     
     private IfStmt ifStmt() {            
@@ -1644,6 +1637,12 @@ public class Parser {
         return new NameTypeSpec(token.getPos(), identifier, arguments);
     }
     
+    private Identifier identifier() {        
+        Token token = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
+        String identifier = token.getText();
+        return new Identifier(identifier).setSrcPos(token.getPos());
+    }
+    
     /**
      * Parses parameter declarations:
      * 
@@ -1684,8 +1683,7 @@ public class Parser {
     private ParameterDecl parameterDecl(boolean allowEquals) {
         SrcPos pos = pos();
         
-        Token param = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
-        String parameterName = param.getText();
+        Identifier identifier = identifier();
         
         consume(COLON, ErrorCode.MISSING_COLON);
         int modifiers = modifiers();
@@ -1696,7 +1694,7 @@ public class Parser {
             defaultValue = constExpression();
         }
         
-        return new ParameterDecl(type, parameterName, defaultValue, modifiers).setSrcPos(pos);
+        return new ParameterDecl(type, identifier, defaultValue, modifiers).setSrcPos(pos);
     }
     
     /**

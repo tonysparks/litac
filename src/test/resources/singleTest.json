@@ -368,7 +368,38 @@
                 test(c as (void*))
             ''',
         },*/      
-        
+        {
+            name: "TypeId Is unique", 
+            definitions: '''
+                struct Game {
+                    a: i32
+                }
+                
+                struct X {
+                    g: using Game*
+                }
+                
+                var g: Game = Game{0};
+                
+                func test<T>(g: Game*) : u64 {
+                    var x = X{g}
+                    x.a += 0
+                    g.a += 1
+                    return typeof(*g)
+                }
+                
+            ''',                       
+            code: '''
+                var id = typeof(g)
+                var id2 = typeof(Game)
+                var id3 = test<i32>(&g)
+                var id4 = test<bool>(&g)
+                
+                assert(id == id2)
+                assert(id2 == id3)
+                assert(id3 == id4)
+            ''',
+        },
         
         
         

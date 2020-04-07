@@ -20,6 +20,7 @@ public interface NodeVisitor {
     void visit(StructFieldStmt stmt);
     void visit(UnionFieldStmt stmt);
     void visit(EnumFieldStmt stmt);
+    void visit(EnumFieldEntryStmt stmt);
     void visit(IfStmt stmt);
     void visit(WhileStmt stmt);
     void visit(DoWhileStmt stmt);
@@ -111,6 +112,9 @@ public interface NodeVisitor {
         public void visit(VarFieldStmt stmt) {
         }
         
+        @Override
+        public void visit(EnumFieldEntryStmt stmt) {
+        }
 
         @Override
         public void visit(IfStmt stmt) {

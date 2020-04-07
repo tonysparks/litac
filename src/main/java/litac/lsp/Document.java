@@ -6,11 +6,12 @@ package litac.lsp;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import litac.ast.ModuleId;
+import litac.ast.*;
 import litac.compiler.*;
 import litac.compiler.Module;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.lsp.JsonRpc.*;
+import litac.lsp.SourceToAst.SourceLocation;
 
 /**
  * Represents a litac module document
@@ -67,11 +68,15 @@ public class Document {
         this.document.text = this.buffer.toString();
     }
     
-    public String getText() {
-        return this.document.text;
+    private SourceLocation getSourceLocation(Workspace workspace, Position pos) {
+        return getSourceLocation(workspace, pos, false);
     }
     
-    public Location getDefinitionLocation(Workspace workspace, Position pos) {
+    private SourceLocation getSourceLocation(Workspace workspace, Position pos, boolean doFullBuild) {
+        if(doFullBuild && !workspace.isFullyBuilt()) {
+            workspace.processSource();
+        }
+        
         Program program = workspace.getLatestProgram();
         if(program == null) {
             PhaseResult result = workspace.processSource(this.document.uri);
@@ -86,7 +91,7 @@ public class Document {
         }
         
         Module module = program.getModule(this.moduleId);
-        if(module == null) {            
+        if(module == null) {                   
             PhaseResult result = workspace.processSource(this.document.uri);
             program = workspace.getLatestProgram();
             if(program == null) {
@@ -100,14 +105,46 @@ public class Document {
             module = program.getModule(this.moduleId);
             if(module == null) {
                 this.log.log("Unable to find module: '" + this.moduleId + "'");
-               // program.getModules().stream().map(m -> m.name()).reduce((a,b) -> a + ", " + b).ifPresent(log::log);
-                
                 return null;
             }
         }
         
-        SourceToAst sta = new SourceToAst(program, module, pos);
-        return sta.findSourceLocation(module.getModuleStmt());        
+        SourceToAst sta = new SourceToAst(log, program, module, pos);
+        return sta.findSourceLocation(module.getModuleStmt());
+    }
+    
+    public String getText() {
+        return this.document.text;
+    }
+    
+    public Location getDefinitionLocation(Workspace workspace, Position pos) {
+        SourceLocation location = getSourceLocation(workspace, pos);
+        if(location == null) {
+            return null;
+        }
+        
+        return location.location;
+    }
+    
+    public List<Location> getReferences(Workspace workspace, Position pos) {
+        
+        SourceLocation location = getSourceLocation(workspace, pos, true);
+        if(location == null) {
+            log.log("No source location found");
+            return Collections.emptyList();
+        }
+        
+        Program program = workspace.getLatestProgram();
+        if(program == null) {
+            log.log("No program built");
+            return Collections.emptyList();
+        }
+        
+        ReferenceDatabase database = workspace.getReferences();
+        database.buildDatabase(workspace.getLatestProgram());
+        
+        List<Location> locations = database.findReferencesFromLocation(location);                
+        return locations;
     }
     
     public List<CompletionItem> getAutoCompletionList(Workspace workspace, Position pos) {

@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import litac.ast.*;
-import litac.ast.Node.SrcPos;
+import litac.ast.Node.*;
 import litac.ast.TypeSpec.*;
 import litac.compiler.*;
 import litac.generics.GenericParam;
@@ -533,10 +533,6 @@ public abstract class TypeInfo {
         public Expr value;
         public Attributes attributes;
         
-        /**
-         * @param name
-         * @param value
-         */
         public EnumFieldInfo(String name, Expr value, Attributes attributes) {            
             this.name = name;
             this.value = value;

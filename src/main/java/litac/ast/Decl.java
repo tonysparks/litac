@@ -6,7 +6,6 @@ package litac.ast;
 import java.util.*;
 
 import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.EnumFieldInfo;
 import litac.compiler.Symbol;
 import litac.generics.GenericParam;
 
@@ -31,11 +30,13 @@ public abstract class Decl extends Stmt {
     public Symbol sym;
     public DeclKind kind;
     public String name;
+    public Identifier declName;
     public Attributes attributes;
     
-    public Decl(DeclKind kind, String name) {
-        this.kind = kind;        
-        this.name = name;
+    public Decl(DeclKind kind, Identifier name) {
+        this.kind = kind;      
+        this.declName = becomeParentOf(name);
+        this.name = name.identifier;
         this.attributes = new Attributes();
     }
     
@@ -43,11 +44,11 @@ public abstract class Decl extends Stmt {
         public TypeSpec type;
         public Expr expr;
         
-        public VarDecl(String name, TypeSpec type) {
+        public VarDecl(Identifier name, TypeSpec type) {
             this(name, type, null, 0);
         }
         
-        public VarDecl(String name, TypeSpec type, Expr expr, int modifiers) {
+        public VarDecl(Identifier name, TypeSpec type, Expr expr, int modifiers) {
             super(DeclKind.VAR, name);
             this.type = type;
             this.expr = becomeParentOf(expr);
@@ -61,7 +62,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new VarDecl(this.name, TypeSpec.copy(this.type), copy(this.expr), this.attributes.modifiers);
+            return new VarDecl(this.declName.copy(), TypeSpec.copy(this.type), copy(this.expr), this.attributes.modifiers);
         }
     }
     
@@ -69,7 +70,7 @@ public abstract class Decl extends Stmt {
         public TypeSpec type;        
         public Expr defaultValue;
 
-        public ParameterDecl(TypeSpec type, String name, Expr defaultValue, int modifiers) {
+        public ParameterDecl(TypeSpec type, Identifier name, Expr defaultValue, int modifiers) {
             super(DeclKind.PARAM, name);
             this.type = type;
             this.defaultValue = becomeParentOf(defaultValue);
@@ -88,7 +89,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new ParameterDecl(TypeSpec.copy(this.type), this.name, copy(this.defaultValue), this.attributes.modifiers);
+            return new ParameterDecl(TypeSpec.copy(this.type), this.declName.copy(), copy(this.defaultValue), this.attributes.modifiers);
         }
     }
         
@@ -96,7 +97,7 @@ public abstract class Decl extends Stmt {
         public TypeSpec type;
         public Expr expr;
         
-        public ConstDecl(String name, TypeSpec type, Expr expr, int modifiers) {
+        public ConstDecl(Identifier name, TypeSpec type, Expr expr, int modifiers) {
             super(DeclKind.CONST, name);
             this.type = type;
             this.expr = becomeParentOf(expr);
@@ -110,14 +111,14 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new ConstDecl(this.name, TypeSpec.copy(this.type), copy(this.expr), this.attributes.modifiers);
+            return new ConstDecl(this.declName.copy(), TypeSpec.copy(this.type), copy(this.expr), this.attributes.modifiers);
         }
     }
     
     public static abstract class GenericDecl extends Decl {
         public List<GenericParam> genericParams;
         
-        public GenericDecl(DeclKind kind, String name, List<GenericParam> genericParams) {
+        public GenericDecl(DeclKind kind, Identifier name, List<GenericParam> genericParams) {
             super(kind, name);
             this.genericParams = genericParams;
         }
@@ -133,7 +134,7 @@ public abstract class Decl extends Stmt {
         public TypeSpec returnType;
         public int flags;        
         
-        public FuncDecl(String name, ParametersStmt params, Stmt body, TypeSpec returnType, List<GenericParam> genericParams, int flags) {
+        public FuncDecl(Identifier name, ParametersStmt params, Stmt body, TypeSpec returnType, List<GenericParam> genericParams, int flags) {
             super(DeclKind.FUNC, name, genericParams);
             this.params = becomeParentOf(params);
             this.bodyStmt = becomeParentOf(body);
@@ -152,7 +153,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new FuncDecl(this.name, 
+            return new FuncDecl(this.declName.copy(), 
                                 copy(params), 
                                 copy(this.bodyStmt), 
                                 TypeSpec.copy(this.returnType), 
@@ -166,7 +167,7 @@ public abstract class Decl extends Stmt {
         public int flags;
         
         
-        public AggregateDecl(DeclKind kind, String name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
+        public AggregateDecl(DeclKind kind, Identifier name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
             super(kind, name, genericParams);
             this.fields = becomeParentOf(fields);
             this.flags = flags;
@@ -174,7 +175,7 @@ public abstract class Decl extends Stmt {
     }
     
     public static class StructDecl extends AggregateDecl {
-        public StructDecl(String name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
+        public StructDecl(Identifier name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
             super(DeclKind.STRUCT, name, fields, genericParams, flags);
         }
         
@@ -189,7 +190,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new StructDecl(this.name, 
+            return new StructDecl(this.declName.copy(), 
                                   copy(this.fields), 
                                   new ArrayList<>(this.genericParams), 
                                   this.flags);
@@ -197,7 +198,7 @@ public abstract class Decl extends Stmt {
     }       
     
     public static class UnionDecl extends AggregateDecl {        
-        public UnionDecl(String name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
+        public UnionDecl(Identifier name, List<FieldStmt> fields, List<GenericParam> genericParams, int flags) {
             super(DeclKind.UNION, name, fields, genericParams, flags);
         }
         
@@ -208,7 +209,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new UnionDecl(this.name, 
+            return new UnionDecl(this.declName.copy(), 
                                  copy(this.fields), 
                                  new ArrayList<>(this.genericParams), 
                                  this.flags);
@@ -216,11 +217,11 @@ public abstract class Decl extends Stmt {
     }
     
     public static class EnumDecl extends Decl {
-        public List<EnumFieldInfo> fields;
+        public List<EnumFieldEntryStmt> fields;
         
-        public EnumDecl(String name, List<EnumFieldInfo> fields) {
+        public EnumDecl(Identifier name, List<EnumFieldEntryStmt> fields) {
             super(DeclKind.ENUM, name);            
-            this.fields = fields;
+            this.fields = becomeParentOf(fields);
         }
         
         @Override
@@ -230,7 +231,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new EnumDecl(this.name, this.fields);
+            return new EnumDecl(this.declName.copy(), copy(this.fields));
         }
     }
     
@@ -238,7 +239,7 @@ public abstract class Decl extends Stmt {
         public TypeSpec type;
         public String alias;
         
-        public TypedefDecl(String name, TypeSpec type, String alias, List<GenericParam> genericParams) {
+        public TypedefDecl(Identifier name, TypeSpec type, String alias, List<GenericParam> genericParams) {
             super(DeclKind.TYPEDEF, name, genericParams);
             this.type = type;
             this.alias = alias;
@@ -251,7 +252,7 @@ public abstract class Decl extends Stmt {
         
         @Override
         protected Node doCopy() {            
-            return new TypedefDecl(this.name, 
+            return new TypedefDecl(this.declName.copy(), 
                                    TypeSpec.copy(this.type), 
                                    this.alias, 
                                    new ArrayList<>(this.genericParams));
@@ -262,7 +263,7 @@ public abstract class Decl extends Stmt {
         public TypeInfo type;
         
         public NativeDecl(TypeInfo type) {
-            super(DeclKind.NATIVE, type.name);
+            super(DeclKind.NATIVE, new Identifier(type.name));
             this.type = type;
             this.attributes.addNote(new NoteStmt("foreign"));
         }

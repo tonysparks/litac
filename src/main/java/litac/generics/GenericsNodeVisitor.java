@@ -162,6 +162,11 @@ public class GenericsNodeVisitor implements NodeVisitor {
     @Override
     public void visit(EnumFieldStmt stmt) {
     }
+    
+    @Override
+    public void visit(EnumFieldEntryStmt stmt) {
+    }
+
 
     @Override
     public void visit(IfStmt stmt) {

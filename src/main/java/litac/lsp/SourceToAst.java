@@ -24,24 +24,36 @@ public class SourceToAst implements NodeVisitor {
     private class AstNodeFound extends RuntimeException {        
         private static final long serialVersionUID = 7748524454625404184L;
         
-        Location location;        
-        public AstNodeFound(Location location) {
+        SourceLocation location;        
+        public AstNodeFound(SourceLocation location) {
             this.location = location;
         }
         
     }
     
+    public static class SourceLocation {
+        public final Location location;
+        public final Node node;
+        
+        public SourceLocation(Location location, Node node) {
+            this.location = location;
+            this.node = node;
+        }
+    }
+    
     private Position pos;
     private Program program;
     private Module module;
+    private LspLogger log;
     
-    public SourceToAst(Program program, Module module, Position pos) {
+    public SourceToAst(LspLogger log, Program program, Module module, Position pos) {
+        this.log = log;
         this.program = program;
         this.module = module;
         this.pos = pos;
     }
     
-    public Location findSourceLocation(ModuleStmt stmt) {
+    public SourceLocation findSourceLocation(ModuleStmt stmt) {
         // horrible hack, but makes the visiting code
         // cleaner...
         try {
@@ -52,6 +64,18 @@ public class SourceToAst implements NodeVisitor {
         }
         
         return null;
+    }
+    
+    private boolean isNodeAtPos(Decl decl) {
+        if(decl == null) {
+            return false;
+        }
+        
+        if(isNodeAtPos(decl.declName)) {
+            return true;
+        }
+        
+        return isNodeAtPos((Node)decl);
     }
     
     private boolean isNodeAtPos(Node node) {
@@ -115,20 +139,8 @@ public class SourceToAst implements NodeVisitor {
         return isNodeAtPos(srcPos);
     }
     
-    private boolean isNodeAtPos(SrcPos srcPos) {  
-        if(srcPos.token == null) {
-            return false;
-        }
-        
-        int fromIndex = srcPos.position;
-        int toIndex = fromIndex + srcPos.token.getText().length();
-        if((pos.line+1) == srcPos.lineNumber) {
-            if(pos.character >= fromIndex && pos.character <= toIndex) {
-                return true;
-            }
-        }
-        
-        return false;
+    private boolean isNodeAtPos(SrcPos srcPos) {          
+        return LspUtil.isAtLocation(srcPos, pos);
     }
     
     private boolean findFromTypeSpec(TypeSpec typeSpec) {
@@ -176,11 +188,16 @@ public class SourceToAst implements NodeVisitor {
         if(decl == null) {
             return false;
         }        
+        
+        if(isNodeAtPos(decl.declName)) {
+            return findFromSrcPos(decl.declName, decl.declName.getSrcPos());
+        }
+        
         SrcPos srcPos = decl.getSrcPos();
-        return findFromSrcPos(srcPos);
+        return findFromSrcPos(decl, srcPos);
     }
     
-    private boolean findFromSrcPos(SrcPos srcPos) {                
+    private boolean findFromSrcPos(Node node, SrcPos srcPos) {                
         if(srcPos.sourceFile == null) {
             return false;
         }
@@ -188,7 +205,7 @@ public class SourceToAst implements NodeVisitor {
         Location location = new Location();
         location.uri = srcPos.sourceFile.toURI().toString();
         location.range = LspUtil.fromSrcPosToken(srcPos);        
-        throw new AstNodeFound(location);
+        throw new AstNodeFound(new SourceLocation(location, node));
     }
     
     @Override
@@ -216,7 +233,8 @@ public class SourceToAst implements NodeVisitor {
             String importName = stmt.getImportName();
             Module m = this.module.getModule(importName);
             if(m != null) {
-                findFromSrcPos(m.getModuleStmt().getSrcPos());
+                ModuleStmt mStmt = m.getModuleStmt();
+                findFromSrcPos(mStmt, mStmt.getSrcPos());
             }
         }
     }
@@ -224,12 +242,16 @@ public class SourceToAst implements NodeVisitor {
     @Override
     public void visit(NoteStmt stmt) {
         if(isNodeAtPos(stmt)) {
-            findFromSrcPos(stmt.getSrcPos());
+            findFromSrcPos(stmt, stmt.getSrcPos());
         }
     }
 
     @Override
     public void visit(VarFieldStmt stmt) {
+        if(isNodeAtPos(stmt.fieldName)) {
+            findFromSrcPos(stmt.fieldName, stmt.fieldName.getSrcPos());
+        }
+        
         if(isNodeAtPos(stmt) || isNodeAtPos(stmt.type)) {
             findFromTypeSpec(stmt.type);
         }        
@@ -261,6 +283,25 @@ public class SourceToAst implements NodeVisitor {
         
         stmt.decl.visit(this);
     }
+    
+    @Override
+    public void visit(EnumFieldEntryStmt stmt) {
+        log.log("Visiting Enum Field: " + stmt.fieldName.identifier);
+        if(isNodeAtPos(stmt.fieldName)) {
+            findFromSrcPos(stmt.fieldName, stmt.fieldName.getSrcPos());
+        }
+        
+        if(stmt.value != null) {
+            if(isNodeAtPos(stmt.value)) {
+                findFromExpr(stmt.value);
+            }
+        }
+        
+        if(isNodeAtPos(stmt)) {
+            findFromSrcPos(stmt, stmt.getSrcPos());
+        }
+    }
+
 
     @Override
     public void visit(IfStmt stmt) {
@@ -402,17 +443,29 @@ public class SourceToAst implements NodeVisitor {
             d.expr.visit(this);
         }
         
-        if(isNodeAtPos(d) || isNodeAtPos(d.type)) {
+        if(isNodeAtPos(d.type)) {
             findFromTypeSpec(d.type);
+        }  
+        
+        if(isNodeAtPos(d)) {
+            findFromDecl(d);
         }
     }
 
     @Override
     public void visit(EnumDecl d) {
+        log.log("Visiting Enum: " + d.name);
+        for(EnumFieldEntryStmt field : d.fields) {
+            field.visit(this);
+        }
+        
+        if(isNodeAtPos(d)) {
+            findFromDecl(d);
+        }
     }
 
     @Override
-    public void visit(FuncDecl d) {
+    public void visit(FuncDecl d) {        
         if(d.bodyStmt != null) {
             d.bodyStmt.visit(this);
         }
@@ -421,27 +474,43 @@ public class SourceToAst implements NodeVisitor {
         if(isNodeAtPos(d.returnType)) {
             findFromTypeSpec(d.returnType);
         }
+        
+        if(isNodeAtPos(d)) {
+            findFromDecl(d);
+        }        
     }
 
     @Override
-    public void visit(StructDecl d) {
+    public void visit(StructDecl d) {        
         for(Stmt s: d.fields) {
             s.visit(this);            
         }
+        
+        if(isNodeAtPos(d)) {
+            findFromDecl(d);
+        }        
     }
 
     @Override
-    public void visit(TypedefDecl d) {
-        if(isNodeAtPos(d) || isNodeAtPos(d.type)) {
+    public void visit(TypedefDecl d) {                
+        if(isNodeAtPos(d.type)) {
             findFromTypeSpec(d.type);
+        }  
+        
+        if(isNodeAtPos(d)) {
+            findFromDecl(d);
         }
     }
 
     @Override
-    public void visit(UnionDecl d) {
+    public void visit(UnionDecl d) {        
         for(Stmt s: d.fields) {
             s.visit(this);            
         }
+        
+        if(isNodeAtPos(d)) {
+            findFromDecl(d);
+        }        
     }
 
     @Override
@@ -450,9 +519,13 @@ public class SourceToAst implements NodeVisitor {
             d.expr.visit(this);
         }
         
-        if(isNodeAtPos(d) || isNodeAtPos(d.type)) {
+        if(isNodeAtPos(d.type)) {
             findFromTypeSpec(d.type);
-        }        
+        }  
+        
+        if(isNodeAtPos(d)) {
+            findFromDecl(d);
+        }
     }
 
     @Override
@@ -461,8 +534,12 @@ public class SourceToAst implements NodeVisitor {
             d.defaultValue.visit(this);
         }
         
-        if(isNodeAtPos(d) || isNodeAtPos(d.type)) {
+        if(isNodeAtPos(d.type)) {
             findFromTypeSpec(d.type);
+        }  
+                
+        if(isNodeAtPos(d)) {
+            findFromDecl(d);
         }
     }
 
@@ -560,14 +637,15 @@ public class SourceToAst implements NodeVisitor {
     }
 
     @Override
-    public void visit(FuncCallExpr expr) {
-        if(isNodeAtPos(expr)) {
-            findFromExpr(expr);
-        }
-        
+    public void visit(FuncCallExpr expr) {                
         expr.object.visit(this);
         for(Expr e : expr.arguments) {
             e.visit(this);
+        }
+                
+        if(isNodeAtPos(expr)) {
+            findFromExpr(expr);
+            //findFromSrcPos(expr, expr.getSrcPos());
         }
     }
 
@@ -640,7 +718,7 @@ public class SourceToAst implements NodeVisitor {
                     return;
                 }
                 
-                findFromSrcPos(enumField.attributes.srcPos);
+                findFromSrcPos(field, enumField.attributes.srcPos);
             }
             else if(TypeInfo.isFieldAccessible(op.type)) {
                 
@@ -652,7 +730,7 @@ public class SourceToAst implements NodeVisitor {
                 if(path != null && path.hasPath()) {
                     FieldInfo aggField = path.getTargetField();
                     if(aggField != null) {
-                        findFromSrcPos(aggField.attributes.srcPos);                           
+                        findFromSrcPos(field, aggField.attributes.srcPos);                           
                     }
                     
                 }

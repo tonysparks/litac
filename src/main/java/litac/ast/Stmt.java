@@ -141,17 +141,39 @@ public abstract class Stmt extends Node {
         }
     }
     
+    public static class EnumFieldEntryStmt extends Stmt {
+        public Identifier fieldName;
+        public Expr value;
+        public Attributes attributes;
+        
+        public EnumFieldEntryStmt(Identifier fieldName, Expr value, Attributes attributes) {            
+            this.fieldName = becomeParentOf(fieldName);
+            this.value = becomeParentOf(value);
+            this.attributes = attributes;
+        }
+                
+        @Override
+        protected Node doCopy() {        
+            return this;
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) { 
+            v.visit(this);
+        }
+    }
+    
     public static abstract class FieldStmt extends Stmt { 
     }
     
-    public static class VarFieldStmt extends FieldStmt {
-        public String name;
+    public static class VarFieldStmt extends FieldStmt {        
+        public Identifier fieldName;
         public TypeSpec type;
         public Attributes attributes;
         public Expr defaultExpr;
         
-        public VarFieldStmt(String name, TypeSpec type, Attributes attributes, Expr defaultExpr) {
-            this.name = name;
+        public VarFieldStmt(Identifier name, TypeSpec type, Attributes attributes, Expr defaultExpr) {
+            this.fieldName = becomeParentOf(name);
             this.type = type;
             this.attributes = attributes;
             this.defaultExpr = defaultExpr;
@@ -164,7 +186,7 @@ public abstract class Stmt extends Node {
         
         @Override
         protected Node doCopy() {            
-            VarFieldStmt v = new VarFieldStmt(this.name, TypeSpec.copy(this.type), this.attributes, copy(this.defaultExpr));            
+            VarFieldStmt v = new VarFieldStmt(this.fieldName.copy(), TypeSpec.copy(this.type), this.attributes, copy(this.defaultExpr));            
             return v;
         }
     }

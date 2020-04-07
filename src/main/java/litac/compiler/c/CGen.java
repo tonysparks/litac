@@ -948,7 +948,7 @@ public class CGen {
         public void visit(VarFieldStmt stmt) {
             checkLine(stmt);
             
-            String name = name(stmt.name, stmt.attributes);
+            String name = name(stmt.fieldName.identifier, stmt.attributes);
             buf.out("%s;\n", typeDeclForC(stmt.type, name));
         }
     
@@ -958,6 +958,10 @@ public class CGen {
         
         @Override
         public void visit(ParametersStmt stmt) {
+        }
+        
+        @Override
+        public void visit(EnumFieldEntryStmt stmt) {
         }
         
         @Override
@@ -1091,9 +1095,10 @@ public class CGen {
                 buf.outln();
                 buf.out("const char* __%s_%s_AsStr(%s __e) {", d.sym.declared.simpleName(), d.name, name);            
                 buf.out("switch(__e) {");            
-                for(EnumFieldInfo f : d.fields) {      
-                    String strValue = f.attributes.hasNote("asStr") ? f.attributes.getNote("asStr").getAttr(0, f.name) : f.name;
-                    buf.out("case %s_%s: return \"%s\";\n", name, f.name, strValue);
+                for(EnumFieldEntryStmt f : d.fields) {
+                    String fieldName = f.fieldName.identifier;
+                    String strValue = f.attributes.hasNote("asStr") ? f.attributes.getNote("asStr").getAttr(0, fieldName) : fieldName;
+                    buf.out("case %s_%s: return \"%s\";\n", name, fieldName, strValue);
                 }
                 buf.out("default: return \"\";");
                 buf.out("}\n");            
@@ -1119,10 +1124,10 @@ public class CGen {
             
             buf.out("typedef enum %s {", name);
             boolean isFirst = true;
-            for(EnumFieldInfo f : d.fields) {
+            for(EnumFieldEntryStmt f : d.fields) {
                 if(!isFirst) buf.out(",\n");
                 
-                buf.out("%s_%s", name, f.name);
+                buf.out("%s_%s", name, f.fieldName.identifier);
                 if(f.value != null) {
                     buf.out(" = ");
                     f.value.visit(this);

@@ -50,6 +50,24 @@ public abstract class Node {
         }
     }
     
+    public static class Identifier extends Node {
+        public String identifier;
+        
+        public Identifier(String identifier) {
+            super();
+            this.identifier = identifier;
+        }
+        
+        @Override
+        public void visit(NodeVisitor v) {
+        }
+        
+        @Override
+        protected Node doCopy() {
+            return new Identifier(this.identifier);
+        }
+    }
+    
     private Node parentNode;
     private SrcPos pos;
     

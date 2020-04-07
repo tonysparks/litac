@@ -3,16 +3,32 @@
  */
 package litac.lsp;
 
+import java.util.List;
+
 import litac.ast.Decl;
 import litac.ast.Node.SrcPos;
 import litac.ast.Stmt.NoteStmt;
 import litac.compiler.Symbol;
+import litac.compiler.PhaseResult.PhaseError;
 import litac.lsp.JsonRpc.*;
 
 /**
  */
 public class LspUtil {
 
+    public static Location locationFromSrcPosLine(SrcPos srcPos) {
+        if(srcPos == null || srcPos.sourceFile == null) {
+            return null;
+        }
+        
+        String uri = srcPos.sourceFile.toURI().toString();
+        
+        Location location = new Location();
+        location.uri = uri;
+        location.range = LspUtil.fromSrcPosLine(srcPos);
+        return location;
+    }
+    
     public static Range fromSrcPosLine(SrcPos srcPos) {
         int lineNumber = Math.max(0, srcPos.lineNumber - 1);
                 
@@ -54,11 +70,7 @@ public class LspUtil {
         
         Decl decl = sym.decl;
         if(decl != null && decl.getSrcPos().sourceFile != null) {
-            String uri = decl.getSrcPos().sourceFile.toURI().toString();
-            
-            info.location = new Location();
-            info.location.uri = uri;
-            info.location.range = LspUtil.fromSrcPosLine(decl.getSrcPos());
+            info.location = LspUtil.locationFromSrcPosLine(decl.getSrcPos());
         }
         
         return info;
@@ -75,5 +87,34 @@ public class LspUtil {
         item.detail = sym.name;
         item.label = sym.name;
         return item;
+    }
+    
+    public static String phaseErrorToString(List<PhaseError> errors) {
+        if(errors == null || errors.isEmpty()) {
+            return "";
+        }
+        
+        StringBuffer sb = new StringBuffer();
+        for(PhaseError error : errors) {
+            sb.append(error.message).append(" in ").append(error.pos).append(",");
+        }
+        
+        return sb.toString();
+    }
+    
+    public static boolean isAtLocation(SrcPos srcPos, Position pos) {
+        if(srcPos.token == null) {
+            return false;
+        }
+        
+        int fromIndex = srcPos.position;
+        int toIndex = fromIndex + srcPos.token.getText().length();
+        if((pos.line+1) == srcPos.lineNumber) {
+            if(pos.character >= fromIndex && pos.character <= toIndex) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

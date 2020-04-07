@@ -71,6 +71,7 @@ public class RequestHandler {
         capabilities.capabilities.definitionProvider = true;
         capabilities.capabilities.documentSymbolProvider = true;
         capabilities.capabilities.workspaceSymbolProvider = true;
+        capabilities.capabilities.referencesProvider = true;
         capabilities.capabilities.completionProvider = new CompletionOptions();
         capabilities.capabilities.completionProvider.resolveProvider = true;
         capabilities.capabilities.completionProvider.triggerCharacters = new String[]{"."};
@@ -137,6 +138,19 @@ public class RequestHandler {
         RpcResponse resp = new RpcResponse();
         resp.id = rpc.id;
         resp.result = symbols;
+        this.sender.sendMessage(resp);
+    }
+    
+    public void handleTextDocumentReferences(RpcRequest rpc, ReferenceParams params) {
+        Document doc = this.workspace.getDocument(params.textDocument.uri);
+        List<Location> items = Collections.emptyList();
+        if(doc != null) {
+            items = doc.getReferences(this.workspace, params.position);
+        }
+        
+        RpcResponse resp = new RpcResponse();
+        resp.id = rpc.id;
+        resp.result = items;
         this.sender.sendMessage(resp);
     }
     

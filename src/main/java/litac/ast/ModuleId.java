@@ -109,7 +109,7 @@ public class ModuleId {
         this.simpleName = simpleName;
         this.fullModuleName = fullModuleName;
         
-        this.id = moduleFile.toPath().normalize().toString();
+        this.id = moduleFile.toPath().normalize().toString().toLowerCase();
     }
 
     

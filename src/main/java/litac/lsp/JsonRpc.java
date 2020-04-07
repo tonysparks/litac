@@ -3,7 +3,7 @@
  */
 package litac.lsp;
 
-import java.util.List;
+import java.util.*;
 
 import com.google.gson.JsonElement;
 
@@ -224,16 +224,68 @@ public class JsonRpc {
     public static class Range {
         public Position start;
         public Position end;
+        
+        @Override
+        public int hashCode() {
+            return Objects.hash(end, start);
+        }
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Range other = (Range) obj;
+            return Objects.equals(end, other.end) && Objects.equals(start, other.start);
+        }
     }
     
     public static class Position {
         public Integer line;
         public Integer character;
+        
+        
+        @Override
+        public int hashCode() {
+            return Objects.hash(character, line);
+        }
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Position other = (Position) obj;
+            return Objects.equals(character, other.character) && Objects.equals(line, other.line);
+        }
+        
+        
     }
     
     public static class Location {
         public String uri;
         public Range range;
+        
+        
+        @Override
+        public int hashCode() {
+            return Objects.hash(range, uri);
+        }
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Location other = (Location) obj;
+            return Objects.equals(range, other.range) && Objects.equals(uri, other.uri);
+        }
     }
     
     public static class TextDocumentIdentifier {
@@ -261,8 +313,10 @@ public class JsonRpc {
         public boolean definitionProvider;
         public boolean documentSymbolProvider;
         public boolean workspaceSymbolProvider;
+        public boolean referencesProvider;
         public CompletionOptions completionProvider;
     }
+        
     
     public static class CompletionRegistrationOptions {
         public String[] triggerCharacters;
@@ -302,6 +356,14 @@ public class JsonRpc {
     
     public static class CompletionParams extends TextDocumentPositionParams {
         public CompletionContext context;
+    }
+    
+    public static class ReferenceContext {
+        public Boolean includeDeclaration;
+    }
+    
+    public static class ReferenceParams extends TextDocumentPositionParams {
+        public ReferenceContext context;
     }
     
     public static class DidSaveTextDocumentParams {
@@ -345,5 +407,17 @@ public class JsonRpc {
     
     public static class CompletionList {
         
+    }
+    
+    public static class ProgressToken {
+        // number | string
+    }
+    
+    public static class WorkDoneProgressParams {
+        public Object/*ProgressToken*/ workDoneToken;
+    }
+    
+    public static class PartialResultParams {
+        public Object /* ProgressToken*/ partialResultToken;
     }
 }

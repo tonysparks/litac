@@ -32,6 +32,8 @@ public class Workspace {
     private Program latestProgram;
     private File srcDir;
     private String latestDocumentUri;
+    private boolean isFullyBuilt;
+    private ReferenceDatabase references;
     
     private LspLogger log;
     
@@ -46,6 +48,9 @@ public class Workspace {
         
         this.rootModule = null;
         this.srcDir = options.getSrcDir();
+        this.isFullyBuilt = false;
+        
+        this.references = new ReferenceDatabase(log);
     }
     
     public void setRoot(File rootModule, File sourceDir) {
@@ -76,15 +81,24 @@ public class Workspace {
     public Program getLatestProgram() {
         return latestProgram;
     }
+    
+    /**
+     * @return the references
+     */
+    public ReferenceDatabase getReferences() {
+        return references;
+    }
             
     public void addDocument(TextDocument document) {
         this.latestDocumentUri = canonicalPath(document.uri);
         this.documents.put(this.latestDocumentUri, new Document(getModuleId(document.uri), document, this.log));
+        this.isFullyBuilt = false;
     }
     
     public void removeDocument(String documentUri) {
         String moduleName = canonicalPath(documentUri);
         this.documents.remove(moduleName);
+        this.isFullyBuilt = false;
     }
 
     public void changedDocument(String documentUri, DidChangeParams change) {
@@ -98,6 +112,8 @@ public class Workspace {
                 document.setText(event.text);
             }
         }
+        
+        this.isFullyBuilt = false;
     }
    
     public void saveDocument(DidSaveTextDocumentParams params) {        
@@ -198,7 +214,15 @@ public class Workspace {
             .collect(Collectors.toList());
     }
     
+    public boolean isFullyBuilt() {
+        return isFullyBuilt;
+    }
+    
     public PhaseResult processSource() {
+        this.isFullyBuilt = true;
+        
+        log.log("Doing full rebuild...");
+        
         ModuleId module = this.rootModule;        
         if(module == null && this.latestDocumentUri != null) {
             module = ModuleId.from(options.libDir, this.srcDir, new File(this.latestDocumentUri));
@@ -206,18 +230,29 @@ public class Workspace {
         
         // we can't compile any source
         if(module == null) {
+            log.log("Rebuild failed to find root module");
             return new PhaseResult();
         }
         
-        return processSourceModule(module);
+        log.log("Rebuild with root module: '" + module.id + "'");        
+        PhaseResult result = processSourceModule(module, true);
+        
+        if(result.hasErrors()) {
+            log.log("Rebuild failed with errors: " + LspUtil.phaseErrorToString(result.getErrors()));
+        }
+        else {
+            log.log("Rebuild successfully");
+        }
+        
+        return result;
     }
     
     public PhaseResult processSource(String documentUri) {
         ModuleId module = getModuleId(documentUri);        
-        return processSourceModule(module);
+        return processSourceModule(module, false);
     }
     
-    private PhaseResult processSourceModule(ModuleId module) {
+    private PhaseResult processSourceModule(ModuleId module, boolean fullRebuild) {
         PhaseResult result = new PhaseResult();
         try {
             
@@ -233,10 +268,8 @@ public class Workspace {
             visitor.visit(rootModule);
             visitor.visit(builtin);
             
-            log.log("Imports: " + unit.getImports().entrySet());
-            
             TypeResolver resolver = new TypeResolver(options, result, unit);        
-            this.latestProgram = resolver.resolveTypes();            
+            this.latestProgram = resolver.resolveTypes();
         }
         catch(ParseException e) {
             log.log("ParseException: " + e.getMessage());
@@ -254,7 +287,7 @@ public class Workspace {
     
     private void importAssertModule(ModuleStmt main) {        
         ModuleId assertId = ModuleId.fromDirectory(options.libDir, "assert");
-        if(!main.imports.stream().anyMatch(imp -> imp.moduleId.equals(assertId))) {
+        if(!main.imports.stream().anyMatch(imp -> imp.moduleId.equals(assertId)) && !main.id.equals(assertId)) {
             main.imports.add(new ImportStmt("assert", null, assertId, false));
         }
     }

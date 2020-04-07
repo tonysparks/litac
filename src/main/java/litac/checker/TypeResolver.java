@@ -11,6 +11,7 @@ import litac.ast.*;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Node.SrcPos;
+import litac.ast.Node.Identifier;
 import litac.ast.Stmt.*;
 import litac.ast.TypeSpec.*;
 import litac.checker.TypeInfo.*;
@@ -435,7 +436,11 @@ public class TypeResolver {
                 Symbol enumAsStrSym = createEnumAsStrFunc(enumDecl, sym);
                 if(enumAsStrSym != null) {
                     this.moduleSymbols.add(enumAsStrSym);
+                    nonGenericDecls.add(enumAsStrSym.decl);
                 }
+                
+                nonGenericDecls.add(enumDecl);
+                
                 break;
             }
             case STRUCT: {
@@ -625,8 +630,8 @@ public class TypeResolver {
                                                       0, 
                                                       Collections.emptyList());
         
-        ParameterDecl param = new ParameterDecl(new NameTypeSpec(enumDecl.getSrcPos(), enumDecl.name), "e", null, 0);
-        FuncDecl funcDecl = new FuncDecl(asStrFuncInfo.name, 
+        ParameterDecl param = new ParameterDecl(new NameTypeSpec(enumDecl.getSrcPos(), enumDecl.name), new Identifier("e"), null, 0);
+        FuncDecl funcDecl = new FuncDecl(new Identifier(asStrFuncInfo.name), 
                                          new ParametersStmt(Arrays.asList(param), false),   
                                          new EmptyStmt(),
                                          asStrFuncInfo.returnType.asTypeSpec(), 
@@ -907,7 +912,7 @@ public class TypeResolver {
                 typeCheck(var.defaultExpr.getSrcPos(), op.type, type);
             }
             
-            return new FieldInfo(type, var.name, var.attributes, null);
+            return new FieldInfo(type, var.fieldName.identifier, var.attributes, null);
         }
         
         if (stmt instanceof StructFieldStmt) {
@@ -1204,7 +1209,11 @@ public class TypeResolver {
     }
             
     private TypeInfo enumTypeInfo(EnumDecl enumDecl) {
-        EnumTypeInfo enumInfo = new EnumTypeInfo(enumDecl.name, enumDecl.fields);
+        List<EnumFieldInfo> enumFields = new ArrayList<>(enumDecl.fields.size());
+        for(EnumFieldEntryStmt field : enumDecl.fields) {
+            enumFields.add(new EnumFieldInfo(field.fieldName.identifier, field.value, field.attributes));
+        }
+        EnumTypeInfo enumInfo = new EnumTypeInfo(enumDecl.name, enumFields);
         return enumInfo;
     }
     
@@ -2090,7 +2099,7 @@ public class TypeResolver {
                 if(argExpr.fieldName != null) {
                     hasNamedArgs = true;
                     
-                    if(argExpr.fieldName.equals(var.name)) {
+                    if(argExpr.fieldName.equals(var.fieldName.identifier)) {
                         isArgDefinedByName = true;
                         break;
                     }
@@ -2104,7 +2113,7 @@ public class TypeResolver {
             
             // the argument wasn't included
             if(!isArgDefinedByName && !(!hasNamedArgs && isArgDefinedByPosition)) {
-                defaultArgs.add(new InitArgExpr(var.name, position, var.defaultExpr));
+                defaultArgs.add(new InitArgExpr(var.fieldName.identifier, position, var.defaultExpr));
             }
         }
         
@@ -2238,7 +2247,7 @@ public class TypeResolver {
                                         : currentType.as();
                                         
         for(FieldInfo field : aggInfo.fieldInfos) {
-            Symbol sym = scope.addSymbol(current(), new VarDecl(p.name, field.type.asTypeSpec()), field.name, Symbol.IS_USING);
+            Symbol sym = scope.addSymbol(current(), new VarDecl(new Identifier(p.name), field.type.asTypeSpec()), field.name, Symbol.IS_USING);
             sym.type = field.type;
             sym.usingParent = rootType;
             
@@ -2615,6 +2624,10 @@ public class TypeResolver {
         @Override
         public void visit(EnumFieldStmt stmt) {
         }
+        
+        @Override
+        public void visit(EnumFieldEntryStmt stmt) {
+        }
 
         @Override
         public void visit(IfStmt stmt) {
@@ -2802,20 +2815,20 @@ public class TypeResolver {
 
         @Override
         public void visit(EnumDecl d) {
-            Map<String, EnumFieldInfo> definedFields = new HashMap<>();
-            for(EnumFieldInfo field : d.fields) {
+            Map<String, EnumFieldEntryStmt> definedFields = new HashMap<>();
+            for(EnumFieldEntryStmt field : d.fields) {
                 if(field.value != null) {
                     field.value.visit(this);
                     Operand op = field.value.getResolvedType();
                     tryTypeCheck(field.value.getSrcPos(), op.type, TypeInfo.I32_TYPE);
                 }
                 
-                if(definedFields.containsKey(field.name)) {
-                    result.addError(d, "duplicate member '%s'", field.name);
+                if(definedFields.containsKey(field.fieldName.identifier)) {
+                    result.addError(d, "duplicate member '%s'", field.fieldName.identifier);
                     continue;
                 }
                 
-                definedFields.put(field.name, field);
+                definedFields.put(field.fieldName.identifier, field);
             }
         }
         

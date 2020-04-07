@@ -7,6 +7,7 @@ import java.util.*;
 
 import litac.LitaOptions.TypeInfoOption;
 import litac.ast.*;
+import litac.ast.Node.Identifier;
 import litac.ast.Decl.*;
 import litac.ast.Expr.*;
 import litac.ast.Stmt.*;
@@ -77,12 +78,12 @@ public class Reflection {
         TypeSpec typeInfoTypeSpec = new ArrayTypeSpec(null, new PtrTypeSpec(null, new NameTypeSpec(null, "TypeInfo")), numOfTypeInfosExpr);
         
         Expr typeInfosExpr = new ArrayInitExpr(typeInfoTypeSpec, infos);
-        Decl typeInfosDecl = new ConstDecl("typeInfos", typeInfoTypeSpec.copy(), typeInfosExpr, 0);
+        Decl typeInfosDecl = new ConstDecl(new Identifier("typeInfos"), typeInfoTypeSpec.copy(), typeInfosExpr, 0);
         typeInfosDecl.attributes.isGlobal = true;
         typeInfosDecl.attributes.isPublic = true; 
         typeInfosDecl.attributes.addNote(new NoteStmt("generated"));
                 
-        Decl numOfTypeInfosDecl = new ConstDecl("numOfTypeInfos", new NameTypeSpec(null, "i64"), numOfTypeInfosExpr.copy(), 0);
+        Decl numOfTypeInfosDecl = new ConstDecl(new Identifier("numOfTypeInfos"), new NameTypeSpec(null, "i64"), numOfTypeInfosExpr.copy(), 0);
         numOfTypeInfosDecl.attributes.isGlobal = true;
         numOfTypeInfosDecl.attributes.isPublic = true;
         numOfTypeInfosDecl.attributes.addNote(new NoteStmt("generated"));
@@ -252,9 +253,9 @@ public class Reflection {
 
         if(!d.fields.isEmpty()) {
             int i = 0;
-            for(EnumFieldInfo field : d.fields) {
+            for(EnumFieldEntryStmt field : d.fields) {
                 List<InitArgExpr> arrayArg = new ArrayList<>();
-                arrayArg.add(new InitArgExpr("name", 0, new StringExpr(field.name)));
+                arrayArg.add(new InitArgExpr("name", 0, new StringExpr(field.fieldName.identifier)));
                 
                 Expr value = (field.value != null) 
                         ? field.value : new NumberExpr(TypeInfo.I32_TYPE, String.valueOf(i));
