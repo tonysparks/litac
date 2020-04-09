@@ -183,6 +183,7 @@ public class Document {
         if(TypeInfo.isAggregate(type)) {
             AggregateTypeInfo agg = type.as();
             return agg.fieldInfos.stream()
+                    .filter(field -> field.type != null && field.type.sym != null)
                     .map(field -> LspUtil.fromSymbolCompletionItem(field.type.sym))
                     .collect(Collectors.toList());
         }
