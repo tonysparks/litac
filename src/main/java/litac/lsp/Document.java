@@ -178,6 +178,10 @@ public class Document {
         
         Expr expr = (Expr)location.node;
         Operand op = expr.getResolvedType();
+        if(op == null) {
+            return Collections.emptyList();
+        }
+        
         TypeInfo type = op.type;
         
         if(TypeInfo.isAggregate(type)) {
