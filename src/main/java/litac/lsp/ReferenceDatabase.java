@@ -612,7 +612,11 @@ public class ReferenceDatabase {
                 e.visit(this);
             }
             
-            Operand op = expr.object.getResolvedType();            
+            Operand op = expr.object.getResolvedType();
+            if(op == null) {
+                return;
+            }
+            
             TypeInfo type = TypeInfo.getBase(op.type);
             if(type == null) {
                 return;
@@ -687,7 +691,11 @@ public class ReferenceDatabase {
             expr.object.visit(this);
             expr.field.visit(this);
             
-            Operand op = expr.object.getResolvedType();            
+            Operand op = expr.object.getResolvedType();  
+            if(op == null) {
+                return;
+            }
+            
             TypeInfo type = TypeInfo.getBase(op.type);
             if(type == null) {
                 return;
@@ -706,7 +714,11 @@ public class ReferenceDatabase {
             expr.field.visit(this);
             expr.value.visit(this);
             
-            Operand op = expr.object.getResolvedType();            
+            Operand op = expr.object.getResolvedType();   
+            if(op == null) {
+                return;
+            }
+            
             TypeInfo type = TypeInfo.getBase(op.type);
             if(type == null) {
                 return;

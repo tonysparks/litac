@@ -1802,6 +1802,74 @@ public class TypeResolver {
         return result;
     }
     
+    
+    /**
+     * This will determine if the function argument needs to be modified to fit the actual expected
+     * parameter type for structs/unions having "using" elements.  It will also appropriately take
+     * the address of or dereference a parameter
+     * 
+     * @param funcPtr
+     * @param suppliedArguments
+     */
+    private void checkForUsingArguments(FuncPtrTypeInfo funcPtr, List<Expr> suppliedArguments) {
+        int argIndex = 0;
+        for(int i = 0; i < funcPtr.params.size() && i < suppliedArguments.size(); i++) {
+            Expr argExpr = suppliedArguments.get(i);
+            resolveExpr(argExpr);
+            
+            SrcPos pos = argExpr.getSrcPos();
+            TypeInfo paramInfo = funcPtr.params.get(argIndex);                    
+            TypeInfo argInfo = argExpr.getResolvedType().type;
+            
+            // Determine if we need to get the "using" field of this method call
+            if(TypeInfo.isAggregate(TypeInfo.getBase(argInfo))) {
+                AggregateTypeInfo aggInfo = TypeInfo.getBase(argInfo).as();
+                TypeInfo pInfo = TypeInfo.getBase(paramInfo);
+                FieldPath path = aggInfo.getFieldPathUsingType(pInfo);
+                
+                if(path.hasPath()) {
+                    for(FieldPathNode node : path.getPath()) {
+                        NameTypeSpec nameSpec = new NameTypeSpec(pos, node.field.name);
+                        argExpr = new GetExpr(argExpr, new IdentifierExpr(nameSpec).setSrcPos(pos))
+                                                .setSrcPos(pos);
+                    }
+                    
+                    //argInfo = resolveExpr(argExpr).type;
+                    resolveExpr(argExpr);
+                    argInfo = argExpr.getResolvedType().type;
+                }
+            }
+            
+            // Determine if we need to promote the object to a
+            // pointer depending on what the method is expecting as an
+            // argument
+            if(TypeInfo.isPtrAggregate(paramInfo) && !TypeInfo.isPtrAggregate(argInfo)) {
+                // Can't take the address of an R-Value; TODO: this should be expr.operand.isRvalue
+                // But the isLeftValue isn't working correctly atm
+                //if(!argExpr.getResolvedType().isLeftValue) {
+                if(argExpr instanceof FuncCallExpr) {
+                    error(argExpr, 
+                            "cannot take the return value address of an R-Value");
+                }
+                                    
+                argExpr = new UnaryExpr(TokenType.BAND, new GroupExpr(argExpr).setSrcPos(pos))
+                                        .setSrcPos(pos);
+                
+                resolveExpr(argExpr);
+            }
+            // See if we need to dereference the pointer
+            else if(TypeInfo.isAggregate(paramInfo) && TypeInfo.isPtrAggregate(argInfo)) {
+                argExpr = new UnaryExpr(TokenType.STAR, new GroupExpr(argExpr).setSrcPos(pos))
+                        .setSrcPos(pos);
+
+                resolveExpr(argExpr);
+            }
+            
+            suppliedArguments.set(argIndex, argExpr);
+            argIndex++;
+        }
+    }
+    
     private Operand resolveFuncCallExpr(FuncCallExpr expr) {
         Operand op = resolveExpr(expr.object);        
         if(!op.type.isKind(TypeKind.Func) && !op.type.isKind(TypeKind.FuncPtr)) {
@@ -1831,9 +1899,10 @@ public class TypeResolver {
         }
 
         // see if this is method call syntax
-        boolean isMethodCall = isMethod && isMethodSyntax(expr, funcPtr, suppliedArguments);                
+        boolean isMethodCall = isMethod && isMethodSyntax(expr, funcPtr, suppliedArguments);
         checkNumberOfArgs(expr, op.type.name, funcPtr, suppliedArguments.size(), numberOfDefaultArgs);
         
+        checkForUsingArguments(funcPtr, suppliedArguments);
                 
         // type inference for generic functions 
         if(funcPtr.hasGenerics() && expr.genericArgs.isEmpty()) {            
@@ -1860,7 +1929,9 @@ public class TypeResolver {
                 resolveExpr(arg);
             }                
         }
-                
+
+        expr.replaceArguments(suppliedArguments);
+        
         Operand retOp = Operand.op(funcPtr.returnType);
         expr.resolveTo(retOp);
         
@@ -2530,58 +2601,14 @@ public class TypeResolver {
             return false;
         }
         
-        
-        getExpr.isMethodCall = true;
-        
-        
-        if(!funcPtr.params.isEmpty()) {
-            SrcPos pos = getExpr.object.getSrcPos();
-            TypeInfo paramInfo = funcPtr.params.get(0);                    
-            TypeInfo argInfo = getExpr.object.getResolvedType().type;
-            
-            // Determine if we need to get the "using" field of this method call
-            if(TypeInfo.isAggregate(TypeInfo.getBase(argInfo))) {
-                AggregateTypeInfo aggInfo = TypeInfo.getBase(argInfo).as();
-                TypeInfo pInfo = TypeInfo.getBase(paramInfo);
-                FieldPath path = aggInfo.getFieldPathUsingType(pInfo);
-                
-                if(path.hasPath()) {
-                    for(FieldPathNode node : path.getPath()) {
-                        NameTypeSpec nameSpec = new NameTypeSpec(pos, node.field.name);
-                        getExpr.object = new GetExpr(getExpr.object, new IdentifierExpr(nameSpec).setSrcPos(pos))
-                                                .setSrcPos(pos);
-                    }
-                    
-                    resolveExpr(getExpr.object);
-                    argInfo = getExpr.object.getResolvedType().type;
-                }
-            }
-            
-            // Determine if we need to promote the object to a
-            // pointer depending on what the method is expecting as an
-            // argument
-            if(TypeInfo.isPtrAggregate(paramInfo) && !TypeInfo.isPtrAggregate(argInfo)) {
-                // Can't take the address of an R-Value 
-                if(getExpr.object instanceof FuncCallExpr) {
-                    error(getExpr.object, 
-                            "cannot take the return value address of '%s' as it's an R-Value", getExpr.field.type.name);
-                }
-                                    
-                getExpr.object = new UnaryExpr(TokenType.BAND, new GroupExpr(getExpr.object).setSrcPos(pos))
-                                        .setSrcPos(pos);
-                
-                resolveExpr(getExpr.object);                
-            }
-            // See if we need to dereference the pointer
-            else if(TypeInfo.isAggregate(paramInfo) && TypeInfo.isPtrAggregate(argInfo)) {
-                getExpr.object = new UnaryExpr(TokenType.STAR, new GroupExpr(getExpr.object).setSrcPos(pos))
-                        .setSrcPos(pos);
-
-                resolveExpr(getExpr.object);
-            }
+        // we've already set this as a method call
+        if(getExpr.isMethodCall) {
+            return true;
         }
         
-        suppliedArguments.add(0, getExpr.object);            
+        getExpr.isMethodCall = true;
+        suppliedArguments.add(0, getExpr.object); 
+        
         return true;
     }
     

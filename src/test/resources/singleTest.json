@@ -367,7 +367,8 @@
                 // var c = [4] char;
                 test(c as (void*))
             ''',
-        },*/      
+        },*/
+        /*      
         {
             name: "TypeId Is unique", 
             definitions: '''
@@ -399,9 +400,6 @@
                 assert(id2 == id3)
                 assert(id3 == id4)
             ''',
-        },
-        
-        
-        
+        },*/
     ]
 }

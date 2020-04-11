@@ -54,6 +54,7 @@
 * func [strlen](#strlen)(str: char const*) : i32
 * func [strncmp](#strncmp)(a: char const*, b: char const*, num: u64) : i32
 * func [strncpy](#strncpy)(dest: char*, src: char const*, num: u64) : char*
+* func [strnlen](#strnlen)(str: char const*, len: u64) : i32
 * func [strtod](#strtod)(str: char const*, end: char**) : f64
 * func [strtok](#strtok)(str: char*, delim: char const*) : char*
 * func [strtol](#strtol)(str: char const*, end: char**, base: i32) : i64
@@ -289,6 +290,12 @@ func [strncmp](#strncmp)(a: char const*, b: char const*, num: u64) : i32
 
 
 func [strncpy](#strncpy)(dest: char*, src: char const*, num: u64) : char*
+
+
+### strnlen
+
+
+func [strnlen](#strnlen)(str: char const*, len: u64) : i32
 
 
 ### strtod

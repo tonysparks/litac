@@ -3,7 +3,7 @@
  */
 package litac.compiler;
 
-import java.util.Formatter;
+import java.util.*;
 
 /**
  * @author Tony
@@ -11,6 +11,23 @@ import java.util.Formatter;
  */
 public class Buf {
 
+    private static final Map<Character, String> escapeChars = new HashMap<>();
+    static {
+        //escapeChars.put('\a', "\\a");
+        escapeChars.put('\b', "\\b");
+        //escapeChars.put('\e', "\\e");
+        escapeChars.put('\f', "\\f");
+        escapeChars.put('\n', "\\n");
+        escapeChars.put('\r', "\\r");
+        escapeChars.put('\t', "\\t");
+        //escapeChars.put('\v', "\\v");
+        escapeChars.put('\\', "\\\\");
+        escapeChars.put('\'', "\\'");
+        escapeChars.put('\"', "\\\"");
+        //escapeChars.put('\?', "\\?");
+        escapeChars.put('\0', "\\0");
+    }
+    
     private StringBuilder sb;
     private int indent;
     private final String tabSpaces;
@@ -56,6 +73,19 @@ public class Buf {
     }
     public Buf appendRaw(char c) {
         this.sb.append(c);
+        return this;
+    }
+    
+    public Buf appendStringEscape(String str) {        
+        for(int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            if(escapeChars.containsKey(c)) {
+                appendRaw(escapeChars.get(c));
+            }
+            else {
+                appendRaw(c);
+            }
+        }        
         return this;
     }
     

@@ -537,6 +537,10 @@ public abstract class Expr extends Stmt {
             this.genericArgs = genericArgs;
         }
         
+        public void replaceArguments(List<Expr> newArgs) {
+            this.arguments = becomeParentOf(newArgs);
+        }
+        
         @Override
         public void visit(NodeVisitor v) {
             v.visit(this);

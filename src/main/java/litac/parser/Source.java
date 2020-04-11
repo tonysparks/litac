@@ -41,7 +41,7 @@ public class Source implements AutoCloseable {
      */
     public Source(File sourceFile, Reader reader) {
         this.sourceFile = sourceFile;
-        this.sourceName = sourceFile.getAbsolutePath().replace("\\", "\\\\");
+        this.sourceName = sourceFile.getName();
         this.lineNum = 0;
         this.currentPos = -2; // set to -2 to read the first source line
         this.lines = new ArrayList<>();

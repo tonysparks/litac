@@ -433,7 +433,7 @@
                 
                 assert(y.methodY().methodX() == 4)
             ''',
-            error: "cannot take the return value address of 'methodX' as it's an R-Value"
+            error: "cannot take the return value address of an R-Value"
         },
         {
             name: "Method infer generics", 

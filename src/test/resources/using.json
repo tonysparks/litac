@@ -1,6 +1,7 @@
 {
     description: "Using",
     disabled: false,
+    disableLines: true,
     program: '''                
         @include("assert.h");
         @foreign func assert(e:bool):void;
@@ -82,10 +83,10 @@
             ''',            
             code: '''
                 // TODO Allow for constructors to use using
-                // var p = Parent {.b = 4, .a = 4.4}
+                // var p = Parent {.b = 4, .a = 4.4f}
                 var p = Parent {.child = Child{4}, .a = 4.4f}    
                 assert(p.test() == 4)
-                assert(p.test2() == 4)
+                assert(p.test2() == 4)                
             '''
         },
         {
@@ -420,6 +421,300 @@
                 i = heavy.unit.base.getHealth()
                 assert(i == 100)
             ''',            
-        }, 
+        },
+        
+        
+        {
+            name: "Func with type with using as parameter",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                                
+                struct Unit {
+                    base: using EntityBase*
+                }
+                
+                struct HeavyUnit {
+                    unit: using Unit
+                }
+                
+                func GetHealth(e: EntityBase) : i32 {
+                    return e.health
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                
+                var i = GetHealth(heavy)
+                assert(i == 100)
+                     
+                i = GetHealth(heavy.base)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit.base)
+                assert(i == 100)
+            ''',            
+        },
+        {
+            name: "Func with type with using as parameter and using parameter",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                                
+                struct Unit {
+                    base: using EntityBase*
+                }
+                
+                struct HeavyUnit {
+                    unit: using Unit
+                }
+                
+                func GetHealth(e: using EntityBase) : i32 {
+                    return health
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                
+                var i = GetHealth(heavy)
+                assert(i == 100)
+                     
+                i = GetHealth(heavy.base)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit.base)
+                assert(i == 100)
+            ''',            
+        },
+        
+        {
+            name: "Func with type with using as parameter and using parameter and generic inference",
+            definitions: '''
+                struct EntityBase<T> {
+                    health: T
+                }       
+                                
+                struct Unit<T> {
+                    base: using EntityBase<T>*
+                }
+                
+                struct HeavyUnit<T> {
+                    unit: using Unit<T>
+                }
+                
+                func GetHealth<T>(e: using EntityBase<T>) : T {
+                    return health
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                
+                var i = GetHealth(heavy)
+                assert(i == 100)
+                     
+                i = GetHealth(heavy.base)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit.base)
+                assert(i == 100)
+            ''',            
+        },
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        {
+            name: "Func with type ptr with using as parameter",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                                
+                struct Unit {
+                    base: using EntityBase*
+                }
+                
+                struct HeavyUnit {
+                    unit: using Unit
+                }
+                
+                func GetHealth(e: EntityBase*) : i32 {
+                    return e.health
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                
+                var i = GetHealth(heavy)
+                assert(i == 100)
+                     
+                i = GetHealth(heavy.base)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit.base)
+                assert(i == 100)
+            ''',            
+        },
+        {
+            name: "Func with type ptr with using as parameter and using parameter",
+            definitions: '''
+                struct EntityBase {
+                    health: i32
+                }       
+                                
+                struct Unit {
+                    base: using EntityBase*
+                }
+                
+                struct HeavyUnit {
+                    unit: using Unit
+                }
+                
+                func GetHealth(e: using EntityBase*) : i32 {
+                    return health
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                
+                var i = GetHealth(heavy)
+                assert(i == 100)
+                     
+                i = GetHealth(heavy.base)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit.base)
+                assert(i == 100)
+            ''',            
+        },
+        
+        {
+            name: "Func with type ptr with using as parameter and using parameter and generic inference",
+            definitions: '''
+                struct EntityBase<T> {
+                    health: T
+                }       
+                                
+                struct Unit<T> {
+                    base: using EntityBase<T>*
+                }
+                
+                struct HeavyUnit<T> {
+                    unit: using Unit<T>
+                }
+                
+                func GetHealth<T>(e: using EntityBase<T>*) : T {
+                    return health
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                
+                var i = GetHealth(heavy)
+                assert(i == 100)
+                     
+                i = GetHealth(heavy.base)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit.base)
+                assert(i == 100)
+            ''',            
+        },
+        {
+            name: "Func with type ptr with using as parameter and using parameter and generic inference with varargs",
+            definitions: '''
+                struct EntityBase<T> {
+                    health: T
+                }       
+                                
+                struct Unit<T> {
+                    base: using EntityBase<T>*
+                }
+                
+                struct HeavyUnit<T> {
+                    unit: using Unit<T>
+                }
+                
+                func GetHealth<T>(e: using EntityBase<T>*, ...) : T {
+                    return health
+                }
+            ''',                       
+            code: '''   
+                var base = EntityBase {.health = 100}
+                var heavy = HeavyUnit {
+                    .unit = Unit {
+                        .base = &base
+                    }
+                }
+                
+                var i = GetHealth(heavy, 1, 2)
+                assert(i == 100)
+                     
+                i = GetHealth(heavy.base, 1, 2)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit, 1, 2)
+                assert(i == 100)
+                
+                i = GetHealth(heavy.unit.base, 1, 2)
+                assert(i == 100)
+            ''',            
+        },
+         
     ]
 }

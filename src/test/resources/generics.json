@@ -468,11 +468,12 @@
                     b: i32
                 }
                 
-                func (x: X*) method(y: Y) {
-                    call(y)
+                func (x: X*) method(y: Y) : i32 {
+                    return call(y)
                 }
                 
-                func call(y: Y*) {
+                func call(y: Y*) : i32 {
+                    return y.b
                 }
                                               
             ''',                       
@@ -480,9 +481,9 @@
                 var x = X{4}
                 var y = &Y{8}
                 
-                //x.method(y)
-            ''',    
-            error: "'struct Y*' is not of type 'struct Y'"                  
+                assert(x.method(y) == 8)
+                assert(call(*y) == 8)
+            ''',                  
         },
         { 
             name: "Generics Test missing generics",

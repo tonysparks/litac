@@ -33,25 +33,7 @@ import litac.compiler.Module;
  *
  */
 public class CGen {
-
-
-    private static final Map<Character, String> escapeChars = new HashMap<>();
-    static {
-        //escapeChars.put('\a', "\\a");
-        escapeChars.put('\b', "\\b");
-        //escapeChars.put('\e', "\\e");
-        escapeChars.put('\f', "\\f");
-        escapeChars.put('\n', "\\n");
-        escapeChars.put('\r', "\\r");
-        escapeChars.put('\t', "\\t");
-        //escapeChars.put('\v', "\\v");
-        escapeChars.put('\\', "\\\\");
-        escapeChars.put('\'', "\\'");
-        escapeChars.put('\"', "\\\"");
-        //escapeChars.put('\?', "\\?");
-        escapeChars.put('\0', "\\0");
-    }
-    
+   
     private class Scope {
         Stack<String> constDefs;
         Stack<DeferStmt> defers;
@@ -777,7 +759,12 @@ public class CGen {
             return;
         }
         
-        String sourceFile = stmt.getSourceName();
+        String sourceFile = null;
+        File file = stmt.getSourceFile();
+        if(file != null) {
+            sourceFile = file.getAbsolutePath();
+        }
+        
         int line = stmt.getLineNumber();
         
         if(this.currentLine != line ||
@@ -787,7 +774,11 @@ public class CGen {
             this.currentLine = line;
             
             if(this.currentFile != null) {
-                buf.out("\n#line %d \"%s\"\n", this.currentLine, this.currentFile);
+                buf.out("\n#line %d ", this.currentLine);
+                buf.appendRaw("\"");
+                buf.appendStringEscape(this.currentFile);
+                buf.appendRaw("\"");
+                buf.out("\n");
             }
             else {
                 buf.out("\n#line %d\n", this.currentLine);
@@ -1718,32 +1709,15 @@ public class CGen {
     
         @Override
         public void visit(StringExpr expr) {
-            buf.appendRaw("\"");
-            for(int i = 0; i < expr.string.length(); i++) {
-                char c = expr.string.charAt(i);
-                if(escapeChars.containsKey(c)) {
-                    buf.appendRaw(escapeChars.get(c));
-                }
-                else {
-                    buf.appendRaw(c);
-                }
-            }
+            buf.appendRaw("\"");            
+            buf.appendStringEscape(expr.string);
             buf.appendRaw("\"");
         }
         
         @Override
         public void visit(CharExpr expr) {
             buf.appendRaw("'");
-            for(int i = 0; i < expr.character.length(); i++) {
-                char c = expr.character.charAt(i);
-                if(escapeChars.containsKey(c)) {
-                    buf.appendRaw(escapeChars.get(c));
-                }
-                else {
-                    // Character.isISOControl(ch)
-                    buf.appendRaw(c);
-                }
-            }
+            buf.appendStringEscape(expr.character);
             buf.appendRaw("'");
         }
     
@@ -1765,11 +1739,12 @@ public class CGen {
                 params = funcInfo.parameterDecls;
             }
             
-            List<Expr> suppliedArguments = new ArrayList<>(expr.arguments);
+            //List<Expr> suppliedArguments = new ArrayList<>(expr.arguments);
+            List<Expr> suppliedArguments = expr.arguments;
+            
             
             GetExpr getExpr = getMethodCall(expr.object);
             if(getExpr != null) {
-                suppliedArguments.add(0, getExpr.object);
                 buf.out("%s", getTypeNameForC(getExpr.field.getResolvedType().type));
             }
             
