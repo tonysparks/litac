@@ -162,7 +162,11 @@ public class Document {
             log.log("No source location found");
 
             // just look for symbols in this module
-            final Module module = program.getModule(this.moduleId);                
+            final Module module = program.getModule(this.moduleId);
+            if(module == null) {
+                return Collections.emptyList();    
+            }
+            
             return module.getModuleScope().getSymbols().stream()
                     .filter(sym -> sym.declared == module && !sym.isBuiltin() && !sym.isFromGenericTemplate())
                     .map(sym -> LspUtil.fromSymbolCompletionItem(sym))
