@@ -1821,48 +1821,50 @@ public class TypeResolver {
             TypeInfo paramInfo = funcPtr.params.get(argIndex);                    
             TypeInfo argInfo = argExpr.getResolvedType().type;
             
-            // Determine if we need to get the "using" field of this method call
-            if(TypeInfo.isAggregate(TypeInfo.getBase(argInfo))) {
-                AggregateTypeInfo aggInfo = TypeInfo.getBase(argInfo).as();
-                TypeInfo pInfo = TypeInfo.getBase(paramInfo);
-                FieldPath path = aggInfo.getFieldPathUsingType(pInfo);
-                
-                if(path.hasPath()) {
-                    for(FieldPathNode node : path.getPath()) {
-                        NameTypeSpec nameSpec = new NameTypeSpec(pos, node.field.name);
-                        argExpr = new GetExpr(argExpr, new IdentifierExpr(nameSpec).setSrcPos(pos))
-                                                .setSrcPos(pos);
-                    }
+            if(!argInfo.isKind(TypeKind.Array)) {
+                // Determine if we need to get the "using" field of this method call
+                if(TypeInfo.isAggregate(TypeInfo.getBase(argInfo))) {
+                    AggregateTypeInfo aggInfo = TypeInfo.getBase(argInfo).as();
+                    TypeInfo pInfo = TypeInfo.getBase(paramInfo);
+                    FieldPath path = aggInfo.getFieldPathUsingType(pInfo);
                     
-                    //argInfo = resolveExpr(argExpr).type;
-                    resolveExpr(argExpr);
-                    argInfo = argExpr.getResolvedType().type;
+                    if(path.hasPath()) {
+                        for(FieldPathNode node : path.getPath()) {
+                            NameTypeSpec nameSpec = new NameTypeSpec(pos, node.field.name);
+                            argExpr = new GetExpr(argExpr, new IdentifierExpr(nameSpec).setSrcPos(pos))
+                                                    .setSrcPos(pos);
+                        }
+                        
+                        //argInfo = resolveExpr(argExpr).type;
+                        resolveExpr(argExpr);
+                        argInfo = argExpr.getResolvedType().type;
+                    }
                 }
-            }
-            
-            // Determine if we need to promote the object to a
-            // pointer depending on what the method is expecting as an
-            // argument
-            if(TypeInfo.isPtrAggregate(paramInfo) && !TypeInfo.isPtrAggregate(argInfo)) {
-                // Can't take the address of an R-Value; TODO: this should be expr.operand.isRvalue
-                // But the isLeftValue isn't working correctly atm
-                //if(!argExpr.getResolvedType().isLeftValue) {
-                if(argExpr instanceof FuncCallExpr) {
-                    error(argExpr, 
-                            "cannot take the return value address of an R-Value");
-                }
-                                    
-                argExpr = new UnaryExpr(TokenType.BAND, new GroupExpr(argExpr).setSrcPos(pos))
-                                        .setSrcPos(pos);
                 
-                resolveExpr(argExpr);
-            }
-            // See if we need to dereference the pointer
-            else if(TypeInfo.isAggregate(paramInfo) && TypeInfo.isPtrAggregate(argInfo)) {
-                argExpr = new UnaryExpr(TokenType.STAR, new GroupExpr(argExpr).setSrcPos(pos))
-                        .setSrcPos(pos);
-
-                resolveExpr(argExpr);
+                // Determine if we need to promote the object to a
+                // pointer depending on what the method is expecting as an
+                // argument
+                if(TypeInfo.isPtrAggregate(paramInfo) && !TypeInfo.isPtrAggregate(argInfo)) {
+                    // Can't take the address of an R-Value; TODO: this should be expr.operand.isRvalue
+                    // But the isLeftValue isn't working correctly atm
+                    //if(!argExpr.getResolvedType().isLeftValue) {
+                    if(argExpr instanceof FuncCallExpr) {
+                        error(argExpr, 
+                                "cannot take the return value address of an R-Value");
+                    }
+                                        
+                    argExpr = new UnaryExpr(TokenType.BAND, new GroupExpr(argExpr).setSrcPos(pos))
+                                            .setSrcPos(pos);
+                    
+                    resolveExpr(argExpr);
+                }
+                // See if we need to dereference the pointer
+                else if(TypeInfo.isAggregate(paramInfo) && TypeInfo.isPtrAggregate(argInfo)) {
+                    argExpr = new UnaryExpr(TokenType.STAR, new GroupExpr(argExpr).setSrcPos(pos))
+                            .setSrcPos(pos);
+    
+                    resolveExpr(argExpr);
+                }
             }
             
             suppliedArguments.set(argIndex, argExpr);

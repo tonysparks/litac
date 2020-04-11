@@ -796,6 +796,10 @@ public abstract class TypeInfo {
                     return false;
                 }
                 
+                if(this.fieldInfos.size() > targetStruct.fieldInfos.size()) {
+                    return false;
+                }
+                
                 for(int i = 0; i < this.fieldInfos.size(); i++) {
                     FieldInfo targetField = targetStruct.fieldInfos.get(i);
                     FieldInfo thisField   = this.fieldInfos.get(i);
@@ -850,6 +854,10 @@ public abstract class TypeInfo {
                 }
                 
                 if(this.fieldInfos.size() < targetUnion.fieldInfos.size()) {
+                    return false;
+                }
+                
+                if(this.fieldInfos.size() > targetUnion.fieldInfos.size()) {
                     return false;
                 }
                 

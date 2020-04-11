@@ -476,7 +476,7 @@ public class Module {
         }
         
         for(FieldInfo field : aggInfo.usingInfos) {
-            funcSym = getMethodTypeFromUsing(field.type.as(), methodName);
+            funcSym = getMethodTypeFromUsing(TypeInfo.getBase(field.type).as(), methodName);
             
             // we found it!
             if(funcSym != null) {
