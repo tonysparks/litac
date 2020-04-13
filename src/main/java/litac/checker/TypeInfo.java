@@ -1149,6 +1149,14 @@ public abstract class TypeInfo {
                        
             }
             
+            if(target.isKind(TypeKind.Ptr)) {
+                PtrTypeInfo ptrInfo = target.as();
+                if(ptrInfo.ptrOf.isKind(TypeKind.Void)) {
+                    return true;
+                }
+                return false;
+            }
+            
             if(target.isKind(TypeKind.Bool)) {
                 return true;
             }
@@ -1389,6 +1397,10 @@ public abstract class TypeInfo {
                 if(this.ptrOf.isKind(TypeKind.Char)) {
                     return true;
                 }                
+            }
+            
+            if(target.isKind(TypeKind.FuncPtr)) {
+                return this.ptrOf.isKind(TypeKind.Void);
             }
             
             return false;
