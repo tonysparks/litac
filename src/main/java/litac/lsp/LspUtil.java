@@ -85,6 +85,10 @@ public class LspUtil {
             item.documentation = note.getAttr(0, "");
         }
         
+        if(sym.type == null) {
+            return item;
+        }
+        
         String name = sym.name;
         if(sym.type.isKind(TypeKind.Func)) {
             FuncTypeInfo funcInfo = sym.type.as();

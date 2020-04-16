@@ -8,6 +8,7 @@
 #define LITAC_NOINLINE __declspec(noinline)
 #define LITAC_PACKED __pragma(pack(push, 1))
 #define LITAC_PACKED_POP __pragma(pack(pop))
+#define LITAC_EXPORT __declspec(dllexport)
 #endif
 
 #if __GNUC__
@@ -16,6 +17,7 @@
 #define LITAC_NOINLINE __attribute__((noinline))
 #define LITAC_PACKED __attribute__((packed))
 #define LITAC_PACKED_POP 
+#define LITAC_EXPORT __attribute__((visibility("default")))
 #endif
 """);
 

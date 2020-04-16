@@ -38,9 +38,13 @@ public class CTranspiler {
         }
         
         public String getBinaryOutputFile() {
+            String fileExt = options.targetOS.getExecutableExt();
+            if(options.outputFileName.contains(".")) {
+                fileExt = ""; // it is defined already..maybe :S
+            }
             return String.format("%s/%s%s", options.outputDir.getAbsolutePath(), 
                                             options.outputFileName, 
-                                            options.targetOS.getExecutableExt());
+                                            fileExt);
         }
         
         public String getCompileCmd(File cOutput) {

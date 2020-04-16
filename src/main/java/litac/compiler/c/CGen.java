@@ -932,6 +932,14 @@ public class CGen {
                     buf.out("LITAC_PACKED ");
                     break;
                 }
+                case "export": {
+                    buf.out("LITAC_EXPORT ");
+                    // TODO: do we want to allow export("customName")
+                    // to override the default generated name?
+                    // this may become problematic for name clashing and
+                    // certainly for generics...
+                    break;
+                }
             }
         }
         
