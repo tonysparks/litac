@@ -267,11 +267,15 @@ public class CGen {
                 else {
                     buf.out("%s %s(", getTypeNameForC(funcInfo.returnType), typeName);
                 }
-                boolean isFirst = true;                
+                
+                boolean isCast = false;
+                boolean decayArrays = true;
+                
+                boolean isFirst = true;
                 for(ParamInfo p : funcInfo.parameterDecls) {
                     if(!isFirst) buf.out(",");
                                         
-                    buf.out("%s", getTypeNameForC(p.type));
+                    buf.out("%s", getTypeNameForC(p.type, isCast, decayArrays));
                     
                     isFirst = false;
                 }
@@ -490,11 +494,15 @@ public class CGen {
     }
     
     private String typeDeclForC(TypeInfo type, String declName) {
+        return typeDeclForC(type, declName, false);
+    }
+    
+    private String typeDeclForC(TypeInfo type, String declName, boolean doDecay) {
         switch (type.getKind()) {
             case Ptr: {
                 PtrTypeInfo ptrInfo = type.as();
                 TypeInfo baseInfo = ptrInfo.getBaseType();
-                if(baseInfo.isKind(TypeKind.Array)) {
+                if(baseInfo.isKind(TypeKind.Array) && !doDecay) {
                     ArrayTypeInfo arrayInfo = baseInfo.as();
                     if(arrayInfo.length > -1) {
                         String typeDecl = getTypeNameForC(arrayInfo.arrayOf);
@@ -502,15 +510,19 @@ public class CGen {
                     }
                 }
                 
-                String typeDecl = getTypeNameForC(type);    
+                String typeDecl = getTypeNameForC(type, false, doDecay);    
                 return String.format("%s %s", typeDecl, declName); 
             }
             case Const: {
                 ConstTypeInfo constInfo = type.as();
-                return String.format("const %s", typeDeclForC(constInfo.constOf, declName));
+                return String.format("const %s", typeDeclForC(constInfo.constOf, declName, doDecay));
             }
             case Array: {
-                ArrayTypeInfo arrayInfo = type.as();      
+                ArrayTypeInfo arrayInfo = type.as();  
+                if(doDecay) {
+                    return typeDeclForC(arrayInfo.decay(), declName, doDecay);
+                }
+                
                 TypeInfo baseInfo = arrayInfo.getBaseType();                
                 String baseName = getTypeNameForC(baseInfo);
                 
@@ -539,7 +551,7 @@ public class CGen {
                 while(arrayInfo != null);
                 
                 if(baseInfo.isKind(TypeKind.FuncPtr)) {
-                    return typeDeclForC(baseInfo, declName + sb.toString());
+                    return typeDeclForC(baseInfo, declName + sb.toString(), doDecay);
                 }
                 else {
                     return String.format("%s %s%s", baseName, declName, sb.toString());
@@ -550,7 +562,7 @@ public class CGen {
                 return String.format("char* %s", declName);
             }
             case Enum: {
-                String typeName = getTypeNameForC(type);
+                String typeName = getTypeNameForC(type, false, doDecay);
                 return String.format("%s %s", typeName, declName);
             }
             case FuncPtr: {
@@ -559,14 +571,14 @@ public class CGen {
                 boolean isFirst = true;
                 for(TypeInfo p : funcInfo.params) {
                     if(!isFirst) params.append(",");
-                    params.append(getTypeNameForC(p));
+                    params.append(getTypeNameForC(p, false, true));
                     isFirst = false;
                 }
                 
-                return String.format("%s (*%s)(%s)", getTypeNameForC(funcInfo.returnType), declName, params);
+                return String.format("%s (*%s)(%s)", getTypeNameForC(funcInfo.returnType, false, doDecay), declName, params);
             }
             default: {                
-                String typeName = getTypeNameForC(type);
+                String typeName = getTypeNameForC(type, false, doDecay);
                 return String.format("%s %s", typeName, declName);
             }
         }
@@ -577,34 +589,38 @@ public class CGen {
     }
     
     private String getTypeNameForC(TypeInfo type) {
-        return getTypeNameForC(type, false);
+        return getTypeNameForC(type, false, false);
     }
     
     private String getTypeNameForC(TypeSpec typeSpec, boolean isCast) {
         TypeInfo type = this.resolvedTypeMap.get(typeSpec);        
-        return getTypeNameForC(type, isCast);
+        return getTypeNameForC(type, isCast, false);
     }
     
-    private String getTypeNameForC(TypeInfo type, boolean isCast) {
+    private String getTypeNameForC(TypeInfo type, boolean isCast, boolean doDecay) {
         switch (type.getKind()) {
             case Ptr: {
                 PtrTypeInfo ptrInfo = type.as();
                 TypeInfo baseInfo = ptrInfo.getBaseType();
-                if(baseInfo.isKind(TypeKind.Array)) {
+                if(baseInfo.isKind(TypeKind.Array) && !doDecay) {
                     ArrayTypeInfo arrayInfo = baseInfo.as();
                     if(arrayInfo.length > -1) {
-                        String typeDecl = getTypeNameForC(arrayInfo.arrayOf, isCast);
+                        String typeDecl = getTypeNameForC(arrayInfo.arrayOf, isCast, doDecay);
                         return String.format("%s (*)[%d]", typeDecl, arrayInfo.length);
                     }
                 }
-                return getTypeNameForC(ptrInfo.ptrOf, isCast) + "*";
+                return getTypeNameForC(ptrInfo.ptrOf, isCast, doDecay) + "*";
             }
             case Const: {
                 ConstTypeInfo constInfo = type.as();
-                return "const " + getTypeNameForC(constInfo.constOf, isCast);
+                return "const " + getTypeNameForC(constInfo.constOf, isCast, doDecay);
             }
             case Array: {
                 ArrayTypeInfo arrayInfo = type.as();
+                if(doDecay) {
+                    return getTypeNameForC(arrayInfo.decay(), isCast, doDecay);
+                }
+                
                 TypeInfo baseInfo = arrayInfo.getBaseType();
                 String baseName = getTypeNameForC(baseInfo);
                 
@@ -625,7 +641,6 @@ public class CGen {
                         sb.append(String.format("[%d]", arrayInfo.length));
                     }
                     
-                    
                     arrayInfo = arrayInfo.arrayOf.isKind(TypeKind.Array) ?
                                 arrayInfo.arrayOf.as() : null;
                     
@@ -640,11 +655,11 @@ public class CGen {
                 boolean isFirst = true;
                 for(TypeInfo p : funcInfo.params) {
                     if(!isFirst) params.append(",");
-                    params.append(getTypeNameForC(p, isCast));
+                    params.append(getTypeNameForC(p, isCast, true));
                     isFirst = false;
                 }
                 
-                return String.format("%s (*%s)(%s)", getTypeNameForC(funcInfo.returnType, isCast), 
+                return String.format("%s (*%s)(%s)", getTypeNameForC(funcInfo.returnType, isCast, doDecay), 
                         isCast ? "" : cTypeName(funcInfo), params);
             }
             default: {
@@ -1168,13 +1183,14 @@ public class CGen {
                 buf.out("%s %s(", getTypeNameForC(funcInfo.returnType), name);
             }
             
+            boolean decayArrays = true;            
             boolean isFirst = true;
             for(ParameterDecl p : d.params.params) {
                 if(!isFirst) {
                     buf.out(",");
                 }
                             
-                buf.out("%s", typeDeclForC(p.sym.type, prefix(p.name))); 
+                buf.out("%s", typeDeclForC(p.sym.type, prefix(p.name), decayArrays)); 
                 
                 isFirst = false;
             }

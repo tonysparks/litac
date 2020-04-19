@@ -1497,6 +1497,10 @@ public abstract class TypeInfo {
             return new ArrayTypeSpec(baseSpec.pos, baseSpec, lengthExpr);
         }
         
+        public PtrTypeInfo decay() {
+            return new PtrTypeInfo(this.arrayOf);
+        }
+        
         /**
          * @return the base type of the array
          */

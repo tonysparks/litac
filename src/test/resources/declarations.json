@@ -1633,5 +1633,25 @@
                 assert(test(4) == 14)
             ''',
         },
+        {
+            name: "Func with array",
+            definitions: '''
+                struct Node {
+                }
+                struct Object {
+                    a: [32]Node
+                }
+                func Test(array: Node*, len: i32) {
+                    
+                }
+            ''',                       
+            code: '''
+                   
+                var obj = Object{                   
+                }
+                
+                Test(obj.a, 32)
+            ''',            
+        },
     ]
 }

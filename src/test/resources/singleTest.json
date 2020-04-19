@@ -403,23 +403,110 @@
         },*/
         
         {
-            name: "Func with array",
+            name: "Func with array const expr",
             definitions: '''
+                const X = 4
+                const Y = 8
+                const LENGTH = X + (Y * 9)
                 struct Node {
+                    a: i32
                 }
-                struct Object {
-                    a: [32]Node
-                }
-                func Test(array: Node*, len: i32) {
-                    
+                
+                func Test(array: [LENGTH]Node) : [LENGTH]Node {
+                    return array
                 }
             ''',                       
             code: '''
                    
-                var obj = Object{                   
+                var n = Node {
+                    .a = 4
+                }
+                var a = [LENGTH]Node {
+                    [0] = n
                 }
                 
-                Test(obj.a, 32)
+                var b = Test(a)
+                assert(a == b)
+            ''',            
+        },
+        
+        {
+            name: "Func with array and pointer",
+            definitions: '''
+                
+                struct Node {
+                    a: i32
+                }
+                
+                func Test(array: [1]Node*) : [1]Node* {
+                    return array
+                }
+            ''',                       
+            code: '''
+                   
+                var n = Node {
+                    .a = 4
+                }
+                var a = [1]Node* {
+                    [0] = &n
+                }
+                
+                var b = Test(a)
+                assert(a == b)
+            ''',            
+        },
+        
+        {
+            name: "Func with array pointers",
+            definitions: '''
+                
+                struct Node {
+                    a: i32
+                }
+                
+                func Test(array: Node**) : Node** {
+                    return array
+                }
+            ''',                       
+            code: '''
+                   
+                var n = Node {
+                    .a = 4
+                }
+                var a = [1]Node* {
+                    [0] = &n
+                }
+                
+                var b = Test(a)
+                assert(a == b)
+            ''',            
+        },
+        
+        {
+            name: "Func with 2d array pointers",
+            definitions: '''
+                
+                struct Node {
+                    a: i32
+                }
+                
+                func Test(array: [1][1]Node) : [1][1]Node {
+                    return array
+                }
+            ''',                       
+            code: '''
+                   
+                var n = Node {
+                    .a = 4
+                }
+                var a = [1][1]Node {
+                    [1]Node{
+                        n
+                    }
+                }
+                
+                var b = Test(a)
+                assert(a == b)
             ''',            
         },
     ]
