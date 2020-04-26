@@ -15,8 +15,7 @@ import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
 import litac.checker.TypeResolver.Operand;
 import litac.compiler.*;
-import litac.compiler.Module;
-import litac.lsp.JsonRpc.Location;
+import litac.lsp.JsonRpc.*;
 import litac.lsp.SourceToAst.SourceLocation;
 
 /**
@@ -72,6 +71,8 @@ public class ReferenceDatabase {
     private Map<Symbol, FieldAccess> aggregateTypes;
     private Map<ModuleId, List<Location>> moduleReferences;
     
+    private IntellisenseDatabase intellisense;
+    
     private LspLogger log;
     private Program program;
     
@@ -80,11 +81,14 @@ public class ReferenceDatabase {
         this.identifiers = new IdentityHashMap<>();
         this.aggregateTypes = new IdentityHashMap<>();
         this.moduleReferences = new HashMap<>();
+        
+        this.intellisense = new IntellisenseDatabase();
     }
     
     public void buildDatabase(Program program) {
         this.identifiers.clear();
         this.aggregateTypes.clear();
+        this.intellisense.clear();
         
         this.program = program;
         
@@ -92,6 +96,93 @@ public class ReferenceDatabase {
         ReferenceNodeVisitor visitor = new ReferenceNodeVisitor(program, true);
         main.getModuleStmt().visit(visitor);
         
+    }
+        
+    public List<CompletionItem> findCompletionItems(Module module, Position pos, List<String> fields) {
+        List<Symbol> symbols = findSymbols(module.getId(), pos, fields);
+        if(symbols == null) {
+            return Collections.emptyList();
+        }
+        
+        if(symbols.size() == 1) {
+            Symbol sym = symbols.get(0);
+            return buildCompletion(module, fields, sym.type);
+        }
+        
+        return symbols.stream()
+                .map(sym -> LspUtil.fromSymbolCompletionItem(sym))
+                .collect(Collectors.toList());       
+    }
+    
+    private List<Symbol> findSymbols(ModuleId moduleId, Position pos, List<String> fields) {
+        IntellisenseScope scope = this.intellisense.getScope(moduleId, pos);
+        if(scope == null) {
+            log.log("No scope for: " + pos.line);
+            return Collections.emptyList();
+        }
+                       
+        if(fields.isEmpty()) {
+            log.log("Empty Fields for: " + pos.line);
+            return new ArrayList<>(scope.getAllSymbols());
+        }
+        
+        
+        String first = fields.get(0);
+        Symbol sym = scope.findSymbol(first);
+        if(sym != null) {
+            log.log("Found symbol for: '" + first + "'");
+            return Arrays.asList(sym);
+        }
+        
+        log.log("No symbol found for: '" + first + "'");
+        return new ArrayList<>(scope.getAllSymbols());
+    }
+    
+    private List<CompletionItem> buildCompletion(Module module, List<String> fields, TypeInfo type) {
+        if(fields.size() > 1 && type != null) {            
+            for(int i = 1; i < fields.size(); i++) {
+                String fieldName = fields.get(i);
+                
+                if(TypeInfo.isAggregate(type)) {
+                    AggregateTypeInfo aggInfo = type.as();
+                    FieldPath path = aggInfo.getFieldPath(fieldName);
+                    if(path.hasPath()) {
+                        FieldInfo field = path.getTargetField();
+                        type = field.type;
+                    }
+                }
+                else if(TypeInfo.isPtrAggregate(type)) {
+                    PtrTypeInfo ptrInfo = type.as();
+                    AggregateTypeInfo aggInfo = ptrInfo.getBaseType().as();
+                    FieldPath path = aggInfo.getFieldPath(fieldName);
+                    if(path.hasPath()) {
+                        FieldInfo field = path.getTargetField();
+                        type = field.type;
+                    }                            
+                }
+                else {
+                    break;
+                }
+            }
+        }
+        
+        if(type != null) {
+            if(TypeInfo.isAggregate(type)) {
+                AggregateTypeInfo aggInfo = type.as();
+                return LspUtil.fromTypeInfoCompletionItems(module, aggInfo);
+            }
+            else if(TypeInfo.isPtrAggregate(type)) {
+                PtrTypeInfo ptrInfo = type.as();
+                AggregateTypeInfo aggInfo = ptrInfo.getBaseType().as();
+                return LspUtil.fromTypeInfoCompletionItems(module, aggInfo);
+            }
+            else if(TypeInfo.isEnum(type)) {                
+                EnumTypeInfo enumInfo = type.as();
+                return LspUtil.fromEnumTypeInfoCompletionItems(enumInfo);
+            }
+        }
+        
+        return Collections.emptyList();
     }
     
     public List<Location> findReferencesFromLocation(SourceLocation location) {
@@ -259,14 +350,15 @@ public class ReferenceDatabase {
                 }
             }
             
+            intellisense.beginModule(stmt);
             for(Decl d : stmt.declarations) {
-                d.visit(this);
+                d.visit(this);                
             }
             
             for(Stmt s : stmt.notes) {
                 s.visit(this);
             }
-            
+            intellisense.endModule();
         }
 
         @Override
@@ -456,6 +548,7 @@ public class ReferenceDatabase {
             }
             
             // TODO: Array Size Expr's
+            intellisense.addSymbol(d.sym);
         }
 
         @Override
@@ -467,18 +560,28 @@ public class ReferenceDatabase {
             for(EnumFieldEntryStmt field : d.fields) {
                 field.visit(this);                
             }
+            
+            intellisense.addSymbol(d.sym);
         }
 
         @Override
         public void visit(FuncDecl d) {
+            if(!d.isMethod()) {
+                intellisense.addSymbol(d.sym);    
+            }
+            
+            intellisense.beginScope(d);
+            
             if(!identifiers.containsKey(d.sym)) {
                 identifiers.put(d.sym, new ArrayList<>());
             }
+            d.params.visit(this);   
             
             if(d.bodyStmt != null) {
                 d.bodyStmt.visit(this);
             }
-            d.params.visit(this);   
+            
+            intellisense.popScope();
         }
 
         @Override
@@ -521,6 +624,7 @@ public class ReferenceDatabase {
             }
             
             // TODO: Array Size Expr's
+            intellisense.addSymbol(d.sym);
         }
 
         @Override
@@ -539,7 +643,9 @@ public class ReferenceDatabase {
             }
             
             Location loc = LspUtil.locationFromSrcPosLine(d.getSrcPos());
-            identifiers.get(sym).add(loc);            
+            identifiers.get(sym).add(loc);   
+            
+            intellisense.addSymbol(sym);
         }
 
         @Override

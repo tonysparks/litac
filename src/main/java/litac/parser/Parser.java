@@ -118,7 +118,7 @@ public class Parser {
         return new ModuleStmt(id,
                               imports, 
                               moduleNotes, 
-                              declarations).setSrcPos(pos);
+                              declarations).setSrcPos(pos, peekPos());
     }
     
     private void tryModuleStatement(List<ImportStmt> imports, 
@@ -187,7 +187,7 @@ public class Parser {
         
         File moduleFile = Names.getModuleFile(this.scanner.getSourceFile(), options, moduleName);
         ModuleId module = ModuleId.from(options.libDir, options.getSrcDir(), moduleFile);
-        return new ImportStmt(moduleName, aliasName, module, isUsing).setSrcPos(pos);
+        return new ImportStmt(moduleName, aliasName, module, isUsing).setSrcPos(pos, peekPos());
     }
         
     private VarDecl varDeclaration() {
@@ -216,7 +216,7 @@ public class Parser {
             type = null;
         }
                 
-        return new VarDecl(identifier, type, expr, modifiers).setSrcPos(pos);
+        return new VarDecl(identifier, type, expr, modifiers).setSrcPos(pos, peekPos());
     }
     
     private ConstDecl constDeclaration() {
@@ -236,7 +236,7 @@ public class Parser {
             expr = expression();
         }
         
-        return new ConstDecl(identifier, type, expr, modifiers).setSrcPos(pos);
+        return new ConstDecl(identifier, type, expr, modifiers).setSrcPos(pos, peekPos());
     }
     
     
@@ -290,13 +290,13 @@ public class Parser {
             // with function parameters
             if(body instanceof BlockStmt) {
                 body = new FuncBodyStmt(((BlockStmt) body).stmts);
-                body.setSrcPos(body.getSrcPos());
+                body.setSrcPos(body.getSrcPos(), peekPos());
             }
         }
         
         this.funcLevel--;
         
-        return new FuncDecl(identifier, parameters, body, returnType, genericParams, flags).setSrcPos(pos);
+        return new FuncDecl(identifier, parameters, body, returnType, genericParams, flags).setSrcPos(pos, peekPos());
     }
     
     private StructDecl structDeclaration() {
@@ -313,7 +313,7 @@ public class Parser {
         }
         else {
             String name = String.format("<anonymous-struct-%d>", anonStructId++);
-            structName = new Identifier(name).setSrcPos(pos);
+            structName = new Identifier(name).setSrcPos(pos, peekPos());
             flags |= AggregateTypeInfo.IS_ANONYMOUS;
         }
 
@@ -343,7 +343,7 @@ public class Parser {
         }
         this.aggregateLevel--;
                                        
-        return new StructDecl(structName, fields, genericParams, flags).setSrcPos(pos);
+        return new StructDecl(structName, fields, genericParams, flags).setSrcPos(pos, peekPos());
     }
     
     private UnionDecl unionDeclaration() {
@@ -360,7 +360,7 @@ public class Parser {
         }
         else {
             String name = String.format("<anonymous-union-%d>", anonUnionId++);
-            unionName = new Identifier(name).setSrcPos(pos);
+            unionName = new Identifier(name).setSrcPos(pos, peekPos());
             flags |= AggregateTypeInfo.IS_ANONYMOUS;
         }
 
@@ -390,7 +390,7 @@ public class Parser {
         }
         this.aggregateLevel--;
         
-        return new UnionDecl(unionName, fields, genericParams, flags).setSrcPos(pos);
+        return new UnionDecl(unionName, fields, genericParams, flags).setSrcPos(pos, peekPos());
     }
     
     private EnumDecl enumDeclaration() {
@@ -414,7 +414,7 @@ public class Parser {
                         
         consume(RIGHT_BRACE, ErrorCode.MISSING_RIGHT_BRACE);
         
-        return new EnumDecl(identifier, fields).setSrcPos(pos);
+        return new EnumDecl(identifier, fields).setSrcPos(pos, peekPos());
     }
 
     private TypedefDecl typedefDeclaration() {
@@ -429,7 +429,7 @@ public class Parser {
             genericParams = genericParameters();
         }
         
-        return new TypedefDecl(identifier, aliasedType, identifier.identifier, genericParams).setSrcPos(pos);
+        return new TypedefDecl(identifier, aliasedType, identifier.identifier, genericParams).setSrcPos(pos, peekPos());
     }
     
 
@@ -453,7 +453,7 @@ public class Parser {
                     consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
                 }     
                 
-                notes.add(new NoteStmt(identifier.getText(), attributes).setSrcPos(pos));
+                notes.add(new NoteStmt(identifier.getText(), attributes).setSrcPos(pos, peekPos()));
             }
         }
         
@@ -479,7 +479,7 @@ public class Parser {
             else if(match(TYPEDEF))   decl = typedefDeclaration();            
             else if(match(SEMICOLON)) {
                 if(notes != null) {
-                    return new BlockStmt(new ArrayList<>(notes)).setSrcPos(pos);
+                    return new BlockStmt(new ArrayList<>(notes)).setSrcPos(pos, peekPos());
                 }
                 return null;
             }
@@ -626,38 +626,36 @@ public class Parser {
             }
             
             decl.attributes.notes = notes;
-            return decl.setSrcPos(pos);
+            return decl.setSrcPos(pos, peekPos());
         }
         
         if(match(HASH)) {
-            //CompStmt compStmt = compStmt().setSrcPos(pos);
-            //return executeCompStmt(compStmt).setSrcPos(pos);
-            return compStmt().setSrcPos(pos);
+            return compStmt().setSrcPos(pos, peekPos());
         }
         
-        if(match(LEFT_BRACE))   return blockStatement().setSrcPos(pos);        
-        if(match(VAR))          return varDeclaration().setSrcPos(pos);
-        if(match(CONST))        return constDeclaration().setSrcPos(pos);
-        if(match(IF))           return ifStmt().setSrcPos(pos);
-        if(match(WHILE))        return whileStmt().setSrcPos(pos);
-        if(match(DO))           return doWhileStmt().setSrcPos(pos);
-        if(match(FOR))          return forStmt().setSrcPos(pos);
-        if(match(SWITCH))       return switchStmt().setSrcPos(pos);
-        if(match(BREAK))        return breakStmt().setSrcPos(pos);
-        if(match(CONTINUE))     return continueStmt().setSrcPos(pos);
-        if(match(RETURN))       return returnStmt().setSrcPos(pos);
-        if(match(DEFER))        return deferStmt().setSrcPos(pos);
-        if(match(GOTO))         return gotoStmt().setSrcPos(pos);
+        if(match(LEFT_BRACE))   return blockStatement().setSrcPos(pos, peekPos());        
+        if(match(VAR))          return varDeclaration().setSrcPos(pos, peekPos());
+        if(match(CONST))        return constDeclaration().setSrcPos(pos, peekPos());
+        if(match(IF))           return ifStmt().setSrcPos(pos, peekPos());
+        if(match(WHILE))        return whileStmt().setSrcPos(pos, peekPos());
+        if(match(DO))           return doWhileStmt().setSrcPos(pos, peekPos());
+        if(match(FOR))          return forStmt().setSrcPos(pos, peekPos());
+        if(match(SWITCH))       return switchStmt().setSrcPos(pos, peekPos());
+        if(match(BREAK))        return breakStmt().setSrcPos(pos, peekPos());
+        if(match(CONTINUE))     return continueStmt().setSrcPos(pos, peekPos());
+        if(match(RETURN))       return returnStmt().setSrcPos(pos, peekPos());
+        if(match(DEFER))        return deferStmt().setSrcPos(pos, peekPos());
+        if(match(GOTO))         return gotoStmt().setSrcPos(pos, peekPos());
         //if(match(SEMICOLON))    return emptyStmt();
         
         if(check(IDENTIFIER)) {
             Stmt stmt = tryLabelStmt();
             if(stmt != null) {
-                return stmt.setSrcPos(pos);
+                return stmt.setSrcPos(pos, peekPos());
             }
         }
         
-        return expression().setSrcPos(pos);
+        return expression().setSrcPos(pos, peekPos());
     }
     
     private EmptyStmt emptyStmt() {
@@ -708,7 +706,7 @@ public class Parser {
                         throw error(peek(), ErrorCode.INVALID_DEFAULT_ASSIGNMENT);
                     }
                 }
-                return new VarFieldStmt(fieldName, type, attributes, defaultExpr).setSrcPos(pos);
+                return new VarFieldStmt(fieldName, type, attributes, defaultExpr).setSrcPos(pos, peekPos());
             }                
             case STRUCT: {
                 advance();
@@ -716,7 +714,7 @@ public class Parser {
                 StructDecl struct = structDeclaration();
                 struct.attributes.srcPos = pos;
                 struct.attributes.addNotes(notes);
-                return new StructFieldStmt(struct).setSrcPos(pos);
+                return new StructFieldStmt(struct).setSrcPos(pos, peekPos());
             }
             case UNION: {
                 advance();
@@ -724,7 +722,7 @@ public class Parser {
                 UnionDecl union = unionDeclaration();
                 union.attributes.srcPos = pos;
                 union.attributes.addNotes(notes);
-                return new UnionFieldStmt(union).setSrcPos(pos);                
+                return new UnionFieldStmt(union).setSrcPos(pos, peekPos());                
             }
             case ENUM: {
                 advance();
@@ -732,7 +730,7 @@ public class Parser {
                 EnumDecl enm = enumDeclaration();
                 enm.attributes.srcPos = pos;
                 enm.attributes.addNotes(notes);
-                return new EnumFieldStmt(enm).setSrcPos(pos);
+                return new EnumFieldStmt(enm).setSrcPos(pos, peekPos());
             }
             default:
                 throw error(peek(), ErrorCode.INVALID_FIELD);
@@ -753,7 +751,7 @@ public class Parser {
         attrs.notes = notes;
         attrs.srcPos = pos;
         
-        return new EnumFieldEntryStmt(identifier, expr, attrs).setSrcPos(pos);
+        return new EnumFieldEntryStmt(identifier, expr, attrs).setSrcPos(pos, peekPos());
     }
     
     private IfStmt ifStmt() {            
@@ -833,8 +831,8 @@ public class Parser {
         }
         
         return new SwitchCaseStmt(cond, stmts.isEmpty() 
-                            ? new EmptyStmt().setSrcPos(pos) 
-                            : new BlockStmt(stmts).setSrcPos(pos));
+                            ? new EmptyStmt().setSrcPos(pos, peekPos()) 
+                            : new BlockStmt(stmts).setSrcPos(pos, peekPos()));
     }
     
     private Stmt defaultStmt() {
@@ -876,13 +874,13 @@ public class Parser {
         while(!isAtEnd()) {
             SrcPos pos = pos();
             if(match(CASE)) {
-                caseStmts.add(switchCaseStmt().setSrcPos(pos));
+                caseStmts.add(switchCaseStmt().setSrcPos(pos, peekPos()));
                 
                 match(SEMICOLON);
             }
             else if(match(DEFAULT)) {
                 consume(COLON, ErrorCode.MISSING_COLON);
-                defaultStmt = defaultStmt().setSrcPos(pos);
+                defaultStmt = defaultStmt().setSrcPos(pos, peekPos());
                 
                 match(SEMICOLON);
             }
@@ -972,7 +970,7 @@ public class Parser {
     
     private Expr tryExpression() {        
         SrcPos pos = pos();
-        return assignment().setSrcPos(pos);
+        return assignment().setSrcPos(pos, peekPos());
     }
     
     private void checkConstExpr(Token token, Expr expr) {
@@ -1044,14 +1042,14 @@ public class Parser {
             
             if(expr instanceof GetExpr) {
                 GetExpr getExpr = (GetExpr)expr;
-                expr = new SetExpr(getExpr.object, getExpr.field, operator, right).setSrcPos(pos);
+                expr = new SetExpr(getExpr.object, getExpr.field, operator, right).setSrcPos(pos, peekPos());
             }
             else if(expr instanceof SubscriptGetExpr) {
                 SubscriptGetExpr getExpr = (SubscriptGetExpr)expr;
-                expr = new SubscriptSetExpr(getExpr.object, getExpr.index, operator, right).setSrcPos(pos);
+                expr = new SubscriptSetExpr(getExpr.object, getExpr.index, operator, right).setSrcPos(pos, peekPos());
             }
             else {
-                expr = new BinaryExpr(expr, operator, right).setSrcPos(pos);
+                expr = new BinaryExpr(expr, operator, right).setSrcPos(pos, peekPos());
             }
             
             pos = pos();
@@ -1068,7 +1066,7 @@ public class Parser {
             Expr then = expression();
             consume(COLON, ErrorCode.MISSING_COLON);
             Expr other = expression();
-            expr = new TernaryExpr(expr, then, other).setSrcPos(pos);            
+            expr = new TernaryExpr(expr, then, other).setSrcPos(pos, peekPos());            
         }
         
         return expr;
@@ -1081,7 +1079,7 @@ public class Parser {
         while(match(OR)) {
             Token operator = previous();
             Expr right = and();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1095,7 +1093,7 @@ public class Parser {
         while(match(AND)) {
             Token operator = previous();
             Expr right = bitOr();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1109,7 +1107,7 @@ public class Parser {
         while(match(BOR)) {
             Token operator = previous();
             Expr right = bitXor();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1123,7 +1121,7 @@ public class Parser {
         while(match(XOR)) {
             Token operator = previous();
             Expr right = bitAnd();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1138,7 +1136,7 @@ public class Parser {
         while(match(BAND)) {
             Token operator = previous();
             Expr right = equality();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1153,7 +1151,7 @@ public class Parser {
                     EQUALS_EQUALS)) {
             Token operator = previous();
             Expr right = comparison();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1167,7 +1165,7 @@ public class Parser {
         while(match(GREATER_THAN, GREATER_EQUALS, LESS_THAN, LESS_EQUALS)) {
             Token operator = previous();
             Expr right = bitShift();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1186,7 +1184,7 @@ public class Parser {
         while(match(LSHIFT, RSHIFT)) {
             Token operator = previous();
             Expr right = term();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1200,7 +1198,7 @@ public class Parser {
         while(match(MINUS, PLUS)) {
             Token operator = previous();
             Expr right = factor();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1214,7 +1212,7 @@ public class Parser {
         while(match(SLASH, STAR, MOD)) {
             Token operator = previous();
             Expr right = unary();
-            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos);
+            expr = new BinaryExpr(expr, operator.getType(), right).setSrcPos(pos, peekPos());
             pos = pos();
         }
         
@@ -1227,7 +1225,7 @@ public class Parser {
             Token operator = previous();
             Expr right = unary();
 
-            return new UnaryExpr(operator.getType(), right).setSrcPos(pos); 
+            return new UnaryExpr(operator.getType(), right).setSrcPos(pos, peekPos()); 
         }
         return functionCall();
     }
@@ -1305,11 +1303,11 @@ public class Parser {
     
     private Expr functionCall() {        
         SrcPos pos = pos();
-        Expr expr = primary().setSrcPos(pos);
+        Expr expr = primary().setSrcPos(pos, peekPos());
         
         while(true) {
             if(match(LEFT_PAREN)) {                
-                expr = finishFunctionCall(expr).setSrcPos(pos);
+                expr = finishFunctionCall(expr).setSrcPos(pos, peekPos());
             }
             else if(check(LEFT_BRACE)) {
                 if(!(expr instanceof IdentifierExpr)) {
@@ -1320,21 +1318,21 @@ public class Parser {
                 
                 IdentifierExpr idExpr = (IdentifierExpr)expr;
                 List<InitArgExpr> arguments = structArguments();
-                expr = new InitExpr(idExpr.type, arguments).setSrcPos(pos);
+                expr = new InitExpr(idExpr.type, arguments).setSrcPos(pos, peekPos());
             }
             else if(match(LEFT_BRACKET)) {
                 Expr index = expression();
                 consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
                 
-                expr = new SubscriptGetExpr(expr, index).setSrcPos(pos);
+                expr = new SubscriptGetExpr(expr, index).setSrcPos(pos, peekPos());
             }
             else if(match(DOT)) {
                 SrcPos idPos = pos();
                 NameTypeSpec identifier = identifierType(true);
-                expr = new GetExpr(expr, new IdentifierExpr(identifier).setSrcPos(idPos)).setSrcPos(pos);
+                expr = new GetExpr(expr, new IdentifierExpr(identifier).setSrcPos(idPos, peekPos())).setSrcPos(pos, peekPos());
             }
             else if(match(AS)) {
-                expr = cast(expr).setSrcPos(pos);
+                expr = cast(expr).setSrcPos(pos, peekPos());
             }
             else {
                 break;
@@ -1380,7 +1378,7 @@ public class Parser {
         // Convert the IdentifierExpr to a FuncIndentiferExpr
         if(callee instanceof IdentifierExpr) {
             IdentifierExpr idExpr = (IdentifierExpr)callee;            
-            callee = new FuncIdentifierExpr(idExpr.type).setSrcPos(idExpr.getSrcPos());
+            callee = new FuncIdentifierExpr(idExpr.type).setSrcPos(idExpr.getSrcPos(), peekPos());
         }
         else if(callee instanceof GetExpr) {
             GetExpr getExpr = (GetExpr)callee;
@@ -1391,7 +1389,7 @@ public class Parser {
                 pos = idExpr.getSrcPos();
             }
             
-            IdentifierExpr newId = new FuncIdentifierExpr(getExpr.field.type).setSrcPos(pos);
+            IdentifierExpr newId = new FuncIdentifierExpr(getExpr.field.type).setSrcPos(pos, peekPos());
             getExpr.setField(newId);
         }
             
@@ -1640,7 +1638,7 @@ public class Parser {
     private Identifier identifier() {        
         Token token = consume(IDENTIFIER, ErrorCode.MISSING_IDENTIFIER);
         String identifier = token.getText();
-        return new Identifier(identifier).setSrcPos(token.getPos());
+        return new Identifier(identifier).setSrcPos(token.getPos(), peekPos());
     }
     
     /**
@@ -1677,7 +1675,7 @@ public class Parser {
         }
         
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-        return new ParametersStmt(parameterInfos, isVarargs).setSrcPos(pos);
+        return new ParametersStmt(parameterInfos, isVarargs).setSrcPos(pos, peekPos());
     }
     
     private ParameterDecl parameterDecl(boolean allowEquals) {
@@ -1694,7 +1692,7 @@ public class Parser {
             defaultValue = constExpression();
         }
         
-        return new ParameterDecl(type, identifier, defaultValue, modifiers).setSrcPos(pos);
+        return new ParameterDecl(type, identifier, defaultValue, modifiers).setSrcPos(pos, peekPos());
     }
     
     /**
@@ -1783,7 +1781,7 @@ public class Parser {
                 consume(RIGHT_BRACKET, ErrorCode.MISSING_RIGHT_BRACKET);
                 consume(EQUALS, ErrorCode.MISSING_EQUALS);
                 Expr value = expression();
-                designator = new ArrayDesignationExpr(index, value).setSrcPos(pos);
+                designator = new ArrayDesignationExpr(index, value).setSrcPos(pos, peekPos());
             }
             
         }
@@ -1818,7 +1816,7 @@ public class Parser {
             }
             
             Expr value = expression();
-            InitArgExpr argExpr = new InitArgExpr(fieldName, argPosition++, value).setSrcPos(pos);
+            InitArgExpr argExpr = new InitArgExpr(fieldName, argPosition++, value).setSrcPos(pos, peekPos());
             arguments.add(argExpr);
              
         }
@@ -1844,6 +1842,14 @@ public class Parser {
     private SrcPos pos() {        
         source();
         return this.startToken.getPos();
+    }
+    
+    private SrcPos peekPos() {
+        if(!isAtEnd()) {
+            return peek().getPos();
+        }
+        
+        return null;
     }
     
     /**

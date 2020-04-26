@@ -42,7 +42,7 @@ public class Names {
         if(path.startsWith(libDir.toPath())) {
             packages = libDir.toPath().relativize(path).toString();
         }
-        if(srcDir != null && path.startsWith(srcDir.toPath())) {
+        else if(srcDir != null && path.startsWith(srcDir.toPath())) {
             packages = srcDir.toPath().relativize(path).toString();
         }
         

@@ -36,6 +36,7 @@ public abstract class Node {
                       int lineNumber,
                       int position,
                       Token token) {
+            
             this.sourceFile = sourceFile;
             this.sourceName = sourceName;
             this.sourceLine = sourceLine;
@@ -43,6 +44,15 @@ public abstract class Node {
             this.position = position;
             this.token = token;
         }
+        
+        public void setSrcPos(SrcPos other) {
+              this.sourceFile = other.sourceFile;
+              this.sourceName = other.sourceName;
+              this.sourceLine = other.sourceLine;
+              this.lineNumber = other.lineNumber;
+              this.position = other.position;
+              this.token = other.token;
+          }
         
         @Override
         public String toString() {        
@@ -70,9 +80,11 @@ public abstract class Node {
     
     private Node parentNode;
     private SrcPos pos;
+    private SrcPos endPos;
     
     public Node() {
         this.pos = new SrcPos();
+        this.endPos = new SrcPos();
     }
     
     public abstract void visit(NodeVisitor v);
@@ -82,13 +94,21 @@ public abstract class Node {
     @SuppressWarnings("unchecked")
     public <T extends Node> T copy() {
         Node node = doCopy();
-        node.pos = this.pos;
+        node.pos.setSrcPos(this.pos);
+        node.endPos.setSrcPos(this.endPos);
         return (T)node;
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Node> T setSrcPos(SrcPos pos) {
-        this.pos = pos;
+    public <T extends Node> T setSrcPos(SrcPos startPos, SrcPos endPos) {
+        if(startPos != null) {
+            this.pos.setSrcPos(startPos);
+        }
+        
+        if(endPos != null) {
+            this.endPos.setSrcPos(endPos);
+        }
+        
         return (T) this;
     }
     
@@ -97,6 +117,13 @@ public abstract class Node {
      */
     public SrcPos getSrcPos() {
         return pos;
+    }
+    
+    /**
+     * @return the endPos
+     */
+    public SrcPos getEndSrcPos() {
+        return endPos;
     }
     
     public File getSourceFile() {
@@ -156,16 +183,7 @@ public abstract class Node {
     public void setToken(Token token) {
         this.pos.token = token;
     }
-    
-    public void updateSrcPos(SrcPos srcPos) {
-        this.pos.lineNumber = srcPos.lineNumber;
-        this.pos.position = srcPos.position;
-        this.pos.sourceFile = srcPos.sourceFile;
-        this.pos.sourceName = srcPos.sourceName;
-        this.pos.sourceLine = srcPos.sourceLine;
-        this.pos.token = srcPos.token;
-    }
-    
+        
     /**
      * @param parentNode the parentNode to set
      */

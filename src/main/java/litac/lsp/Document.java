@@ -7,14 +7,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import litac.ast.*;
-import litac.checker.TypeInfo;
-import litac.checker.TypeInfo.AggregateTypeInfo;
-import litac.checker.TypeResolver.Operand;
 import litac.compiler.*;
 import litac.compiler.Module;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.lsp.JsonRpc.*;
 import litac.lsp.SourceToAst.SourceLocation;
+import litac.parser.tokens.WordToken;
 
 /**
  * Represents a litac module document
@@ -75,7 +73,7 @@ public class Document {
         return getSourceLocation(workspace, pos, false);
     }
     
-    private SourceLocation getSourceLocation(Workspace workspace, Position pos, boolean doFullBuild) {
+    private Module getModule(Workspace workspace, boolean doFullBuild) {
         if(doFullBuild && !workspace.isFullyBuilt()) {
             workspace.processSource();
         }
@@ -112,6 +110,12 @@ public class Document {
             }
         }
         
+        return module;
+    }
+    
+    private SourceLocation getSourceLocation(Workspace workspace, Position pos, boolean doFullBuild) {
+        Module module = getModule(workspace, doFullBuild);
+        Program program = workspace.getLatestProgram();
         SourceToAst sta = new SourceToAst(log, program, module, pos);
         return sta.findSourceLocation(module.getModuleStmt());
     }
@@ -144,82 +148,79 @@ public class Document {
         }
         
         ReferenceDatabase database = workspace.getReferences();
-        database.buildDatabase(workspace.getLatestProgram());
+        database.buildDatabase(program);
         
         List<Location> locations = database.findReferencesFromLocation(location);                
         return locations;
     }
     
     public List<CompletionItem> getAutoCompletionList(Workspace workspace, Position pos) {
-        SourceLocation location = getSourceLocation(workspace, pos, false);
+        Module module = getModule(workspace, true);
+        if(module == null) {
+            log.log("No program built");
+            return Collections.emptyList();
+        }
+        
         Program program = workspace.getLatestProgram();
         if(program == null) {
             log.log("No program built");
             return Collections.emptyList();
         }
         
-        if(location == null) {
-            log.log("No source location found");
-
-            // just look for symbols in this module
-            final Module module = program.getModule(this.moduleId);
-            if(module == null) {
-                return Collections.emptyList();    
-            }
-            
-            return module.getModuleScope().getSymbols().stream()
-                    .filter(sym -> sym.declared == module && !sym.isBuiltin() && !sym.isFromGenericTemplate())
-                    .map(sym -> LspUtil.fromSymbolCompletionItem(sym))
-                    .collect(Collectors.toList());
-        }
+        ReferenceDatabase database = workspace.getReferences();
+        database.buildDatabase(program);
         
-        if(!(location.node instanceof Expr)) {
-            log.log("Location is not an Expression: " + location.node.getClass().getSimpleName());
-            return Collections.emptyList();
-        }
-        
-        // TODO: Move logic into a Intellisense class..
-        
-        Expr expr = (Expr)location.node;
-        Operand op = expr.getResolvedType();
-        if(op == null) {
-            return Collections.emptyList();
-        }
-        
-        TypeInfo type = op.type;
-        
-        if(TypeInfo.isAggregate(type)) {
-            AggregateTypeInfo agg = type.as();
-            return agg.fieldInfos.stream()
-                    .filter(field -> field.type != null && field.type.sym != null)
-                    .map(field -> LspUtil.fromSymbolCompletionItem(field.type.sym))
-                    .collect(Collectors.toList());
-        }
-        
-        return Collections.emptyList();
+        List<String> fields = findIdentifier(pos);
+        return database.findCompletionItems(module, pos, fields);              
     }
     
-//    private int readIdentifier(int index) {
-//        while(index > -1) {
-//            char c = this.buffer.charAt(index);            
-//            if(!WordToken.isValidIdentifierCharacter(c)) {
-//                break;
-//            }
-//            
-//            index--;
-//        }
-//        
-//        while(index < this.buffer.length()) {
-//            char prevC = this.buffer.charAt(index);
-//            if(WordToken.isValidStartIdentifierCharacter(prevC)) {
-//                break;
-//            }
-//            
-//            index++;
-//        }
-//        
-//        return index;
-//    }
+    private List<String> findIdentifier(Position pos) {
+        List<String> fields = new ArrayList<>();
+        
+        int index = getLineStart(pos.line) + pos.character - 1;
+        StringBuffer sb = new StringBuffer();
+        while(index > -1) {
+            char c = this.buffer.charAt(index);
+            
+            if(Character.isWhitespace(c)) {                
+                index = skipWhitespace(index);
+                if(index < 0) {
+                    break;
+                }
+                
+                continue;
+            }
+            
+            if(!WordToken.isValidIdentifierCharacter(c) && c != '.') {        
+                break;
+            }
+            
+            index--;
+            sb.append(c);
+        }
+                
+        String split[] = sb.reverse().toString().split("\\.");
+        log.log("Splits: " + Arrays.toString(split) + " vs " + sb.reverse().toString());
+        fields.addAll(Arrays.asList(split));
+                
+        return fields;
+    }
+    
+    private int skipWhitespace(int index) {
+        while(index > -1) {
+            char c = this.buffer.charAt(index);
+            if(Character.isWhitespace(c)) {
+                index--;
+                continue;
+            }
+            if(c == '.') {
+                return index;
+            }
+            return -1;
+        }
+        
+        return index;
+    }
     
     public List<SymbolInformation> getSymbols(Program program) {
         if(program == null) {

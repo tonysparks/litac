@@ -5,6 +5,7 @@ package litac.compiler;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import litac.ast.*;
 import litac.ast.Decl.*;
@@ -446,6 +447,23 @@ public class Module {
         }
         
         return null;        
+    }
+    
+    public List<Symbol> getMethodsFor(AggregateTypeInfo recv) {
+        String methodNamePrefix = recv.name + "_";
+        return this.funcTypes.entrySet().stream()
+            .filter(e -> e.getKey().startsWith(methodNamePrefix))
+            .filter(e -> {
+                FuncTypeInfo funcInfo = e.getValue().type.as();
+                if(funcInfo.parameterDecls.isEmpty()) {
+                    return false;                   
+                }
+                
+                TypeInfo arg = TypeInfo.getBase(funcInfo.parameterDecls.get(0).type);
+                return arg.strictEquals(recv);
+            })
+            .map(e -> e.getValue())
+            .collect(Collectors.toList());            
     }
     
     public Symbol getMethodType(AggregateTypeInfo recv, String methodName) {               

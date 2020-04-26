@@ -601,18 +601,18 @@ public abstract class Stmt extends Node {
                 case "else": {
                     if(compStmt.type.equals("else") || execute(pp, compStmt.expr)) {
                         List<Stmt> stmts = compStmt.body;
-                        this.evaluatedStmt = new BlockStmt(stmts).setSrcPos(getSrcPos());
+                        this.evaluatedStmt = new BlockStmt(stmts).setSrcPos(getSrcPos(), getEndSrcPos());
                         return this.evaluatedStmt;
                     }
                     else {
                         if(compStmt.end != null) {
-                            this.evaluatedStmt = compStmt.end.evaluateForBody(pp).setSrcPos(getSrcPos());
+                            this.evaluatedStmt = compStmt.end.evaluateForBody(pp).setSrcPos(getSrcPos(), getEndSrcPos());
                             return this.evaluatedStmt;
                         }
                     }
                 }
             }            
-            this.evaluatedStmt = new EmptyStmt().setSrcPos(getSrcPos());
+            this.evaluatedStmt = new EmptyStmt().setSrcPos(getSrcPos(), getEndSrcPos());
             return this.evaluatedStmt;
         }
         

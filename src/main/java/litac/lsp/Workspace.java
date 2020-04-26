@@ -59,6 +59,7 @@ public class Workspace {
         }
         if(sourceDir != null) {
             this.srcDir = sourceDir;
+            this.options.setSrcDir(this.srcDir);
         }
         
         log.log("Source Directory: '" + this.srcDir + "' and RootModule: " + rootModule);

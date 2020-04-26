@@ -636,7 +636,7 @@ public class TypeResolver {
                                          new EmptyStmt(),
                                          asStrFuncInfo.returnType.asTypeSpec(), 
                                          Collections.emptyList(), 0).
-                                         setSrcPos(asStr.getSrcPos());
+                                         setSrcPos(asStr.getSrcPos(), asStr.getEndSrcPos());
         
         // Name must match CGen.visit(EnumDecl)
         funcDecl.attributes.addNote(new NoteStmt("foreign", Arrays.asList("__" + current().simpleName() + "_" + enumDecl.name + "_AsStr")));
@@ -1818,6 +1818,7 @@ public class TypeResolver {
             resolveExpr(argExpr);
             
             SrcPos pos = argExpr.getSrcPos();
+            SrcPos endPos = argExpr.getEndSrcPos();
             TypeInfo paramInfo = funcPtr.params.get(argIndex);                    
             TypeInfo argInfo = argExpr.getResolvedType().type;
             
@@ -1831,8 +1832,8 @@ public class TypeResolver {
                     if(path.hasPath()) {
                         for(FieldPathNode node : path.getPath()) {
                             NameTypeSpec nameSpec = new NameTypeSpec(pos, node.field.name);
-                            argExpr = new GetExpr(argExpr, new IdentifierExpr(nameSpec).setSrcPos(pos))
-                                                    .setSrcPos(pos);
+                            argExpr = new GetExpr(argExpr, new IdentifierExpr(nameSpec).setSrcPos(pos, endPos))
+                                                    .setSrcPos(pos, endPos);
                         }
                         
                         //argInfo = resolveExpr(argExpr).type;
@@ -1853,15 +1854,15 @@ public class TypeResolver {
                                 "cannot take the return value address of an R-Value");
                     }
                                         
-                    argExpr = new UnaryExpr(TokenType.BAND, new GroupExpr(argExpr).setSrcPos(pos))
-                                            .setSrcPos(pos);
+                    argExpr = new UnaryExpr(TokenType.BAND, new GroupExpr(argExpr).setSrcPos(pos, endPos))
+                                            .setSrcPos(pos, endPos);
                     
                     resolveExpr(argExpr);
                 }
                 // See if we need to dereference the pointer
                 else if(TypeInfo.isAggregate(paramInfo) && TypeInfo.isPtrAggregate(argInfo)) {
-                    argExpr = new UnaryExpr(TokenType.STAR, new GroupExpr(argExpr).setSrcPos(pos))
-                            .setSrcPos(pos);
+                    argExpr = new UnaryExpr(TokenType.STAR, new GroupExpr(argExpr).setSrcPos(pos, endPos))
+                            .setSrcPos(pos, endPos);
     
                     resolveExpr(argExpr);
                 }

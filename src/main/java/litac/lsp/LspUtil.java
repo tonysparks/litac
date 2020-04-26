@@ -3,13 +3,15 @@
  */
 package litac.lsp;
 
-import java.util.List;
+import java.util.*;
 
 import litac.ast.Decl;
 import litac.ast.Node.SrcPos;
 import litac.ast.Stmt.NoteStmt;
+import litac.checker.TypeInfo;
 import litac.checker.TypeInfo.*;
-import litac.compiler.Symbol;
+import litac.compiler.*;
+import litac.compiler.Module;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.lsp.JsonRpc.*;
 
@@ -101,6 +103,73 @@ public class LspUtil {
         item.detail = sym.name;
         item.label = name;
         return item;
+    }
+    
+    public static CompletionItem fromFieldInfoCompletionItem(FieldInfo field) {
+        CompletionItem item = new CompletionItem();
+        String name = field.name;
+        item.detail = name;
+        item.label = name;
+        item.deprecated = field.attributes.hasNote("deprecated");
+        if(field.attributes.hasNote("doc")) {
+            NoteStmt note = field.attributes.getNote("doc");
+            item.documentation = note.getAttr(0, "");
+        }
+        
+        if(field.type.sym != null) {            
+            item.kind = CompletionItemKind.fromSymbol(field.type.sym).getValue();
+        }
+        else {
+            item.kind = CompletionItemKind.Field.getValue();
+        }
+        
+        return item;
+    }
+    
+    public static CompletionItem fromEnumFieldInfoCompletionItem(EnumFieldInfo field) {
+        CompletionItem item = new CompletionItem();
+        String name = field.name;
+        item.detail = name;
+        item.label = name;
+        item.deprecated = field.attributes.hasNote("deprecated");
+        if(field.attributes.hasNote("doc")) {
+            NoteStmt note = field.attributes.getNote("doc");
+            item.documentation = note.getAttr(0, "");
+        }
+                
+        item.kind = CompletionItemKind.EnumMember.getValue();
+        return item;
+    }
+    
+    
+    public static List<CompletionItem> fromTypeInfoCompletionItems(Module module, AggregateTypeInfo aggInfo) {
+        List<CompletionItem> results = new ArrayList<>(aggInfo.fieldInfos.size());
+        for(FieldInfo field : aggInfo.fieldInfos) {
+            results.add(fromFieldInfoCompletionItem(field));
+        }
+                
+        if(aggInfo.usingInfos != null) {
+            for(FieldInfo field : aggInfo.usingInfos) {
+                AggregateTypeInfo aggFieldInfo = TypeInfo.getBase(field.type).as();
+                results.addAll(fromTypeInfoCompletionItems(module, aggFieldInfo));
+            }
+        }
+        
+        List<Symbol> methods = module.getMethodsFor(aggInfo);
+        for(Symbol sym : methods) {
+            results.add(fromSymbolCompletionItem(sym));
+        }
+        
+        return results;
+    }
+    
+    public static List<CompletionItem> fromEnumTypeInfoCompletionItems(EnumTypeInfo enumInfo) {
+        List<CompletionItem> results = new ArrayList<>(enumInfo.fields.size());
+        for(EnumFieldInfo field : enumInfo.fields) {
+            results.add(fromEnumFieldInfoCompletionItem(field));
+        }
+                
+        return results;
     }
     
     public static String phaseErrorToString(List<PhaseError> errors) {

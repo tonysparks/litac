@@ -206,13 +206,14 @@ public class JsonRpc {
                 if(type == null) {
                     return Keyword;
                 }
+                type = TypeInfo.getBase(type);
                 switch(type.getKind()) {
                     case Array:
-                        return Variable;
+                        return Field;
                     case Bool:
-                        return Variable;
+                        return Field;
                     case Char:
-                        return Variable;
+                        return Field;
                     case Const:
                         return Constant;
                     case Enum:
@@ -226,15 +227,15 @@ public class JsonRpc {
                     case Null:
                         return Variable;
                     case Ptr:
-                        return Variable;
+                        return Field;
                     case Str:
-                        return Variable;
+                        return Field;
                     case Struct:
                         return Struct;
                     case Union:
                         return Struct;
                     case Void:
-                        return Variable;
+                        return Field;
                     case f32:
                     case f64:
                     case i16:
@@ -245,10 +246,10 @@ public class JsonRpc {
                     case u32:
                     case u64:
                     case u8:
-                        return Variable;
+                        return Field;
                 }
             }
-            return Variable;            
+            return Field;            
         }
     }
     
@@ -493,11 +494,11 @@ public class JsonRpc {
         public String sortText;
         public String filterText;
         public String insertText;
-        //public InsertTextFormat insertTextFormat;
-        //public TextEdit textEdit;
-        //public TextEdit[] additionalTextEdits;
+        public Object/*InsertTextFormat*/ insertTextFormat;
+        public Object/*TextEdit*/ textEdit;
+        public Object/*TextEdit[]*/ additionalTextEdits;
         public String[] commitCharacters;
-        //public Command command;
+        public Object/*Command*/ command;
         public Object data;
     }
     
