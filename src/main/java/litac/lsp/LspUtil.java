@@ -81,6 +81,10 @@ public class LspUtil {
     
     public static CompletionItem fromSymbolCompletionItem(Symbol sym) {
         CompletionItem item = new CompletionItem();
+        if(sym == null) {
+            return item;
+        }
+        
         item.deprecated = sym.decl != null && sym.decl.attributes.hasNote("deprecated");
         if(sym.decl != null && sym.decl.attributes.hasNote("doc")) {
             NoteStmt note = sym.decl.attributes.getNote("doc");

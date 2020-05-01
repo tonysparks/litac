@@ -401,7 +401,7 @@
                 assert(id3 == id4)
             ''',
         },*/
-        
+        /*
         {
             name: "Func with array const expr",
             definitions: '''
@@ -480,7 +480,7 @@
                 var b = Test(a)
                 assert(a == b)
             ''',            
-        },
+        },*/
         
         {
             name: "Func with 2d array pointers",

@@ -216,7 +216,7 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/using.json");        
+        singleFileTest("/arrays.json");        
     }
     
     

@@ -73,7 +73,7 @@ public class IntellisenseScope {
         int size = this.symbols.size();
         for(int i = 0; i < size; i++) {
             Symbol sym = this.symbols.get(i);
-            if(sym.name.equals(name)) {
+            if(sym != null && Objects.equals(sym.name, name)) {
                 return sym;
             }
         }
