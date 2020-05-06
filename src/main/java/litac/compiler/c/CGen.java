@@ -23,6 +23,7 @@ import litac.compiler.c.CTranspiler.COptions;
 import litac.util.*;
 import litac.util.Stack;
 import litac.compiler.Module;
+import litac.compiler.CompileException;
 
 /**
  * Writes out the AST nodes into a single C file.  It will place all type
@@ -81,7 +82,7 @@ public class CGen {
     
     private Set<String> writtenModules;
     private CompilationUnit unit;
-    private Module main;
+    private Module compilationUnit;
     private Program program;    
     
     private Stack<FuncTypeInfo> currentFuncType;
@@ -104,10 +105,12 @@ public class CGen {
     private CGenNodeVisitor cgen;
     private Preprocessor preprocessor;
     
+    private boolean isMainCompilationUnit;
+    
     public CGen(Preprocessor pp,
                 CompilationUnit unit, 
                 Program program, 
-                COptions options, 
+                COptions options,
                 Buf buf) {
         
         this.preprocessor = pp;
@@ -126,8 +129,10 @@ public class CGen {
         
         this.BUILTIN_MODULE_NAME = ModuleId.fromDirectory(options.options.libDir, "builtins");
         
-        this.main = program.getMainModule();
+        Module main = program.getMainModule();
+        this.compilationUnit = program.getModule(unit.getMain().id);
         this.resolvedTypeMap = program.getResolvedTypeMap();
+        this.isMainCompilationUnit = main.getId().equals(this.compilationUnit.getId());
         
         this.declarations = new ArrayList<>();
         this.moduleInitFunc = new ArrayList<>();
@@ -153,15 +158,39 @@ public class CGen {
         
         preface();
         
-        this.main.getModuleStmt().visit(this.cgen);
+        this.compilationUnit.getModuleStmt().visit(this.cgen);
         
-        PhaseResult result = this.main.getPhaseResult();
+        PhaseResult result = this.compilationUnit.getPhaseResult();
         DependencyGraph graph = new DependencyGraph(result);
         
         List<Decl> tests = new ArrayList<>();
         
         this.declarations = graph.sort(this.declarations);
         for(Decl d : this.declarations) {
+            
+            if(d.attributes.isExtern()) {
+                System.out.println("here");
+                continue;
+            }
+            
+            if(!isCompilationUnitDeclaration(d.sym)) {
+                switch(d.kind) {
+                    case FUNC: {
+                        continue;
+                    }
+                    case CONST: {
+                        writeConstExtern(buf, (ConstDecl)d);
+                        continue;
+                    }
+                    case VAR: {
+                        writeVarExtern(buf, (VarDecl)d);
+                        continue;
+                    }
+                    default: {
+                        // write out
+                    }
+                }
+            }
             
             // ignore test procedures if we are not testing
             if(d.attributes.hasNote("test")) {
@@ -199,8 +228,10 @@ public class CGen {
         if(isTesting()) {
             writeTestMain(buf, tests);
         }
-        else {
-            writeMain(buf, mainFunc);
+        else {    
+            if(mainFunc != null) {
+                writeMain(buf, mainFunc);
+            }
         }
     }
     
@@ -240,8 +271,8 @@ public class CGen {
         this.unit.getBuiltin().visit(this.cgen);
     }
     
-    private void writeForwardDecl(Buf buf, String backendName, TypeInfo type) {
-        
+    private void writeForwardDecl(Buf buf, String backendName, Symbol sym) {
+        TypeInfo type = sym.type;
         if(isForeign(type)) {
             return;
         }
@@ -348,20 +379,19 @@ public class CGen {
                 break;
             }
             default: {
-               // throw new CompileException(String.format("Unsupported forward type declaration '%s'", type.getName()));
             }
         }
     }
     
-    private final Comparator<Map.Entry<String, TypeInfo>> comp = new Comparator<Map.Entry<String, TypeInfo>>() {
+    private final Comparator<Map.Entry<String, Symbol>> comp = new Comparator<Map.Entry<String, Symbol>>() {
         @Override
-        public int compare(Entry<String, TypeInfo> a, Entry<String, TypeInfo> b) {
+        public int compare(Entry<String, Symbol> a, Entry<String, Symbol> b) {
             if(a.equals(b)) {
                 return 0;
             }
             
-            TypeKind aKind = a.getValue().getKind();
-            TypeKind bKind = b.getValue().getKind();
+            TypeKind aKind = a.getValue().type.getKind();
+            TypeKind bKind = b.getValue().type.getKind();
             
             if(aKind == TypeKind.Enum){
                 if(bKind == TypeKind.Enum) {
@@ -392,12 +422,16 @@ public class CGen {
     
     private void writeForwardDeclarations(Buf buf) {
         buf.out("// forward declarations\n");
-        Map<String, TypeInfo> types = new HashMap<>();
+        Map<String, Symbol> types = new HashMap<>();
         List<NoteStmt> notes = new ArrayList<>();
         
-        writeModuleForwardDecl(buf, this.main, new ArrayList<>(), types, notes);
+        writeModuleForwardDecl(buf, this.compilationUnit, new ArrayList<>(), types, notes);
         
         notes.forEach(note -> note.visit(this.cgen));
+        
+
+        this.compilationUnit.getExterns()
+              .forEach(sym -> types.put(getTypeNameForC(sym.type), sym));
         
         types.entrySet()
              .stream()
@@ -410,24 +444,25 @@ public class CGen {
     private void writeModuleForwardDecl(Buf buf, 
                                         Module module, 
                                         List<Module> writtenModules, 
-                                        Map<String, TypeInfo> types,
+                                        Map<String, Symbol> types,
                                         List<NoteStmt> notes) {
         if(writtenModules.contains(module)) {
             return;
         }
         
         writtenModules.add(module);
-        
-        notes.addAll(module.getModuleStmt().notes);
+                
+        if(!module.isCompilationUnit() || module.getId().equals(this.compilationUnit.getId())) {
+            notes.addAll(module.getModuleStmt().notes);
+        }
         
         module.getImports()
               .stream()
               .forEach(m -> writeModuleForwardDecl(buf, m, writtenModules, types, notes));
         
-
-        module.getDeclaredTypes()
-              .forEach(type -> types.put(getTypeNameForC(type.type), type.type));
         
+        module.getDeclaredTypes()
+              .forEach(sym -> types.put(getTypeNameForC(sym.type), sym));
     }
         
     private void writeTestMain(Buf buf, List<Decl> tests) {
@@ -482,6 +517,39 @@ public class CGen {
         }
         
         buf.out("}");
+    }
+    
+    private void writeConstExtern(Buf buf, ConstDecl d) {        
+        if(isPrimitiveExpr(d)) {
+            d.visit(this.cgen);
+        }
+        else {
+            String name = cName(d.sym);
+            buf.out("extern %s;\n", typeDeclForC(d.sym.type, name));
+        }
+    }
+    
+    private void writeVarExtern(Buf buf, VarDecl d) {        
+        String name = cName(d.sym);
+        buf.out("extern %s;\n", typeDeclForC(d.sym.type, name));        
+    }
+    
+    private boolean isCompilationUnitDeclaration(Symbol sym) {
+        Module declared = sym.getDeclaredModule();        
+        return isThisCompilationUnit(declared);
+    }
+    
+    private boolean isThisCompilationUnit(Module module) {        
+        if(!module.isCompilationUnit()) {
+            return this.isMainCompilationUnit;
+        }
+        
+        return module.getId().equals(this.compilationUnit.getId());
+    }
+    
+    private boolean isPrimitiveExpr(ConstDecl d) {
+        boolean isPrimitiveExpr = Expr.isPrimitiveExpr(d.expr) || Expr.isConstNumberExpr(d.expr); 
+        return (isPrimitiveExpr && d.expr.getResolvedType().type.isPrimitive());
     }
     
     private String typeDeclForC(TypeSpec typeSpec, String declName) {        
@@ -848,7 +916,12 @@ public class CGen {
                 return;
             }
             
-            ModuleStmt module = unit.getModule(stmt.moduleId);
+            Module importedModule = program.getModule(stmt.moduleId);
+            if(importedModule == null) {
+                throw new CompileException("Unable to find '" + stmt.moduleId + "' in compilation unit: '" + compilationUnit.getId() +"'");
+            }
+            
+            ModuleStmt module = importedModule.getModuleStmt();
             module.visit(this);
         }
     
@@ -917,7 +990,7 @@ public class CGen {
                                 buf.outln();
                             }
                             catch(IOException e) {
-                                main.getPhaseResult().addError(note, "Unable to load C source file: %s", e);
+                                compilationUnit.getPhaseResult().addError(note, "Unable to load C source file: %s", e);
                             }
                         }
                     }
@@ -1063,8 +1136,8 @@ public class CGen {
             
             checkLine(d);
             
-            boolean isPrimitiveExpr = Expr.isPrimitiveExpr(d.expr) || Expr.isConstNumberExpr(d.expr); 
-            if(isPrimitiveExpr && d.expr.getResolvedType().type.isPrimitive()) {
+            boolean isPrimitiveExpr = isPrimitiveExpr(d); 
+            if(isPrimitiveExpr) {
                 buf.out("#define ");                   
                 buf.out("%s (", name);  
                 d.expr.visit(this); 
@@ -1095,7 +1168,7 @@ public class CGen {
             
             String alias = note.getAttr(0, null);
             if(alias == null) {
-                main.getPhaseResult().addError(note, "'alias' note must define an alias name");
+                compilationUnit.getPhaseResult().addError(note, "'alias' note must define an alias name");
                 return "";
             }
             

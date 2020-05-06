@@ -1,0 +1,76 @@
+{
+    description: "CompilationUnit",
+    disabled: false,
+    debug: true,
+    disableLines: true,
+    includeTypeInfos: true,
+    program: '''                
+        @include("assert.h");
+        @foreign func assert(e:bool):void;
+        
+        %definitions%
+        
+        func main(len:i32, args:char**):i32 {
+            %test%
+        }
+    '''
+    tests: [
+        {
+            name: "Embeded CompilationUnits",
+            modules: [
+                {
+                    name: "unit",
+                    program: '''
+                        @compilation_unit();
+                        @raw("//test2 from unit\n");
+                        //import "object"
+                        
+                        @extern("object") struct Object;
+                        @extern("object") typedef Object as TObject;
+                        
+                        public const MAX_UNITS = 10;
+                        public var numOfUnits = 2
+                        public struct Unit {
+                            object: using Object;
+                            object2: TObject;
+                            x: i32
+                        }
+                        
+                        public func (u:Unit*) update() : i32 {
+                            return u.x + 2;
+                        }
+                    '''
+                },
+                {
+                    name: "object",
+                    program: '''
+                        @compilation_unit();
+                        @raw("//test from object\n");
+                                                
+                        public const MAX_OBJECTS = 10;
+                        public var numOfObjects = 2
+                        public typedef Object as TObject;
+                        public struct Object {
+                            y: i32
+                        }
+                        
+                        public func (o: Object*) update() : i32 {
+                            return o.y + 1;
+                        }
+                    '''
+                }
+            ], 
+            definitions: '''
+                import "unit"
+                import "object"
+            ''',                       
+            code: '''
+                var x = Unit{.object = Object{8}, .x = 4}                
+                assert(x.x == 4)
+                assert(x.update() == 6)
+                assert(MAX_UNITS == 10)
+                assert(numOfUnits == 2)
+            ''',
+        },
+    ]
+}

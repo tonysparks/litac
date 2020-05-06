@@ -67,6 +67,7 @@
 @foreign public func strtol(str: char const*, end: char**, base: i32) : i64;
 @foreign public func strtoul(str: char const*, end: char**, base: i32) : u64;
 @foreign public func strtod(str: char const*, end: char**) : f64;
+@foreign public func sprintf(buf: char*, s:char const*, ...) : i32;
 @foreign public const HUGE_VAL: f64;
 @foreign public const ULLONG_MAX: i64;
 @foreign public func isdigit(arg: i32) : i32;

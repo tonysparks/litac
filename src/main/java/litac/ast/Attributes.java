@@ -48,6 +48,10 @@ public class Attributes {
         return hasNote("test");
     }
     
+    public boolean isExtern() {
+        return hasNote("extern");
+    }
+    
     public boolean hasNote(String note) {
         return this.notes != null && this.notes.stream().anyMatch(n -> n.name.equals(note));
     }

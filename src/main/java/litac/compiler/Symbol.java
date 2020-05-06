@@ -39,6 +39,7 @@ public class Symbol {
     public static final int IS_GENERIC_TEMPLATE     = (1<<7);
     public static final int IS_BUILTIN              = (1<<8);
     public static final int IS_FROM_GENERIC_TEMPLATE  = (1<<9);
+    public static final int IS_EXTERN               = (1<<10);
     
     public SymbolKind kind;
     public ResolveState state;
@@ -179,6 +180,10 @@ public class Symbol {
     
     public boolean isFromGenericTemplate() {
         return (this.flags & IS_FROM_GENERIC_TEMPLATE) > 0;
+    }
+    
+    public boolean isExtern() {
+        return (this.flags & IS_EXTERN) > 0;
     }
     
     /**

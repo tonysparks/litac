@@ -32,6 +32,24 @@ public abstract class Stmt extends Node {
         public void visit(NodeVisitor v) {
             v.visit(this);
         }
+        
+        public NoteStmt getCompilationUnitNote() {
+            if(this.notes == null || this.notes.isEmpty()) {
+                return null;
+            }
+            
+            for(NoteStmt n : this.notes) {
+                if(n.name.equals("compilation_unit")) {
+                    return n;
+                }
+            }
+            
+            return null;
+        }
+        
+        public boolean hasCompilationUnitNote() {
+            return getCompilationUnitNote() != null;
+        }
 
         @Override
         protected Node doCopy() {            

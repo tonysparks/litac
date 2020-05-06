@@ -481,7 +481,7 @@
                 assert(a == b)
             ''',            
         },*/
-        
+        /*
         {
             name: "Func with 2d array pointers",
             definitions: '''
@@ -508,6 +508,61 @@
                 var b = Test(a)
                 assert(a == b)
             ''',            
+        },*/
+        
+        {
+            name: "CompilationUnits",
+            modules: [
+                {
+                    name: "unit",
+                    program: '''
+                        @compilation_unit();
+                        @raw("//test2 from unit\n");
+                        import "object"
+                        
+                        public const MAX_UNITS = 10;
+                        public var numOfUnits = 2
+                        public struct Unit {
+                            object: using Object;
+                            object2: TObject;
+                            x: i32
+                        }
+                        
+                        public func (u:Unit*) update() : i32 {
+                            return u.x + 2;
+                        }
+                    '''
+                },
+                {
+                    name: "object",
+                    program: '''
+                        @compilation_unit();
+                        @raw("//test from object\n");
+                                                
+                        public const MAX_OBJECTS = 10;
+                        public var numOfObjects = 2
+                        public typedef Object as TObject;
+                        public struct Object {
+                            y: i32
+                        }
+                        
+                        public func (o: Object*) update() : i32 {
+                            return o.y + 1;
+                        }
+                    '''
+                }
+            ], 
+            definitions: '''
+                import "unit"
+                import "object"
+            ''',                       
+            code: '''
+                var x = Unit{.object = Object{8}, .x = 4}                
+                assert(x.x == 4)
+                assert(x.update() == 6)
+                assert(MAX_UNITS == 10)
+                assert(numOfUnits == 2)
+            ''',
         },
     ]
 }

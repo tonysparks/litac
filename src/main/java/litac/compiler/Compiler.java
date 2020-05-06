@@ -111,9 +111,9 @@ public class Compiler {
     }
     
     private void compile(LitaOptions options, 
-                                PhaseResult checkerResult, 
-                                CompilationUnit unit,
-                                Program program) throws Exception {
+                         PhaseResult checkerResult, 
+                         CompilationUnit unit,
+                         Program program) throws Exception {
         
         switch(options.backendType) {            
             case C: {

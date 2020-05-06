@@ -141,6 +141,10 @@ public class CompilationUnit {
             
             try {
                 ModuleStmt module = readModule(this.options, moduleId.moduleFile, this.result);
+                if(module.hasCompilationUnitNote()) {
+                    ModuleId builtinId = ModuleId.fromDirectory(options.libDir, "builtins");
+                    module.imports.add(new ImportStmt("builtins", null, builtinId, false));
+                }
                 this.unit.imports.put(moduleId, module);
                 return module;
             }

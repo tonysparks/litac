@@ -3,6 +3,7 @@
  */
 package litac.checker;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -107,6 +108,7 @@ public class TypeResolver {
         
     private FuncTypeInfo currentFunc;
     
+    private LitaOptions options;
     private Preprocessor preprocessor;
     
     public TypeResolver(LitaOptions options,
@@ -116,6 +118,7 @@ public class TypeResolver {
         this.preprocessor = options.preprocessor();
         this.result = result;
         this.unit = unit;
+        this.options = options;
         
         this.programSymbols = new ArrayList<>();
         this.moduleSymbols = new ArrayList<>();
@@ -344,8 +347,7 @@ public class TypeResolver {
             return resolvedModules.get(moduleId);
         }
         
-        Module module = new Module(this.root, 
-                                   this.programSymbols, 
+        Module module = new Module(this.programSymbols, 
                                    this.genericTypes, 
                                    this.result, 
                                    moduleStmt);
@@ -388,6 +390,27 @@ public class TypeResolver {
     }
     
     private void resolveDeclaration(Decl decl, Module module, List<Decl> nonGenericDecls) {
+        if(decl.attributes.isExtern()) {
+            NoteStmt externNote = decl.attributes.getNote("extern");
+            String moduleName = externNote.getAttr(0, null);
+            if(moduleName == null) {
+                error(externNote.getSrcPos(), "@extern must contain a valid module id");                
+            }
+            
+            File moduleFile = Names.getModuleFile(module.getId().moduleFile, options, moduleName);
+            ModuleId externModuleId = ModuleId.from(this.options.libDir, this.options.getSrcDir(), moduleFile);
+            
+            ModuleStmt moduleStmt = unit.getModule(externModuleId);
+            if(moduleStmt == null) {
+                error(externNote.getSrcPos(), "Could not find module name: '%s'", externModuleId.id);
+            }
+            
+            Module externModule = createModule(moduleStmt);
+            module.addExternDecl(decl, externModule);
+            nonGenericDecls.add(decl);
+            return;
+        }
+        
         switch(decl.kind) {
             case CONST:  {
                 Symbol sym = module.addIncomplete(decl);

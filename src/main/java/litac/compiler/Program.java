@@ -29,6 +29,10 @@ public class Program {
         this.resolvedTypeMap = resolvedTypeMap;
     }
     
+    public boolean isMainModule(Module module) {
+        return module.getId().equals(this.main.getId());
+    }
+    
     public Module getModule(ModuleId module) {
         return this.modules.get(module);
     }

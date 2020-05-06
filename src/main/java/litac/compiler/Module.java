@@ -24,7 +24,6 @@ import litac.util.Names;
  */
 public class Module {
 
-    private Module root;
     private final ModuleId id;
     private final String simpleName;
     private Scope currentScope;
@@ -49,19 +48,22 @@ public class Module {
     private Map<String, Symbol> foreignTypes;
     private Map<String, Symbol> builtins;
     
+    private Map<String, Symbol> externTypes;
+    
     private List<NoteStmt> notes;
     
     private Map<String, Symbol> genericTypes;
     
     private PhaseResult result;
     private List<Symbol> symbols;
+    
+    private boolean isCompilationUnit;
         
-    public Module(Module root,
-                  List<Symbol> programSymbols,
+    public Module(List<Symbol> programSymbols,
                   Map<String, Symbol> genericTypes,
                   PhaseResult result, 
                   ModuleStmt moduleStmt) {
-        this.root = root;
+        
         this.result = result;
         this.moduleStmt = moduleStmt;
         this.id = moduleStmt.id;
@@ -83,6 +85,7 @@ public class Module {
         
         this.foreignTypes = new HashMap<>();
         this.builtins = new HashMap<>();
+        this.externTypes = new HashMap<>();
         
         this.importedFuncTypes = new HashMap<>();
         this.importedAggregateTypes = new HashMap<>();
@@ -96,6 +99,8 @@ public class Module {
         
         this.moduleScope = new Scope(result, ScopeType.MODULE);
         this.currentScope = this.moduleScope;
+        
+        this.isCompilationUnit = moduleStmt.getCompilationUnitNote() != null;
     }
     
     private void addSymbol(Symbol sym) {        
@@ -111,25 +116,21 @@ public class Module {
     public String toString() {
         return this.id.fullModuleName;
     }
-    
-    public Module getRoot() {
-        return root != null ? root : this;
+        
+    /**
+     * @return the isCompilationUnit
+     */
+    public boolean isCompilationUnit() {
+        return isCompilationUnit;
     }
-    
+        
     /**
      * @return the symbols
      */
     public List<Symbol> getSymbols() {        
         return this.symbols;
     }
-    
-    /**
-     * @return the moduleScope
-     */
-    public Scope getModuleScope() {
-        return moduleScope;
-    }
-    
+        
     public PhaseResult getPhaseResult() {
         return result;
     }
@@ -137,6 +138,11 @@ public class Module {
     public ModuleStmt getModuleStmt() {
         return moduleStmt;
     }
+    
+    public Collection<Symbol> getExterns() {
+        return externTypes.values();
+    }
+    
     
     public Collection<Module> getImports() {
         return imports.values();
@@ -163,6 +169,13 @@ public class Module {
     public boolean isImported(String name) {
         return this.importedAggregateTypes.containsKey(name) || 
                this.importedFuncTypes.containsKey(name);
+    }
+    
+    public void addExternDecl(Decl d, Module externModule) {
+        Symbol sym = externModule.getModuleScope().getSymbol(d.name);
+        d.sym = sym; // ??        
+        currentScope().addSymbol(sym);
+        this.externTypes.put(d.name, sym);
     }
     
     public void importModule(ImportStmt stmt, Module module, String alias) {
@@ -297,6 +310,10 @@ public class Module {
             if(isForeign(decl)) {
                 this.foreignTypes.put(name, sym);
             }
+        }
+        
+        if(sym.isExtern()) {
+            // TODO
         }
         
         return sym;
@@ -582,6 +599,13 @@ public class Module {
         return this.currentScope;
     }
     
+    /**
+     * @return the moduleScope
+     */
+    public Scope getModuleScope() {
+        return moduleScope;
+    }
+        
     /**
      * @return the id
      */

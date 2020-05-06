@@ -6,8 +6,11 @@ package litac.compiler.c;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import litac.*;
+import litac.ast.Stmt.NoteStmt;
 import litac.compiler.*;
 import litac.compiler.PhaseResult.PhaseError;
 import litac.util.Exec;
@@ -34,7 +37,7 @@ public class CTranspiler {
             this.indentWidth = 4;
             this.symbolPrefix = "litaC__";
             
-            this.compileCmd = "clang -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
+            this.compileCmd = "clang -o \"%output%\" %input% -D_CRT_SECURE_NO_WARNINGS";
         }
         
         public String getBinaryOutputFile() {
@@ -47,10 +50,17 @@ public class CTranspiler {
                                             fileExt);
         }
         
-        public String getCompileCmd(File cOutput) {
+        public String getCompileCmd(File[] cOutputFiles) {
+            StringBuilder sb = new StringBuilder();
+            boolean isFirst = true;
+            for(File outputFile : cOutputFiles) {
+                if(!isFirst) sb.append(" ");
+                sb.append("\"").append(outputFile.getAbsolutePath()).append("\"");
+                isFirst = false;
+            }
             String binaryFileOutput = getBinaryOutputFile();            
             return this.compileCmd.replace("%output%", binaryFileOutput)
-                                  .replace("%input%", cOutput.getAbsolutePath());
+                                  .replace("%input%", sb.toString());
         }
     }
 
@@ -66,8 +76,35 @@ public class CTranspiler {
                                  Program program,
                                  LitaOptions options) throws Exception {
         
-        Buf buf = toC(unit, program, options);        
-        File cOutput = writeCFile(buf, options);
+        // find all C compilation units
+        List<Module> modules = program.getModules()
+                                        .stream()
+                                        .filter(module -> module.isCompilationUnit() || program.isMainModule(module))
+                                        .collect(Collectors.toList());
+        
+        File[] cOutputFiles = new File[modules.size()];
+        for(int i = 0; i < modules.size(); i++) {
+            Module module = modules.get(i);
+            String compilationUnitName = null;
+            CompilationUnit compilationUnit = null;
+            if(program.isMainModule(module)) {
+                compilationUnit = unit;
+                compilationUnitName = options.outputFileName;
+            }
+            else {
+                compilationUnit = new CompilationUnit(unit.getBuiltin(), module.getModuleStmt());
+                NoteStmt moduleNote = module.getModuleStmt().getCompilationUnitNote();                
+                compilationUnitName = moduleNote.getAttr(0, module.simpleName());
+                
+                for(Module importModule : module.getImports()) {
+                    compilationUnit.getImports().put(importModule.getId(), importModule.getModuleStmt());
+                }
+            }
+            
+            Buf buf = toC(compilationUnit, program, options);        
+            File cOutput = writeCFile(buf, options, compilationUnitName);
+            cOutputFiles[i] = cOutput;
+        }
 
         // if there are any type checker errors, we want to fail at this point,
         // this allows me to debug the output C
@@ -79,7 +116,7 @@ public class CTranspiler {
         }
         
         if(!options.cOnly) {
-            compileC(cOutput, options);   
+            compileC(cOutputFiles, options);   
             
             if(options.run) {
                 runProgram(options);
@@ -100,19 +137,19 @@ public class CTranspiler {
     }
     
     
-    private static File writeCFile(Buf buf, LitaOptions options) throws Exception {
+    private static File writeCFile(Buf buf, LitaOptions options, String compilationUnitName) throws Exception {
         try(Segment s = Profiler.startSegment("C Write")) {
             options.outputDir.mkdirs();
             
-            File cOutput = new File(options.outputDir, options.outputFileName + ".c");
+            File cOutput = new File(options.outputDir, compilationUnitName + ".c");
             Files.write(cOutput.toPath(), buf.toString().getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
             return cOutput;
         }
     }
     
-    private static void compileC(File cOutput, LitaOptions options) throws Exception {
+    private static void compileC(File[] cOutputFiles, LitaOptions options) throws Exception {
         try(Segment s = Profiler.startSegment("C Compile")) {
-            String compileCmd = options.cOptions.getCompileCmd(cOutput);
+            String compileCmd = options.cOptions.getCompileCmd(cOutputFiles);
             int status = Exec.run(options.outputDir, compileCmd);
             if(status != 0) {
                 System.exit(status);

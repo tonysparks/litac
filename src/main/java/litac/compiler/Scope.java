@@ -73,7 +73,7 @@ public class Scope {
             }
         }
         
-        if(isForeign(decl)) {
+        if(decl.attributes.isForeign()) {
             flags |= Symbol.IS_FOREIGN;
             
             // if this is a foreign primitive declaration
@@ -85,6 +85,10 @@ public class Scope {
                     isNewType = true;
                 }
             }
+        }
+        
+        if(decl.attributes.isExtern()) {
+            flags |= Symbol.IS_EXTERN;
         }
         
         if(isNewType) {
@@ -116,27 +120,11 @@ public class Scope {
                 
         Symbol sym = new Symbol(kind, decl, symbolName, module, flags);
         decl.sym = sym;
-        
-        /*
-        if(isNewType) {
-            type.sym = sym;            
-        }
-        
-        if(decl instanceof ParameterDecl && type.isKind(TypeKind.FuncPtr)) {
-            type.name = symbolName;
-        }*/
-        
+                
         this.symbols.put(symbolName, sym);
-        
         return sym;
     }
         
-
-    private boolean isForeign(Decl d) {
-        return d.attributes.isForeign();
-    }
-    
-    
     public Symbol getSymbol(String varName) {
         if(this.symbols.containsKey(varName)) {
             return this.symbols.get(varName);
