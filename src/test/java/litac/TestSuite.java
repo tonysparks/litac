@@ -228,7 +228,7 @@ public class TestSuite {
             assertTrue(outputDir.mkdirs());
         }
         
-        final String program = "%definitions%\n\nfunc main(n: i32, args:char**) {}";
+        final String program = "%definitions%\n\nfunc main(n: i32, args:**char) {}";
         Set<String> ignoreModules = new HashSet<>();
         ignoreModules.add("opengl.lita");
         ignoreModules.add("glad.lita");

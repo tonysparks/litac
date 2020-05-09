@@ -120,7 +120,7 @@ typedef i32 as DWORD;
 typedef i32 as LPDWORD;
 
 @foreign
-typedef void* as LPVOID;
+typedef *void as LPVOID;
 
 @foreign
 struct CRITICAL_SECTION;
@@ -162,40 +162,40 @@ const _CONDITION_EVENT_ONE: i32;
 const _CONDITION_EVENT_ALL: i32;
 
 @foreign
-func _ftime_s(t: _timeb*);
+func _ftime_s(t: *_timeb);
 
 @foreign
-func InitializeCriticalSection(cs: CRITICAL_SECTION*);
+func InitializeCriticalSection(cs: *CRITICAL_SECTION);
 
 @foreign
-func EnterCriticalSection(cs: CRITICAL_SECTION*);
+func EnterCriticalSection(cs: *CRITICAL_SECTION);
 
 @foreign
-func TryEnterCriticalSection(cs: CRITICAL_SECTION*) : bool;
+func TryEnterCriticalSection(cs: *CRITICAL_SECTION) : bool;
 
 @foreign
-func LeaveCriticalSection(cs: CRITICAL_SECTION*);
+func LeaveCriticalSection(cs: *CRITICAL_SECTION);
 
 @foreign
-func DeleteCriticalSection(cs: CRITICAL_SECTION*);
+func DeleteCriticalSection(cs: *CRITICAL_SECTION);
 
 @foreign
 func WaitForSingleObject(handle: HANDLE, t: i32) : i32;
 
 @foreign
-func WaitForMultipleObjects(count: i32, handles: HANDLE*, b: bool, t: DWORD) : DWORD;
+func WaitForMultipleObjects(count: i32, handles: *HANDLE, b: bool, t: DWORD) : DWORD;
 
 @foreign
 func CloseHandle(handle: HANDLE) : bool;
 
 @foreign
-func CreateMutex(n: void*, b: bool, x: void*) : HANDLE;
+func CreateMutex(n: *void, b: bool, x: *void) : HANDLE;
 
 @foreign
 func ReleaseMutex(handle: HANDLE) : bool;
 
 @foreign
-func CreateEvent(n: void*, b: bool, c: bool, x: void*) : HANDLE;
+func CreateEvent(n: *void, b: bool, c: bool, x: *void) : HANDLE;
 
 @foreign
 func SetEvent(handle: HANDLE) : i32;
@@ -222,10 +222,10 @@ struct TinyCThreadTSSData;
 var _tinycthread_tss_head: TinyCThreadTSSData;
 
 @foreign
-func CreateThread(n: void*, i: i32, fn: func(LPVOID): DWORD, t: LPVOID, z:i32, v: void*) : HANDLE;
+func CreateThread(n: *void, i: i32, fn: func(LPVOID): DWORD, t: LPVOID, z:i32, v: *void) : HANDLE;
 
 @foreign
-func GetExitCodeThread(h: HANDLE, res: DWORD*) : i32;
+func GetExitCodeThread(h: HANDLE, res: *DWORD) : i32;
 
 @foreign
 func GetCurrentThread() : HANDLE;
@@ -247,7 +247,7 @@ public struct TimeSpec {
 }
 
 
-public func (ts: TimeSpec*) get(base: i32) : i32 {
+public func (ts: *TimeSpec) get(base: i32) : i32 {
     if (base != TIME_UTC) {
         return 0;
     }
@@ -278,7 +278,7 @@ public struct Mutex {
     mTimed: bool;                /* TRUE if the mutex is timed */
 }
 
-public func (mtx: Mutex*) init(type: i32) : ThreadStatus {
+public func (mtx: *Mutex) init(type: i32) : ThreadStatus {
     mtx.mAlreadyLocked = false;
     mtx.mRecursive = type & MutexType.RECURSIVE;
     mtx.mTimed = type & MutexType.TIMED;
@@ -295,7 +295,7 @@ public func (mtx: Mutex*) init(type: i32) : ThreadStatus {
     return ThreadStatus.SUCCESS;    
 }
 
-public func (mtx: Mutex*) destroy() {
+public func (mtx: *Mutex) destroy() {
     if (!mtx.mTimed) {
         DeleteCriticalSection(&(mtx.mHandle.cs));
     }
@@ -304,7 +304,7 @@ public func (mtx: Mutex*) destroy() {
     }    
 }
 
-public func (mtx: Mutex*) lock() : ThreadStatus {
+public func (mtx: *Mutex) lock() : ThreadStatus {
     if (!mtx.mTimed) {
         EnterCriticalSection(&(mtx.mHandle.cs));
     }
@@ -325,7 +325,7 @@ public func (mtx: Mutex*) lock() : ThreadStatus {
     return ThreadStatus.SUCCESS;
 }
 
-public func (mtx: Mutex*) tryLock() : ThreadStatus {
+public func (mtx: *Mutex) tryLock() : ThreadStatus {
     var ret : ThreadStatus;
 
     if (!mtx.mTimed) {
@@ -349,7 +349,7 @@ public func (mtx: Mutex*) tryLock() : ThreadStatus {
   return ret;
 }
 
-public func (mtx: Mutex*) unlock() : ThreadStatus {
+public func (mtx: *Mutex) unlock() : ThreadStatus {
     mtx.mAlreadyLocked = false;
     if (!mtx.mTimed) {
         LeaveCriticalSection(&(mtx.mHandle.cs));
@@ -362,7 +362,7 @@ public func (mtx: Mutex*) unlock() : ThreadStatus {
     return ThreadStatus.SUCCESS;
 }
 
-public func (mtx: Mutex*) timedLock(ts: TimeSpec*) : ThreadStatus {
+public func (mtx: *Mutex) timedLock(ts: *TimeSpec) : ThreadStatus {
     var current_ts : TimeSpec;
     var timeoutMs : DWORD;
 
@@ -415,7 +415,7 @@ public struct Cond {
     mWaitersCountLock: CRITICAL_SECTION ; /* Serialize access to mWaitersCount. */
 }
 
-public func (cond: Cond*) init() : ThreadStatus {    
+public func (cond: *Cond) init() : ThreadStatus {    
     cond.mWaitersCount = 0;
 
     /* Init critical section */
@@ -438,7 +438,7 @@ public func (cond: Cond*) init() : ThreadStatus {
     return ThreadStatus.SUCCESS;
 }
 
-public func (cond: Cond*) destroy() {
+public func (cond: *Cond) destroy() {
     if (cond.mEvents[_CONDITION_EVENT_ONE] != null) {
         CloseHandle(cond.mEvents[_CONDITION_EVENT_ONE]);
     }
@@ -449,7 +449,7 @@ public func (cond: Cond*) destroy() {
 }
 
 
-public func (cond: Cond*) signal() : ThreadStatus {
+public func (cond: *Cond) signal() : ThreadStatus {
     var haveWaiters: bool;
 
     /* Are there any waiters? */
@@ -467,7 +467,7 @@ public func (cond: Cond*) signal() : ThreadStatus {
     return ThreadStatus.SUCCESS;    
 }
 
-public func (cond: Cond*) broadcast() : ThreadStatus {
+public func (cond: *Cond) broadcast() : ThreadStatus {
     var haveWaiters: bool;
 
     /* Are there any waiters? */
@@ -485,7 +485,7 @@ public func (cond: Cond*) broadcast() : ThreadStatus {
     return ThreadStatus.SUCCESS;    
 }
 
-func (cond: Cond*) _timedWait(mtx: Mutex*, timeout: DWORD) : ThreadStatus {
+func (cond: *Cond) _timedWait(mtx: *Mutex, timeout: DWORD) : ThreadStatus {
     var result: DWORD;
     var lastWaiter: bool;
 
@@ -535,11 +535,11 @@ func (cond: Cond*) _timedWait(mtx: Mutex*, timeout: DWORD) : ThreadStatus {
 }
 
 
-public func (cond: Cond*) wait(mtx: Mutex*) : ThreadStatus {
+public func (cond: *Cond) wait(mtx: *Mutex) : ThreadStatus {
     return cond._timedWait(mtx, INFINITE)
 }
 
-public func (cond: Cond*) timedWait(mtx: Mutex*, ts: TimeSpec const*) : ThreadStatus {
+public func (cond: *Cond) timedWait(mtx: *Mutex, ts: *const TimeSpec) : ThreadStatus {
     var now: TimeSpec;
     if (now.get(TIME_UTC) == TIME_UTC) {
         var nowInMilliseconds: u64 = now.sec * 1_000_u64 + now.nsec / 1_000_000_u64;
@@ -557,7 +557,7 @@ public func (cond: Cond*) timedWait(mtx: Mutex*, ts: TimeSpec const*) : ThreadSt
   ==============================================================
 */ 
 
-public typedef func(void*) : i32 as ThreadStartFn;
+public typedef func(*void) : i32 as ThreadStartFn;
 public struct Thread {
     hnd: HANDLE
 }
@@ -565,23 +565,23 @@ public struct Thread {
 /** Information to pass to the new thread (what to run). */
 public struct ThreadStartInfo {
     mFunction: ThreadStartFn; /**< Pointer to the function to be executed. */
-    mArg: void*;              /**< Function argument for the thread function. */
+    mArg: *void;              /**< Function argument for the thread function. */
 } 
 
 
 @raw("WINAPI ")
 func _thrd_wrapper_function(aArg: LPVOID) : DWORD {
     var fun : ThreadStartFn;
-    var arg: void*;
+    var arg: *void;
     var res: i32;
 
     /* Get thread startup information */
-    var ti: ThreadStartInfo* = aArg as (ThreadStartInfo*);
+    var ti: *ThreadStartInfo = aArg as (*ThreadStartInfo);
     fun = ti.mFunction;
     arg = ti.mArg;
 
     /* The thread is responsible for freeing the startup information */
-    free(ti as (void*));
+    free(ti as (*void));
 
     /* Call the actual client thread function */
     res = fun(arg);
@@ -593,10 +593,10 @@ func _thrd_wrapper_function(aArg: LPVOID) : DWORD {
     return res as (DWORD);
 }
 
-public func (thr: Thread*) create(fun: ThreadStartFn, arg: void*) : ThreadStatus {
+public func (thr: *Thread) create(fun: ThreadStartFn, arg: *void) : ThreadStatus {
     /* Fill out the thread startup information (passed to the thread wrapper,
      which will eventually free it) */
-    var ti = malloc(sizeof(:ThreadStartInfo)) as (ThreadStartInfo*);
+    var ti = malloc(sizeof(:ThreadStartInfo)) as (*ThreadStartInfo);
     if (ti == null) {
         return ThreadStatus.NOMEM;
     }
@@ -640,7 +640,7 @@ public func (thr: Thread) equal(other: Thread) : bool {
     return thr.id() == other.id()
 }
 
-public func (thr: Thread) join(res: i32*) : ThreadStatus {
+public func (thr: Thread) join(res: *i32) : ThreadStatus {
     var dwRes: DWORD;
 
     if (WaitForSingleObject(thr.hnd, INFINITE) == WAIT_FAILED) {
@@ -659,7 +659,7 @@ public func (thr: Thread) join(res: i32*) : ThreadStatus {
     return ThreadStatus.SUCCESS;
 }
 
-public func (thr: Thread) sleep(duration: TimeSpec*, remaining: TimeSpec* = null) : i32 {
+public func (thr: Thread) sleep(duration: *TimeSpec, remaining: *TimeSpec = null) : i32 {
     var start: TimeSpec;
     var t: DWORD;
 

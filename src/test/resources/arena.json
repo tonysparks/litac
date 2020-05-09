@@ -7,7 +7,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -16,20 +16,20 @@
             name: "Anon Union",
             definitions: '''
                 @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                          
                 struct X {
                     a: i32
                 }
                 
-                func (x: X*) method() : i32 {
+                func (x: *X) method() : i32 {
                     return x.a
                 }
                                                 
                 struct Test {
                     union {
-                        w: X*
-                        y: X*
+                        w: *X
+                        y: *X
                     }                                   
                 }                
             ''',                       
@@ -75,7 +75,7 @@
                 
                 assert(array.size() == size)
                 
-                var map = Map<char const*, i32>{}
+                var map = Map<*const char, i32>{}
                 map.init(0, 1, &StrHashFn, &StrEqualFn, &arena.alloc)
                 
                 map.put("hi1", 421)
@@ -130,7 +130,7 @@
                     assert(debugAllocator.allocations.empty())
                 }
                 
-                defaultAllocator = (&arena.alloc) as (Allocator const*)
+                defaultAllocator = (&arena.alloc) as (*const Allocator)
                 
                 var array = Array<i32>{}
                 array.init(2)
@@ -142,7 +142,7 @@
                 
                 assert(array.size() == size)
                 
-                var map = Map<char const*, i32>{}
+                var map = Map<*const char, i32>{}
                 map.init(0, 1, &StrHashFn, &StrEqualFn)
                 
                 map.put("hi1", 421)

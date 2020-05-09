@@ -303,25 +303,25 @@
 
 @foreign public struct GLFWcursor;
 
-@foreign public typedef func(i32, char const*) : void as GLFWerrorfun;
-@foreign public typedef func(GLFWwindow*, i32, i32) : void as GLFWwindowposfun;
-@foreign public typedef func(GLFWwindow*, i32, i32) : void as GLFWwindowsizefun;
-@foreign public typedef func(GLFWwindow*) : void as GLFWwindowclosefun;
-@foreign public typedef func(GLFWwindow*) : void as GLFWwindowrefreshfun;
-@foreign public typedef func(GLFWwindow*, i32) : void as GLFWwindowfocusfun;
-@foreign public typedef func(GLFWwindow*, i32) : void as GLFWwindowiconifyfun;
-@foreign public typedef func(GLFWwindow*, i32) : void as GLFWwindowmaximizefun;
-@foreign public typedef func(GLFWwindow*, i32, i32) : void as GLFWframebuffersizefun;
-@foreign public typedef func(GLFWwindow*, f32, f32) : void as GLFWwindowcontentscalefun;
-@foreign public typedef func(GLFWwindow*, i32, i32, i32) : void as GLFWmousebuttonfun;
-@foreign public typedef func(GLFWwindow*, f64, f64) : void as GLFWcursorposfun;
-@foreign public typedef func(GLFWwindow*, i32) : void as GLFWcursorenterfun;
-@foreign public typedef func(GLFWwindow*, f64, f64) : void as GLFWscrollfun;
-@foreign public typedef func(GLFWwindow*, i32, i32, i32, i32) : void as GLFWkeyfun;
-@foreign public typedef func(GLFWwindow*, u32) : void as GLFWcharfun;
-@foreign public typedef func(GLFWwindow*, u32, i32) : void as GLFWcharmodsfun;
-@foreign public typedef func(GLFWwindow*, i32, []char const*) : void as GLFWdropfun;
-@foreign public typedef func(GLFWmonitor*, i32) : void as GLFWmonitorfun;
+@foreign public typedef func(i32, *const char) : void as GLFWerrorfun;
+@foreign public typedef func(*GLFWwindow, i32, i32) : void as GLFWwindowposfun;
+@foreign public typedef func(*GLFWwindow, i32, i32) : void as GLFWwindowsizefun;
+@foreign public typedef func(*GLFWwindow) : void as GLFWwindowclosefun;
+@foreign public typedef func(*GLFWwindow) : void as GLFWwindowrefreshfun;
+@foreign public typedef func(*GLFWwindow, i32) : void as GLFWwindowfocusfun;
+@foreign public typedef func(*GLFWwindow, i32) : void as GLFWwindowiconifyfun;
+@foreign public typedef func(*GLFWwindow, i32) : void as GLFWwindowmaximizefun;
+@foreign public typedef func(*GLFWwindow, i32, i32) : void as GLFWframebuffersizefun;
+@foreign public typedef func(*GLFWwindow, f32, f32) : void as GLFWwindowcontentscalefun;
+@foreign public typedef func(*GLFWwindow, i32, i32, i32) : void as GLFWmousebuttonfun;
+@foreign public typedef func(*GLFWwindow, f64, f64) : void as GLFWcursorposfun;
+@foreign public typedef func(*GLFWwindow, i32) : void as GLFWcursorenterfun;
+@foreign public typedef func(*GLFWwindow, f64, f64) : void as GLFWscrollfun;
+@foreign public typedef func(*GLFWwindow, i32, i32, i32, i32) : void as GLFWkeyfun;
+@foreign public typedef func(*GLFWwindow, u32) : void as GLFWcharfun;
+@foreign public typedef func(*GLFWwindow, u32, i32) : void as GLFWcharmodsfun;
+@foreign public typedef func(*GLFWwindow, i32, []*const char) : void as GLFWdropfun;
+@foreign public typedef func(*GLFWmonitor, i32) : void as GLFWmonitorfun;
 @foreign public typedef func(i32, i32) : void as GLFWjoystickfun;
 
 @foreign public struct GLFWvidmode {
@@ -335,9 +335,9 @@
 
 
 @foreign public struct GLFWgammaramp {
-    red: u16*
-    green: u16*
-    blue: u16*
+    red: *u16
+    green: *u16
+    blue: *u16
     size: u32
 }
 
@@ -345,7 +345,7 @@
 @foreign public struct GLFWimage {
     width: i32
     height: i32
-    pixels: u8*
+    pixels: *u8
 }
 
 
@@ -357,121 +357,121 @@
 @foreign public func glfwInit() : i32;
 @foreign public func glfwTerminate() : void;
 @foreign public func glfwInitHint(hint: i32, value: i32) : void;
-@foreign public func glfwGetVersion(major: i32*, minor: i32*, rev: i32*) : void;
-@foreign public func glfwGetVersionString() : char const*;
-@foreign public func glfwGetError(description: char** const) : i32;
+@foreign public func glfwGetVersion(major: *i32, minor: *i32, rev: *i32) : void;
+@foreign public func glfwGetVersionString() : *const char;
+@foreign public func glfwGetError(description: const **char) : i32;
 @foreign public func glfwSetErrorCallback(callback: GLFWerrorfun) : GLFWerrorfun;
-@foreign public func glfwGetMonitors(count: i32*) : GLFWmonitor**;
-@foreign public func glfwGetPrimaryMonitor() : GLFWmonitor*;
-@foreign public func glfwGetMonitorPos(monitor: GLFWmonitor*, xpos: i32*, ypos: i32*) : void;
-@foreign public func glfwGetMonitorWorkarea(monitor: GLFWmonitor*, xpos: i32*, ypos: i32*, width: i32*, height: i32*) : void;
-@foreign public func glfwGetMonitorPhysicalSize(monitor: GLFWmonitor*, widthMM: i32*, heightMM: i32*) : void;
-@foreign public func glfwGetMonitorContentScale(monitor: GLFWmonitor*, xscale: f32*, yscale: f32*) : void;
-@foreign public func glfwGetMonitorName(monitor: GLFWmonitor*) : char const*;
-@foreign public func glfwSetMonitorUserPointer(monitor: GLFWmonitor*, pointer: void*) : void;
-@foreign public func glfwGetMonitorUserPointer(monitor: GLFWmonitor*) : void*;
+@foreign public func glfwGetMonitors(count: *i32) : **GLFWmonitor;
+@foreign public func glfwGetPrimaryMonitor() : *GLFWmonitor;
+@foreign public func glfwGetMonitorPos(monitor: *GLFWmonitor, xpos: *i32, ypos: *i32) : void;
+@foreign public func glfwGetMonitorWorkarea(monitor: *GLFWmonitor, xpos: *i32, ypos: *i32, width: *i32, height: *i32) : void;
+@foreign public func glfwGetMonitorPhysicalSize(monitor: *GLFWmonitor, widthMM: *i32, heightMM: *i32) : void;
+@foreign public func glfwGetMonitorContentScale(monitor: *GLFWmonitor, xscale: *f32, yscale: *f32) : void;
+@foreign public func glfwGetMonitorName(monitor: *GLFWmonitor) : *const char;
+@foreign public func glfwSetMonitorUserPointer(monitor: *GLFWmonitor, pointer: *void) : void;
+@foreign public func glfwGetMonitorUserPointer(monitor: *GLFWmonitor) : *void;
 @foreign public func glfwSetMonitorCallback(callback: GLFWmonitorfun) : GLFWmonitorfun;
-@foreign public func glfwGetVideoModes(monitor: GLFWmonitor*, count: i32*) : GLFWvidmode* const;
-@foreign public func glfwGetVideoMode(monitor: GLFWmonitor*) : GLFWvidmode* const;
-@foreign public func glfwSetGamma(monitor: GLFWmonitor*, gamma: f32) : void;
-@foreign public func glfwGetGammaRamp(monitor: GLFWmonitor*) : GLFWgammaramp* const;
-@foreign public func glfwSetGammaRamp(monitor: GLFWmonitor*, ramp: GLFWgammaramp* const) : void;
+@foreign public func glfwGetVideoModes(monitor: *GLFWmonitor, count: *i32) : *const GLFWvidmode;
+@foreign public func glfwGetVideoMode(monitor: *GLFWmonitor) : *const GLFWvidmode;
+@foreign public func glfwSetGamma(monitor: *GLFWmonitor, gamma: f32) : void;
+@foreign public func glfwGetGammaRamp(monitor: *GLFWmonitor) : *const GLFWgammaramp;
+@foreign public func glfwSetGammaRamp(monitor: *GLFWmonitor, ramp: *const GLFWgammaramp) : void;
 @foreign public func glfwDefaultWindowHints() : void;
 @foreign public func glfwWindowHint(hint: i32, value: i32) : void;
-@foreign public func glfwWindowHintString(hint: i32, value: char const*) : void;
-@foreign public func glfwCreateWindow(width: i32, height: i32, title: char const*, monitor: GLFWmonitor*, share: GLFWwindow*) : GLFWwindow*;
-@foreign public func glfwDestroyWindow(window: GLFWwindow*) : void;
-@foreign public func glfwWindowShouldClose(window: GLFWwindow*) : i32;
-@foreign public func glfwSetWindowShouldClose(window: GLFWwindow*, value: i32) : void;
-@foreign public func glfwSetWindowTitle(window: GLFWwindow*, title: char const*) : void;
-@foreign public func glfwSetWindowIcon(window: GLFWwindow*, count: i32, images: GLFWimage* const) : void;
-@foreign public func glfwGetWindowPos(window: GLFWwindow*, xpos: i32*, ypos: i32*) : void;
-@foreign public func glfwSetWindowPos(window: GLFWwindow*, xpos: i32, ypos: i32) : void;
-@foreign public func glfwGetWindowSize(window: GLFWwindow*, width: i32*, height: i32*) : void;
-@foreign public func glfwSetWindowSizeLimits(window: GLFWwindow*, minwidth: i32, minheight: i32, maxwidth: i32, maxheight: i32) : void;
-@foreign public func glfwSetWindowAspectRatio(window: GLFWwindow*, numer: i32, denom: i32) : void;
-@foreign public func glfwSetWindowSize(window: GLFWwindow*, width: i32, height: i32) : void;
-@foreign public func glfwGetFramebufferSize(window: GLFWwindow*, width: i32*, height: i32*) : void;
-@foreign public func glfwGetWindowFrameSize(window: GLFWwindow*, left: i32*, top: i32*, right: i32*, bottom: i32*) : void;
-@foreign public func glfwGetWindowContentScale(window: GLFWwindow*, xscale: f32*, yscale: f32*) : void;
-@foreign public func glfwGetWindowOpacity(window: GLFWwindow*) : f32;
-@foreign public func glfwSetWindowOpacity(window: GLFWwindow*, opacity: f32) : void;
-@foreign public func glfwIconifyWindow(window: GLFWwindow*) : void;
-@foreign public func glfwRestoreWindow(window: GLFWwindow*) : void;
-@foreign public func glfwMaximizeWindow(window: GLFWwindow*) : void;
-@foreign public func glfwShowWindow(window: GLFWwindow*) : void;
-@foreign public func glfwHideWindow(window: GLFWwindow*) : void;
-@foreign public func glfwFocusWindow(window: GLFWwindow*) : void;
-@foreign public func glfwRequestWindowAttention(window: GLFWwindow*) : void;
-@foreign public func glfwGetWindowMonitor(window: GLFWwindow*) : GLFWmonitor*;
-@foreign public func glfwSetWindowMonitor(window: GLFWwindow*, monitor: GLFWmonitor*, xpos: i32, ypos: i32, width: i32, height: i32, refreshRate: i32) : void;
-@foreign public func glfwGetWindowAttrib(window: GLFWwindow*, attrib: i32) : i32;
-@foreign public func glfwSetWindowAttrib(window: GLFWwindow*, attrib: i32, value: i32) : void;
-@foreign public func glfwSetWindowUserPointer(window: GLFWwindow*, pointer: void*) : void;
-@foreign public func glfwGetWindowUserPointer(window: GLFWwindow*) : void*;
-@foreign public func glfwSetWindowPosCallback(window: GLFWwindow*, callback: GLFWwindowposfun) : GLFWwindowposfun;
-@foreign public func glfwSetWindowSizeCallback(window: GLFWwindow*, callback: GLFWwindowsizefun) : GLFWwindowsizefun;
-@foreign public func glfwSetWindowCloseCallback(window: GLFWwindow*, callback: GLFWwindowclosefun) : GLFWwindowclosefun;
-@foreign public func glfwSetWindowRefreshCallback(window: GLFWwindow*, callback: GLFWwindowrefreshfun) : GLFWwindowrefreshfun;
-@foreign public func glfwSetWindowFocusCallback(window: GLFWwindow*, callback: GLFWwindowfocusfun) : GLFWwindowfocusfun;
-@foreign public func glfwSetWindowIconifyCallback(window: GLFWwindow*, callback: GLFWwindowiconifyfun) : GLFWwindowiconifyfun;
-@foreign public func glfwSetWindowMaximizeCallback(window: GLFWwindow*, callback: GLFWwindowmaximizefun) : GLFWwindowmaximizefun;
-@foreign public func glfwSetFramebufferSizeCallback(window: GLFWwindow*, callback: GLFWframebuffersizefun) : GLFWframebuffersizefun;
-@foreign public func glfwSetWindowContentScaleCallback(window: GLFWwindow*, callback: GLFWwindowcontentscalefun) : GLFWwindowcontentscalefun;
+@foreign public func glfwWindowHintString(hint: i32, value: *const char) : void;
+@foreign public func glfwCreateWindow(width: i32, height: i32, title: *const char, monitor: *GLFWmonitor, share: *GLFWwindow) : *GLFWwindow;
+@foreign public func glfwDestroyWindow(window: *GLFWwindow) : void;
+@foreign public func glfwWindowShouldClose(window: *GLFWwindow) : i32;
+@foreign public func glfwSetWindowShouldClose(window: *GLFWwindow, value: i32) : void;
+@foreign public func glfwSetWindowTitle(window: *GLFWwindow, title: *const char) : void;
+@foreign public func glfwSetWindowIcon(window: *GLFWwindow, count: i32, images: *const GLFWimage) : void;
+@foreign public func glfwGetWindowPos(window: *GLFWwindow, xpos: *i32, ypos: *i32) : void;
+@foreign public func glfwSetWindowPos(window: *GLFWwindow, xpos: i32, ypos: i32) : void;
+@foreign public func glfwGetWindowSize(window: *GLFWwindow, width: *i32, height: *i32) : void;
+@foreign public func glfwSetWindowSizeLimits(window: *GLFWwindow, minwidth: i32, minheight: i32, maxwidth: i32, maxheight: i32) : void;
+@foreign public func glfwSetWindowAspectRatio(window: *GLFWwindow, numer: i32, denom: i32) : void;
+@foreign public func glfwSetWindowSize(window: *GLFWwindow, width: i32, height: i32) : void;
+@foreign public func glfwGetFramebufferSize(window: *GLFWwindow, width: *i32, height: *i32) : void;
+@foreign public func glfwGetWindowFrameSize(window: *GLFWwindow, left: *i32, top: *i32, right: *i32, bottom: *i32) : void;
+@foreign public func glfwGetWindowContentScale(window: *GLFWwindow, xscale: *f32, yscale: *f32) : void;
+@foreign public func glfwGetWindowOpacity(window: *GLFWwindow) : f32;
+@foreign public func glfwSetWindowOpacity(window: *GLFWwindow, opacity: f32) : void;
+@foreign public func glfwIconifyWindow(window: *GLFWwindow) : void;
+@foreign public func glfwRestoreWindow(window: *GLFWwindow) : void;
+@foreign public func glfwMaximizeWindow(window: *GLFWwindow) : void;
+@foreign public func glfwShowWindow(window: *GLFWwindow) : void;
+@foreign public func glfwHideWindow(window: *GLFWwindow) : void;
+@foreign public func glfwFocusWindow(window: *GLFWwindow) : void;
+@foreign public func glfwRequestWindowAttention(window: *GLFWwindow) : void;
+@foreign public func glfwGetWindowMonitor(window: *GLFWwindow) : *GLFWmonitor;
+@foreign public func glfwSetWindowMonitor(window: *GLFWwindow, monitor: *GLFWmonitor, xpos: i32, ypos: i32, width: i32, height: i32, refreshRate: i32) : void;
+@foreign public func glfwGetWindowAttrib(window: *GLFWwindow, attrib: i32) : i32;
+@foreign public func glfwSetWindowAttrib(window: *GLFWwindow, attrib: i32, value: i32) : void;
+@foreign public func glfwSetWindowUserPointer(window: *GLFWwindow, pointer: *void) : void;
+@foreign public func glfwGetWindowUserPointer(window: *GLFWwindow) : *void;
+@foreign public func glfwSetWindowPosCallback(window: *GLFWwindow, callback: GLFWwindowposfun) : GLFWwindowposfun;
+@foreign public func glfwSetWindowSizeCallback(window: *GLFWwindow, callback: GLFWwindowsizefun) : GLFWwindowsizefun;
+@foreign public func glfwSetWindowCloseCallback(window: *GLFWwindow, callback: GLFWwindowclosefun) : GLFWwindowclosefun;
+@foreign public func glfwSetWindowRefreshCallback(window: *GLFWwindow, callback: GLFWwindowrefreshfun) : GLFWwindowrefreshfun;
+@foreign public func glfwSetWindowFocusCallback(window: *GLFWwindow, callback: GLFWwindowfocusfun) : GLFWwindowfocusfun;
+@foreign public func glfwSetWindowIconifyCallback(window: *GLFWwindow, callback: GLFWwindowiconifyfun) : GLFWwindowiconifyfun;
+@foreign public func glfwSetWindowMaximizeCallback(window: *GLFWwindow, callback: GLFWwindowmaximizefun) : GLFWwindowmaximizefun;
+@foreign public func glfwSetFramebufferSizeCallback(window: *GLFWwindow, callback: GLFWframebuffersizefun) : GLFWframebuffersizefun;
+@foreign public func glfwSetWindowContentScaleCallback(window: *GLFWwindow, callback: GLFWwindowcontentscalefun) : GLFWwindowcontentscalefun;
 @foreign public func glfwPollEvents() : void;
 @foreign public func glfwWaitEvents() : void;
 @foreign public func glfwWaitEventsTimeout(timeout: f64) : void;
 @foreign public func glfwPostEmptyEvent() : void;
-@foreign public func glfwGetInputMode(window: GLFWwindow*, mode: i32) : i32;
-@foreign public func glfwSetInputMode(window: GLFWwindow*, mode: i32, value: i32) : void;
+@foreign public func glfwGetInputMode(window: *GLFWwindow, mode: i32) : i32;
+@foreign public func glfwSetInputMode(window: *GLFWwindow, mode: i32, value: i32) : void;
 @foreign public func glfwRawMouseMotionSupported() : i32;
-@foreign public func glfwGetKeyName(key: i32, scancode: i32) : char const*;
+@foreign public func glfwGetKeyName(key: i32, scancode: i32) : *const char;
 @foreign public func glfwGetKeyScancode(key: i32) : i32;
-@foreign public func glfwGetKey(window: GLFWwindow*, key: i32) : i32;
-@foreign public func glfwGetMouseButton(window: GLFWwindow*, button: i32) : i32;
-@foreign public func glfwGetCursorPos(window: GLFWwindow*, xpos: f64*, ypos: f64*) : void;
-@foreign public func glfwSetCursorPos(window: GLFWwindow*, xpos: f64, ypos: f64) : void;
-@foreign public func glfwCreateCursor(image: GLFWimage* const, xhot: i32, yhot: i32) : GLFWcursor*;
-@foreign public func glfwCreateStandardCursor(shape: i32) : GLFWcursor*;
-@foreign public func glfwDestroyCursor(cursor: GLFWcursor*) : void;
-@foreign public func glfwSetCursor(window: GLFWwindow*, cursor: GLFWcursor*) : void;
-@foreign public func glfwSetKeyCallback(window: GLFWwindow*, callback: GLFWkeyfun) : GLFWkeyfun;
-@foreign public func glfwSetCharCallback(window: GLFWwindow*, callback: GLFWcharfun) : GLFWcharfun;
-@foreign public func glfwSetCharModsCallback(window: GLFWwindow*, callback: GLFWcharmodsfun) : GLFWcharmodsfun;
-@foreign public func glfwSetMouseButtonCallback(window: GLFWwindow*, callback: GLFWmousebuttonfun) : GLFWmousebuttonfun;
-@foreign public func glfwSetCursorPosCallback(window: GLFWwindow*, callback: GLFWcursorposfun) : GLFWcursorposfun;
-@foreign public func glfwSetCursorEnterCallback(window: GLFWwindow*, callback: GLFWcursorenterfun) : GLFWcursorenterfun;
-@foreign public func glfwSetScrollCallback(window: GLFWwindow*, callback: GLFWscrollfun) : GLFWscrollfun;
-@foreign public func glfwSetDropCallback(window: GLFWwindow*, callback: GLFWdropfun) : GLFWdropfun;
+@foreign public func glfwGetKey(window: *GLFWwindow, key: i32) : i32;
+@foreign public func glfwGetMouseButton(window: *GLFWwindow, button: i32) : i32;
+@foreign public func glfwGetCursorPos(window: *GLFWwindow, xpos: *f64, ypos: *f64) : void;
+@foreign public func glfwSetCursorPos(window: *GLFWwindow, xpos: f64, ypos: f64) : void;
+@foreign public func glfwCreateCursor(image: *const GLFWimage, xhot: i32, yhot: i32) : *GLFWcursor;
+@foreign public func glfwCreateStandardCursor(shape: i32) : *GLFWcursor;
+@foreign public func glfwDestroyCursor(cursor: *GLFWcursor) : void;
+@foreign public func glfwSetCursor(window: *GLFWwindow, cursor: *GLFWcursor) : void;
+@foreign public func glfwSetKeyCallback(window: *GLFWwindow, callback: GLFWkeyfun) : GLFWkeyfun;
+@foreign public func glfwSetCharCallback(window: *GLFWwindow, callback: GLFWcharfun) : GLFWcharfun;
+@foreign public func glfwSetCharModsCallback(window: *GLFWwindow, callback: GLFWcharmodsfun) : GLFWcharmodsfun;
+@foreign public func glfwSetMouseButtonCallback(window: *GLFWwindow, callback: GLFWmousebuttonfun) : GLFWmousebuttonfun;
+@foreign public func glfwSetCursorPosCallback(window: *GLFWwindow, callback: GLFWcursorposfun) : GLFWcursorposfun;
+@foreign public func glfwSetCursorEnterCallback(window: *GLFWwindow, callback: GLFWcursorenterfun) : GLFWcursorenterfun;
+@foreign public func glfwSetScrollCallback(window: *GLFWwindow, callback: GLFWscrollfun) : GLFWscrollfun;
+@foreign public func glfwSetDropCallback(window: *GLFWwindow, callback: GLFWdropfun) : GLFWdropfun;
 @foreign public func glfwJoystickPresent(jid: i32) : i32;
-@foreign public func glfwGetJoystickAxes(jid: i32, count: i32*) : f32 const*;
-@foreign public func glfwGetJoystickButtons(jid: i32, count: i32*) : u8 const*;
-@foreign public func glfwGetJoystickHats(jid: i32, count: i32*) : u8 const*;
-@foreign public func glfwGetJoystickName(jid: i32) : char const*;
-@foreign public func glfwGetJoystickGUID(jid: i32) : char const*;
-@foreign public func glfwSetJoystickUserPointer(jid: i32, pointer: void*) : void;
-@foreign public func glfwGetJoystickUserPointer(jid: i32) : void*;
+@foreign public func glfwGetJoystickAxes(jid: i32, count: *i32) : *const f32;
+@foreign public func glfwGetJoystickButtons(jid: i32, count: *i32) : *const u8;
+@foreign public func glfwGetJoystickHats(jid: i32, count: *i32) : *const u8;
+@foreign public func glfwGetJoystickName(jid: i32) : *const char;
+@foreign public func glfwGetJoystickGUID(jid: i32) : *const char;
+@foreign public func glfwSetJoystickUserPointer(jid: i32, pointer: *void) : void;
+@foreign public func glfwGetJoystickUserPointer(jid: i32) : *void;
 @foreign public func glfwJoystickIsGamepad(jid: i32) : i32;
 @foreign public func glfwSetJoystickCallback(callback: GLFWjoystickfun) : GLFWjoystickfun;
-@foreign public func glfwUpdateGamepadMappings(string: char const*) : i32;
-@foreign public func glfwGetGamepadName(jid: i32) : char const*;
-@foreign public func glfwGetGamepadState(jid: i32, state: GLFWgamepadstate*) : i32;
-@foreign public func glfwSetClipboardString(window: GLFWwindow*, string: char const*) : void;
-@foreign public func glfwGetClipboardString(window: GLFWwindow*) : char const*;
+@foreign public func glfwUpdateGamepadMappings(string: *const char) : i32;
+@foreign public func glfwGetGamepadName(jid: i32) : *const char;
+@foreign public func glfwGetGamepadState(jid: i32, state: *GLFWgamepadstate) : i32;
+@foreign public func glfwSetClipboardString(window: *GLFWwindow, string: *const char) : void;
+@foreign public func glfwGetClipboardString(window: *GLFWwindow) : *const char;
 @foreign public func glfwGetTime() : f64;
 @foreign public func glfwSetTime(time: f64) : void;
 @foreign public func glfwGetTimerValue() : u64;
 @foreign public func glfwGetTimerFrequency() : u64;
-@foreign public func glfwMakeContextCurrent(window: GLFWwindow*) : void;
-@foreign public func glfwGetCurrentContext() : GLFWwindow*;
-@foreign public func glfwSwapBuffers(window: GLFWwindow*) : void;
+@foreign public func glfwMakeContextCurrent(window: *GLFWwindow) : void;
+@foreign public func glfwGetCurrentContext() : *GLFWwindow;
+@foreign public func glfwSwapBuffers(window: *GLFWwindow) : void;
 @foreign public func glfwSwapInterval(interval: i32) : void;
-@foreign public func glfwExtensionSupported(extension: char const*) : i32;
-@foreign public func glfwGetProcAddress(procname: char const*) : GLFWglproc;
+@foreign public func glfwExtensionSupported(extension: *const char) : i32;
+@foreign public func glfwGetProcAddress(procname: *const char) : GLFWglproc;
 /*
 @foreign public func glfwVulkanSupported() : i32;
 @foreign public func glfwGetRequiredInstanceExtensions(count: u32*) : char** const;
 @foreign public func glfwGetInstanceProcAddress(instance: VkInstance, procname: char const*) : GLFWvkproc;
 @foreign public func glfwGetPhysicalDevicePresentationSupport(instance: VkInstance, device: VkPhysicalDevice, queuefamily: u32) : i32;
-@foreign public func glfwCreateWindowSurface(instance: VkInstance, window: GLFWwindow*, allocator: VkAllocationCallbacks* const, surface: VkSurfaceKHR*) : VkResult;
+@foreign public func glfwCreateWindowSurface(instance: VkInstance, window: *GLFWwindow, allocator: VkAllocationCallbacks* const, surface: VkSurfaceKHR*) : VkResult;
 */

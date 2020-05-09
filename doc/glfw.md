@@ -311,144 +311,144 @@
 * struct [GLFWwindow](#GLFWwindow)
 * typedef [func\(\) : void](#\_) as [GLFWglproc](#GLFWglproc)
 * typedef [func\(\) : void](#\_) as [GLFWvkproc](#GLFWvkproc)
-* typedef [func\(i32, char const\*\) : void](#\_) as [GLFWerrorfun](#GLFWerrorfun)
+* typedef [func\(\*struct GLFWmonitor, i32\) : void](#\_) as [GLFWmonitorfun](#GLFWmonitorfun)
+* typedef [func\(\*struct GLFWwindow, f32, f32\) : void](#\_) as [GLFWwindowcontentscalefun](#GLFWwindowcontentscalefun)
+* typedef [func\(\*struct GLFWwindow, f64, f64\) : void](#\_) as [GLFWcursorposfun](#GLFWcursorposfun)
+* typedef [func\(\*struct GLFWwindow, f64, f64\) : void](#\_) as [GLFWscrollfun](#GLFWscrollfun)
+* typedef [func\(\*struct GLFWwindow, i32, \[\]\*const char\) : void](#\_) as [GLFWdropfun](#GLFWdropfun)
+* typedef [func\(\*struct GLFWwindow, i32, i32, i32, i32\) : void](#\_) as [GLFWkeyfun](#GLFWkeyfun)
+* typedef [func\(\*struct GLFWwindow, i32, i32, i32\) : void](#\_) as [GLFWmousebuttonfun](#GLFWmousebuttonfun)
+* typedef [func\(\*struct GLFWwindow, i32, i32\) : void](#\_) as [GLFWframebuffersizefun](#GLFWframebuffersizefun)
+* typedef [func\(\*struct GLFWwindow, i32, i32\) : void](#\_) as [GLFWwindowposfun](#GLFWwindowposfun)
+* typedef [func\(\*struct GLFWwindow, i32, i32\) : void](#\_) as [GLFWwindowsizefun](#GLFWwindowsizefun)
+* typedef [func\(\*struct GLFWwindow, i32\) : void](#\_) as [GLFWcursorenterfun](#GLFWcursorenterfun)
+* typedef [func\(\*struct GLFWwindow, i32\) : void](#\_) as [GLFWwindowfocusfun](#GLFWwindowfocusfun)
+* typedef [func\(\*struct GLFWwindow, i32\) : void](#\_) as [GLFWwindowiconifyfun](#GLFWwindowiconifyfun)
+* typedef [func\(\*struct GLFWwindow, i32\) : void](#\_) as [GLFWwindowmaximizefun](#GLFWwindowmaximizefun)
+* typedef [func\(\*struct GLFWwindow, u32, i32\) : void](#\_) as [GLFWcharmodsfun](#GLFWcharmodsfun)
+* typedef [func\(\*struct GLFWwindow, u32\) : void](#\_) as [GLFWcharfun](#GLFWcharfun)
+* typedef [func\(\*struct GLFWwindow\) : void](#\_) as [GLFWwindowclosefun](#GLFWwindowclosefun)
+* typedef [func\(\*struct GLFWwindow\) : void](#\_) as [GLFWwindowrefreshfun](#GLFWwindowrefreshfun)
+* typedef [func\(i32, \*const char\) : void](#\_) as [GLFWerrorfun](#GLFWerrorfun)
 * typedef [func\(i32, i32\) : void](#\_) as [GLFWjoystickfun](#GLFWjoystickfun)
-* typedef [func\(struct GLFWmonitor\*, i32\) : void](#\_) as [GLFWmonitorfun](#GLFWmonitorfun)
-* typedef [func\(struct GLFWwindow\*, f32, f32\) : void](#\_) as [GLFWwindowcontentscalefun](#GLFWwindowcontentscalefun)
-* typedef [func\(struct GLFWwindow\*, f64, f64\) : void](#\_) as [GLFWcursorposfun](#GLFWcursorposfun)
-* typedef [func\(struct GLFWwindow\*, f64, f64\) : void](#\_) as [GLFWscrollfun](#GLFWscrollfun)
-* typedef [func\(struct GLFWwindow\*, i32, \[\]char const\*\) : void](#\_) as [GLFWdropfun](#GLFWdropfun)
-* typedef [func\(struct GLFWwindow\*, i32, i32, i32, i32\) : void](#\_) as [GLFWkeyfun](#GLFWkeyfun)
-* typedef [func\(struct GLFWwindow\*, i32, i32, i32\) : void](#\_) as [GLFWmousebuttonfun](#GLFWmousebuttonfun)
-* typedef [func\(struct GLFWwindow\*, i32, i32\) : void](#\_) as [GLFWframebuffersizefun](#GLFWframebuffersizefun)
-* typedef [func\(struct GLFWwindow\*, i32, i32\) : void](#\_) as [GLFWwindowposfun](#GLFWwindowposfun)
-* typedef [func\(struct GLFWwindow\*, i32, i32\) : void](#\_) as [GLFWwindowsizefun](#GLFWwindowsizefun)
-* typedef [func\(struct GLFWwindow\*, i32\) : void](#\_) as [GLFWcursorenterfun](#GLFWcursorenterfun)
-* typedef [func\(struct GLFWwindow\*, i32\) : void](#\_) as [GLFWwindowfocusfun](#GLFWwindowfocusfun)
-* typedef [func\(struct GLFWwindow\*, i32\) : void](#\_) as [GLFWwindowiconifyfun](#GLFWwindowiconifyfun)
-* typedef [func\(struct GLFWwindow\*, i32\) : void](#\_) as [GLFWwindowmaximizefun](#GLFWwindowmaximizefun)
-* typedef [func\(struct GLFWwindow\*, u32, i32\) : void](#\_) as [GLFWcharmodsfun](#GLFWcharmodsfun)
-* typedef [func\(struct GLFWwindow\*, u32\) : void](#\_) as [GLFWcharfun](#GLFWcharfun)
-* typedef [func\(struct GLFWwindow\*\) : void](#\_) as [GLFWwindowclosefun](#GLFWwindowclosefun)
-* typedef [func\(struct GLFWwindow\*\) : void](#\_) as [GLFWwindowrefreshfun](#GLFWwindowrefreshfun)
 
 
 ## glfw Functions
 
-* func [glfwCreateCursor](#glfwCreateCursor)(image: [GLFWimage\* const](#GLFWimage), xhot: i32, yhot: i32) : [GLFWcursor\*](#GLFWcursor)
-* func [glfwCreateStandardCursor](#glfwCreateStandardCursor)(shape: i32) : [GLFWcursor\*](#GLFWcursor)
-* func [glfwCreateWindow](#glfwCreateWindow)(width: i32, height: i32, title: char const*, monitor: [GLFWmonitor\*](#GLFWmonitor), share: [GLFWwindow\*](#GLFWwindow)) : [GLFWwindow\*](#GLFWwindow)
+* func [glfwCreateCursor](#glfwCreateCursor)(image: [\*const GLFWimage](#GLFWimage), xhot: i32, yhot: i32) : [\*GLFWcursor](#GLFWcursor)
+* func [glfwCreateStandardCursor](#glfwCreateStandardCursor)(shape: i32) : [\*GLFWcursor](#GLFWcursor)
+* func [glfwCreateWindow](#glfwCreateWindow)(width: i32, height: i32, title: *const char, monitor: [\*GLFWmonitor](#GLFWmonitor), share: [\*GLFWwindow](#GLFWwindow)) : [\*GLFWwindow](#GLFWwindow)
 * func [glfwDefaultWindowHints](#glfwDefaultWindowHints)()
-* func [glfwDestroyCursor](#glfwDestroyCursor)(cursor: [GLFWcursor\*](#GLFWcursor))
-* func [glfwDestroyWindow](#glfwDestroyWindow)(window: [GLFWwindow\*](#GLFWwindow))
-* func [glfwExtensionSupported](#glfwExtensionSupported)(extension: char const*) : i32
-* func [glfwFocusWindow](#glfwFocusWindow)(window: [GLFWwindow\*](#GLFWwindow))
-* func [glfwGetClipboardString](#glfwGetClipboardString)(window: [GLFWwindow\*](#GLFWwindow)) : char const*
-* func [glfwGetCurrentContext](#glfwGetCurrentContext)() : [GLFWwindow\*](#GLFWwindow)
-* func [glfwGetCursorPos](#glfwGetCursorPos)(window: [GLFWwindow\*](#GLFWwindow), xpos: f64*, ypos: f64*)
-* func [glfwGetError](#glfwGetError)(description: char** const) : i32
-* func [glfwGetFramebufferSize](#glfwGetFramebufferSize)(window: [GLFWwindow\*](#GLFWwindow), width: i32*, height: i32*)
-* func [glfwGetGamepadName](#glfwGetGamepadName)(jid: i32) : char const*
-* func [glfwGetGamepadState](#glfwGetGamepadState)(jid: i32, state: [GLFWgamepadstate\*](#GLFWgamepadstate)) : i32
-* func [glfwGetGammaRamp](#glfwGetGammaRamp)(monitor: [GLFWmonitor\*](#GLFWmonitor)) : [GLFWgammaramp\* const](#GLFWgammaramp)
-* func [glfwGetInputMode](#glfwGetInputMode)(window: [GLFWwindow\*](#GLFWwindow), mode: i32) : i32
-* func [glfwGetJoystickAxes](#glfwGetJoystickAxes)(jid: i32, count: i32*) : f32 const*
-* func [glfwGetJoystickButtons](#glfwGetJoystickButtons)(jid: i32, count: i32*) : u8 const*
-* func [glfwGetJoystickGUID](#glfwGetJoystickGUID)(jid: i32) : char const*
-* func [glfwGetJoystickHats](#glfwGetJoystickHats)(jid: i32, count: i32*) : u8 const*
-* func [glfwGetJoystickName](#glfwGetJoystickName)(jid: i32) : char const*
-* func [glfwGetJoystickUserPointer](#glfwGetJoystickUserPointer)(jid: i32) : [void\*](#void)
-* func [glfwGetKeyName](#glfwGetKeyName)(key: i32, scancode: i32) : char const*
+* func [glfwDestroyCursor](#glfwDestroyCursor)(cursor: [\*GLFWcursor](#GLFWcursor))
+* func [glfwDestroyWindow](#glfwDestroyWindow)(window: [\*GLFWwindow](#GLFWwindow))
+* func [glfwExtensionSupported](#glfwExtensionSupported)(extension: *const char) : i32
+* func [glfwFocusWindow](#glfwFocusWindow)(window: [\*GLFWwindow](#GLFWwindow))
+* func [glfwGetClipboardString](#glfwGetClipboardString)(window: [\*GLFWwindow](#GLFWwindow)) : *const char
+* func [glfwGetCurrentContext](#glfwGetCurrentContext)() : [\*GLFWwindow](#GLFWwindow)
+* func [glfwGetCursorPos](#glfwGetCursorPos)(window: [\*GLFWwindow](#GLFWwindow), xpos: *f64, ypos: *f64)
+* func [glfwGetError](#glfwGetError)(description: const **char) : i32
+* func [glfwGetFramebufferSize](#glfwGetFramebufferSize)(window: [\*GLFWwindow](#GLFWwindow), width: *i32, height: *i32)
+* func [glfwGetGamepadName](#glfwGetGamepadName)(jid: i32) : *const char
+* func [glfwGetGamepadState](#glfwGetGamepadState)(jid: i32, state: [\*GLFWgamepadstate](#GLFWgamepadstate)) : i32
+* func [glfwGetGammaRamp](#glfwGetGammaRamp)(monitor: [\*GLFWmonitor](#GLFWmonitor)) : [\*const GLFWgammaramp](#GLFWgammaramp)
+* func [glfwGetInputMode](#glfwGetInputMode)(window: [\*GLFWwindow](#GLFWwindow), mode: i32) : i32
+* func [glfwGetJoystickAxes](#glfwGetJoystickAxes)(jid: i32, count: *i32) : *const f32
+* func [glfwGetJoystickButtons](#glfwGetJoystickButtons)(jid: i32, count: *i32) : *const u8
+* func [glfwGetJoystickGUID](#glfwGetJoystickGUID)(jid: i32) : *const char
+* func [glfwGetJoystickHats](#glfwGetJoystickHats)(jid: i32, count: *i32) : *const u8
+* func [glfwGetJoystickName](#glfwGetJoystickName)(jid: i32) : *const char
+* func [glfwGetJoystickUserPointer](#glfwGetJoystickUserPointer)(jid: i32) : [\*void](#void)
+* func [glfwGetKeyName](#glfwGetKeyName)(key: i32, scancode: i32) : *const char
 * func [glfwGetKeyScancode](#glfwGetKeyScancode)(key: i32) : i32
-* func [glfwGetKey](#glfwGetKey)(window: [GLFWwindow\*](#GLFWwindow), key: i32) : i32
-* func [glfwGetMonitorContentScale](#glfwGetMonitorContentScale)(monitor: [GLFWmonitor\*](#GLFWmonitor), xscale: f32*, yscale: f32*)
-* func [glfwGetMonitorName](#glfwGetMonitorName)(monitor: [GLFWmonitor\*](#GLFWmonitor)) : char const*
-* func [glfwGetMonitorPhysicalSize](#glfwGetMonitorPhysicalSize)(monitor: [GLFWmonitor\*](#GLFWmonitor), widthMM: i32*, heightMM: i32*)
-* func [glfwGetMonitorPos](#glfwGetMonitorPos)(monitor: [GLFWmonitor\*](#GLFWmonitor), xpos: i32*, ypos: i32*)
-* func [glfwGetMonitorUserPointer](#glfwGetMonitorUserPointer)(monitor: [GLFWmonitor\*](#GLFWmonitor)) : [void\*](#void)
-* func [glfwGetMonitorWorkarea](#glfwGetMonitorWorkarea)(monitor: [GLFWmonitor\*](#GLFWmonitor), xpos: i32*, ypos: i32*, width: i32*, height: i32*)
-* func [glfwGetMonitors](#glfwGetMonitors)(count: i32*) : [GLFWmonitor\*\*](#GLFWmonitor)
-* func [glfwGetMouseButton](#glfwGetMouseButton)(window: [GLFWwindow\*](#GLFWwindow), button: i32) : i32
-* func [glfwGetPrimaryMonitor](#glfwGetPrimaryMonitor)() : [GLFWmonitor\*](#GLFWmonitor)
-* func [glfwGetProcAddress](#glfwGetProcAddress)(procname: char const*) : [func\(\) : void](#\_)
+* func [glfwGetKey](#glfwGetKey)(window: [\*GLFWwindow](#GLFWwindow), key: i32) : i32
+* func [glfwGetMonitorContentScale](#glfwGetMonitorContentScale)(monitor: [\*GLFWmonitor](#GLFWmonitor), xscale: *f32, yscale: *f32)
+* func [glfwGetMonitorName](#glfwGetMonitorName)(monitor: [\*GLFWmonitor](#GLFWmonitor)) : *const char
+* func [glfwGetMonitorPhysicalSize](#glfwGetMonitorPhysicalSize)(monitor: [\*GLFWmonitor](#GLFWmonitor), widthMM: *i32, heightMM: *i32)
+* func [glfwGetMonitorPos](#glfwGetMonitorPos)(monitor: [\*GLFWmonitor](#GLFWmonitor), xpos: *i32, ypos: *i32)
+* func [glfwGetMonitorUserPointer](#glfwGetMonitorUserPointer)(monitor: [\*GLFWmonitor](#GLFWmonitor)) : [\*void](#void)
+* func [glfwGetMonitorWorkarea](#glfwGetMonitorWorkarea)(monitor: [\*GLFWmonitor](#GLFWmonitor), xpos: *i32, ypos: *i32, width: *i32, height: *i32)
+* func [glfwGetMonitors](#glfwGetMonitors)(count: *i32) : [\*\*GLFWmonitor](#GLFWmonitor)
+* func [glfwGetMouseButton](#glfwGetMouseButton)(window: [\*GLFWwindow](#GLFWwindow), button: i32) : i32
+* func [glfwGetPrimaryMonitor](#glfwGetPrimaryMonitor)() : [\*GLFWmonitor](#GLFWmonitor)
+* func [glfwGetProcAddress](#glfwGetProcAddress)(procname: *const char) : [func\(\) : void](#\_)
 * func [glfwGetTime](#glfwGetTime)() : f64
 * func [glfwGetTimerFrequency](#glfwGetTimerFrequency)() : u64
 * func [glfwGetTimerValue](#glfwGetTimerValue)() : u64
-* func [glfwGetVersionString](#glfwGetVersionString)() : char const*
-* func [glfwGetVersion](#glfwGetVersion)(major: i32*, minor: i32*, rev: i32*)
-* func [glfwGetVideoMode](#glfwGetVideoMode)(monitor: [GLFWmonitor\*](#GLFWmonitor)) : [GLFWvidmode\* const](#GLFWvidmode)
-* func [glfwGetVideoModes](#glfwGetVideoModes)(monitor: [GLFWmonitor\*](#GLFWmonitor), count: i32*) : [GLFWvidmode\* const](#GLFWvidmode)
-* func [glfwGetWindowAttrib](#glfwGetWindowAttrib)(window: [GLFWwindow\*](#GLFWwindow), attrib: i32) : i32
-* func [glfwGetWindowContentScale](#glfwGetWindowContentScale)(window: [GLFWwindow\*](#GLFWwindow), xscale: f32*, yscale: f32*)
-* func [glfwGetWindowFrameSize](#glfwGetWindowFrameSize)(window: [GLFWwindow\*](#GLFWwindow), left: i32*, top: i32*, right: i32*, bottom: i32*)
-* func [glfwGetWindowMonitor](#glfwGetWindowMonitor)(window: [GLFWwindow\*](#GLFWwindow)) : [GLFWmonitor\*](#GLFWmonitor)
-* func [glfwGetWindowOpacity](#glfwGetWindowOpacity)(window: [GLFWwindow\*](#GLFWwindow)) : f32
-* func [glfwGetWindowPos](#glfwGetWindowPos)(window: [GLFWwindow\*](#GLFWwindow), xpos: i32*, ypos: i32*)
-* func [glfwGetWindowSize](#glfwGetWindowSize)(window: [GLFWwindow\*](#GLFWwindow), width: i32*, height: i32*)
-* func [glfwGetWindowUserPointer](#glfwGetWindowUserPointer)(window: [GLFWwindow\*](#GLFWwindow)) : [void\*](#void)
-* func [glfwHideWindow](#glfwHideWindow)(window: [GLFWwindow\*](#GLFWwindow))
-* func [glfwIconifyWindow](#glfwIconifyWindow)(window: [GLFWwindow\*](#GLFWwindow))
+* func [glfwGetVersionString](#glfwGetVersionString)() : *const char
+* func [glfwGetVersion](#glfwGetVersion)(major: *i32, minor: *i32, rev: *i32)
+* func [glfwGetVideoMode](#glfwGetVideoMode)(monitor: [\*GLFWmonitor](#GLFWmonitor)) : [\*const GLFWvidmode](#GLFWvidmode)
+* func [glfwGetVideoModes](#glfwGetVideoModes)(monitor: [\*GLFWmonitor](#GLFWmonitor), count: *i32) : [\*const GLFWvidmode](#GLFWvidmode)
+* func [glfwGetWindowAttrib](#glfwGetWindowAttrib)(window: [\*GLFWwindow](#GLFWwindow), attrib: i32) : i32
+* func [glfwGetWindowContentScale](#glfwGetWindowContentScale)(window: [\*GLFWwindow](#GLFWwindow), xscale: *f32, yscale: *f32)
+* func [glfwGetWindowFrameSize](#glfwGetWindowFrameSize)(window: [\*GLFWwindow](#GLFWwindow), left: *i32, top: *i32, right: *i32, bottom: *i32)
+* func [glfwGetWindowMonitor](#glfwGetWindowMonitor)(window: [\*GLFWwindow](#GLFWwindow)) : [\*GLFWmonitor](#GLFWmonitor)
+* func [glfwGetWindowOpacity](#glfwGetWindowOpacity)(window: [\*GLFWwindow](#GLFWwindow)) : f32
+* func [glfwGetWindowPos](#glfwGetWindowPos)(window: [\*GLFWwindow](#GLFWwindow), xpos: *i32, ypos: *i32)
+* func [glfwGetWindowSize](#glfwGetWindowSize)(window: [\*GLFWwindow](#GLFWwindow), width: *i32, height: *i32)
+* func [glfwGetWindowUserPointer](#glfwGetWindowUserPointer)(window: [\*GLFWwindow](#GLFWwindow)) : [\*void](#void)
+* func [glfwHideWindow](#glfwHideWindow)(window: [\*GLFWwindow](#GLFWwindow))
+* func [glfwIconifyWindow](#glfwIconifyWindow)(window: [\*GLFWwindow](#GLFWwindow))
 * func [glfwInitHint](#glfwInitHint)(hint: i32, value: i32)
 * func [glfwInit](#glfwInit)() : i32
 * func [glfwJoystickIsGamepad](#glfwJoystickIsGamepad)(jid: i32) : i32
 * func [glfwJoystickPresent](#glfwJoystickPresent)(jid: i32) : i32
-* func [glfwMakeContextCurrent](#glfwMakeContextCurrent)(window: [GLFWwindow\*](#GLFWwindow))
-* func [glfwMaximizeWindow](#glfwMaximizeWindow)(window: [GLFWwindow\*](#GLFWwindow))
+* func [glfwMakeContextCurrent](#glfwMakeContextCurrent)(window: [\*GLFWwindow](#GLFWwindow))
+* func [glfwMaximizeWindow](#glfwMaximizeWindow)(window: [\*GLFWwindow](#GLFWwindow))
 * func [glfwPollEvents](#glfwPollEvents)()
 * func [glfwPostEmptyEvent](#glfwPostEmptyEvent)()
 * func [glfwRawMouseMotionSupported](#glfwRawMouseMotionSupported)() : i32
-* func [glfwRequestWindowAttention](#glfwRequestWindowAttention)(window: [GLFWwindow\*](#GLFWwindow))
-* func [glfwRestoreWindow](#glfwRestoreWindow)(window: [GLFWwindow\*](#GLFWwindow))
-* func [glfwSetCharCallback](#glfwSetCharCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, u32\) : void](#\_)) : [func\(struct GLFWwindow\*, u32\) : void](#\_)
-* func [glfwSetCharModsCallback](#glfwSetCharModsCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, u32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, u32, i32\) : void](#\_)
-* func [glfwSetClipboardString](#glfwSetClipboardString)(window: [GLFWwindow\*](#GLFWwindow), string: char const*)
-* func [glfwSetCursorEnterCallback](#glfwSetCursorEnterCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32\) : void](#\_)
-* func [glfwSetCursorPosCallback](#glfwSetCursorPosCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, f64, f64\) : void](#\_)) : [func\(struct GLFWwindow\*, f64, f64\) : void](#\_)
-* func [glfwSetCursorPos](#glfwSetCursorPos)(window: [GLFWwindow\*](#GLFWwindow), xpos: f64, ypos: f64)
-* func [glfwSetCursor](#glfwSetCursor)(window: [GLFWwindow\*](#GLFWwindow), cursor: [GLFWcursor\*](#GLFWcursor))
-* func [glfwSetDropCallback](#glfwSetDropCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, \[\]char const\*\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, \[\]char const\*\) : void](#\_)
-* func [glfwSetErrorCallback](#glfwSetErrorCallback)(callback: [func\(i32, char const\*\) : void](#\_)) : [func\(i32, char const\*\) : void](#\_)
-* func [glfwSetFramebufferSizeCallback](#glfwSetFramebufferSizeCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)
-* func [glfwSetGammaRamp](#glfwSetGammaRamp)(monitor: [GLFWmonitor\*](#GLFWmonitor), ramp: [GLFWgammaramp\* const](#GLFWgammaramp))
-* func [glfwSetGamma](#glfwSetGamma)(monitor: [GLFWmonitor\*](#GLFWmonitor), gamma: f32)
-* func [glfwSetInputMode](#glfwSetInputMode)(window: [GLFWwindow\*](#GLFWwindow), mode: i32, value: i32)
+* func [glfwRequestWindowAttention](#glfwRequestWindowAttention)(window: [\*GLFWwindow](#GLFWwindow))
+* func [glfwRestoreWindow](#glfwRestoreWindow)(window: [\*GLFWwindow](#GLFWwindow))
+* func [glfwSetCharCallback](#glfwSetCharCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, u32\) : void](#\_)) : [func\(\*struct GLFWwindow, u32\) : void](#\_)
+* func [glfwSetCharModsCallback](#glfwSetCharModsCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, u32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, u32, i32\) : void](#\_)
+* func [glfwSetClipboardString](#glfwSetClipboardString)(window: [\*GLFWwindow](#GLFWwindow), string: *const char)
+* func [glfwSetCursorEnterCallback](#glfwSetCursorEnterCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32\) : void](#\_)
+* func [glfwSetCursorPosCallback](#glfwSetCursorPosCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, f64, f64\) : void](#\_)) : [func\(\*struct GLFWwindow, f64, f64\) : void](#\_)
+* func [glfwSetCursorPos](#glfwSetCursorPos)(window: [\*GLFWwindow](#GLFWwindow), xpos: f64, ypos: f64)
+* func [glfwSetCursor](#glfwSetCursor)(window: [\*GLFWwindow](#GLFWwindow), cursor: [\*GLFWcursor](#GLFWcursor))
+* func [glfwSetDropCallback](#glfwSetDropCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, \[\]\*const char\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, \[\]\*const char\) : void](#\_)
+* func [glfwSetErrorCallback](#glfwSetErrorCallback)(callback: [func\(i32, \*const char\) : void](#\_)) : [func\(i32, \*const char\) : void](#\_)
+* func [glfwSetFramebufferSizeCallback](#glfwSetFramebufferSizeCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)
+* func [glfwSetGammaRamp](#glfwSetGammaRamp)(monitor: [\*GLFWmonitor](#GLFWmonitor), ramp: [\*const GLFWgammaramp](#GLFWgammaramp))
+* func [glfwSetGamma](#glfwSetGamma)(monitor: [\*GLFWmonitor](#GLFWmonitor), gamma: f32)
+* func [glfwSetInputMode](#glfwSetInputMode)(window: [\*GLFWwindow](#GLFWwindow), mode: i32, value: i32)
 * func [glfwSetJoystickCallback](#glfwSetJoystickCallback)(callback: [func\(i32, i32\) : void](#\_)) : [func\(i32, i32\) : void](#\_)
-* func [glfwSetJoystickUserPointer](#glfwSetJoystickUserPointer)(jid: i32, pointer: [void\*](#void))
-* func [glfwSetKeyCallback](#glfwSetKeyCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32, i32, i32\) : void](#\_)
-* func [glfwSetMonitorCallback](#glfwSetMonitorCallback)(callback: [func\(struct GLFWmonitor\*, i32\) : void](#\_)) : [func\(struct GLFWmonitor\*, i32\) : void](#\_)
-* func [glfwSetMonitorUserPointer](#glfwSetMonitorUserPointer)(monitor: [GLFWmonitor\*](#GLFWmonitor), pointer: [void\*](#void))
-* func [glfwSetMouseButtonCallback](#glfwSetMouseButtonCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32, i32\) : void](#\_)
-* func [glfwSetScrollCallback](#glfwSetScrollCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, f64, f64\) : void](#\_)) : [func\(struct GLFWwindow\*, f64, f64\) : void](#\_)
+* func [glfwSetJoystickUserPointer](#glfwSetJoystickUserPointer)(jid: i32, pointer: [\*void](#void))
+* func [glfwSetKeyCallback](#glfwSetKeyCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32, i32, i32\) : void](#\_)
+* func [glfwSetMonitorCallback](#glfwSetMonitorCallback)(callback: [func\(\*struct GLFWmonitor, i32\) : void](#\_)) : [func\(\*struct GLFWmonitor, i32\) : void](#\_)
+* func [glfwSetMonitorUserPointer](#glfwSetMonitorUserPointer)(monitor: [\*GLFWmonitor](#GLFWmonitor), pointer: [\*void](#void))
+* func [glfwSetMouseButtonCallback](#glfwSetMouseButtonCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32, i32\) : void](#\_)
+* func [glfwSetScrollCallback](#glfwSetScrollCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, f64, f64\) : void](#\_)) : [func\(\*struct GLFWwindow, f64, f64\) : void](#\_)
 * func [glfwSetTime](#glfwSetTime)(time: f64)
-* func [glfwSetWindowAspectRatio](#glfwSetWindowAspectRatio)(window: [GLFWwindow\*](#GLFWwindow), numer: i32, denom: i32)
-* func [glfwSetWindowAttrib](#glfwSetWindowAttrib)(window: [GLFWwindow\*](#GLFWwindow), attrib: i32, value: i32)
-* func [glfwSetWindowCloseCallback](#glfwSetWindowCloseCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*\) : void](#\_)) : [func\(struct GLFWwindow\*\) : void](#\_)
-* func [glfwSetWindowContentScaleCallback](#glfwSetWindowContentScaleCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, f32, f32\) : void](#\_)) : [func\(struct GLFWwindow\*, f32, f32\) : void](#\_)
-* func [glfwSetWindowFocusCallback](#glfwSetWindowFocusCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32\) : void](#\_)
-* func [glfwSetWindowIcon](#glfwSetWindowIcon)(window: [GLFWwindow\*](#GLFWwindow), count: i32, images: [GLFWimage\* const](#GLFWimage))
-* func [glfwSetWindowIconifyCallback](#glfwSetWindowIconifyCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32\) : void](#\_)
-* func [glfwSetWindowMaximizeCallback](#glfwSetWindowMaximizeCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32\) : void](#\_)
-* func [glfwSetWindowMonitor](#glfwSetWindowMonitor)(window: [GLFWwindow\*](#GLFWwindow), monitor: [GLFWmonitor\*](#GLFWmonitor), xpos: i32, ypos: i32, width: i32, height: i32, refreshRate: i32)
-* func [glfwSetWindowOpacity](#glfwSetWindowOpacity)(window: [GLFWwindow\*](#GLFWwindow), opacity: f32)
-* func [glfwSetWindowPosCallback](#glfwSetWindowPosCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)
-* func [glfwSetWindowPos](#glfwSetWindowPos)(window: [GLFWwindow\*](#GLFWwindow), xpos: i32, ypos: i32)
-* func [glfwSetWindowRefreshCallback](#glfwSetWindowRefreshCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*\) : void](#\_)) : [func\(struct GLFWwindow\*\) : void](#\_)
-* func [glfwSetWindowShouldClose](#glfwSetWindowShouldClose)(window: [GLFWwindow\*](#GLFWwindow), value: i32)
-* func [glfwSetWindowSizeCallback](#glfwSetWindowSizeCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)
-* func [glfwSetWindowSizeLimits](#glfwSetWindowSizeLimits)(window: [GLFWwindow\*](#GLFWwindow), minwidth: i32, minheight: i32, maxwidth: i32, maxheight: i32)
-* func [glfwSetWindowSize](#glfwSetWindowSize)(window: [GLFWwindow\*](#GLFWwindow), width: i32, height: i32)
-* func [glfwSetWindowTitle](#glfwSetWindowTitle)(window: [GLFWwindow\*](#GLFWwindow), title: char const*)
-* func [glfwSetWindowUserPointer](#glfwSetWindowUserPointer)(window: [GLFWwindow\*](#GLFWwindow), pointer: [void\*](#void))
-* func [glfwShowWindow](#glfwShowWindow)(window: [GLFWwindow\*](#GLFWwindow))
-* func [glfwSwapBuffers](#glfwSwapBuffers)(window: [GLFWwindow\*](#GLFWwindow))
+* func [glfwSetWindowAspectRatio](#glfwSetWindowAspectRatio)(window: [\*GLFWwindow](#GLFWwindow), numer: i32, denom: i32)
+* func [glfwSetWindowAttrib](#glfwSetWindowAttrib)(window: [\*GLFWwindow](#GLFWwindow), attrib: i32, value: i32)
+* func [glfwSetWindowCloseCallback](#glfwSetWindowCloseCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow\) : void](#\_)) : [func\(\*struct GLFWwindow\) : void](#\_)
+* func [glfwSetWindowContentScaleCallback](#glfwSetWindowContentScaleCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, f32, f32\) : void](#\_)) : [func\(\*struct GLFWwindow, f32, f32\) : void](#\_)
+* func [glfwSetWindowFocusCallback](#glfwSetWindowFocusCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32\) : void](#\_)
+* func [glfwSetWindowIcon](#glfwSetWindowIcon)(window: [\*GLFWwindow](#GLFWwindow), count: i32, images: [\*const GLFWimage](#GLFWimage))
+* func [glfwSetWindowIconifyCallback](#glfwSetWindowIconifyCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32\) : void](#\_)
+* func [glfwSetWindowMaximizeCallback](#glfwSetWindowMaximizeCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32\) : void](#\_)
+* func [glfwSetWindowMonitor](#glfwSetWindowMonitor)(window: [\*GLFWwindow](#GLFWwindow), monitor: [\*GLFWmonitor](#GLFWmonitor), xpos: i32, ypos: i32, width: i32, height: i32, refreshRate: i32)
+* func [glfwSetWindowOpacity](#glfwSetWindowOpacity)(window: [\*GLFWwindow](#GLFWwindow), opacity: f32)
+* func [glfwSetWindowPosCallback](#glfwSetWindowPosCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)
+* func [glfwSetWindowPos](#glfwSetWindowPos)(window: [\*GLFWwindow](#GLFWwindow), xpos: i32, ypos: i32)
+* func [glfwSetWindowRefreshCallback](#glfwSetWindowRefreshCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow\) : void](#\_)) : [func\(\*struct GLFWwindow\) : void](#\_)
+* func [glfwSetWindowShouldClose](#glfwSetWindowShouldClose)(window: [\*GLFWwindow](#GLFWwindow), value: i32)
+* func [glfwSetWindowSizeCallback](#glfwSetWindowSizeCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)
+* func [glfwSetWindowSizeLimits](#glfwSetWindowSizeLimits)(window: [\*GLFWwindow](#GLFWwindow), minwidth: i32, minheight: i32, maxwidth: i32, maxheight: i32)
+* func [glfwSetWindowSize](#glfwSetWindowSize)(window: [\*GLFWwindow](#GLFWwindow), width: i32, height: i32)
+* func [glfwSetWindowTitle](#glfwSetWindowTitle)(window: [\*GLFWwindow](#GLFWwindow), title: *const char)
+* func [glfwSetWindowUserPointer](#glfwSetWindowUserPointer)(window: [\*GLFWwindow](#GLFWwindow), pointer: [\*void](#void))
+* func [glfwShowWindow](#glfwShowWindow)(window: [\*GLFWwindow](#GLFWwindow))
+* func [glfwSwapBuffers](#glfwSwapBuffers)(window: [\*GLFWwindow](#GLFWwindow))
 * func [glfwSwapInterval](#glfwSwapInterval)(interval: i32)
 * func [glfwTerminate](#glfwTerminate)()
-* func [glfwUpdateGamepadMappings](#glfwUpdateGamepadMappings)(string: char const*) : i32
+* func [glfwUpdateGamepadMappings](#glfwUpdateGamepadMappings)(string: *const char) : i32
 * func [glfwWaitEventsTimeout](#glfwWaitEventsTimeout)(timeout: f64)
 * func [glfwWaitEvents](#glfwWaitEvents)()
-* func [glfwWindowHintString](#glfwWindowHintString)(hint: i32, value: char const*)
+* func [glfwWindowHintString](#glfwWindowHintString)(hint: i32, value: *const char)
 * func [glfwWindowHint](#glfwWindowHint)(hint: i32, value: i32)
-* func [glfwWindowShouldClose](#glfwWindowShouldClose)(window: [GLFWwindow\*](#GLFWwindow)) : i32
+* func [glfwWindowShouldClose](#glfwWindowShouldClose)(window: [\*GLFWwindow](#GLFWwindow)) : i32
 
 
 
@@ -1332,13 +1332,13 @@
 ### GLFWcharfun
 
 
-typedef [func\(struct GLFWwindow\*, u32\) : void](#\_) as [GLFWcharfun](#GLFWcharfun)
+typedef [func\(\*struct GLFWwindow, u32\) : void](#\_) as [GLFWcharfun](#GLFWcharfun)
 
 
 ### GLFWcharmodsfun
 
 
-typedef [func\(struct GLFWwindow\*, u32, i32\) : void](#\_) as [GLFWcharmodsfun](#GLFWcharmodsfun)
+typedef [func\(\*struct GLFWwindow, u32, i32\) : void](#\_) as [GLFWcharmodsfun](#GLFWcharmodsfun)
 
 
 ### GLFWcursor
@@ -1352,31 +1352,31 @@ struct [GLFWcursor](#GLFWcursor)
 ### GLFWcursorenterfun
 
 
-typedef [func\(struct GLFWwindow\*, i32\) : void](#\_) as [GLFWcursorenterfun](#GLFWcursorenterfun)
+typedef [func\(\*struct GLFWwindow, i32\) : void](#\_) as [GLFWcursorenterfun](#GLFWcursorenterfun)
 
 
 ### GLFWcursorposfun
 
 
-typedef [func\(struct GLFWwindow\*, f64, f64\) : void](#\_) as [GLFWcursorposfun](#GLFWcursorposfun)
+typedef [func\(\*struct GLFWwindow, f64, f64\) : void](#\_) as [GLFWcursorposfun](#GLFWcursorposfun)
 
 
 ### GLFWdropfun
 
 
-typedef [func\(struct GLFWwindow\*, i32, \[\]char const\*\) : void](#\_) as [GLFWdropfun](#GLFWdropfun)
+typedef [func\(\*struct GLFWwindow, i32, \[\]\*const char\) : void](#\_) as [GLFWdropfun](#GLFWdropfun)
 
 
 ### GLFWerrorfun
 
 
-typedef [func\(i32, char const\*\) : void](#\_) as [GLFWerrorfun](#GLFWerrorfun)
+typedef [func\(i32, \*const char\) : void](#\_) as [GLFWerrorfun](#GLFWerrorfun)
 
 
 ### GLFWframebuffersizefun
 
 
-typedef [func\(struct GLFWwindow\*, i32, i32\) : void](#\_) as [GLFWframebuffersizefun](#GLFWframebuffersizefun)
+typedef [func\(\*struct GLFWwindow, i32, i32\) : void](#\_) as [GLFWframebuffersizefun](#GLFWframebuffersizefun)
 
 
 ### GLFWgamepadstate
@@ -1384,8 +1384,8 @@ typedef [func\(struct GLFWwindow\*, i32, i32\) : void](#\_) as [GLFWframebuffers
 
 struct [GLFWgamepadstate](#GLFWgamepadstate)
 
-* buttons: u8[]
-* axes: f32[]
+* buttons: []u8
+* axes: []f32
 
 
 
@@ -1394,9 +1394,9 @@ struct [GLFWgamepadstate](#GLFWgamepadstate)
 
 struct [GLFWgammaramp](#GLFWgammaramp)
 
-* red: u16*
-* green: u16*
-* blue: u16*
+* red: *u16
+* green: *u16
+* blue: *u16
 * size: u32
 
 
@@ -1414,7 +1414,7 @@ struct [GLFWimage](#GLFWimage)
 
 * width: i32
 * height: i32
-* pixels: u8*
+* pixels: *u8
 
 
 
@@ -1427,7 +1427,7 @@ typedef [func\(i32, i32\) : void](#\_) as [GLFWjoystickfun](#GLFWjoystickfun)
 ### GLFWkeyfun
 
 
-typedef [func\(struct GLFWwindow\*, i32, i32, i32, i32\) : void](#\_) as [GLFWkeyfun](#GLFWkeyfun)
+typedef [func\(\*struct GLFWwindow, i32, i32, i32, i32\) : void](#\_) as [GLFWkeyfun](#GLFWkeyfun)
 
 
 ### GLFWmonitor
@@ -1441,19 +1441,19 @@ struct [GLFWmonitor](#GLFWmonitor)
 ### GLFWmonitorfun
 
 
-typedef [func\(struct GLFWmonitor\*, i32\) : void](#\_) as [GLFWmonitorfun](#GLFWmonitorfun)
+typedef [func\(\*struct GLFWmonitor, i32\) : void](#\_) as [GLFWmonitorfun](#GLFWmonitorfun)
 
 
 ### GLFWmousebuttonfun
 
 
-typedef [func\(struct GLFWwindow\*, i32, i32, i32\) : void](#\_) as [GLFWmousebuttonfun](#GLFWmousebuttonfun)
+typedef [func\(\*struct GLFWwindow, i32, i32, i32\) : void](#\_) as [GLFWmousebuttonfun](#GLFWmousebuttonfun)
 
 
 ### GLFWscrollfun
 
 
-typedef [func\(struct GLFWwindow\*, f64, f64\) : void](#\_) as [GLFWscrollfun](#GLFWscrollfun)
+typedef [func\(\*struct GLFWwindow, f64, f64\) : void](#\_) as [GLFWscrollfun](#GLFWscrollfun)
 
 
 ### GLFWvidmode
@@ -1487,67 +1487,67 @@ struct [GLFWwindow](#GLFWwindow)
 ### GLFWwindowclosefun
 
 
-typedef [func\(struct GLFWwindow\*\) : void](#\_) as [GLFWwindowclosefun](#GLFWwindowclosefun)
+typedef [func\(\*struct GLFWwindow\) : void](#\_) as [GLFWwindowclosefun](#GLFWwindowclosefun)
 
 
 ### GLFWwindowcontentscalefun
 
 
-typedef [func\(struct GLFWwindow\*, f32, f32\) : void](#\_) as [GLFWwindowcontentscalefun](#GLFWwindowcontentscalefun)
+typedef [func\(\*struct GLFWwindow, f32, f32\) : void](#\_) as [GLFWwindowcontentscalefun](#GLFWwindowcontentscalefun)
 
 
 ### GLFWwindowfocusfun
 
 
-typedef [func\(struct GLFWwindow\*, i32\) : void](#\_) as [GLFWwindowfocusfun](#GLFWwindowfocusfun)
+typedef [func\(\*struct GLFWwindow, i32\) : void](#\_) as [GLFWwindowfocusfun](#GLFWwindowfocusfun)
 
 
 ### GLFWwindowiconifyfun
 
 
-typedef [func\(struct GLFWwindow\*, i32\) : void](#\_) as [GLFWwindowiconifyfun](#GLFWwindowiconifyfun)
+typedef [func\(\*struct GLFWwindow, i32\) : void](#\_) as [GLFWwindowiconifyfun](#GLFWwindowiconifyfun)
 
 
 ### GLFWwindowmaximizefun
 
 
-typedef [func\(struct GLFWwindow\*, i32\) : void](#\_) as [GLFWwindowmaximizefun](#GLFWwindowmaximizefun)
+typedef [func\(\*struct GLFWwindow, i32\) : void](#\_) as [GLFWwindowmaximizefun](#GLFWwindowmaximizefun)
 
 
 ### GLFWwindowposfun
 
 
-typedef [func\(struct GLFWwindow\*, i32, i32\) : void](#\_) as [GLFWwindowposfun](#GLFWwindowposfun)
+typedef [func\(\*struct GLFWwindow, i32, i32\) : void](#\_) as [GLFWwindowposfun](#GLFWwindowposfun)
 
 
 ### GLFWwindowrefreshfun
 
 
-typedef [func\(struct GLFWwindow\*\) : void](#\_) as [GLFWwindowrefreshfun](#GLFWwindowrefreshfun)
+typedef [func\(\*struct GLFWwindow\) : void](#\_) as [GLFWwindowrefreshfun](#GLFWwindowrefreshfun)
 
 
 ### GLFWwindowsizefun
 
 
-typedef [func\(struct GLFWwindow\*, i32, i32\) : void](#\_) as [GLFWwindowsizefun](#GLFWwindowsizefun)
+typedef [func\(\*struct GLFWwindow, i32, i32\) : void](#\_) as [GLFWwindowsizefun](#GLFWwindowsizefun)
 
 
 ### glfwCreateCursor
 
 
-func [glfwCreateCursor](#glfwCreateCursor)(image: [GLFWimage\* const](#GLFWimage), xhot: i32, yhot: i32) : [GLFWcursor\*](#GLFWcursor)
+func [glfwCreateCursor](#glfwCreateCursor)(image: [\*const GLFWimage](#GLFWimage), xhot: i32, yhot: i32) : [\*GLFWcursor](#GLFWcursor)
 
 
 ### glfwCreateStandardCursor
 
 
-func [glfwCreateStandardCursor](#glfwCreateStandardCursor)(shape: i32) : [GLFWcursor\*](#GLFWcursor)
+func [glfwCreateStandardCursor](#glfwCreateStandardCursor)(shape: i32) : [\*GLFWcursor](#GLFWcursor)
 
 
 ### glfwCreateWindow
 
 
-func [glfwCreateWindow](#glfwCreateWindow)(width: i32, height: i32, title: char const*, monitor: [GLFWmonitor\*](#GLFWmonitor), share: [GLFWwindow\*](#GLFWwindow)) : [GLFWwindow\*](#GLFWwindow)
+func [glfwCreateWindow](#glfwCreateWindow)(width: i32, height: i32, title: *const char, monitor: [\*GLFWmonitor](#GLFWmonitor), share: [\*GLFWwindow](#GLFWwindow)) : [\*GLFWwindow](#GLFWwindow)
 
 
 ### glfwDefaultWindowHints
@@ -1559,127 +1559,127 @@ func [glfwDefaultWindowHints](#glfwDefaultWindowHints)()
 ### glfwDestroyCursor
 
 
-func [glfwDestroyCursor](#glfwDestroyCursor)(cursor: [GLFWcursor\*](#GLFWcursor))
+func [glfwDestroyCursor](#glfwDestroyCursor)(cursor: [\*GLFWcursor](#GLFWcursor))
 
 
 ### glfwDestroyWindow
 
 
-func [glfwDestroyWindow](#glfwDestroyWindow)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwDestroyWindow](#glfwDestroyWindow)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwExtensionSupported
 
 
-func [glfwExtensionSupported](#glfwExtensionSupported)(extension: char const*) : i32
+func [glfwExtensionSupported](#glfwExtensionSupported)(extension: *const char) : i32
 
 
 ### glfwFocusWindow
 
 
-func [glfwFocusWindow](#glfwFocusWindow)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwFocusWindow](#glfwFocusWindow)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwGetClipboardString
 
 
-func [glfwGetClipboardString](#glfwGetClipboardString)(window: [GLFWwindow\*](#GLFWwindow)) : char const*
+func [glfwGetClipboardString](#glfwGetClipboardString)(window: [\*GLFWwindow](#GLFWwindow)) : *const char
 
 
 ### glfwGetCurrentContext
 
 
-func [glfwGetCurrentContext](#glfwGetCurrentContext)() : [GLFWwindow\*](#GLFWwindow)
+func [glfwGetCurrentContext](#glfwGetCurrentContext)() : [\*GLFWwindow](#GLFWwindow)
 
 
 ### glfwGetCursorPos
 
 
-func [glfwGetCursorPos](#glfwGetCursorPos)(window: [GLFWwindow\*](#GLFWwindow), xpos: f64*, ypos: f64*)
+func [glfwGetCursorPos](#glfwGetCursorPos)(window: [\*GLFWwindow](#GLFWwindow), xpos: *f64, ypos: *f64)
 
 
 ### glfwGetError
 
 
-func [glfwGetError](#glfwGetError)(description: char** const) : i32
+func [glfwGetError](#glfwGetError)(description: const **char) : i32
 
 
 ### glfwGetFramebufferSize
 
 
-func [glfwGetFramebufferSize](#glfwGetFramebufferSize)(window: [GLFWwindow\*](#GLFWwindow), width: i32*, height: i32*)
+func [glfwGetFramebufferSize](#glfwGetFramebufferSize)(window: [\*GLFWwindow](#GLFWwindow), width: *i32, height: *i32)
 
 
 ### glfwGetGamepadName
 
 
-func [glfwGetGamepadName](#glfwGetGamepadName)(jid: i32) : char const*
+func [glfwGetGamepadName](#glfwGetGamepadName)(jid: i32) : *const char
 
 
 ### glfwGetGamepadState
 
 
-func [glfwGetGamepadState](#glfwGetGamepadState)(jid: i32, state: [GLFWgamepadstate\*](#GLFWgamepadstate)) : i32
+func [glfwGetGamepadState](#glfwGetGamepadState)(jid: i32, state: [\*GLFWgamepadstate](#GLFWgamepadstate)) : i32
 
 
 ### glfwGetGammaRamp
 
 
-func [glfwGetGammaRamp](#glfwGetGammaRamp)(monitor: [GLFWmonitor\*](#GLFWmonitor)) : [GLFWgammaramp\* const](#GLFWgammaramp)
+func [glfwGetGammaRamp](#glfwGetGammaRamp)(monitor: [\*GLFWmonitor](#GLFWmonitor)) : [\*const GLFWgammaramp](#GLFWgammaramp)
 
 
 ### glfwGetInputMode
 
 
-func [glfwGetInputMode](#glfwGetInputMode)(window: [GLFWwindow\*](#GLFWwindow), mode: i32) : i32
+func [glfwGetInputMode](#glfwGetInputMode)(window: [\*GLFWwindow](#GLFWwindow), mode: i32) : i32
 
 
 ### glfwGetJoystickAxes
 
 
-func [glfwGetJoystickAxes](#glfwGetJoystickAxes)(jid: i32, count: i32*) : f32 const*
+func [glfwGetJoystickAxes](#glfwGetJoystickAxes)(jid: i32, count: *i32) : *const f32
 
 
 ### glfwGetJoystickButtons
 
 
-func [glfwGetJoystickButtons](#glfwGetJoystickButtons)(jid: i32, count: i32*) : u8 const*
+func [glfwGetJoystickButtons](#glfwGetJoystickButtons)(jid: i32, count: *i32) : *const u8
 
 
 ### glfwGetJoystickGUID
 
 
-func [glfwGetJoystickGUID](#glfwGetJoystickGUID)(jid: i32) : char const*
+func [glfwGetJoystickGUID](#glfwGetJoystickGUID)(jid: i32) : *const char
 
 
 ### glfwGetJoystickHats
 
 
-func [glfwGetJoystickHats](#glfwGetJoystickHats)(jid: i32, count: i32*) : u8 const*
+func [glfwGetJoystickHats](#glfwGetJoystickHats)(jid: i32, count: *i32) : *const u8
 
 
 ### glfwGetJoystickName
 
 
-func [glfwGetJoystickName](#glfwGetJoystickName)(jid: i32) : char const*
+func [glfwGetJoystickName](#glfwGetJoystickName)(jid: i32) : *const char
 
 
 ### glfwGetJoystickUserPointer
 
 
-func [glfwGetJoystickUserPointer](#glfwGetJoystickUserPointer)(jid: i32) : [void\*](#void)
+func [glfwGetJoystickUserPointer](#glfwGetJoystickUserPointer)(jid: i32) : [\*void](#void)
 
 
 ### glfwGetKey
 
 
-func [glfwGetKey](#glfwGetKey)(window: [GLFWwindow\*](#GLFWwindow), key: i32) : i32
+func [glfwGetKey](#glfwGetKey)(window: [\*GLFWwindow](#GLFWwindow), key: i32) : i32
 
 
 ### glfwGetKeyName
 
 
-func [glfwGetKeyName](#glfwGetKeyName)(key: i32, scancode: i32) : char const*
+func [glfwGetKeyName](#glfwGetKeyName)(key: i32, scancode: i32) : *const char
 
 
 ### glfwGetKeyScancode
@@ -1691,61 +1691,61 @@ func [glfwGetKeyScancode](#glfwGetKeyScancode)(key: i32) : i32
 ### glfwGetMonitorContentScale
 
 
-func [glfwGetMonitorContentScale](#glfwGetMonitorContentScale)(monitor: [GLFWmonitor\*](#GLFWmonitor), xscale: f32*, yscale: f32*)
+func [glfwGetMonitorContentScale](#glfwGetMonitorContentScale)(monitor: [\*GLFWmonitor](#GLFWmonitor), xscale: *f32, yscale: *f32)
 
 
 ### glfwGetMonitorName
 
 
-func [glfwGetMonitorName](#glfwGetMonitorName)(monitor: [GLFWmonitor\*](#GLFWmonitor)) : char const*
+func [glfwGetMonitorName](#glfwGetMonitorName)(monitor: [\*GLFWmonitor](#GLFWmonitor)) : *const char
 
 
 ### glfwGetMonitorPhysicalSize
 
 
-func [glfwGetMonitorPhysicalSize](#glfwGetMonitorPhysicalSize)(monitor: [GLFWmonitor\*](#GLFWmonitor), widthMM: i32*, heightMM: i32*)
+func [glfwGetMonitorPhysicalSize](#glfwGetMonitorPhysicalSize)(monitor: [\*GLFWmonitor](#GLFWmonitor), widthMM: *i32, heightMM: *i32)
 
 
 ### glfwGetMonitorPos
 
 
-func [glfwGetMonitorPos](#glfwGetMonitorPos)(monitor: [GLFWmonitor\*](#GLFWmonitor), xpos: i32*, ypos: i32*)
+func [glfwGetMonitorPos](#glfwGetMonitorPos)(monitor: [\*GLFWmonitor](#GLFWmonitor), xpos: *i32, ypos: *i32)
 
 
 ### glfwGetMonitorUserPointer
 
 
-func [glfwGetMonitorUserPointer](#glfwGetMonitorUserPointer)(monitor: [GLFWmonitor\*](#GLFWmonitor)) : [void\*](#void)
+func [glfwGetMonitorUserPointer](#glfwGetMonitorUserPointer)(monitor: [\*GLFWmonitor](#GLFWmonitor)) : [\*void](#void)
 
 
 ### glfwGetMonitorWorkarea
 
 
-func [glfwGetMonitorWorkarea](#glfwGetMonitorWorkarea)(monitor: [GLFWmonitor\*](#GLFWmonitor), xpos: i32*, ypos: i32*, width: i32*, height: i32*)
+func [glfwGetMonitorWorkarea](#glfwGetMonitorWorkarea)(monitor: [\*GLFWmonitor](#GLFWmonitor), xpos: *i32, ypos: *i32, width: *i32, height: *i32)
 
 
 ### glfwGetMonitors
 
 
-func [glfwGetMonitors](#glfwGetMonitors)(count: i32*) : [GLFWmonitor\*\*](#GLFWmonitor)
+func [glfwGetMonitors](#glfwGetMonitors)(count: *i32) : [\*\*GLFWmonitor](#GLFWmonitor)
 
 
 ### glfwGetMouseButton
 
 
-func [glfwGetMouseButton](#glfwGetMouseButton)(window: [GLFWwindow\*](#GLFWwindow), button: i32) : i32
+func [glfwGetMouseButton](#glfwGetMouseButton)(window: [\*GLFWwindow](#GLFWwindow), button: i32) : i32
 
 
 ### glfwGetPrimaryMonitor
 
 
-func [glfwGetPrimaryMonitor](#glfwGetPrimaryMonitor)() : [GLFWmonitor\*](#GLFWmonitor)
+func [glfwGetPrimaryMonitor](#glfwGetPrimaryMonitor)() : [\*GLFWmonitor](#GLFWmonitor)
 
 
 ### glfwGetProcAddress
 
 
-func [glfwGetProcAddress](#glfwGetProcAddress)(procname: char const*) : [func\(\) : void](#\_)
+func [glfwGetProcAddress](#glfwGetProcAddress)(procname: *const char) : [func\(\) : void](#\_)
 
 
 ### glfwGetTime
@@ -1769,85 +1769,85 @@ func [glfwGetTimerValue](#glfwGetTimerValue)() : u64
 ### glfwGetVersion
 
 
-func [glfwGetVersion](#glfwGetVersion)(major: i32*, minor: i32*, rev: i32*)
+func [glfwGetVersion](#glfwGetVersion)(major: *i32, minor: *i32, rev: *i32)
 
 
 ### glfwGetVersionString
 
 
-func [glfwGetVersionString](#glfwGetVersionString)() : char const*
+func [glfwGetVersionString](#glfwGetVersionString)() : *const char
 
 
 ### glfwGetVideoMode
 
 
-func [glfwGetVideoMode](#glfwGetVideoMode)(monitor: [GLFWmonitor\*](#GLFWmonitor)) : [GLFWvidmode\* const](#GLFWvidmode)
+func [glfwGetVideoMode](#glfwGetVideoMode)(monitor: [\*GLFWmonitor](#GLFWmonitor)) : [\*const GLFWvidmode](#GLFWvidmode)
 
 
 ### glfwGetVideoModes
 
 
-func [glfwGetVideoModes](#glfwGetVideoModes)(monitor: [GLFWmonitor\*](#GLFWmonitor), count: i32*) : [GLFWvidmode\* const](#GLFWvidmode)
+func [glfwGetVideoModes](#glfwGetVideoModes)(monitor: [\*GLFWmonitor](#GLFWmonitor), count: *i32) : [\*const GLFWvidmode](#GLFWvidmode)
 
 
 ### glfwGetWindowAttrib
 
 
-func [glfwGetWindowAttrib](#glfwGetWindowAttrib)(window: [GLFWwindow\*](#GLFWwindow), attrib: i32) : i32
+func [glfwGetWindowAttrib](#glfwGetWindowAttrib)(window: [\*GLFWwindow](#GLFWwindow), attrib: i32) : i32
 
 
 ### glfwGetWindowContentScale
 
 
-func [glfwGetWindowContentScale](#glfwGetWindowContentScale)(window: [GLFWwindow\*](#GLFWwindow), xscale: f32*, yscale: f32*)
+func [glfwGetWindowContentScale](#glfwGetWindowContentScale)(window: [\*GLFWwindow](#GLFWwindow), xscale: *f32, yscale: *f32)
 
 
 ### glfwGetWindowFrameSize
 
 
-func [glfwGetWindowFrameSize](#glfwGetWindowFrameSize)(window: [GLFWwindow\*](#GLFWwindow), left: i32*, top: i32*, right: i32*, bottom: i32*)
+func [glfwGetWindowFrameSize](#glfwGetWindowFrameSize)(window: [\*GLFWwindow](#GLFWwindow), left: *i32, top: *i32, right: *i32, bottom: *i32)
 
 
 ### glfwGetWindowMonitor
 
 
-func [glfwGetWindowMonitor](#glfwGetWindowMonitor)(window: [GLFWwindow\*](#GLFWwindow)) : [GLFWmonitor\*](#GLFWmonitor)
+func [glfwGetWindowMonitor](#glfwGetWindowMonitor)(window: [\*GLFWwindow](#GLFWwindow)) : [\*GLFWmonitor](#GLFWmonitor)
 
 
 ### glfwGetWindowOpacity
 
 
-func [glfwGetWindowOpacity](#glfwGetWindowOpacity)(window: [GLFWwindow\*](#GLFWwindow)) : f32
+func [glfwGetWindowOpacity](#glfwGetWindowOpacity)(window: [\*GLFWwindow](#GLFWwindow)) : f32
 
 
 ### glfwGetWindowPos
 
 
-func [glfwGetWindowPos](#glfwGetWindowPos)(window: [GLFWwindow\*](#GLFWwindow), xpos: i32*, ypos: i32*)
+func [glfwGetWindowPos](#glfwGetWindowPos)(window: [\*GLFWwindow](#GLFWwindow), xpos: *i32, ypos: *i32)
 
 
 ### glfwGetWindowSize
 
 
-func [glfwGetWindowSize](#glfwGetWindowSize)(window: [GLFWwindow\*](#GLFWwindow), width: i32*, height: i32*)
+func [glfwGetWindowSize](#glfwGetWindowSize)(window: [\*GLFWwindow](#GLFWwindow), width: *i32, height: *i32)
 
 
 ### glfwGetWindowUserPointer
 
 
-func [glfwGetWindowUserPointer](#glfwGetWindowUserPointer)(window: [GLFWwindow\*](#GLFWwindow)) : [void\*](#void)
+func [glfwGetWindowUserPointer](#glfwGetWindowUserPointer)(window: [\*GLFWwindow](#GLFWwindow)) : [\*void](#void)
 
 
 ### glfwHideWindow
 
 
-func [glfwHideWindow](#glfwHideWindow)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwHideWindow](#glfwHideWindow)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwIconifyWindow
 
 
-func [glfwIconifyWindow](#glfwIconifyWindow)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwIconifyWindow](#glfwIconifyWindow)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwInit
@@ -1877,13 +1877,13 @@ func [glfwJoystickPresent](#glfwJoystickPresent)(jid: i32) : i32
 ### glfwMakeContextCurrent
 
 
-func [glfwMakeContextCurrent](#glfwMakeContextCurrent)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwMakeContextCurrent](#glfwMakeContextCurrent)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwMaximizeWindow
 
 
-func [glfwMaximizeWindow](#glfwMaximizeWindow)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwMaximizeWindow](#glfwMaximizeWindow)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwPollEvents
@@ -1907,91 +1907,91 @@ func [glfwRawMouseMotionSupported](#glfwRawMouseMotionSupported)() : i32
 ### glfwRequestWindowAttention
 
 
-func [glfwRequestWindowAttention](#glfwRequestWindowAttention)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwRequestWindowAttention](#glfwRequestWindowAttention)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwRestoreWindow
 
 
-func [glfwRestoreWindow](#glfwRestoreWindow)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwRestoreWindow](#glfwRestoreWindow)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwSetCharCallback
 
 
-func [glfwSetCharCallback](#glfwSetCharCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, u32\) : void](#\_)) : [func\(struct GLFWwindow\*, u32\) : void](#\_)
+func [glfwSetCharCallback](#glfwSetCharCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, u32\) : void](#\_)) : [func\(\*struct GLFWwindow, u32\) : void](#\_)
 
 
 ### glfwSetCharModsCallback
 
 
-func [glfwSetCharModsCallback](#glfwSetCharModsCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, u32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, u32, i32\) : void](#\_)
+func [glfwSetCharModsCallback](#glfwSetCharModsCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, u32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, u32, i32\) : void](#\_)
 
 
 ### glfwSetClipboardString
 
 
-func [glfwSetClipboardString](#glfwSetClipboardString)(window: [GLFWwindow\*](#GLFWwindow), string: char const*)
+func [glfwSetClipboardString](#glfwSetClipboardString)(window: [\*GLFWwindow](#GLFWwindow), string: *const char)
 
 
 ### glfwSetCursor
 
 
-func [glfwSetCursor](#glfwSetCursor)(window: [GLFWwindow\*](#GLFWwindow), cursor: [GLFWcursor\*](#GLFWcursor))
+func [glfwSetCursor](#glfwSetCursor)(window: [\*GLFWwindow](#GLFWwindow), cursor: [\*GLFWcursor](#GLFWcursor))
 
 
 ### glfwSetCursorEnterCallback
 
 
-func [glfwSetCursorEnterCallback](#glfwSetCursorEnterCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32\) : void](#\_)
+func [glfwSetCursorEnterCallback](#glfwSetCursorEnterCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32\) : void](#\_)
 
 
 ### glfwSetCursorPos
 
 
-func [glfwSetCursorPos](#glfwSetCursorPos)(window: [GLFWwindow\*](#GLFWwindow), xpos: f64, ypos: f64)
+func [glfwSetCursorPos](#glfwSetCursorPos)(window: [\*GLFWwindow](#GLFWwindow), xpos: f64, ypos: f64)
 
 
 ### glfwSetCursorPosCallback
 
 
-func [glfwSetCursorPosCallback](#glfwSetCursorPosCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, f64, f64\) : void](#\_)) : [func\(struct GLFWwindow\*, f64, f64\) : void](#\_)
+func [glfwSetCursorPosCallback](#glfwSetCursorPosCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, f64, f64\) : void](#\_)) : [func\(\*struct GLFWwindow, f64, f64\) : void](#\_)
 
 
 ### glfwSetDropCallback
 
 
-func [glfwSetDropCallback](#glfwSetDropCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, \[\]char const\*\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, \[\]char const\*\) : void](#\_)
+func [glfwSetDropCallback](#glfwSetDropCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, \[\]\*const char\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, \[\]\*const char\) : void](#\_)
 
 
 ### glfwSetErrorCallback
 
 
-func [glfwSetErrorCallback](#glfwSetErrorCallback)(callback: [func\(i32, char const\*\) : void](#\_)) : [func\(i32, char const\*\) : void](#\_)
+func [glfwSetErrorCallback](#glfwSetErrorCallback)(callback: [func\(i32, \*const char\) : void](#\_)) : [func\(i32, \*const char\) : void](#\_)
 
 
 ### glfwSetFramebufferSizeCallback
 
 
-func [glfwSetFramebufferSizeCallback](#glfwSetFramebufferSizeCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)
+func [glfwSetFramebufferSizeCallback](#glfwSetFramebufferSizeCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)
 
 
 ### glfwSetGamma
 
 
-func [glfwSetGamma](#glfwSetGamma)(monitor: [GLFWmonitor\*](#GLFWmonitor), gamma: f32)
+func [glfwSetGamma](#glfwSetGamma)(monitor: [\*GLFWmonitor](#GLFWmonitor), gamma: f32)
 
 
 ### glfwSetGammaRamp
 
 
-func [glfwSetGammaRamp](#glfwSetGammaRamp)(monitor: [GLFWmonitor\*](#GLFWmonitor), ramp: [GLFWgammaramp\* const](#GLFWgammaramp))
+func [glfwSetGammaRamp](#glfwSetGammaRamp)(monitor: [\*GLFWmonitor](#GLFWmonitor), ramp: [\*const GLFWgammaramp](#GLFWgammaramp))
 
 
 ### glfwSetInputMode
 
 
-func [glfwSetInputMode](#glfwSetInputMode)(window: [GLFWwindow\*](#GLFWwindow), mode: i32, value: i32)
+func [glfwSetInputMode](#glfwSetInputMode)(window: [\*GLFWwindow](#GLFWwindow), mode: i32, value: i32)
 
 
 ### glfwSetJoystickCallback
@@ -2003,37 +2003,37 @@ func [glfwSetJoystickCallback](#glfwSetJoystickCallback)(callback: [func\(i32, i
 ### glfwSetJoystickUserPointer
 
 
-func [glfwSetJoystickUserPointer](#glfwSetJoystickUserPointer)(jid: i32, pointer: [void\*](#void))
+func [glfwSetJoystickUserPointer](#glfwSetJoystickUserPointer)(jid: i32, pointer: [\*void](#void))
 
 
 ### glfwSetKeyCallback
 
 
-func [glfwSetKeyCallback](#glfwSetKeyCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32, i32, i32\) : void](#\_)
+func [glfwSetKeyCallback](#glfwSetKeyCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32, i32, i32\) : void](#\_)
 
 
 ### glfwSetMonitorCallback
 
 
-func [glfwSetMonitorCallback](#glfwSetMonitorCallback)(callback: [func\(struct GLFWmonitor\*, i32\) : void](#\_)) : [func\(struct GLFWmonitor\*, i32\) : void](#\_)
+func [glfwSetMonitorCallback](#glfwSetMonitorCallback)(callback: [func\(\*struct GLFWmonitor, i32\) : void](#\_)) : [func\(\*struct GLFWmonitor, i32\) : void](#\_)
 
 
 ### glfwSetMonitorUserPointer
 
 
-func [glfwSetMonitorUserPointer](#glfwSetMonitorUserPointer)(monitor: [GLFWmonitor\*](#GLFWmonitor), pointer: [void\*](#void))
+func [glfwSetMonitorUserPointer](#glfwSetMonitorUserPointer)(monitor: [\*GLFWmonitor](#GLFWmonitor), pointer: [\*void](#void))
 
 
 ### glfwSetMouseButtonCallback
 
 
-func [glfwSetMouseButtonCallback](#glfwSetMouseButtonCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32, i32\) : void](#\_)
+func [glfwSetMouseButtonCallback](#glfwSetMouseButtonCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32, i32\) : void](#\_)
 
 
 ### glfwSetScrollCallback
 
 
-func [glfwSetScrollCallback](#glfwSetScrollCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, f64, f64\) : void](#\_)) : [func\(struct GLFWwindow\*, f64, f64\) : void](#\_)
+func [glfwSetScrollCallback](#glfwSetScrollCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, f64, f64\) : void](#\_)) : [func\(\*struct GLFWwindow, f64, f64\) : void](#\_)
 
 
 ### glfwSetTime
@@ -2045,127 +2045,127 @@ func [glfwSetTime](#glfwSetTime)(time: f64)
 ### glfwSetWindowAspectRatio
 
 
-func [glfwSetWindowAspectRatio](#glfwSetWindowAspectRatio)(window: [GLFWwindow\*](#GLFWwindow), numer: i32, denom: i32)
+func [glfwSetWindowAspectRatio](#glfwSetWindowAspectRatio)(window: [\*GLFWwindow](#GLFWwindow), numer: i32, denom: i32)
 
 
 ### glfwSetWindowAttrib
 
 
-func [glfwSetWindowAttrib](#glfwSetWindowAttrib)(window: [GLFWwindow\*](#GLFWwindow), attrib: i32, value: i32)
+func [glfwSetWindowAttrib](#glfwSetWindowAttrib)(window: [\*GLFWwindow](#GLFWwindow), attrib: i32, value: i32)
 
 
 ### glfwSetWindowCloseCallback
 
 
-func [glfwSetWindowCloseCallback](#glfwSetWindowCloseCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*\) : void](#\_)) : [func\(struct GLFWwindow\*\) : void](#\_)
+func [glfwSetWindowCloseCallback](#glfwSetWindowCloseCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow\) : void](#\_)) : [func\(\*struct GLFWwindow\) : void](#\_)
 
 
 ### glfwSetWindowContentScaleCallback
 
 
-func [glfwSetWindowContentScaleCallback](#glfwSetWindowContentScaleCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, f32, f32\) : void](#\_)) : [func\(struct GLFWwindow\*, f32, f32\) : void](#\_)
+func [glfwSetWindowContentScaleCallback](#glfwSetWindowContentScaleCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, f32, f32\) : void](#\_)) : [func\(\*struct GLFWwindow, f32, f32\) : void](#\_)
 
 
 ### glfwSetWindowFocusCallback
 
 
-func [glfwSetWindowFocusCallback](#glfwSetWindowFocusCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32\) : void](#\_)
+func [glfwSetWindowFocusCallback](#glfwSetWindowFocusCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32\) : void](#\_)
 
 
 ### glfwSetWindowIcon
 
 
-func [glfwSetWindowIcon](#glfwSetWindowIcon)(window: [GLFWwindow\*](#GLFWwindow), count: i32, images: [GLFWimage\* const](#GLFWimage))
+func [glfwSetWindowIcon](#glfwSetWindowIcon)(window: [\*GLFWwindow](#GLFWwindow), count: i32, images: [\*const GLFWimage](#GLFWimage))
 
 
 ### glfwSetWindowIconifyCallback
 
 
-func [glfwSetWindowIconifyCallback](#glfwSetWindowIconifyCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32\) : void](#\_)
+func [glfwSetWindowIconifyCallback](#glfwSetWindowIconifyCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32\) : void](#\_)
 
 
 ### glfwSetWindowMaximizeCallback
 
 
-func [glfwSetWindowMaximizeCallback](#glfwSetWindowMaximizeCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32\) : void](#\_)
+func [glfwSetWindowMaximizeCallback](#glfwSetWindowMaximizeCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32\) : void](#\_)
 
 
 ### glfwSetWindowMonitor
 
 
-func [glfwSetWindowMonitor](#glfwSetWindowMonitor)(window: [GLFWwindow\*](#GLFWwindow), monitor: [GLFWmonitor\*](#GLFWmonitor), xpos: i32, ypos: i32, width: i32, height: i32, refreshRate: i32)
+func [glfwSetWindowMonitor](#glfwSetWindowMonitor)(window: [\*GLFWwindow](#GLFWwindow), monitor: [\*GLFWmonitor](#GLFWmonitor), xpos: i32, ypos: i32, width: i32, height: i32, refreshRate: i32)
 
 
 ### glfwSetWindowOpacity
 
 
-func [glfwSetWindowOpacity](#glfwSetWindowOpacity)(window: [GLFWwindow\*](#GLFWwindow), opacity: f32)
+func [glfwSetWindowOpacity](#glfwSetWindowOpacity)(window: [\*GLFWwindow](#GLFWwindow), opacity: f32)
 
 
 ### glfwSetWindowPos
 
 
-func [glfwSetWindowPos](#glfwSetWindowPos)(window: [GLFWwindow\*](#GLFWwindow), xpos: i32, ypos: i32)
+func [glfwSetWindowPos](#glfwSetWindowPos)(window: [\*GLFWwindow](#GLFWwindow), xpos: i32, ypos: i32)
 
 
 ### glfwSetWindowPosCallback
 
 
-func [glfwSetWindowPosCallback](#glfwSetWindowPosCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)
+func [glfwSetWindowPosCallback](#glfwSetWindowPosCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)
 
 
 ### glfwSetWindowRefreshCallback
 
 
-func [glfwSetWindowRefreshCallback](#glfwSetWindowRefreshCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*\) : void](#\_)) : [func\(struct GLFWwindow\*\) : void](#\_)
+func [glfwSetWindowRefreshCallback](#glfwSetWindowRefreshCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow\) : void](#\_)) : [func\(\*struct GLFWwindow\) : void](#\_)
 
 
 ### glfwSetWindowShouldClose
 
 
-func [glfwSetWindowShouldClose](#glfwSetWindowShouldClose)(window: [GLFWwindow\*](#GLFWwindow), value: i32)
+func [glfwSetWindowShouldClose](#glfwSetWindowShouldClose)(window: [\*GLFWwindow](#GLFWwindow), value: i32)
 
 
 ### glfwSetWindowSize
 
 
-func [glfwSetWindowSize](#glfwSetWindowSize)(window: [GLFWwindow\*](#GLFWwindow), width: i32, height: i32)
+func [glfwSetWindowSize](#glfwSetWindowSize)(window: [\*GLFWwindow](#GLFWwindow), width: i32, height: i32)
 
 
 ### glfwSetWindowSizeCallback
 
 
-func [glfwSetWindowSizeCallback](#glfwSetWindowSizeCallback)(window: [GLFWwindow\*](#GLFWwindow), callback: [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)) : [func\(struct GLFWwindow\*, i32, i32\) : void](#\_)
+func [glfwSetWindowSizeCallback](#glfwSetWindowSizeCallback)(window: [\*GLFWwindow](#GLFWwindow), callback: [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)) : [func\(\*struct GLFWwindow, i32, i32\) : void](#\_)
 
 
 ### glfwSetWindowSizeLimits
 
 
-func [glfwSetWindowSizeLimits](#glfwSetWindowSizeLimits)(window: [GLFWwindow\*](#GLFWwindow), minwidth: i32, minheight: i32, maxwidth: i32, maxheight: i32)
+func [glfwSetWindowSizeLimits](#glfwSetWindowSizeLimits)(window: [\*GLFWwindow](#GLFWwindow), minwidth: i32, minheight: i32, maxwidth: i32, maxheight: i32)
 
 
 ### glfwSetWindowTitle
 
 
-func [glfwSetWindowTitle](#glfwSetWindowTitle)(window: [GLFWwindow\*](#GLFWwindow), title: char const*)
+func [glfwSetWindowTitle](#glfwSetWindowTitle)(window: [\*GLFWwindow](#GLFWwindow), title: *const char)
 
 
 ### glfwSetWindowUserPointer
 
 
-func [glfwSetWindowUserPointer](#glfwSetWindowUserPointer)(window: [GLFWwindow\*](#GLFWwindow), pointer: [void\*](#void))
+func [glfwSetWindowUserPointer](#glfwSetWindowUserPointer)(window: [\*GLFWwindow](#GLFWwindow), pointer: [\*void](#void))
 
 
 ### glfwShowWindow
 
 
-func [glfwShowWindow](#glfwShowWindow)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwShowWindow](#glfwShowWindow)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwSwapBuffers
 
 
-func [glfwSwapBuffers](#glfwSwapBuffers)(window: [GLFWwindow\*](#GLFWwindow))
+func [glfwSwapBuffers](#glfwSwapBuffers)(window: [\*GLFWwindow](#GLFWwindow))
 
 
 ### glfwSwapInterval
@@ -2183,7 +2183,7 @@ func [glfwTerminate](#glfwTerminate)()
 ### glfwUpdateGamepadMappings
 
 
-func [glfwUpdateGamepadMappings](#glfwUpdateGamepadMappings)(string: char const*) : i32
+func [glfwUpdateGamepadMappings](#glfwUpdateGamepadMappings)(string: *const char) : i32
 
 
 ### glfwWaitEvents
@@ -2207,12 +2207,12 @@ func [glfwWindowHint](#glfwWindowHint)(hint: i32, value: i32)
 ### glfwWindowHintString
 
 
-func [glfwWindowHintString](#glfwWindowHintString)(hint: i32, value: char const*)
+func [glfwWindowHintString](#glfwWindowHintString)(hint: i32, value: *const char)
 
 
 ### glfwWindowShouldClose
 
 
-func [glfwWindowShouldClose](#glfwWindowShouldClose)(window: [GLFWwindow\*](#GLFWwindow)) : i32
+func [glfwWindowShouldClose](#glfwWindowShouldClose)(window: [\*GLFWwindow](#GLFWwindow)) : i32
 
 

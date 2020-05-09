@@ -7,7 +7,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -17,8 +17,8 @@
             name: "Json Parse",
            // disabled: true, 
             definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @include("<string.h>");                
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                 
                 import "json";
                 import "string_buffer";
@@ -71,8 +71,8 @@
         {
             name: "Json Create",
             definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @include("<string.h>");                
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                 
                 import "json";
                 import "string_buffer";
@@ -112,8 +112,8 @@
         {
             name: "Json Error",
             definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @include("<string.h>");                
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                 
                 import "json";
                 import "string_buffer";
@@ -147,8 +147,8 @@
         {
             name: "Json Token Error",
             definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @include("<string.h>");                
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                 
                 import "json";
                 import "string_buffer";
@@ -176,8 +176,8 @@
         {
             name: "Json Token in complex Error",
             definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @include("<string.h>");                
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                 
                 import "json";
                 import "string_buffer";
@@ -212,8 +212,8 @@
         {
             name: "Json Token Stream Error",
             definitions: '''
-                @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @include("<string.h>");                
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                 
                 import "json";
                 import "string_buffer";

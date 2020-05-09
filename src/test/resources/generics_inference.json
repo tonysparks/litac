@@ -7,7 +7,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -93,7 +93,7 @@
         { 
             name: "Generics Type Inference from Ptr Generic Type",
             definitions: '''                                
-                func test<T>(t: T* ):T {
+                func test<T>(t: *T ):T {
                     return *t
                 }
             ''',                       
@@ -107,13 +107,13 @@
         { 
             name: "Generics Type Inference from Const Ptr Generic Type",
             definitions: '''                                
-                func test<T>(t: T const* ):T {
+                func test<T>(t: *const T):T {
                     return *t
                 }
             ''',                       
             code: '''     
                 var a = 4    
-                var t = (&a) as (i32 const*)                            
+                var t = (&a) as (* const i32)                            
                 assert(test(t) == 4)
             ''',                      
         },
@@ -149,7 +149,7 @@
                 }
             ''',                       
             code: '''         
-                var t = Test<i32, char*> { B<i32>{4}, B<char*>{"hi"} }                                 
+                var t = Test<i32, *char> { B<i32>{4}, B<*char>{"hi"} }                                 
                 assert(test(t) == 4)
             ''',                      
         },
@@ -307,7 +307,7 @@
                     a: T
                 }
                 
-                func (x: X<T>*) method<T>() : T {
+                func (x: *X<T>) method<T>() : T {
                     return x.a
                 }
                 
@@ -327,11 +327,11 @@
                     vv: V
                 }
                 
-                func (x: X<T, V>*) methodT<T, V>() : T {
+                func (x: *X<T, V>) methodT<T, V>() : T {
                     return x.tt
                 }
                 
-                func (x: X<T, V>*) methodV<T, V>() : V {
+                func (x: *X<T, V>) methodV<T, V>() : V {
                     return x.vv
                 }
                 
@@ -356,7 +356,7 @@
                 }
                 
                 
-                func (x: X<V>*) methodV<V>() : V {
+                func (x: *X<V>) methodV<V>() : V {
                     return x.vv.zz
                 }
                 
@@ -379,7 +379,7 @@
                 }
                 
                 
-                func (x: X<V>*) methodV<V>() : V {
+                func (x: *X<V>) methodV<V>() : V {
                     return x.vv.zz
                 }
                 
@@ -402,7 +402,7 @@
                 }
                 
                 
-                func (x: X<V>*) methodV<V>() : V {
+                func (x: *X<V>) methodV<V>() : V {
                     return x.vv.zz
                 }
                 
@@ -425,11 +425,11 @@
                     vv: Y<V>
                 }
                 
-                func (x: X<T, V>*) methodT<T, V>() : T {
+                func (x: *X<T, V>) methodT<T, V>() : T {
                     return x.tt
                 }
                 
-                func (x: X<T, V>*) methodV<T, V>() : V {
+                func (x: *X<T, V>) methodV<T, V>() : V {
                     return x.vv.zz
                 }
                 
@@ -452,7 +452,7 @@
                     a: T
                 }
                 
-                func (x: X<T>*) method<T>() : T {
+                func (x: *X<T>) method<T>() : T {
                     return x.a
                 }
                 
@@ -475,7 +475,7 @@
                 }
                 
                 
-                func (x: X<V>*) methodV<V>() : V {
+                func (x: *X<V>) methodV<V>() : V {
                     return x.vv.zz
                 }
                 
@@ -498,7 +498,7 @@
                 }
                 
                 
-                func (x: X<V>*) methodV<V>() : V {
+                func (x: *X<V>) methodV<V>() : V {
                     return x.vv.zz
                 }
                 
@@ -521,7 +521,7 @@
                 }
                 
                 
-                func (x: X<V>*) methodV<V>() : V {
+                func (x: *X<V>) methodV<V>() : V {
                     return x.vv.zz
                 }
                 

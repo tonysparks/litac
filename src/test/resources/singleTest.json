@@ -10,7 +10,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -480,7 +480,7 @@
                 var b = Test(a)
                 assert(a == b)
             ''',            
-        },*/
+        },
         
         {
             name: "Func with 2d array pointers",
@@ -508,6 +508,49 @@
                 var b = Test(a)
                 assert(a == b)
             ''',            
+        },*/
+        /*
+        {
+            name: "Const Pointer Reassign",
+            definitions: '''
+                
+            ''',                       
+            code: '''                   
+                var s: const *char = "hi";
+                s = "bye"
+            ''',
+            error: "can't reassign constant variable 's'"
+        },*/
+        {
+            name: "New Pointer Syntax",
+            definitions: '''
+                
+            ''',                       
+            code: '''                   
+                var s: *char = "hi";
+                assert(s != null)
+                assert(s[0] == 'h')
+                assert(s[1] == 'i')
+                
+                var sc: *const char = "hi";
+                assert(sc != null)
+                assert(sc[0] == 'h')
+                assert(sc[1] == 'i')
+                
+                var z = 32
+                var csc: const* const i32 = &z
+                assert(csc != null)
+                assert(*csc == 32)
+                /*
+                var integer = 4
+                var i: const* i32 = &integer
+                var ip: * const i32 = &integer
+                
+                var integer2 = 8
+                
+                i = &integer2*/
+            ''',                    
         },
+        
     ]
 }

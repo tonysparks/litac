@@ -13,16 +13,16 @@
 
 
 @foreign public struct FILE;
-@foreign public const stderr : FILE*;
-@foreign public const stdout : FILE*;
-@foreign public func printf(s:char const*, ...) : void;
-@foreign public func fopen(fileName:char const*, openType:char const*) : FILE*;
-@foreign public func fgets(buf: char*, n:i64, stream: FILE*): char*;
-@foreign public func fread(buf: char*, size:u64, n:i64, stream: FILE*) : i64;
-@foreign public func fclose(stream: FILE*) : void;
-@foreign public func fseek(stream: FILE*, offset : i64, whence : i32) : i32;
-@foreign public func ftell(stream: FILE*) : i64;
-@foreign public func ferror(stream: FILE*) : i32;
+@foreign public const stderr : *FILE;
+@foreign public const stdout : *FILE;
+@foreign public func printf(s:*const char, ...) : void;
+@foreign public func fopen(fileName:*const char, openType:*const char) : *FILE;
+@foreign public func fgets(buf: *char, n:i64, stream: *FILE): *char;
+@foreign public func fread(buf: *char, size:u64, n:i64, stream: *FILE) : i64;
+@foreign public func fclose(stream: *FILE) : void;
+@foreign public func fseek(stream: *FILE, offset : i64, whence : i32) : i32;
+@foreign public func ftell(stream: *FILE) : i64;
+@foreign public func ferror(stream: *FILE) : i32;
 
 // TODO allow const to be undefined
 @foreign public var SEEK_SET : i32;
@@ -45,28 +45,28 @@
 @foreign public const M_PI: f64;
 
 @foreign public struct va_list;
-@foreign public func va_start(args: va_list, format: char const*);
+@foreign public func va_start(args: va_list, format: *const char);
 @foreign public func va_end(args: va_list);
 @foreign public func va_copy(a: va_list, b: va_list);
-@foreign public func vfprintf(f:FILE*, format: char const*, args: va_list);
-@foreign public func vsprintf_s(ptr: void*, len: u64, format: char const*, args: va_list) : i32;
-@foreign public func vsnprintf(buffer: char*, len: u64, format: char const*, args: va_list) : i32;
-@foreign public func vsnprintf_s(ptr: void*, len: u64, max: u64, format: char const*, args: va_list) : i32;
+@foreign public func vfprintf(f:*FILE, format: *const char, args: va_list);
+@foreign public func vsprintf_s(ptr: *void, len: u64, format: *const char, args: va_list) : i32;
+@foreign public func vsnprintf(buffer: *char, len: u64, format: *const char, args: va_list) : i32;
+@foreign public func vsnprintf_s(ptr: *void, len: u64, max: u64, format: *const char, args: va_list) : i32;
 @foreign public func exit(code: i32);
-@foreign public func fputs(format: char const*,f:FILE*);
+@foreign public func fputs(format: *const char,f:*FILE);
 
 // string operations
-@foreign public func strncpy(dest: char*, src: char const*, num: u64) : char*;
-@foreign public func strcpy(dest: char*, src: char const*) : char*;
-@foreign public func strlen(str: char const*) : i32;
-@foreign public func strnlen(str: char const*, len: u64) : i32;
-@foreign public func strncmp(a: char const*, b: char const*, num: u64) : i32;
-@foreign public func strcmp(a: char const*, b: char const*) : i32;
-@foreign public func snprintf(s: char*, n: u64, format: char const*, ...): i32;
-@foreign public func strtok(str: char*, delim: char const*) : char*;
-@foreign public func strtol(str: char const*, end: char**, base: i32) : i64;
-@foreign public func strtoul(str: char const*, end: char**, base: i32) : u64;
-@foreign public func strtod(str: char const*, end: char**) : f64;
+@foreign public func strncpy(dest: *char, src: *const char, num: u64) : *char;
+@foreign public func strcpy(dest: *char, src: *const char) : *char;
+@foreign public func strlen(str: *const char) : i32;
+@foreign public func strnlen(str: *const char, len: u64) : i32;
+@foreign public func strncmp(a: *const char, b: *const char, num: u64) : i32;
+@foreign public func strcmp(a: *const char, b: *const char) : i32;
+@foreign public func snprintf(s: *char, n: u64, format: *const char, ...): i32;
+@foreign public func strtok(str: *char, delim: *const char) : *char;
+@foreign public func strtol(str: *const char, end: *char, base: i32) : i64;
+@foreign public func strtoul(str: *const char, end: *char, base: i32) : u64;
+@foreign public func strtod(str: *const char, end: *char) : f64;
 @foreign public const HUGE_VAL: f64;
 @foreign public const ULLONG_MAX: i64;
 @foreign public func isdigit(arg: i32) : i32;

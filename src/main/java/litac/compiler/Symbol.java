@@ -156,7 +156,15 @@ public class Symbol {
      * @return true if this symbol was defined as a constant
      */
     public boolean isConstant() {
-        return (this.flags & IS_CONSTANT) > 0;
+        if((this.flags & IS_CONSTANT) > 0) {
+            return true;
+        }
+        
+        if(this.type != null) {
+            return this.type.isKind(TypeKind.Const);
+        }
+        
+        return false;
     }
     
     /**

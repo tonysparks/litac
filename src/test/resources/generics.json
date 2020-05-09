@@ -6,7 +6,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -67,30 +67,30 @@
             definitions: '''
                 @include("stdlib.h");
 
-                @foreign func malloc(size: u64) : void*;
+                @foreign func malloc(size: u64) : *void;
                                 
                 struct Array<T> {
                     size: i32
                     capacity: i32
-                    elements: T*
+                    elements: *T
                 }
                 
-                func ArrayInit<T>(a: Array<T>**, initialSize: i32) {
+                func ArrayInit<T>(a: **Array<T>, initialSize: i32) {
                     var size = sizeof(Array<T>) + (sizeof(T) * initialSize as (u64));
-                    *a = malloc(size) as (Array<T>*);
+                    *a = malloc(size) as (*Array<T>);
                     (*a).size = 0;
                     (*a).capacity = initialSize;    
-                    (*a).elements = (*a + sizeof(Array<T>)) as (T*)             
+                    (*a).elements = (*a + sizeof(Array<T>)) as (*T)             
                 }
                 
-                func ArrayAdd<T>(a: Array<T>*, element: T) {
+                func ArrayAdd<T>(a: *Array<T>, element: T) {
                  //   a.elements[a.size] = element;
                     a.size += 1
                 }
                             
             ''',            
             code: '''
-                var a : Array<i32>* = null;
+                var a : *Array<i32> = null;
                 ArrayInit<i32>(&a, 23);
                 
                 assert(a);
@@ -305,7 +305,7 @@
                 }
                 
                 struct A<T> {
-                    x : T*
+                    x : *T
                 }
             ''',                       
             code: '''     
@@ -468,11 +468,11 @@
                     b: i32
                 }
                 
-                func (x: X*) method(y: Y) : i32 {
+                func (x: *X) method(y: Y) : i32 {
                     return call(y)
                 }
                 
-                func call(y: Y*) : i32 {
+                func call(y: *Y) : i32 {
                     return y.b
                 }
                                               
@@ -494,7 +494,7 @@
                     a: T
                 }
                 
-                func (x: X<T>*) method(t: T) : T {
+                func (x: *X<T>) method(t: T) : T {
                     return x.a
                 }
                 

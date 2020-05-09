@@ -7,7 +7,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -87,7 +87,7 @@
                         import "y";
                         
                         public struct X {
-                            y: Y*
+                            y: *Y
                         }
                     '''
                 },
@@ -97,7 +97,7 @@
                         import "x";
                         
                         public struct Y {
-                            x: X*
+                            x: *X
                         }
                     '''
                 }

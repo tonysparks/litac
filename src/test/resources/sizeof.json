@@ -7,7 +7,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -22,8 +22,8 @@
                 
             ''',                       
             code: '''
-                var N = sizeof(:Sprite*);
-                var X = sizeof(:void*);
+                var N = sizeof(:*Sprite);
+                var X = sizeof(:*void);
                 assert(N == X)
             ''',
         },

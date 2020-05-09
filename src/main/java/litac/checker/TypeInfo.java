@@ -1214,7 +1214,7 @@ public abstract class TypeInfo {
         
         @Override
         public String toString() {    
-            return "char*";
+            return "*char";
         }
         
         @Override
@@ -1253,6 +1253,8 @@ public abstract class TypeInfo {
                    ptrOf.isKind(TypeKind.i8)) {
                     return true;
                 }
+                
+                return false;                
             }
             
             if(target.isKind(TypeKind.Array)) {
@@ -1268,6 +1270,46 @@ public abstract class TypeInfo {
                 }
                 
                 return false;
+            }
+            
+            // constant pointers/arrays/strings
+            if(target.isKind(TypeKind.Const)) {
+                ConstTypeInfo constInfo = target.as();
+                
+                TypeInfo constOf = constInfo.constOf; 
+                if(constOf.isKind(TypeKind.Ptr)) {
+                    PtrTypeInfo ptrInfo = constOf.as();
+                    
+                    TypeInfo ptrOf = ptrInfo.ptrOf;
+                    if(ptrInfo.ptrOf.isKind(TypeKind.Const)) {
+                        ConstTypeInfo c = ptrInfo.ptrOf.as();
+                        ptrOf = c.constOf;
+                    }
+                    
+                    if(ptrOf.isKind(TypeKind.Char) ||
+                       ptrOf.isKind(TypeKind.u8) ||
+                       ptrOf.isKind(TypeKind.i8)) {
+                        return true;
+                    }
+                    
+                    return false;
+                }
+                else if(constOf.isKind(TypeKind.Array)) {                    
+                    ArrayTypeInfo arrayInfo = constOf.as();
+                    if(arrayInfo.arrayOf.isKind(TypeKind.Char)) {
+                        if(arrayInfo.length > 0) {
+                            // TODO length check??
+                            if(arrayInfo.length < this.str.length() + 1) {
+                                // error?? 
+                            }
+                        }
+                        return true;
+                    }
+                    
+                    return false;
+                }
+                
+                return (constOf.isKind(TypeKind.Str));
             }
             
             if(target.isKind(TypeKind.Bool)) {
@@ -1325,12 +1367,12 @@ public abstract class TypeInfo {
                 
         @Override
         public String getName() {
-            return ptrOf.getName() + "*";
+            return "*" + ptrOf.getName();
         }
         
         @Override
         public String toString() {    
-            return ptrOf.toString() + "*";
+            return "*" + ptrOf.toString();
         }
                 
         @Override
@@ -1428,7 +1470,7 @@ public abstract class TypeInfo {
                 
         @Override
         public String getName() {
-            return this.constOf.getName() + " const";
+            return "const " + this.constOf.getName();
         }
         
         @Override
@@ -1516,7 +1558,7 @@ public abstract class TypeInfo {
         
         @Override
         public String getName() {        
-            return arrayOf.getName() + "[]";
+            return "[]" + arrayOf.getName();
         }
         
         @Override

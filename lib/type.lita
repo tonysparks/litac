@@ -1,4 +1,4 @@
-@generated public const typeInfos: TypeInfo** = [1]TypeInfo*{0};
+@generated public const typeInfos: **TypeInfo = [1]*TypeInfo{0};
 @generated public const numOfTypeInfos : i64 = 0;
 
 @asStr
@@ -34,31 +34,31 @@ public enum Modifiers {
 }
 
 public struct GenericInfo {
-    args: char const**
+    args: **const char
     numOfArgs: i32
 }
 
 public struct ParamInfo {
     genInfo: using GenericInfo
-    name: char const*
+    name: *const char
     type: typeid
     modifiers: Modifiers
 }
 
 public struct FieldInfo {
-    name: char const*
+    name: *const char
     type: typeid
     modifiers: Modifiers
 }
 
 public struct EnumFieldInfo {
-    name: char const*
+    name: *const char
     value: i32
 }
 
 public struct TypeInfo {
     kind:   TypeKind;
-    name:   char const*;
+    name:   *const char;
     id:     typeid;
     
     union {
@@ -72,32 +72,32 @@ public struct TypeInfo {
         struct funcPtrType {
             genInfo: using GenericInfo
             returnType: typeid
-            params: ParamInfo*
+            params: *ParamInfo
             numOfParams: i32
         }
         struct funcType {
             genInfo: using GenericInfo
             isVararg: bool
             returnType: typeid
-            params: ParamInfo*
+            params: *ParamInfo
             numOfParams: i32
         }
         struct structType {
-            fields: FieldInfo*
+            fields: *FieldInfo
             numOfFields: i32
         }
         struct unionType {
-            fields: FieldInfo*
+            fields: *FieldInfo
             numOfFields: i32
         }
         struct enumType {
-            fields: EnumFieldInfo*
+            fields: *EnumFieldInfo
             numOfFields: i32
         }
     }
 }
 
-public func getTypeInfo(id: typeid) : TypeInfo* {
+public func getTypeInfo(id: typeid) : *TypeInfo {
     if (id < 0_i64 || id >= numOfTypeInfos) {
         return null;
     }

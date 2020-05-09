@@ -288,13 +288,13 @@
 * func [glColor4f](#glColor4f)(_0: f32, _1: f32, _2: f32, _3: f32)
 * func [glColor4x](#glColor4x)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixed, _2: [gl](#gl)::GLfixed, _3: [gl](#gl)::GLfixed)
 * func [glColorMask](#glColorMask)(_0: bool, _1: bool, _2: bool, _3: bool)
-* func [glColorPointer](#glColorPointer)(_0: i32, _1: i32, _2: i64, _3: GLvoid const*)
-* func [glCompressedTexImage2D](#glCompressedTexImage2D)(_0: i32, _1: i32, _2: i32, _3: i64, _4: i64, _5: i32, _6: i64, _7: GLvoid const*)
-* func [glCompressedTexSubImage2D](#glCompressedTexSubImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i64, _5: i64, _6: i32, _7: i64, _8: GLvoid const*)
+* func [glColorPointer](#glColorPointer)(_0: i32, _1: i32, _2: i64, _3: *const GLvoid)
+* func [glCompressedTexImage2D](#glCompressedTexImage2D)(_0: i32, _1: i32, _2: i32, _3: i64, _4: i64, _5: i32, _6: i64, _7: *const GLvoid)
+* func [glCompressedTexSubImage2D](#glCompressedTexSubImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i64, _5: i64, _6: i32, _7: i64, _8: *const GLvoid)
 * func [glCopyTexImage2D](#glCopyTexImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i32, _5: i64, _6: i64, _7: i32)
 * func [glCopyTexSubImage2D](#glCopyTexSubImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i32, _5: i32, _6: i64, _7: i64)
 * func [glCullFace](#glCullFace)(_0: i32)
-* func [glDeleteTextures](#glDeleteTextures)(_0: i64, _1: u32 const*)
+* func [glDeleteTextures](#glDeleteTextures)(_0: i64, _1: *const u32)
 * func [glDepthFunc](#glDepthFunc)(_0: i32)
 * func [glDepthMask](#glDepthMask)(_0: bool)
 * func [glDepthRangef](#glDepthRangef)(_0: [gl](#gl)::GLclampf, _1: [gl](#gl)::GLclampf)
@@ -302,49 +302,49 @@
 * func [glDisableClientState](#glDisableClientState)(_0: i32)
 * func [glDisable](#glDisable)(_0: i32)
 * func [glDrawArrays](#glDrawArrays)(_0: i32, _1: i32, _2: i64)
-* func [glDrawElements](#glDrawElements)(_0: i32, _1: i64, _2: i32, _3: GLvoid const*)
+* func [glDrawElements](#glDrawElements)(_0: i32, _1: i64, _2: i32, _3: *const GLvoid)
 * func [glEnableClientState](#glEnableClientState)(_0: i32)
 * func [glEnable](#glEnable)(_0: i32)
 * func [glFinish](#glFinish)()
 * func [glFlush](#glFlush)()
 * func [glFogf](#glFogf)(_0: i32, _1: f32)
-* func [glFogfv](#glFogfv)(_0: i32, _1: f32 const*)
+* func [glFogfv](#glFogfv)(_0: i32, _1: *const f32)
 * func [glFogx](#glFogx)(_0: i32, _1: [gl](#gl)::GLfixed)
-* func [glFogxv](#glFogxv)(_0: i32, _1: GLfixed const*)
+* func [glFogxv](#glFogxv)(_0: i32, _1: *const GLfixed)
 * func [glFrontFace](#glFrontFace)(_0: i32)
 * func [glFrustumf](#glFrustumf)(_0: f32, _1: f32, _2: f32, _3: f32, _4: f32, _5: f32)
 * func [glFrustumx](#glFrustumx)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixed, _2: [gl](#gl)::GLfixed, _3: [gl](#gl)::GLfixed, _4: [gl](#gl)::GLfixed, _5: [gl](#gl)::GLfixed)
-* func [glGenTextures](#glGenTextures)(_0: i64, _1: u32*)
+* func [glGenTextures](#glGenTextures)(_0: i64, _1: *u32)
 * func [glGetError](#glGetError)() : i32
-* func [glGetIntegerv](#glGetIntegerv)(_0: i32, _1: i32*)
-* func [glGetString](#glGetString)(_0: i32) : u8 const*
+* func [glGetIntegerv](#glGetIntegerv)(_0: i32, _1: *i32)
+* func [glGetString](#glGetString)(_0: i32) : *const u8
 * func [glHint](#glHint)(_0: i32, _1: i32)
 * func [glLightModelf](#glLightModelf)(_0: i32, _1: f32)
-* func [glLightModelfv](#glLightModelfv)(_0: i32, _1: f32 const*)
+* func [glLightModelfv](#glLightModelfv)(_0: i32, _1: *const f32)
 * func [glLightModelx](#glLightModelx)(_0: i32, _1: [gl](#gl)::GLfixed)
-* func [glLightModelxv](#glLightModelxv)(_0: i32, _1: GLfixed const*)
+* func [glLightModelxv](#glLightModelxv)(_0: i32, _1: *const GLfixed)
 * func [glLightf](#glLightf)(_0: i32, _1: i32, _2: f32)
-* func [glLightfv](#glLightfv)(_0: i32, _1: i32, _2: f32 const*)
+* func [glLightfv](#glLightfv)(_0: i32, _1: i32, _2: *const f32)
 * func [glLightx](#glLightx)(_0: i32, _1: i32, _2: [gl](#gl)::GLfixed)
-* func [glLightxv](#glLightxv)(_0: i32, _1: i32, _2: GLfixed const*)
+* func [glLightxv](#glLightxv)(_0: i32, _1: i32, _2: *const GLfixed)
 * func [glLineWidth](#glLineWidth)(_0: f32)
 * func [glLineWidthx](#glLineWidthx)(_0: [gl](#gl)::GLfixed)
 * func [glLoadIdentity](#glLoadIdentity)()
-* func [glLoadMatrixf](#glLoadMatrixf)(_0: f32 const*)
-* func [glLoadMatrixx](#glLoadMatrixx)(_0: GLfixed const*)
+* func [glLoadMatrixf](#glLoadMatrixf)(_0: *const f32)
+* func [glLoadMatrixx](#glLoadMatrixx)(_0: *const GLfixed)
 * func [glLogicOp](#glLogicOp)(_0: i32)
 * func [glMaterialf](#glMaterialf)(_0: i32, _1: i32, _2: f32)
-* func [glMaterialfv](#glMaterialfv)(_0: i32, _1: i32, _2: f32 const*)
+* func [glMaterialfv](#glMaterialfv)(_0: i32, _1: i32, _2: *const f32)
 * func [glMaterialx](#glMaterialx)(_0: i32, _1: i32, _2: [gl](#gl)::GLfixed)
-* func [glMaterialxv](#glMaterialxv)(_0: i32, _1: i32, _2: GLfixed const*)
+* func [glMaterialxv](#glMaterialxv)(_0: i32, _1: i32, _2: *const GLfixed)
 * func [glMatrixMode](#glMatrixMode)(_0: i32)
-* func [glMultMatrixf](#glMultMatrixf)(_0: f32 const*)
-* func [glMultMatrixx](#glMultMatrixx)(_0: GLfixed const*)
+* func [glMultMatrixf](#glMultMatrixf)(_0: *const f32)
+* func [glMultMatrixx](#glMultMatrixx)(_0: *const GLfixed)
 * func [glMultiTexCoord4f](#glMultiTexCoord4f)(_0: i32, _1: f32, _2: f32, _3: f32, _4: f32)
 * func [glMultiTexCoord4x](#glMultiTexCoord4x)(_0: i32, _1: [gl](#gl)::GLfixed, _2: [gl](#gl)::GLfixed, _3: [gl](#gl)::GLfixed, _4: [gl](#gl)::GLfixed)
 * func [glNormal3f](#glNormal3f)(_0: f32, _1: f32, _2: f32)
 * func [glNormal3x](#glNormal3x)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixed, _2: [gl](#gl)::GLfixed)
-* func [glNormalPointer](#glNormalPointer)(_0: i32, _1: i64, _2: GLvoid const*)
+* func [glNormalPointer](#glNormalPointer)(_0: i32, _1: i64, _2: *const GLvoid)
 * func [glOrthof](#glOrthof)(_0: f32, _1: f32, _2: f32, _3: f32, _4: f32, _5: f32)
 * func [glOrthox](#glOrthox)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixed, _2: [gl](#gl)::GLfixed, _3: [gl](#gl)::GLfixed, _4: [gl](#gl)::GLfixed, _5: [gl](#gl)::GLfixed)
 * func [glPixelStorei](#glPixelStorei)(_0: i32, _1: i32)
@@ -354,7 +354,7 @@
 * func [glPolygonOffsetx](#glPolygonOffsetx)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixed)
 * func [glPopMatrix](#glPopMatrix)()
 * func [glPushMatrix](#glPushMatrix)()
-* func [glReadPixels](#glReadPixels)(_0: i32, _1: i32, _2: i64, _3: i64, _4: i32, _5: i32, _6: GLvoid*)
+* func [glReadPixels](#glReadPixels)(_0: i32, _1: i32, _2: i64, _3: i64, _4: i32, _5: i32, _6: *GLvoid)
 * func [glRotatef](#glRotatef)(_0: f32, _1: f32, _2: f32, _3: f32)
 * func [glRotatex](#glRotatex)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixed, _2: [gl](#gl)::GLfixed, _3: [gl](#gl)::GLfixed)
 * func [glSampleCoverage](#glSampleCoverage)(_0: [gl](#gl)::GLclampf, _1: bool)
@@ -366,18 +366,18 @@
 * func [glStencilFunc](#glStencilFunc)(_0: i32, _1: i32, _2: u32)
 * func [glStencilMask](#glStencilMask)(_0: u32)
 * func [glStencilOp](#glStencilOp)(_0: i32, _1: i32, _2: i32)
-* func [glTexCoordPointer](#glTexCoordPointer)(_0: i32, _1: i32, _2: i64, _3: GLvoid const*)
+* func [glTexCoordPointer](#glTexCoordPointer)(_0: i32, _1: i32, _2: i64, _3: *const GLvoid)
 * func [glTexEnvf](#glTexEnvf)(_0: i32, _1: i32, _2: f32)
-* func [glTexEnvfv](#glTexEnvfv)(_0: i32, _1: i32, _2: f32 const*)
+* func [glTexEnvfv](#glTexEnvfv)(_0: i32, _1: i32, _2: *const f32)
 * func [glTexEnvx](#glTexEnvx)(_0: i32, _1: i32, _2: [gl](#gl)::GLfixed)
-* func [glTexEnvxv](#glTexEnvxv)(_0: i32, _1: i32, _2: GLfixed const*)
-* func [glTexImage2D](#glTexImage2D)(_0: i32, _1: i32, _2: i32, _3: i64, _4: i64, _5: i32, _6: i32, _7: i32, _8: GLvoid const*)
+* func [glTexEnvxv](#glTexEnvxv)(_0: i32, _1: i32, _2: *const GLfixed)
+* func [glTexImage2D](#glTexImage2D)(_0: i32, _1: i32, _2: i32, _3: i64, _4: i64, _5: i32, _6: i32, _7: i32, _8: *const GLvoid)
 * func [glTexParameterf](#glTexParameterf)(_0: i32, _1: i32, _2: f32)
 * func [glTexParameterx](#glTexParameterx)(_0: i32, _1: i32, _2: [gl](#gl)::GLfixed)
-* func [glTexSubImage2D](#glTexSubImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i64, _5: i64, _6: i32, _7: i32, _8: GLvoid const*)
+* func [glTexSubImage2D](#glTexSubImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i64, _5: i64, _6: i32, _7: i32, _8: *const GLvoid)
 * func [glTranslatef](#glTranslatef)(_0: f32, _1: f32, _2: f32)
 * func [glTranslatex](#glTranslatex)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixed, _2: [gl](#gl)::GLfixed)
-* func [glVertexPointer](#glVertexPointer)(_0: i32, _1: i32, _2: i64, _3: GLvoid const*)
+* func [glVertexPointer](#glVertexPointer)(_0: i32, _1: i32, _2: i64, _3: *const GLvoid)
 * func [glViewport](#glViewport)(_0: i32, _1: i32, _2: i64, _3: i64)
 
 
@@ -1307,19 +1307,19 @@ func [glColorMask](#glColorMask)(_0: bool, _1: bool, _2: bool, _3: bool)
 ### glColorPointer
 
 
-func [glColorPointer](#glColorPointer)(_0: i32, _1: i32, _2: i64, _3: GLvoid const*)
+func [glColorPointer](#glColorPointer)(_0: i32, _1: i32, _2: i64, _3: *const GLvoid)
 
 
 ### glCompressedTexImage2D
 
 
-func [glCompressedTexImage2D](#glCompressedTexImage2D)(_0: i32, _1: i32, _2: i32, _3: i64, _4: i64, _5: i32, _6: i64, _7: GLvoid const*)
+func [glCompressedTexImage2D](#glCompressedTexImage2D)(_0: i32, _1: i32, _2: i32, _3: i64, _4: i64, _5: i32, _6: i64, _7: *const GLvoid)
 
 
 ### glCompressedTexSubImage2D
 
 
-func [glCompressedTexSubImage2D](#glCompressedTexSubImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i64, _5: i64, _6: i32, _7: i64, _8: GLvoid const*)
+func [glCompressedTexSubImage2D](#glCompressedTexSubImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i64, _5: i64, _6: i32, _7: i64, _8: *const GLvoid)
 
 
 ### glCopyTexImage2D
@@ -1343,7 +1343,7 @@ func [glCullFace](#glCullFace)(_0: i32)
 ### glDeleteTextures
 
 
-func [glDeleteTextures](#glDeleteTextures)(_0: i64, _1: u32 const*)
+func [glDeleteTextures](#glDeleteTextures)(_0: i64, _1: *const u32)
 
 
 ### glDepthFunc
@@ -1391,7 +1391,7 @@ func [glDrawArrays](#glDrawArrays)(_0: i32, _1: i32, _2: i64)
 ### glDrawElements
 
 
-func [glDrawElements](#glDrawElements)(_0: i32, _1: i64, _2: i32, _3: GLvoid const*)
+func [glDrawElements](#glDrawElements)(_0: i32, _1: i64, _2: i32, _3: *const GLvoid)
 
 
 ### glEnable
@@ -1427,7 +1427,7 @@ func [glFogf](#glFogf)(_0: i32, _1: f32)
 ### glFogfv
 
 
-func [glFogfv](#glFogfv)(_0: i32, _1: f32 const*)
+func [glFogfv](#glFogfv)(_0: i32, _1: *const f32)
 
 
 ### glFogx
@@ -1439,7 +1439,7 @@ func [glFogx](#glFogx)(_0: i32, _1: [gl](#gl)::GLfixed)
 ### glFogxv
 
 
-func [glFogxv](#glFogxv)(_0: i32, _1: GLfixed const*)
+func [glFogxv](#glFogxv)(_0: i32, _1: *const GLfixed)
 
 
 ### glFrontFace
@@ -1463,7 +1463,7 @@ func [glFrustumx](#glFrustumx)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixed, _
 ### glGenTextures
 
 
-func [glGenTextures](#glGenTextures)(_0: i64, _1: u32*)
+func [glGenTextures](#glGenTextures)(_0: i64, _1: *u32)
 
 
 ### glGetError
@@ -1475,13 +1475,13 @@ func [glGetError](#glGetError)() : i32
 ### glGetIntegerv
 
 
-func [glGetIntegerv](#glGetIntegerv)(_0: i32, _1: i32*)
+func [glGetIntegerv](#glGetIntegerv)(_0: i32, _1: *i32)
 
 
 ### glGetString
 
 
-func [glGetString](#glGetString)(_0: i32) : u8 const*
+func [glGetString](#glGetString)(_0: i32) : *const u8
 
 
 ### glHint
@@ -1499,7 +1499,7 @@ func [glLightModelf](#glLightModelf)(_0: i32, _1: f32)
 ### glLightModelfv
 
 
-func [glLightModelfv](#glLightModelfv)(_0: i32, _1: f32 const*)
+func [glLightModelfv](#glLightModelfv)(_0: i32, _1: *const f32)
 
 
 ### glLightModelx
@@ -1511,7 +1511,7 @@ func [glLightModelx](#glLightModelx)(_0: i32, _1: [gl](#gl)::GLfixed)
 ### glLightModelxv
 
 
-func [glLightModelxv](#glLightModelxv)(_0: i32, _1: GLfixed const*)
+func [glLightModelxv](#glLightModelxv)(_0: i32, _1: *const GLfixed)
 
 
 ### glLightf
@@ -1523,7 +1523,7 @@ func [glLightf](#glLightf)(_0: i32, _1: i32, _2: f32)
 ### glLightfv
 
 
-func [glLightfv](#glLightfv)(_0: i32, _1: i32, _2: f32 const*)
+func [glLightfv](#glLightfv)(_0: i32, _1: i32, _2: *const f32)
 
 
 ### glLightx
@@ -1535,7 +1535,7 @@ func [glLightx](#glLightx)(_0: i32, _1: i32, _2: [gl](#gl)::GLfixed)
 ### glLightxv
 
 
-func [glLightxv](#glLightxv)(_0: i32, _1: i32, _2: GLfixed const*)
+func [glLightxv](#glLightxv)(_0: i32, _1: i32, _2: *const GLfixed)
 
 
 ### glLineWidth
@@ -1559,13 +1559,13 @@ func [glLoadIdentity](#glLoadIdentity)()
 ### glLoadMatrixf
 
 
-func [glLoadMatrixf](#glLoadMatrixf)(_0: f32 const*)
+func [glLoadMatrixf](#glLoadMatrixf)(_0: *const f32)
 
 
 ### glLoadMatrixx
 
 
-func [glLoadMatrixx](#glLoadMatrixx)(_0: GLfixed const*)
+func [glLoadMatrixx](#glLoadMatrixx)(_0: *const GLfixed)
 
 
 ### glLogicOp
@@ -1583,7 +1583,7 @@ func [glMaterialf](#glMaterialf)(_0: i32, _1: i32, _2: f32)
 ### glMaterialfv
 
 
-func [glMaterialfv](#glMaterialfv)(_0: i32, _1: i32, _2: f32 const*)
+func [glMaterialfv](#glMaterialfv)(_0: i32, _1: i32, _2: *const f32)
 
 
 ### glMaterialx
@@ -1595,7 +1595,7 @@ func [glMaterialx](#glMaterialx)(_0: i32, _1: i32, _2: [gl](#gl)::GLfixed)
 ### glMaterialxv
 
 
-func [glMaterialxv](#glMaterialxv)(_0: i32, _1: i32, _2: GLfixed const*)
+func [glMaterialxv](#glMaterialxv)(_0: i32, _1: i32, _2: *const GLfixed)
 
 
 ### glMatrixMode
@@ -1607,13 +1607,13 @@ func [glMatrixMode](#glMatrixMode)(_0: i32)
 ### glMultMatrixf
 
 
-func [glMultMatrixf](#glMultMatrixf)(_0: f32 const*)
+func [glMultMatrixf](#glMultMatrixf)(_0: *const f32)
 
 
 ### glMultMatrixx
 
 
-func [glMultMatrixx](#glMultMatrixx)(_0: GLfixed const*)
+func [glMultMatrixx](#glMultMatrixx)(_0: *const GLfixed)
 
 
 ### glMultiTexCoord4f
@@ -1643,7 +1643,7 @@ func [glNormal3x](#glNormal3x)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixed, _
 ### glNormalPointer
 
 
-func [glNormalPointer](#glNormalPointer)(_0: i32, _1: i64, _2: GLvoid const*)
+func [glNormalPointer](#glNormalPointer)(_0: i32, _1: i64, _2: *const GLvoid)
 
 
 ### glOrthof
@@ -1703,7 +1703,7 @@ func [glPushMatrix](#glPushMatrix)()
 ### glReadPixels
 
 
-func [glReadPixels](#glReadPixels)(_0: i32, _1: i32, _2: i64, _3: i64, _4: i32, _5: i32, _6: GLvoid*)
+func [glReadPixels](#glReadPixels)(_0: i32, _1: i32, _2: i64, _3: i64, _4: i32, _5: i32, _6: *GLvoid)
 
 
 ### glRotatef
@@ -1775,7 +1775,7 @@ func [glStencilOp](#glStencilOp)(_0: i32, _1: i32, _2: i32)
 ### glTexCoordPointer
 
 
-func [glTexCoordPointer](#glTexCoordPointer)(_0: i32, _1: i32, _2: i64, _3: GLvoid const*)
+func [glTexCoordPointer](#glTexCoordPointer)(_0: i32, _1: i32, _2: i64, _3: *const GLvoid)
 
 
 ### glTexEnvf
@@ -1787,7 +1787,7 @@ func [glTexEnvf](#glTexEnvf)(_0: i32, _1: i32, _2: f32)
 ### glTexEnvfv
 
 
-func [glTexEnvfv](#glTexEnvfv)(_0: i32, _1: i32, _2: f32 const*)
+func [glTexEnvfv](#glTexEnvfv)(_0: i32, _1: i32, _2: *const f32)
 
 
 ### glTexEnvx
@@ -1799,13 +1799,13 @@ func [glTexEnvx](#glTexEnvx)(_0: i32, _1: i32, _2: [gl](#gl)::GLfixed)
 ### glTexEnvxv
 
 
-func [glTexEnvxv](#glTexEnvxv)(_0: i32, _1: i32, _2: GLfixed const*)
+func [glTexEnvxv](#glTexEnvxv)(_0: i32, _1: i32, _2: *const GLfixed)
 
 
 ### glTexImage2D
 
 
-func [glTexImage2D](#glTexImage2D)(_0: i32, _1: i32, _2: i32, _3: i64, _4: i64, _5: i32, _6: i32, _7: i32, _8: GLvoid const*)
+func [glTexImage2D](#glTexImage2D)(_0: i32, _1: i32, _2: i32, _3: i64, _4: i64, _5: i32, _6: i32, _7: i32, _8: *const GLvoid)
 
 
 ### glTexParameterf
@@ -1823,7 +1823,7 @@ func [glTexParameterx](#glTexParameterx)(_0: i32, _1: i32, _2: [gl](#gl)::GLfixe
 ### glTexSubImage2D
 
 
-func [glTexSubImage2D](#glTexSubImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i64, _5: i64, _6: i32, _7: i32, _8: GLvoid const*)
+func [glTexSubImage2D](#glTexSubImage2D)(_0: i32, _1: i32, _2: i32, _3: i32, _4: i64, _5: i64, _6: i32, _7: i32, _8: *const GLvoid)
 
 
 ### glTranslatef
@@ -1841,7 +1841,7 @@ func [glTranslatex](#glTranslatex)(_0: [gl](#gl)::GLfixed, _1: [gl](#gl)::GLfixe
 ### glVertexPointer
 
 
-func [glVertexPointer](#glVertexPointer)(_0: i32, _1: i32, _2: i64, _3: GLvoid const*)
+func [glVertexPointer](#glVertexPointer)(_0: i32, _1: i32, _2: i64, _3: *const GLvoid)
 
 
 ### glViewport

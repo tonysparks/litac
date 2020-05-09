@@ -20,11 +20,11 @@
 
 ## string Functions
 
-* func [StringInit](#StringInit)(str: char*, capacity: i32, len: i32) : [string](#string)::[String](#String)
+* func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#string)::[String](#String)
 * func [String\_asView](#String\_asView)(s: [string](#string)::[String](#String)) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
-* func [String\_copy](#String\_copy)(s: [string](#string)::[String](#String), allocator: [Allocator const\*](#Allocator)) : [string](#string)::[String](#String)
+* func [String\_copy](#String\_copy)(s: [string](#string)::[String](#String), allocator: [\*const Allocator](#Allocator)) : [string](#string)::[String](#String)
 * func [String\_empty](#String\_empty)(s: [string](#string)::[String](#String)) : bool
-* func [String\_format](#String\_format)(s: [String\*](#String), format: char const*) : i32
+* func [String\_format](#String\_format)(s: [\*String](#String), format: *const char) : i32
 * func [String\_memset](#String\_memset)(s: [string](#string)::[String](#String), value: i32)
 * func [String\_size](#String\_size)(s: [string](#string)::[String](#String)) : i32
 
@@ -36,7 +36,7 @@
 
 struct [String](#String)
 
-* str: char*
+* str: *char
 * length: i32
 * capacity: i32
 
@@ -45,7 +45,7 @@ struct [String](#String)
 ### StringInit
 
 
-func [StringInit](#StringInit)(str: char*, capacity: i32, len: i32) : [string](#string)::[String](#String)
+func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#string)::[String](#String)
 
 
 ### String\_asView
@@ -57,7 +57,7 @@ func [String\_asView](#String\_asView)(s: [string](#string)::[String](#String)) 
 ### String\_copy
 
 
-func [String\_copy](#String\_copy)(s: [string](#string)::[String](#String), allocator: [Allocator const\*](#Allocator)) : [string](#string)::[String](#String)
+func [String\_copy](#String\_copy)(s: [string](#string)::[String](#String), allocator: [\*const Allocator](#Allocator)) : [string](#string)::[String](#String)
 
 
 ### String\_empty
@@ -69,7 +69,7 @@ func [String\_empty](#String\_empty)(s: [string](#string)::[String](#String)) : 
 ### String\_format
 
 
-func [String\_format](#String\_format)(s: [String\*](#String), format: char const*) : i32
+func [String\_format](#String\_format)(s: [\*String](#String), format: *const char) : i32
 
 
 ### String\_memset
