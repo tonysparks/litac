@@ -13,7 +13,7 @@ With that disclaimer out of the way, what I'd like LitaC to do:
 The syntax:
 
 ```C
-import "io"
+import "libc"
 
 func main(len:i32, args:**char):i32 {
     printf("Hello World")
@@ -21,9 +21,10 @@ func main(len:i32, args:**char):i32 {
 ```
 
 # Features
+* functions, structures, unions, enums, typedefs
 * no headers, no need for forward declarations
 * generics for structs, unions and functions
-* `using` which allows for flattening field access in structs or unions
+* `using` which allows for flattening field access in structs, unions and function arguments
 * type inference 
 * generic type inference
 * struct/union "methods"
@@ -36,18 +37,21 @@ func main(len:i32, args:**char):i32 {
 # Types
 
 **Primitive Types**
-
-* bool
-* u8
-* i8
-* u16
-* i16
-* u32
-* i32
-* u64
-* i64
-* f32
-* f64
+| Name | C Equivalent | Description |
+|------|--------------|-------------|
+| bool | int8_t       | boolean value, true or false (1 or 0) |
+| u8   | uint8_t      | unsigned 8-bit integer |
+| i8   | int8_t       | signed 8-bit integer |
+| u16  | uint16_t     | unsigned 16-bit integer |
+| i16  | int16_t      | signed 16-bit integer |
+| u32  | uint32_t     | unsigned 32-bit integer |
+| i32  | int32_t      | signed 32-bit integer |
+| u64  | uint64_t     | unsigned 64-bit integer |
+| i64  | int64_t      | signed 64-bit integer |
+| f32  | float        | 32-bit floating point |
+| f64  | double       | 64-bit floating point |
+| usize| size_t       | unsigned pointer sized integer |
+| void | void         | absence of a type |
 
 **Pointers**
 
@@ -62,10 +66,34 @@ var str2: *const char = "Hi";
 // in C this is const char* const str3, an immutable pointer to an immutable value
 var str3: const* const char = "Hi";
 ```
+*NOTE: Currently, the LitaC compiler does not validate modifications to memory are valid (i.e., `const` in the context of `var s: *const char` is currently only for documentation purposes)*
 
 **Arrays**
 
 TODO
+
+**String**
+
+As of right now, strings still are null terminating and have all of the negative characteristics as normal C strings.  There is one syntactical advantage in LitaC -- verbatim (aka multi-line) strings.
+
+```C
+var myString = """
+  "this" is a string
+    that expands
+  multiple lines
+"""
+
+printf("'%s'", myString) // will print out:
+/*
+'
+"this" is a string
+  that expands
+multiple lines
+'
+*/
+```
+
+*TODO: Unicode support*
 
 **Structures**
 
@@ -95,11 +123,15 @@ var donald = Person {
 printf("%s is %d old\n", donald.name, donald.age);
 ```
 
+**Unions**
+
+TODO
+
 **Full Examples**
 ```C
-// imports a module, namespace it with adding "as io", otherwise the public attributes
+// imports a module, namespace it with adding "as c", otherwise the public attributes
 // will be placed in this modules scope
-import "io" as io
+import "libc" as c
 
 
 // Defines a structure
@@ -124,8 +156,8 @@ struct X {
 }
 
 func main(len:i32, args:**char):i32 {
-    // the io:: namespaces the function
-    io::printf("Just because you are paranoid, don't mean their not after you\n") 
+    // the c:: namespaces the function
+    c::printf("Just because you are paranoid, don't mean their not after you\n") 
     
     // numbers
     var b : bool = true // Boolean type, is an int8_t in C, 0 = false, 1 = true
@@ -169,13 +201,81 @@ func main(len:i32, args:**char):i32 {
 }
 ```
 
+# Modules
 
+A module is a container for code, which can contain definitions for functions, structures, etc.  A module may be imported by other modules - importing a module allows the `public` functions and types defined in the imported module be available for use in the current module.  Any function or type not defined with `public` will be private to the module and not be visible to other modules.
+
+Importing a module does not simply "copy" the code - but rather gives the type checker visibility to the imported module types. 
+
+
+
+Module's are confined to a single file.  If you define a file `packers.lita` you can import the module from another module by:
+```C
+import "packers"
+```
+
+You can compose modules from multiple other module files by extending them via `using` imports.  The `using` import will import the module into the scope of the current module, but the key difference is it will treat the imported module as if its part of the current module's definitions.
+
+Let's look at an example.
+
+Given these files:
+```
+/packers.lita
+/brett.lita
+/donald.lita
+/main.lita
+```
+
+**packers.lita**
+```C
+// import the public members of brett and donald modules
+import using "brett"  
+import using "donald"
+
+public func getTeamName() :*const char {
+    return "Green Bay Packers"
+}
+```
+
+
+**brett.lita**
+```C
+public func getBestQB() : *const char {
+    return "Brett Favre"
+}
+
+// this function will not be visible outside of the 'brett' module
+func getNumberOfInterceptions() : i32 {
+    return 0 // :|
+}
+
+```
+**donald.lita**
+```C
+public func getBestWR() : *const char {
+    return "Donald Driver"
+}
+```
+**main.lita**
+```C
+import "libc"
+import "packers" // we only need to include the 'packers' module and we will have full visibility to 'donald' and 'brett' modules
+
+func main(n:i32, args:**char) {    
+    printf("%s\n", getBestQB())   // "Brett Favre"
+    printf("%s\n", getBestWR())   // "Donald Driver"
+    printf("%s\n", getTeamName()) // "Green Bay Packers"
+
+    // would error, as 'getNumberOfInterceptions' is private to the 'brett' module
+    // printf("%d\n", getNumberOfInterceptions()) 
+}
+```
 
 # Control Statements 
 
 
 ```C
-import "io" // place io public types in this scope
+import "libc" // place libc public types in this scope
 
 func main(len:i32, args:**char):i32 {
     if (true) {
@@ -293,6 +393,7 @@ func main(len:i32, args:**char) : i32 {
 }
 
 ```
+
 
 # Tests
 Write tests right along side your application code.  When compiling for library/executable, the test code will not be included in the

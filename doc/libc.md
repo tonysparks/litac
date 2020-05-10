@@ -44,6 +44,7 @@
 * func [ftell](#ftell)(stream: [\*FILE](#FILE)) : i64
 * func [fwrite](#fwrite)(buf: [\*const void](#void), sizeOfElements: usize, numOfElements: usize, stream: [\*FILE](#FILE)) : u64
 * func [isalnum](#isalnum)(arg: i32) : i32
+* func [isalpha](#isalpha)(c: char) : bool
 * func [isdigit](#isdigit)(arg: i32) : i32
 * func [isspace](#isspace)(arg: i32) : i32
 * func [malloc](#malloc)(size: usize) : [\*void](#void)
@@ -239,6 +240,12 @@ func [fwrite](#fwrite)(buf: [\*const void](#void), sizeOfElements: usize, numOfE
 
 
 func [isalnum](#isalnum)(arg: i32) : i32
+
+
+### isalpha
+
+
+func [isalpha](#isalpha)(c: char) : bool
 
 
 ### isdigit

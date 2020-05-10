@@ -1,0 +1,76 @@
+{
+    description: "README",
+    disabled: false,
+    debug: true,
+    disableLines: true,
+    includeTypeInfos: true,
+    program: '''                
+        @include("assert.h");
+        @foreign func assert(e:bool):void;
+        
+        %definitions%
+        
+        func main(len:i32, args:**char):i32 {
+            %test%
+        }
+    '''
+    tests: [
+    {
+            name: "README_String",            
+            definitions: '''                
+                import "libc"
+            ''',                       
+            code: '''                   
+                var myString = """
+                  "this" is a string
+                    that expands
+                  multiple lines
+                """
+                
+                printf("'%s'", myString)
+            ''',                    
+        }, 
+        {
+            name: "README_Modules",
+            modules: [
+                {
+                    name: "brett",
+                    program: '''                                                
+                        public func getBestQB() : *const char {
+                            return "Brett Favre"
+                        }
+                    '''
+                },
+                {
+                    name: "donald",
+                    program: '''
+                        public func getBestWR() : *const char {
+                            return "Donald Driver"
+                        }
+                    '''
+                },
+                {
+                    name: "packers",
+                    program: '''
+                        import using "brett"
+                        import using "donald"
+                        
+                        public func getTeamName() :*const char {                            
+                            return "Green Bay Packers"
+                        }
+                    '''
+                },
+            ], 
+            definitions: '''
+                import "packers"
+                import "libc"
+            ''',                       
+            code: '''                   
+                assert(strcmp(getBestQB(), "Brett Favre") == 0)
+                assert(strcmp(getBestWR(), "Donald Driver") == 0)
+                assert(strcmp(getTeamName(), "Green Bay Packers") == 0)
+            ''',                    
+        },
+        
+    ]
+}
