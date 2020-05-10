@@ -140,9 +140,9 @@ public func (b: StringView) copyTo(buf: *char, len: i32, addZero: bool = true) :
         bytesCopied = b.length
     }
     
-    mem::memcpy(buf as (*void),
-                (&b.buffer[0]) as (*const void), 
-                bytesCopied * sizeof(:char))
+    memcpy(buf as (*void),
+          (&b.buffer[0]) as (*const void), 
+           bytesCopied * sizeof(:char))
 
     if(addZero) buf[bytesCopied] = '\0'
 

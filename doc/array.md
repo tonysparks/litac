@@ -3,6 +3,7 @@
 ## array Imports
 
 * [assert](assert\.md)
+* [libc](libc\.md)
 * [mem](mem\.md)
 
 

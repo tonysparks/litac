@@ -6,11 +6,11 @@
 
 ## libc Variables
 
-* [SEEK\_CUR](#SEEK\_CUR): i32
-* [SEEK\_END](#SEEK\_END): i32
-* [SEEK\_SET](#SEEK\_SET): i32
 * const [HUGE\_VAL](#HUGE\_VAL): f64
 * const [M\_PI](#M\_PI): f64
+* const [SEEK\_CUR](#SEEK\_CUR): i32
+* const [SEEK\_END](#SEEK\_END): i32
+* const [SEEK\_SET](#SEEK\_SET): i32
 * const [ULLONG\_MAX](#ULLONG\_MAX): i64
 * const [stderr](#stderr): [\*FILE](#FILE)
 * const [stdout](#stdout): [\*FILE](#FILE)
@@ -28,6 +28,7 @@
 * func [MAX](#MAX)(a: [T](#T), b: [T](#T)) : [T](#T)
 * func [MIN](#MIN)(a: [T](#T), b: [T](#T)) : [T](#T)
 * func [asinf](#asinf)(v: f32) : f32
+* func [calloc](#calloc)(num: usize, size: usize) : [\*void](#void)
 * func [cos](#cos)(v: f64) : f64
 * func [cosf](#cosf)(v: f32) : f32
 * func [exit](#exit)(code: i32)
@@ -37,16 +38,24 @@
 * func [fgets](#fgets)(buf: *char, n: i64, stream: [\*FILE](#FILE)) : *char
 * func [fopen](#fopen)(fileName: *const char, openType: *const char) : [\*FILE](#FILE)
 * func [fputs](#fputs)(format: *const char, f: [\*FILE](#FILE))
-* func [fread](#fread)(buf: *char, size: u64, n: i64, stream: [\*FILE](#FILE)) : i64
+* func [fread](#fread)(buf: *char, size: usize, n: usize, stream: [\*FILE](#FILE)) : i64
+* func [free](#free)(ptr: [\*void](#void))
 * func [fseek](#fseek)(stream: [\*FILE](#FILE), offset: i64, whence: i32) : i32
 * func [ftell](#ftell)(stream: [\*FILE](#FILE)) : i64
+* func [fwrite](#fwrite)(buf: [\*const void](#void), sizeOfElements: usize, numOfElements: usize, stream: [\*FILE](#FILE)) : u64
 * func [isalnum](#isalnum)(arg: i32) : i32
 * func [isdigit](#isdigit)(arg: i32) : i32
 * func [isspace](#isspace)(arg: i32) : i32
+* func [malloc](#malloc)(size: usize) : [\*void](#void)
+* func [memcpy](#memcpy)(dest: [\*void](#void), src: [\*const void](#void), num: usize) : [\*void](#void)
+* func [memmove](#memmove)(dest: [\*void](#void), src: [\*const void](#void), num: usize) : [\*void](#void)
+* func [memset](#memset)(ptr: [\*void](#void), value: i32, num: usize) : [\*void](#void)
 * func [printf](#printf)(s: *const char)
+* func [realloc](#realloc)(ptr: [\*void](#void), size: usize) : [\*void](#void)
 * func [sin](#sin)(v: f64) : f64
 * func [sinf](#sinf)(v: f32) : f32
 * func [snprintf](#snprintf)(s: *char, n: u64, format: *const char) : i32
+* func [sprintf](#sprintf)(b: *char, format: *const char) : i32
 * func [sqrt](#sqrt)(v: f64) : f64
 * func [sqrtf](#sqrtf)(v: f32) : f32
 * func [strcmp](#strcmp)(a: *const char, b: *const char) : i32
@@ -136,6 +145,12 @@ func [MIN](#MIN)(a: [T](#T), b: [T](#T)) : [T](#T)
 func [asinf](#asinf)(v: f32) : f32
 
 
+### calloc
+
+
+func [calloc](#calloc)(num: usize, size: usize) : [\*void](#void)
+
+
 ### cos
 
 
@@ -193,7 +208,13 @@ func [fputs](#fputs)(format: *const char, f: [\*FILE](#FILE))
 ### fread
 
 
-func [fread](#fread)(buf: *char, size: u64, n: i64, stream: [\*FILE](#FILE)) : i64
+func [fread](#fread)(buf: *char, size: usize, n: usize, stream: [\*FILE](#FILE)) : i64
+
+
+### free
+
+
+func [free](#free)(ptr: [\*void](#void))
 
 
 ### fseek
@@ -206,6 +227,12 @@ func [fseek](#fseek)(stream: [\*FILE](#FILE), offset: i64, whence: i32) : i32
 
 
 func [ftell](#ftell)(stream: [\*FILE](#FILE)) : i64
+
+
+### fwrite
+
+
+func [fwrite](#fwrite)(buf: [\*const void](#void), sizeOfElements: usize, numOfElements: usize, stream: [\*FILE](#FILE)) : u64
 
 
 ### isalnum
@@ -226,10 +253,40 @@ func [isdigit](#isdigit)(arg: i32) : i32
 func [isspace](#isspace)(arg: i32) : i32
 
 
+### malloc
+
+
+func [malloc](#malloc)(size: usize) : [\*void](#void)
+
+
+### memcpy
+
+
+func [memcpy](#memcpy)(dest: [\*void](#void), src: [\*const void](#void), num: usize) : [\*void](#void)
+
+
+### memmove
+
+
+func [memmove](#memmove)(dest: [\*void](#void), src: [\*const void](#void), num: usize) : [\*void](#void)
+
+
+### memset
+
+
+func [memset](#memset)(ptr: [\*void](#void), value: i32, num: usize) : [\*void](#void)
+
+
 ### printf
 
 
 func [printf](#printf)(s: *const char)
+
+
+### realloc
+
+
+func [realloc](#realloc)(ptr: [\*void](#void), size: usize) : [\*void](#void)
 
 
 ### sin
@@ -248,6 +305,12 @@ func [sinf](#sinf)(v: f32) : f32
 
 
 func [snprintf](#snprintf)(s: *char, n: u64, format: *const char) : i32
+
+
+### sprintf
+
+
+func [sprintf](#sprintf)(b: *char, format: *const char) : i32
 
 
 ### sqrt

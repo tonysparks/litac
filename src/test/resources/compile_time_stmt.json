@@ -93,7 +93,7 @@
             definitions: '''                
                 
                 #if(true)
-                    import "io"
+                    import "libc"
                     @raw("""
                         #define TONY 4
                     """);
@@ -111,7 +111,7 @@
         {
             name: "If OS",
             definitions: '''                
-                import "io";
+                import "libc"
                 #if(OS == "WINDOWS")
                     const OS = "Windows"
                 #else

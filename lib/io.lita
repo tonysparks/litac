@@ -1,23 +1,5 @@
 import "mem";
-
-@include("<stdio.h>");
-@include("<stdlib.h>");
-
-@foreign public struct FILE;
-@foreign public func printf(s:*const char, ...) : void;
-@foreign public func fopen(fileName:*const char, openType:*const char) : *FILE;
-@foreign public func fgets(buf: *char, n:i64, stream: *FILE): *char;
-@foreign public func fread(buf: *void, size:u64, n:u64, stream: *FILE) : u64;
-@foreign public func fwrite(buf: *const void, sizeOfElements: u64, numOfElements:u64, stream: *FILE) : u64;
-@foreign public func fclose(stream: *FILE) : void;
-@foreign public func fseek(stream: *FILE, offset : i64, whence : i32) : i32;
-@foreign public func ftell(stream: *FILE) : i64;
-@foreign public func ferror(stream: *FILE) : i32;
-
-// TODO allow const to be undefined
-@foreign public var SEEK_SET : i32;
-@foreign public var SEEK_CUR : i32;
-@foreign public var SEEK_END : i32;
+import "libc"
 
 @asStr
 public enum FileStatus {
@@ -76,7 +58,7 @@ public func ReadFile(fileName: *const char, data: **char, alloc: *const Allocato
 
 }
 
-public func WriteFile(fileName: *const char, buffer: *const char, len: u64) : FileStatus {
+public func WriteFile(fileName: *const char, buffer: *const char, len: usize) : FileStatus {
     var fp = fopen(fileName, "w")
     if(fp == null) {
         return FileStatus.FileNotFoundError;
@@ -86,7 +68,7 @@ public func WriteFile(fileName: *const char, buffer: *const char, len: u64) : Fi
     return WriteBytes(fp, buffer, len)
 }
 
-public func WriteBytes(fp: *FILE, buffer: *const char, len: u64) : FileStatus {    
+public func WriteBytes(fp: *FILE, buffer: *const char, len: usize) : FileStatus {    
     var bytesWritten = fwrite(buffer as (*const void), sizeof(:char), len, fp)
     if(bytesWritten != len) {
         return FileStatus.IOError;

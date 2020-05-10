@@ -1515,6 +1515,7 @@ public class Parser {
             case U64: 
             case F32: 
             case F64: 
+            case USIZE:
             case VOID: {
                 advance();
                 return new NameTypeSpec(t.getPos(), t.getText());

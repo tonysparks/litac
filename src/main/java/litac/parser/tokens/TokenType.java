@@ -26,6 +26,7 @@ public enum TokenType {
         I32, U32,
         I64, U64,
         F32, F64,
+        USIZE,
         IMPORT, AS, TYPEDEF, SIZEOF, TYPEOF, OFFSETOF, PUBLIC,
     UNION,
     // end Reserved words
@@ -52,8 +53,6 @@ public enum TokenType {
     STRING,
     IDENTIFIER,    
     NUMBER,
-//    STRING,
-//    ARRAY,
     ERROR, 
     END_OF_FILE;
 
@@ -64,7 +63,7 @@ public enum TokenType {
     private static final int LAST_SPECIAL_INDEX  = DOUBLE_QUOTE.ordinal();
     
     private static final int FIRST_PRIMITIVE_INDEX = TRUE.ordinal();
-    private static final int LAST_PRIMITIVE_INDEX  = F64.ordinal();
+    private static final int LAST_PRIMITIVE_INDEX  = USIZE.ordinal();
 
     private String text;  // token text
 
@@ -114,8 +113,8 @@ public enum TokenType {
         }
     }
 
-    // Hash table of Leola special symbols.  Each special symbol's text
-    // is the key to its Leola token type.
+    // Hash table of LitaC special symbols.  Each special symbol's text
+    // is the key to its LitaC token type.
     public static Map<String, TokenType> SPECIAL_SYMBOLS = new HashMap<String, TokenType>();
     static {
         TokenType values[] = TokenType.values();

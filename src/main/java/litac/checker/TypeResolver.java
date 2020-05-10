@@ -333,6 +333,7 @@ public class TypeResolver {
         module.addBuiltin(TypeInfo.U16_TYPE);
         module.addBuiltin(TypeInfo.U32_TYPE);
         module.addBuiltin(TypeInfo.U64_TYPE);
+        module.addBuiltin(TypeInfo.USIZE_TYPE);
         module.addBuiltin(TypeInfo.NULL_TYPE);
         module.addBuiltin(TypeInfo.VOID_TYPE);
     }
