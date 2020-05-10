@@ -8,7 +8,6 @@
 * [builtins](builtins\.md)
 * [cmdline](cmdline\.md)
 * [gl](gl\.md)
-* [glfw](glfw\.md)
 * [io](io\.md)
 * [json](json\.md)
 * [libc](libc\.md)

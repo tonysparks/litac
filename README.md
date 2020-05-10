@@ -69,11 +69,30 @@ TODO
 
 **Structures**
 
+Definition
 ```C
 struct Person {
     age: i32
     name: *const char
 }
+```
+
+Initialization
+```C
+var brett: Person = Person {
+    .age = 44,  // using .age field initializer
+    .name = "Brett Favre"
+}
+
+printf("%s is %d old\n", brett.name, brett.age);
+
+// using type inference
+var donald = Person {
+    41,             // using position initializer
+    "Donald Driver"
+}
+
+printf("%s is %d old\n", donald.name, donald.age);
 ```
 
 **Full Examples**

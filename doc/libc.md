@@ -55,10 +55,10 @@
 * func [strncmp](#strncmp)(a: *const char, b: *const char, num: u64) : i32
 * func [strncpy](#strncpy)(dest: *char, src: *const char, num: u64) : *char
 * func [strnlen](#strnlen)(str: *const char, len: u64) : i32
-* func [strtod](#strtod)(str: *const char, end: *char) : f64
+* func [strtod](#strtod)(str: *const char, end: **char) : f64
 * func [strtok](#strtok)(str: *char, delim: *const char) : *char
-* func [strtol](#strtol)(str: *const char, end: *char, base: i32) : i64
-* func [strtoul](#strtoul)(str: *const char, end: *char, base: i32) : u64
+* func [strtol](#strtol)(str: *const char, end: **char, base: i32) : i64
+* func [strtoul](#strtoul)(str: *const char, end: **char, base: i32) : u64
 * func [tan](#tan)(v: f64) : f64
 * func [tolower](#tolower)(arg: i32) : i32
 * func [va\_copy](#va\_copy)(a: [libc](#libc)::[va\_list](#va\_list), b: [libc](#libc)::[va\_list](#va\_list))
@@ -301,7 +301,7 @@ func [strnlen](#strnlen)(str: *const char, len: u64) : i32
 ### strtod
 
 
-func [strtod](#strtod)(str: *const char, end: *char) : f64
+func [strtod](#strtod)(str: *const char, end: **char) : f64
 
 
 ### strtok
@@ -313,13 +313,13 @@ func [strtok](#strtok)(str: *char, delim: *const char) : *char
 ### strtol
 
 
-func [strtol](#strtol)(str: *const char, end: *char, base: i32) : i64
+func [strtol](#strtol)(str: *const char, end: **char, base: i32) : i64
 
 
 ### strtoul
 
 
-func [strtoul](#strtoul)(str: *const char, end: *char, base: i32) : u64
+func [strtoul](#strtoul)(str: *const char, end: **char, base: i32) : u64
 
 
 ### tan
