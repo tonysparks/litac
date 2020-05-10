@@ -1,9 +1,7 @@
 import "mem" as mem;
 import "io";
 import "assert";
-
-@include("<string.h>");
-@foreign func strcmp(a:*const char, b:*const char) : i32;
+import "libc";
 
 public typedef func<K>(K) : u32 as HashFn<K>;
 public typedef func<K>(K, K) : bool as EqualFn<K>;

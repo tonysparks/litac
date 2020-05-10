@@ -49,6 +49,7 @@
                 import "map";
                 import "json";
                 import "string_buffer"
+                import "libc"
                 
             ''',                       
             code: '''        
@@ -114,6 +115,7 @@
                 import "map";
                 import "json";
                 import "string_buffer"
+                import "libc"
                 
             ''',                       
             code: '''        

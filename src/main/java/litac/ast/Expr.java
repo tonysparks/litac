@@ -132,6 +132,9 @@ public abstract class Expr extends Stmt {
             case F64: {
                 return TypeKind.f64;
             }
+            case USIZE: {
+                return TypeKind.usize;
+            }
             default: {
                 throw new ParseException(ErrorCode.INVALID_NUMBER, token);
             }

@@ -4,6 +4,7 @@
 
 * [assert](assert\.md)
 * [io](io\.md)
+* [libc](libc\.md)
 * [mem](mem\.md)
 * [string\_view](string\_view\.md)
 

@@ -134,26 +134,27 @@ public class Reflection {
                         continue;                        
                     }
                     
-                    exprs.add(new ArrayDesignationExpr(NumberExpr.expr(TypeInfo.I64_TYPE, s.getType().getTypeId()), toExpr(s.decl, main)));
+                    exprs.add(new ArrayDesignationExpr(NumberExpr.expr(TypeInfo.USIZE_TYPE, s.getType().getTypeId()), toExpr(s.decl, main)));
                     break;
                 default:
             }            
         }
 
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.BOOL_TYPE.getTypeId())), toExpr(TypeInfo.BOOL_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.CHAR_TYPE.getTypeId())), toExpr(TypeInfo.CHAR_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.I8_TYPE.getTypeId())), toExpr(TypeInfo.I8_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.U8_TYPE.getTypeId())), toExpr(TypeInfo.U8_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.I16_TYPE.getTypeId())), toExpr(TypeInfo.I16_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.U16_TYPE.getTypeId())), toExpr(TypeInfo.U16_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.I32_TYPE.getTypeId())), toExpr(TypeInfo.I32_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.U32_TYPE.getTypeId())), toExpr(TypeInfo.U32_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.I64_TYPE.getTypeId())), toExpr(TypeInfo.I64_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.U64_TYPE.getTypeId())), toExpr(TypeInfo.U64_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.F32_TYPE.getTypeId())), toExpr(TypeInfo.F32_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.F64_TYPE.getTypeId())), toExpr(TypeInfo.F64_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.NULL_TYPE.getTypeId())), toExpr(TypeInfo.NULL_TYPE, main)));
-        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.I64_TYPE, String.valueOf(TypeInfo.VOID_TYPE.getTypeId())), toExpr(TypeInfo.VOID_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.BOOL_TYPE.getTypeId())), toExpr(TypeInfo.BOOL_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.CHAR_TYPE.getTypeId())), toExpr(TypeInfo.CHAR_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.I8_TYPE.getTypeId())), toExpr(TypeInfo.I8_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.U8_TYPE.getTypeId())), toExpr(TypeInfo.U8_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.I16_TYPE.getTypeId())), toExpr(TypeInfo.I16_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.U16_TYPE.getTypeId())), toExpr(TypeInfo.U16_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.I32_TYPE.getTypeId())), toExpr(TypeInfo.I32_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.U32_TYPE.getTypeId())), toExpr(TypeInfo.U32_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.I64_TYPE.getTypeId())), toExpr(TypeInfo.I64_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.U64_TYPE.getTypeId())), toExpr(TypeInfo.U64_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.F32_TYPE.getTypeId())), toExpr(TypeInfo.F32_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.F64_TYPE.getTypeId())), toExpr(TypeInfo.F64_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.USIZE_TYPE.getTypeId())), toExpr(TypeInfo.USIZE_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.NULL_TYPE.getTypeId())), toExpr(TypeInfo.NULL_TYPE, main)));
+        exprs.add(new ArrayDesignationExpr(new NumberExpr(TypeInfo.USIZE_TYPE, String.valueOf(TypeInfo.VOID_TYPE.getTypeId())), toExpr(TypeInfo.VOID_TYPE, main)));
         
         return exprs;      
     }

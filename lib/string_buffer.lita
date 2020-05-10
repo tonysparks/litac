@@ -2,7 +2,9 @@ import "mem" as mem;
 import "io";
 import "assert";
 import "string_view";
+import "libc";
 
+/*
 @include("<stdarg.h>");
 @include("<stdio.h>");
 
@@ -13,6 +15,7 @@ import "string_view";
 @foreign func vsnprintf(b: *char, len: u64, format: *const char, args: va_list) : i32;
 @foreign func memmove(dst: *void, src: *const char, num: u64) : *void;
 @foreign func strlen(str: *const char) : u64;
+*/
 
 
 public struct StringBuffer {
@@ -62,9 +65,9 @@ public func (b: *StringBuffer) appendStr(str: *const char, len: i32) {
         BufferGrow(b, len)        
     }
     
-    mem::memcpy((&b.buffer[b.length]) as (*void), 
-                str as (*const void), 
-                len * sizeof(:char))
+    memcpy((&b.buffer[b.length]) as (*void), 
+             str as (*const void), 
+             len * sizeof(:char))
     b.length += len
 }
 
@@ -166,9 +169,9 @@ public func (b: *StringBuffer) delete(start: i32, end: i32) {
     b.length -= (end - start)
 
     // move the contents over
-    mem::memmove((&b.buffer[start]) as (*void), 
-                 (&b.buffer[end]) as (*const void), 
-                 (b.length) * sizeof(:char))
+    memmove((&b.buffer[start]) as (*void), 
+            (&b.buffer[end]) as (*const void), 
+            (b.length) * sizeof(:char))
 }
 
 public func (b: *StringBuffer) contains(str: *const char, len: i32 = -1) : bool {
@@ -205,9 +208,9 @@ public func (b: *StringBuffer) insert(index: i32, format: *const char, ...) : i3
     var startChar = b.buffer[index]
 
     // move the contents over
-    mem::memmove((&b.buffer[index + MAX_BUFFER_SIZE]) as (*void), 
-                 (&b.buffer[index]) as (*const void), 
-                 MAX_BUFFER_SIZE * sizeof(:char))
+    memmove((&b.buffer[index + MAX_BUFFER_SIZE]) as (*void), 
+            (&b.buffer[index]) as (*const void), 
+            MAX_BUFFER_SIZE * sizeof(:char))
 
     // get the variable args
     var args1:va_list;
@@ -228,9 +231,9 @@ public func (b: *StringBuffer) insert(index: i32, format: *const char, ...) : i3
         BufferGrow(b, (len + 1) - MAX_BUFFER_SIZE);
 
         // move the contents over again
-        mem::memmove((&b.buffer[index + len - 1]) as (*void), 
-                     (&b.buffer[index + MAX_BUFFER_SIZE - 1]) as (*const void), 
-                     (len + 1) * sizeof(:char))
+        memmove((&b.buffer[index + len - 1]) as (*void), 
+                (&b.buffer[index + MAX_BUFFER_SIZE - 1]) as (*const void), 
+                (len + 1) * sizeof(:char))
 
         var n = vsnprintf(&b.buffer[index], len + 1, format, args2);
         va_end(args2);
@@ -250,9 +253,9 @@ public func (b: *StringBuffer) insert(index: i32, format: *const char, ...) : i3
     }
 
     // move the contents over to the left                
-    mem::memmove((&b.buffer[index + len]) as (*void), 
-                 (&b.buffer[index + MAX_BUFFER_SIZE]) as (*const void), 
-                 (MAX_BUFFER_SIZE) * sizeof(:char))
+    memmove((&b.buffer[index + len]) as (*void), 
+            (&b.buffer[index + MAX_BUFFER_SIZE]) as (*const void), 
+            (MAX_BUFFER_SIZE) * sizeof(:char))
 
 
     b.length += len

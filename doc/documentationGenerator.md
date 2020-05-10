@@ -73,7 +73,7 @@
 * func [Map\_size<char const\*,JsonNode\*>](#Map\_size<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)) : i32
 * func [PtrEqualFn<char const\*>](#PtrEqualFn<char\-const\*>)(a: *const char, b: *const char) : bool
 * func [StrMap<Option>](#StrMap<Option>)(emptyValue: [cmdline](cmdline\.md)::[Option](Option\.md), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](#documentationGenerator)::[Map<char const\*,Option>](#Map<char\-const\*,Option>)
-* func [c::MIN<u64>](#c::MIN<u64>)(a: u64, b: u64) : u64
+* func [c::MIN<usize>](#c::MIN<usize>)(a: usize, b: usize) : usize
 * func [mem::new<JsonArray>](#mem::new<JsonArray>)(a: [\*const Allocator](#Allocator)) : [\*Array<JsonNode\*>](#Array<JsonNode\*>)
 * func [mem::new<JsonNode>](#mem::new<JsonNode>)(a: [\*const Allocator](#Allocator)) : [\*JsonNode](#JsonNode)
 * func [mem::new<JsonObject>](#mem::new<JsonObject>)(a: [\*const Allocator](#Allocator)) : [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)
@@ -417,10 +417,10 @@ func [PtrEqualFn<char const\*>](#PtrEqualFn<char\-const\*>)(a: *const char, b: *
 func [StrMap<Option>](#StrMap<Option>)(emptyValue: [cmdline](cmdline\.md)::[Option](Option\.md), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](#documentationGenerator)::[Map<char const\*,Option>](#Map<char\-const\*,Option>)
 
 
-### c::MIN<u64>
+### c::MIN<usize>
 
 
-func [c::MIN<u64>](#c::MIN<u64>)(a: u64, b: u64) : u64
+func [c::MIN<usize>](#c::MIN<usize>)(a: usize, b: usize) : usize
 
 
 ### mem::new<JsonArray>

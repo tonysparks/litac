@@ -1,21 +1,5 @@
-@include("<stdlib.h>");
-@include("<string.h>");
-
 import "libc" as c;
 import "array";
-
-
-// TODO: should we remove this, there is clib now...
-@foreign public func malloc(size: u64) : *void;
-@foreign public func realloc(ptr:*void, size: u64) : *void;
-@foreign public func calloc(num: u64, size: u64) : *void;
-@foreign public func free(ptr:*void) : void;
-
-@foreign public func memset(ptr: *void, value: i32, len: u64) : *void;
-@foreign public func memcpy (dest: *void, src: *const void, num: u64) : *void;
-@foreign public func memmove (dest: *void, src: *const void, num: u64) : *void;
-
-
 
 /**
 =========================================================
@@ -25,7 +9,10 @@ import "array";
 
 #if (options.debugMode) 
 
-    public func new<T>(a: *const Allocator = defaultAllocator, file: *const char = __FILE__, line: u64 = __LINE__) : *T {        
+    public func new<T>(a: *const Allocator = defaultAllocator, 
+                      file: *const char = __FILE__, 
+                      line: u64 = __LINE__) : *T {
+
         return a.alloc(sizeof(:T), file, line) as (*T)
     }
 
@@ -42,9 +29,11 @@ import "array";
 // Duplicates the supplied memory
 =========================================================
 */
-public func memduplicate(p: *const void, len: u64, a: *const Allocator = defaultAllocator) : *void {    
+public func memduplicate(p: *const void, 
+                         len: usize, 
+                         a: *const Allocator = defaultAllocator) : *void {    
     var copy = a.alloc(len)
-    memcpy(copy, p, len)
+    c::memcpy(copy, p, len)
 
     return copy
 }
@@ -65,24 +54,33 @@ public func memduplicate(p: *const void, len: u64, a: *const Allocator = default
     public const __LINE__: u64;
 
     public struct Allocator {
-        allocFn:   func(*const Allocator, u64, *const char, u64): *void
-        callocFn:  func(*const Allocator, u64, u64, *const char, u64): *void
-        reallocFn: func(*const Allocator, *void, u64, u64, *const char, u64) : *void
+        allocFn:   func(*const Allocator, usize, *const char, u64): *void
+        callocFn:  func(*const Allocator, usize, usize, *const char, u64): *void
+        reallocFn: func(*const Allocator, *void, usize, usize, *const char, u64) : *void
         freeFn:    func(*const Allocator, *void) : void
     }
 
     @inline
-    public func (a: *const Allocator) alloc(size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    public func (a: *const Allocator) alloc(size: usize, 
+                                            file: *const char = __FILE__, 
+                                            line: u64 = __LINE__) : *void {
         return a.allocFn(a, size, file, line)
     }
 
     @inline
-    public func (a: *const Allocator) calloc(num: u64, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    public func (a: *const Allocator) calloc(num: usize, 
+                                             size: usize, 
+                                             file: *const char = __FILE__, 
+                                             line: u64 = __LINE__) : *void {
         return a.callocFn(a, num, size, file, line)
     }
 
     @inline
-    public func (a: *const Allocator) realloc(ptr: *void, oldsize: u64, newsize: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    public func (a: *const Allocator) realloc(ptr: *void, 
+                                              oldsize: usize, 
+                                              newsize: usize, 
+                                              file: *const char = __FILE__, 
+                                              line: u64 = __LINE__) : *void {
         return a.reallocFn(a, ptr, oldsize, newsize, file, line)
     }
 
@@ -94,24 +92,24 @@ public func memduplicate(p: *const void, len: u64, a: *const Allocator = default
 #else 
 
     public struct Allocator {
-        allocFn:   func(*const Allocator, u64): *void
-        callocFn:  func(*const Allocator, u64, u64): *void
-        reallocFn: func(*const Allocator, *void, u64, u64) : *void
+        allocFn:   func(*const Allocator, usize): *void
+        callocFn:  func(*const Allocator, usize, usize): *void
+        reallocFn: func(*const Allocator, *void, usize, usize) : *void
         freeFn:    func(*const Allocator, *void) : void
     }
 
     @inline
-    public func (a: *const Allocator) alloc(size: u64) : *void {
+    public func (a: *const Allocator) alloc(size: usize) : *void {
         return a.allocFn(a, size)
     }
 
     @inline
-    public func (a: *const Allocator) calloc(num: u64, size: u64) : *void {
+    public func (a: *const Allocator) calloc(num: usize, size: usize) : *void {
         return a.callocFn(a, num, size)
     }
 
     @inline
-    public func (a: *const Allocator) realloc(ptr: *void, oldsize: u64, newsize: u64) : *void {
+    public func (a: *const Allocator) realloc(ptr: *void, oldsize: usize, newsize: usize) : *void {
         return a.reallocFn(a, ptr, oldsize, newsize)
     }
 
@@ -141,39 +139,51 @@ public const cAllocator : *const Allocator = (&Allocator {
 
 #if (options.debugMode)
 
-    func cMalloc(a: *const Allocator, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
-        return malloc(size);
+    func cMalloc(a: *const Allocator, 
+                 size: usize, 
+                 file: *const char = __FILE__, 
+                 line: u64 = __LINE__) : *void {
+        return c::malloc(size);
     }
 
-    func cCalloc(a: *const Allocator, num: u64, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
-        return calloc(num, size);
+    func cCalloc(a: *const Allocator, 
+                 num: usize, 
+                 size: usize, 
+                 file: *const char = __FILE__, 
+                 line: u64 = __LINE__) : *void {
+        return c::calloc(num, size);
     }
 
-    func cRealloc(a: *const Allocator, ptr: *void, oldSize: u64, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
-        return realloc(ptr, size);
+    func cRealloc(a: *const Allocator, 
+                  ptr: *void, 
+                  oldSize: usize, 
+                  size: usize, 
+                  file: *const char = __FILE__, 
+                  line: u64 = __LINE__) : *void {
+        return c::realloc(ptr, size);
     }
 
     func cFree(a: *const Allocator, ptr: *void) {
-        return free(ptr)
+        return c::free(ptr)
     }
 
 
 #else 
 
-    func cMalloc(a: *const Allocator, size: u64) : *void {
-        return malloc(size);
+    func cMalloc(a: *const Allocator, size: usize) : *void {
+        return c::malloc(size);
     }
 
-    func cCalloc(a: *const Allocator, num: u64, size: u64) : *void {
-        return calloc(num, size);
+    func cCalloc(a: *const Allocator, num: usize, size: usize) : *void {
+        return c::calloc(num, size);
     }
 
-    func cRealloc(a: *const Allocator, ptr: *void, oldSize: u64, size: u64) : *void {
-        return realloc(ptr, size);
+    func cRealloc(a: *const Allocator, ptr: *void, oldSize: usize, size: usize) : *void {
+        return c::realloc(ptr, size);
     }
 
     func cFree(a: *const Allocator, ptr: *void) {
-        return free(ptr)
+        return c::free(ptr)
     }
 
 #end
@@ -188,14 +198,15 @@ public struct Arena {
     alloc: Allocator
     decorated: *const Allocator
     region: *u8
-    size: u64
-    current: u64
+    size: usize
+    current: usize
     next: *Arena
 }
 
-const PAGE_SIZE = 4096_u64
+const PAGE_SIZE:usize = 4096_u64 as (usize)
 
-public func (arena: *Arena) init(size: u64 = PAGE_SIZE, alloc: *const Allocator = defaultAllocator) {
+public func (arena: *Arena) init(size: usize = PAGE_SIZE, 
+                                 alloc: *const Allocator = defaultAllocator) {
     arena.decorated = alloc
     arena.region = alloc.calloc(size, sizeof(:u8)) as (*u8)
     arena.current = 0
@@ -231,7 +242,9 @@ public func (arena: *Arena) free() {
 
 
 #if (options.debugMode)
-    public func (arena: *Arena) malloc(size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    public func (arena: *Arena) malloc(size: usize, 
+                                       file: *const char = __FILE__, 
+                                       line: u64 = __LINE__) : *void {
         var a = arena
         var last = arena
         
@@ -255,22 +268,34 @@ public func (arena: *Arena) free() {
     }
 
 
-    func ArenaMalloc(alloc: *const Allocator, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    func ArenaMalloc(alloc: *const Allocator, 
+                     size: usize, 
+                     file: *const char = __FILE__, 
+                     line: u64 = __LINE__) : *void {
         var arena = alloc as (*Arena);
         return arena.malloc(size);
     }
 
-    func ArenaCalloc(alloc: *const Allocator, num: u64, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    func ArenaCalloc(alloc: *const Allocator, 
+                     num: usize, 
+                     size: usize, 
+                     file: *const char = __FILE__, 
+                     line: u64 = __LINE__) : *void {
         var arena = alloc as (*Arena);
         var result = arena.malloc(size * num);
         if(result) {
-            memset(result, 0, size * num)
+            c::memset(result, 0, size * num)
         }
 
         return result
     }
 
-    func ArenaRealloc(alloc: *const Allocator, ptr: *void, oldSize: u64, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    func ArenaRealloc(alloc: *const Allocator, 
+                      ptr: *void, 
+                      oldSize: usize, 
+                      size: usize, 
+                      file: *const char = __FILE__, 
+                      line: u64 = __LINE__) : *void {
         if(ptr == null) {
             return ArenaMalloc(alloc, size)
         }
@@ -280,7 +305,7 @@ public func (arena: *Arena) free() {
         var result = arena.malloc(size);
         if(result) {
             var len = c::MIN(oldSize, size)
-            memcpy(result, ptr, len)
+            c::memcpy(result, ptr, len)
 
             ArenaFree(alloc, ptr)
         }
@@ -291,7 +316,7 @@ public func (arena: *Arena) free() {
 
 #else
 
-    public func (arena: *Arena) malloc(size: u64) : *void {
+    public func (arena: *Arena) malloc(size: usize) : *void {
         var a = arena
         var last = arena
         
@@ -314,22 +339,22 @@ public func (arena: *Arena) free() {
         return next.region as (*void)
     }
 
-    func ArenaMalloc(alloc: *const Allocator, size: u64) : *void {
+    func ArenaMalloc(alloc: *const Allocator, size: usize) : *void {
         var arena = alloc as (*Arena);
         return arena.malloc(size);
     }
 
-    func ArenaCalloc(alloc: *const Allocator, num: u64, size: u64) : *void {
+    func ArenaCalloc(alloc: *const Allocator, num: usize, size: usize) : *void {
         var arena = alloc as (*Arena);
         var result = arena.malloc(size * num);
         if(result) {
-            memset(result, 0, size * num)
+            c::memset(result, 0, size * num)
         }
 
         return result
     }
 
-    func ArenaRealloc(alloc: *const Allocator, ptr: *void, oldSize: u64, size: u64) : *void {
+    func ArenaRealloc(alloc: *const Allocator, ptr: *void, oldSize: usize, size: usize) : *void {
         if(ptr == null) {
             return ArenaMalloc(alloc, size)
         }
@@ -339,7 +364,7 @@ public func (arena: *Arena) free() {
         var result = arena.malloc(size);
         if(result) {
             var len = c::MIN(oldSize, size)
-            memcpy(result, ptr, len)
+            c::memcpy(result, ptr, len)
 
             ArenaFree(alloc, ptr)
         }
@@ -366,7 +391,7 @@ func ArenaFree(alloc: *const Allocator, ptr: *void) {
 const MAX_PATH = 256
 public struct Allocation {
     addr: *void
-    size: u64
+    size: usize
     line: u64
     filename: [MAX_PATH]char
 }
@@ -404,7 +429,9 @@ public func (d: *DebugAllocator) report() {
     c::printf("}\n")
 }
 
-public func (d: *DebugAllocator) malloc(size: u64, file: *const char, line: u64) : *void {
+public func (d: *DebugAllocator) malloc(size: usize, 
+                                        file: *const char, 
+                                        line: u64) : *void {
     var mem = d.decorated.alloc(size)
     if(mem) {
         var allocation = new<Allocation>(d.decorated);
@@ -420,22 +447,34 @@ public func (d: *DebugAllocator) malloc(size: u64, file: *const char, line: u64)
 }
 
 #if (options.debugMode)
-    func DebugMalloc(alloc: *const Allocator, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    func DebugMalloc(alloc: *const Allocator, 
+                     size: usize, 
+                     file: *const char = __FILE__, 
+                     line: u64 = __LINE__) : *void {
         var debug = alloc as (*DebugAllocator);
         return debug.malloc(size, file, line);
     }
 
-    func DebugCalloc(alloc: *const Allocator, num: u64, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    func DebugCalloc(alloc: *const Allocator, 
+                     num: usize, 
+                     size: usize, 
+                     file: *const char = __FILE__, 
+                     line: u64 = __LINE__) : *void {
         var debug = alloc as (*DebugAllocator);
         var result = debug.malloc(size * num, file, line);
         if(result) {
-            memset(result, 0, size * num)
+            c::memset(result, 0, size * num)
         }
 
         return result
     }
 
-    func DebugRealloc(alloc: *const Allocator, ptr: *void, oldSize: u64, size: u64, file: *const char = __FILE__, line: u64 = __LINE__) : *void {
+    func DebugRealloc(alloc: *const Allocator, 
+                      ptr: *void, 
+                      oldSize: usize, 
+                      size: usize, 
+                      file: *const char = __FILE__, 
+                      line: u64 = __LINE__) : *void {
         if(ptr == null) {
             return DebugMalloc(alloc, size)
         }
@@ -445,7 +484,7 @@ public func (d: *DebugAllocator) malloc(size: u64, file: *const char, line: u64)
         var result = debug.malloc(size, file, line);
         if(result) {
             var len = c::MIN(oldSize, size)
-            memcpy(result, ptr, len)
+            c::memcpy(result, ptr, len)
 
             DebugFree(alloc, ptr)
         }
@@ -455,22 +494,22 @@ public func (d: *DebugAllocator) malloc(size: u64, file: *const char, line: u64)
 
 #else 
 
-    func DebugMalloc(alloc: *const Allocator, size: u64) : *void {
+    func DebugMalloc(alloc: *const Allocator, size: usize) : *void {
         var debug = alloc as (*DebugAllocator);
         return debug.malloc(size, "", 0);
     }
 
-    func DebugCalloc(alloc: *const Allocator, num: u64, size: u64) : *void {
+    func DebugCalloc(alloc: *const Allocator, num: usize, size: usize) : *void {
         var debug = alloc as (*DebugAllocator);
         var result = debug.malloc(size * num, "", 0);
         if(result) {
-            memset(result, 0, size * num)
+            c::memset(result, 0, size * num)
         }
 
         return result
     }
 
-    func DebugRealloc(alloc: *const Allocator, ptr: *void, oldSize: u64, size: u64) : *void {
+    func DebugRealloc(alloc: *const Allocator, ptr: *void, oldSize: usize, size: usize) : *void {
         if(ptr == null) {
             return DebugMalloc(alloc, size)
         }
@@ -480,7 +519,7 @@ public func (d: *DebugAllocator) malloc(size: u64, file: *const char, line: u64)
         var result = debug.malloc(size, "", 0);
         if(result) {
             var len = c::MIN(oldSize, size)
-            memcpy(result, ptr, len)
+            c::memcpy(result, ptr, len)
 
             DebugFree(alloc, ptr)
         }

@@ -38,6 +38,7 @@ public abstract class TypeInfo {
     public static final TypeInfo U64_TYPE  = new PrimitiveTypeInfo("u64", TypeKind.u64);
     public static final TypeInfo F32_TYPE  = new PrimitiveTypeInfo("f32", TypeKind.f32);
     public static final TypeInfo F64_TYPE  = new PrimitiveTypeInfo("f64", TypeKind.f64);
+    public static final TypeInfo USIZE_TYPE  = new PrimitiveTypeInfo("usize", TypeKind.usize);
     public static final TypeInfo NULL_TYPE = new NullTypeInfo();
     public static final TypeInfo VOID_TYPE = new VoidTypeInfo();
     
@@ -79,6 +80,7 @@ public abstract class TypeInfo {
             case "u64":  return U64_TYPE;
             case "f32":  return F32_TYPE;
             case "f64":  return F64_TYPE;
+            case "usize":  return USIZE_TYPE;
             case "null":   return NULL_TYPE;
             case "void":   return VOID_TYPE;
             default: return null;
@@ -139,6 +141,7 @@ public abstract class TypeInfo {
             case u32:
             case u64:
             case u8:
+            case usize:
                 return true;
             default:
                 return false;
@@ -179,6 +182,7 @@ public abstract class TypeInfo {
             case u32:
             case u64:
             case u8:
+            case usize:
                 return true;
             default:
                 return false;
@@ -199,6 +203,7 @@ public abstract class TypeInfo {
             case u32:
             case u64:
             case u8:
+            case usize:
                 
             case f32:
             case f64:
@@ -317,6 +322,7 @@ public abstract class TypeInfo {
             case u32:
             case u64:
             case u8:
+            case usize:
                 return true;
             default:
                 return false;
@@ -375,6 +381,7 @@ public abstract class TypeInfo {
         i32, u32,
         i64, u64,
         f32, f64,
+        usize,
         
         Str,
         Array,
@@ -438,15 +445,7 @@ public abstract class TypeInfo {
     public boolean hasGenerics() {
         return false;
     }
-    
-//    public boolean hasGenericArgs() {
-//        return false;
-//    }
-    
-//    public List<TypeInfo> getGenericArgs() {
-//        return Collections.emptyList();
-//    }
-    
+        
     public boolean isKind(TypeKind kind) {
         return this.kind == kind;
     }

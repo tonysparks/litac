@@ -215,7 +215,8 @@ public class CGen {
     
     private void writeHeader(Buf buf) {
         buf.out("// Compiled by LitaC on %s with version: %s \n", new Date(), LitaC.VERSION);
-        buf.out("#include <stdint.h>   \n");
+        buf.out("#include <stdint.h>   \n");        
+        buf.out("#include <stddef.h>   \n");
         buf.out("typedef int8_t    %s;  \n", prefix("i8"));
         buf.out("typedef int16_t   %s;  \n", prefix("i16"));
         buf.out("typedef int32_t   %s;  \n", prefix("i32"));
@@ -229,6 +230,7 @@ public class CGen {
         buf.out("typedef float     %s;  \n", prefix("f32"));
         buf.out("typedef double    %s;  \n", prefix("f64"));
         buf.out("typedef int8_t    %s;  \n", prefix("bool"));
+        buf.out("typedef size_t    %s;  \n", prefix("usize"));
         if(!prefix("char").equals("char")) {
             buf.out("typedef char      %s;  \n", prefix("char"));
         }

@@ -4,6 +4,7 @@
 
 * [assert](assert\.md)
 * [io](io\.md)
+* [libc](libc\.md)
 * [mem](mem\.md)
 
 

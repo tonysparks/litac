@@ -1,7 +1,5 @@
 @raw("""
 
-#include <stddef.h>
-
 #if _MSC_VER
 #define LITAC_THREADLOCAL __declspec(thread)
 #define LITAC_INLINE static inline __forceinline
