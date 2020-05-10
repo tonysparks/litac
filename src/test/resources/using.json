@@ -8,7 +8,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -77,7 +77,7 @@
                     return p.b
                 }
                 
-                func (p: using Parent*) test2() : i32 {
+                func (p: using *Parent) test2() : i32 {
                     return p.b
                 }            
             ''',            
@@ -182,7 +182,7 @@
                 struct EntityBase {
                     health: i32
                 }       
-                func (e: EntityBase*) getHealth() : i32 {
+                func (e: *EntityBase) getHealth() : i32 {
                     return e.health
                 }
                 
@@ -204,7 +204,7 @@
                 struct EntityBase {
                     health: i32
                 }       
-                func (e: EntityBase*) getHealth() : i32 {
+                func (e: *EntityBase) getHealth() : i32 {
                     return e.health
                 }
                 
@@ -233,12 +233,12 @@
                 struct EntityBase {
                     health: i32
                 }       
-                func (e: EntityBase*) getHealth() : i32 {
+                func (e: *EntityBase) getHealth() : i32 {
                     return e.health
                 }
                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
                 
                 struct HeavyUnit {
@@ -263,12 +263,12 @@
                 struct EntityBase {
                     health: i32
                 }       
-                func (e: EntityBase*) getHealth() : i32 {
+                func (e: *EntityBase) getHealth() : i32 {
                     return e.health
                 }
                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
             ''',                       
             code: '''   
@@ -291,7 +291,7 @@
                 }
                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
             ''',                       
             code: '''   
@@ -314,7 +314,7 @@
                 }
                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
                 
                 struct HeavyUnit {
@@ -344,7 +344,7 @@
                 }
                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
             ''',                       
             code: '''   
@@ -367,7 +367,7 @@
                 }
                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
                 
                 struct HeavyUnit {
@@ -397,7 +397,7 @@
                 }
                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
                 
                 struct HeavyUnit {
@@ -432,7 +432,7 @@
                 }       
                                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
                 
                 struct HeavyUnit {
@@ -472,7 +472,7 @@
                 }       
                                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
                 
                 struct HeavyUnit {
@@ -513,7 +513,7 @@
                 }       
                                 
                 struct Unit<T> {
-                    base: using EntityBase<T>*
+                    base: using *EntityBase<T>
                 }
                 
                 struct HeavyUnit<T> {
@@ -562,14 +562,14 @@
                 }       
                                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
                 
                 struct HeavyUnit {
                     unit: using Unit
                 }
                 
-                func GetHealth(e: EntityBase*) : i32 {
+                func GetHealth(e: *EntityBase) : i32 {
                     return e.health
                 }
             ''',                       
@@ -602,14 +602,14 @@
                 }       
                                 
                 struct Unit {
-                    base: using EntityBase*
+                    base: using *EntityBase
                 }
                 
                 struct HeavyUnit {
                     unit: using Unit
                 }
                 
-                func GetHealth(e: using EntityBase*) : i32 {
+                func GetHealth(e: using *EntityBase) : i32 {
                     return health
                 }
             ''',                       
@@ -643,14 +643,14 @@
                 }       
                                 
                 struct Unit<T> {
-                    base: using EntityBase<T>*
+                    base: using *EntityBase<T>
                 }
                 
                 struct HeavyUnit<T> {
                     unit: using Unit<T>
                 }
                 
-                func GetHealth<T>(e: using EntityBase<T>*) : T {
+                func GetHealth<T>(e: using *EntityBase<T>) : T {
                     return health
                 }
             ''',                       
@@ -683,14 +683,14 @@
                 }       
                                 
                 struct Unit<T> {
-                    base: using EntityBase<T>*
+                    base: using *EntityBase<T>
                 }
                 
                 struct HeavyUnit<T> {
                     unit: using Unit<T>
                 }
                 
-                func GetHealth<T>(e: using EntityBase<T>*, ...) : T {
+                func GetHealth<T>(e: using *EntityBase<T>, ...) : T {
                     return health
                 }
             ''',                       

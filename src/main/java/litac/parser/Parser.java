@@ -1457,35 +1457,7 @@ public class Parser {
         
         return null;
     }
-    
-    private TypeSpec chainableType(TypeSpec type) {
-        do {
-            SrcPos pos = pos();
-            Token n = peek();
             
-            if(n.getType().equals(STAR)) {
-                advance();
-                type = new PtrTypeSpec(pos, type);
-            }
-            else if(n.getType().equals(LEFT_BRACKET)) {
-                advance();
-                type = arrayType(type);
-            }
-            else if(n.getType().equals(CONST)) {
-                if(type.kind == TypeSpecKind.CONST) {
-                    throw error(n, ErrorCode.INVALID_CONST_EXPR);
-                }
-                advance();
-                type = new ConstTypeSpec(pos, type);
-            }
-            else {
-                break;
-            }
-        } while(!isAtEnd());
-        
-        return type;
-    }
-        
     private ArrayTypeSpec arrayType(TypeSpec type) {
         SrcPos pos = pos();
         TypeSpec arrayOf = type;
@@ -1544,30 +1516,28 @@ public class Parser {
             case F32: 
             case F64: 
             case VOID: {
-                TypeSpec type = new NameTypeSpec(t.getPos(), t.getText());
                 advance();
-                return chainableType(type);
+                return new NameTypeSpec(t.getPos(), t.getText());
+            }
+            case STAR: {               
+                advance();
+                TypeSpec baseType = type(disambiguiate);
+                return new PtrTypeSpec(t.getPos(), baseType);
+            }
+            case CONST: {
+                advance();
+                TypeSpec baseType = type(disambiguiate);
+                return new ConstTypeSpec(t.getPos(), baseType);
             }
             case IDENTIFIER: {
-                TypeSpec type = identifierType(disambiguiate);
-
-                // identifier() consumes multiple tokens, 
-                // account for advance in ptr check
-                //rewind();
-                return chainableType(type);
+                return identifierType(disambiguiate);
             }
             case LEFT_BRACKET: {                
                 ArrayTypeSpec type = arrayType(null);
                 advance();
                 
-                boolean hasParen = match(LEFT_PAREN);
                 type.base = type(disambiguiate);
-                
-                if(hasParen) {
-                    consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
-                }
-                
-                return chainableType(type);
+                return type;
             }            
             case FUNC: {
                 advance();                

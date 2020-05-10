@@ -1421,9 +1421,11 @@ public class TypeResolver {
                     else {                    
                         operand = Operand.op(ptrInfo.ptrOf);
                     }
+                    break;
                 }
                 else if(type.isKind(TypeKind.Str)) {
                     operand = Operand.op(TypeInfo.CHAR_TYPE);
+                    break;
                 }
                 else if(type.isKind(TypeKind.Array)) {
                     ArrayTypeInfo arrayInfo = type.as();
@@ -1434,11 +1436,17 @@ public class TypeResolver {
                     else {
                         operand = Operand.op(arrayInfo.arrayOf);
                     }
+                    break;
                 }
-                else {
-                    error(expr, "'%s' is not a pointer type", type);
+                if(type.isKind(TypeKind.Const)) {
+                    ConstTypeInfo constInfo = type.as();
+                    if(TypeInfo.isPtrLike(constInfo.constOf)) {
+                        operand = Operand.op(constInfo.constOf);
+                        break;
+                    }
                 }
                 
+                error(expr, "'%s' is not a pointer type", type);
                 break;
             }
             case BAND: {
@@ -1845,7 +1853,7 @@ public class TypeResolver {
                 // Determine if we need to promote the object to a
                 // pointer depending on what the method is expecting as an
                 // argument
-                if(TypeInfo.isPtrAggregate(paramInfo) && !TypeInfo.isPtrAggregate(argInfo)) {
+                if(TypeInfo.isPtrAggregate(paramInfo) && (!TypeInfo.isPtrAggregate(argInfo) && !argInfo.isKind(TypeKind.Null))) {
                     // Can't take the address of an R-Value; TODO: this should be expr.operand.isRvalue
                     // But the isLeftValue isn't working correctly atm
                     //if(!argExpr.getResolvedType().isLeftValue) {
@@ -1956,9 +1964,6 @@ public class TypeResolver {
     private Operand resolveBinaryExpr(BinaryExpr expr) {
         Operand left = resolveExpr(expr.left);
         Operand right = resolveExpr(expr.right);
-        
-        //typeCheck(expr.getSrcPos(), left.type, right.type);
-        //typeCheck(expr.getSrcPos(), right.type, left.type);
         
         TypeInfo leftType = left.type;
         TypeInfo rightType = right.type;

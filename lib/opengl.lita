@@ -43,7 +43,7 @@ public func glCheckErrorPrint() : bool {
 
     do {
         var err = glGetError()
-        var msg: char* = null;
+        var msg: *char = null;
         switch(err) {
             case GL_NO_ERROR:               msg=null;                   break;
             case GL_INVALID_OPERATION:      msg="INVALID_OPERATION";    break;

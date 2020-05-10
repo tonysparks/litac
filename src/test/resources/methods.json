@@ -7,7 +7,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -36,7 +36,7 @@
                     field: i32
                 }
                 
-                func (a: Test*) apply() : i32 {
+                func (a: *Test) apply() : i32 {
                     return a.field
                 }
                             
@@ -53,13 +53,13 @@
                     field: i32
                 }
                 
-                func (a: Test const*) apply() : i32 {
+                func (a: *const Test) apply() : i32 {
                     return a.field
                 }
                             
             ''',            
             code: '''
-                var t = (&Test{.field: 4}) as (Test const*)
+                var t = (&Test{.field: 4}) as (*const Test)
                 assert(t.apply() == 4)                 
             '''
         },
@@ -218,7 +218,7 @@
                     a: i32
                 }
                 
-                func (x: X*) method() : i32 {
+                func (x: *X) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -234,7 +234,7 @@
                     a: i32
                 }
                 
-                func (x: X*) method() : i32 {
+                func (x: *X) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -253,7 +253,7 @@
                     a: i32
                 }
                 
-                func (x: X*) method() : i32 {
+                func (x: *X) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -268,13 +268,13 @@
             name: "Method with ptr and callsite with struct of object ptr", 
             definitions: '''
                 struct Y {
-                    x: X*
+                    x: *X
                 }
                 struct X {
                     a: i32
                 }
                 
-                func (x: X*) method() : i32 {
+                func (x: *X) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -289,13 +289,13 @@
             name: "Method with ptr and callsite with struct of object ptr in def", 
             definitions: '''
                 struct Y {
-                    x: X*
+                    x: *X
                 }
                 struct X {
                     a: i32
                 }
                 
-                func (x: X*) method() : i32 {
+                func (x: *X) method() : i32 {
                     return x.a
                 }
             ''',                       
@@ -310,13 +310,13 @@
             name: "Method with ptr and callsite with struct of object ptr in def from method", 
             definitions: '''
                 struct Y {
-                    x: X*
+                    x: *X
                 }
                 struct X {
                     a: i32
                 }
                 
-                func (x: X*) method() : i32 {
+                func (x: *X) method() : i32 {
                     return x.a
                 }
                 
@@ -341,7 +341,7 @@
                     a: i32
                 }
                 
-                func (x: X*) method() : i32 {
+                func (x: *X) method() : i32 {
                     return x.a
                 }
                 
@@ -386,17 +386,17 @@
             name: "Method chain with ptr", 
             definitions: '''
                 struct Y {
-                    x: X*
+                    x: *X
                 }
                 struct X {
                     a: i32
                 }
                 
-                func (x: X*) methodX() : i32 {
+                func (x: *X) methodX() : i32 {
                     return x.a
                 }
                 
-                func (y: Y) methodY(): X* {
+                func (y: Y) methodY(): *X {
                     return y.x
                 }
             ''',                       
@@ -418,7 +418,7 @@
                     a: i32
                 }
                 
-                func (x: X*) methodX() : i32 {
+                func (x: *X) methodX() : i32 {
                     return x.a
                 }
                 
@@ -458,7 +458,7 @@
                     a: T
                 }
                 
-                func (t: Test<T>*) method<T>() : T {
+                func (t: *Test<T>) method<T>() : T {
                     return t.a
                 }
             ''',                       
@@ -474,7 +474,7 @@
                     a: T
                 }
                 
-                func (t: Test<T>*) method<T>() : T {
+                func (t: *Test<T>) method<T>() : T {
                     return t.a
                 }
             ''',                       
@@ -507,7 +507,7 @@
                     a: T
                 }
                 
-                func (t: Test<T>*) method<T>(z: T) : T {
+                func (t: *Test<T>) method<T>(z: T) : T {
                     return t.a + z
                 }
             ''',                       
@@ -523,7 +523,7 @@
                     a: T
                 }
                 
-                func (t: Test<T>*) method<T>(z: T) : T {
+                func (t: *Test<T>) method<T>(z: T) : T {
                     return t.a + z
                 }
             ''',                       
@@ -539,13 +539,13 @@
                     a: T
                 }
                 
-                func (t: Test<T>*) method<T>(z: T) : T {
+                func (t: *Test<T>) method<T>(z: T) : T {
                     return t.a + z
                 }
             ''',                       
             code: '''
                 var t = Test<i32>{4}
-                var x : func(Test<i32>*, i32):i32 = &Test_method<i32>;
+                var x : func(*Test<i32>, i32):i32 = &Test_method<i32>;
                 assert(t.method<i32>(8) == 12)
                 assert(x(&t, 8) == 12)
             ''',
@@ -590,11 +590,11 @@
                 }
                 
                 
-                func (t: Test*) a() : i32 {
+                func (t: *Test) a() : i32 {
                     return t.b()
                 }
                 
-                func (t: Test*) b() : i32 {
+                func (t: *Test) b() : i32 {
                     return t.x
                 }
             ''',                       

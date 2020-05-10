@@ -7,7 +7,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -17,7 +17,7 @@
             name: "Str assigned to array",
             definitions: '''
                 @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                                                 
                 struct Test {
                     name: [32]char
@@ -35,10 +35,10 @@
             name: "array assigned to str",
             definitions: '''
                 @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                                                 
                 struct Test {
-                    name: char*
+                    name: *char
                     x: [32]char                    
                 }
                 
@@ -62,10 +62,10 @@
             name: "Const char index to char",
             definitions: '''
                 @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                                                 
                 struct Test {
-                    name: char const*
+                    name: *const char
                                    
                 }                
             ''',                       
@@ -82,20 +82,20 @@
             name: "Anon Union",
             definitions: '''
                 @include("<string.h>");
-                @foreign func strcmp(a:char const*, b:char const*) : i32;
+                @foreign func strcmp(a:*const char, b:*const char) : i32;
                          
                 struct X {
                     a: i32
                 }
                 
-                func (x: X*) method() : i32 {
+                func (x: *X) method() : i32 {
                     return x.a
                 }
                                                 
                 struct Test {
                     union {
-                        w: X*
-                        y: X*
+                        w: *X
+                        y: *X
                     }                                   
                 }                
             ''',                       

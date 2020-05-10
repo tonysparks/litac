@@ -5,12 +5,12 @@
         @foreign func assert(e:bool):void;
         
         @include("<string.h>");
-        @foreign func strncmp(a:char const*, b:char const*, len: i32) : i32;
-        @foreign func strcmp(a:char const*, b:char const*) : i32;
+        @foreign func strncmp(a:*const char, b:*const char, len: i32) : i32;
+        @foreign func strcmp(a:*const char, b:*const char) : i32;
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''

@@ -9,7 +9,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -82,7 +82,7 @@
                 }
                 
                 struct Test {
-                    sprites: Array<Sprite*>
+                    sprites: Array<*Sprite>
                 }
             ''',                       
             code: '''

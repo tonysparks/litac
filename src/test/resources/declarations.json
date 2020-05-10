@@ -7,7 +7,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -216,13 +216,13 @@
         {
             name: "Cast CharArray to VoidPtr", 
             definitions: '''
-                func test(v: void*) {
+                func test(v: *void) {
                 }
                 
             ''',                       
             code: '''
                 var c = [4] char{'\0', '\0', '\0', '\0'};
-                test(c as (void*))
+                test(c as (*void))
             ''',
         },
         {
@@ -478,7 +478,7 @@
                     
                 union Test {
                     a: func(i32) : i32
-                    b: void*
+                    b: *void
                 }
                             
             ''',                       
@@ -527,7 +527,7 @@
         {
             name: "Function Default Arguments null",
             definitions: '''
-                func t(i:i32* = null) : i32 {
+                func t(i:*i32 = null) : i32 {
                     if(!i) return 2;
                     return *i
                 }
@@ -542,9 +542,9 @@
             name: "Function Default Arguments string",
             definitions: '''
                 @include("string.h");
-                @foreign func strcmp(a:char*, b:char*) : i32;
+                @foreign func strcmp(a:*char, b:*char) : i32;
                 
-                func t(i:char* = "bye") : char* {
+                func t(i:*char = "bye") : *char {
                     return i
                 }
             ''',                       
@@ -572,7 +572,7 @@
                 @include("<string.h>");
                 
                 @foreign("strcmp") 
-                func stringCompare(a:char*, b:char*) : i32;
+                func stringCompare(a:*char, b:*char) : i32;
             ''',                       
             code: '''                
                 assert(stringCompare("hi", "bye") != 0);
@@ -599,10 +599,10 @@
                 @foreign("FILE") 
                 struct File; 
                 
-                @foreign public func fopen(fileName:char*, openType:char*) : File*;
+                @foreign public func fopen(fileName:*char, openType:*char) : *File;
             ''',                       
             code: '''   
-                var t: File* = fopen("../examples/hello_world.lita", "r")
+                var t: *File = fopen("../examples/hello_world.lita", "r")
                 assert(t != null)             
             ''',
         },
@@ -871,7 +871,7 @@
                 }
                 
                 struct Vec {
-                    e: using X*
+                    e: using *X
                     y: f32
                 }
                 struct Entity {
@@ -914,7 +914,7 @@
             name: "Struct Independent declaration Pointer",
             definitions: '''
                 struct A {
-                    x : B*
+                    x : *B
                 }
                 struct B {
                     y : i32
@@ -957,7 +957,7 @@
                 }
                 
                 struct A {
-                    x : B*
+                    x : *B
                 }
                 struct B {
                     y : i32
@@ -976,7 +976,7 @@
                 }                
                                 
                 struct A {
-                    x : B*
+                    x : *B
                 }
                 struct B {
                     y : i32
@@ -1069,7 +1069,7 @@
         { 
             name: "Func arg pointer using",
             definitions: '''                
-                func test(a : using A*) : i32 {
+                func test(a : using *A) : i32 {
                     return x
                 }
                 struct A {
@@ -1084,7 +1084,7 @@
         { 
             name: "Invalid Func arg using",
             definitions: '''                
-                func test(a : using A**) : i32 {
+                func test(a : using **A) : i32 {
                     return 1
                 }
                 struct A {
@@ -1100,7 +1100,7 @@
         { 
             name: "Func arg scoped shadow using",
             definitions: '''   
-                func test(a : using A*) : i32 {
+                func test(a : using *A) : i32 {
                     var x = 43
                     return x
                 }
@@ -1118,7 +1118,7 @@
         { 
             name: "Func arg scoped shadow scoping using",
             definitions: '''                
-                func test(a : using A*) : i32 {
+                func test(a : using *A) : i32 {
                     {var x = 43}
                     return x
                 }
@@ -1173,7 +1173,7 @@
                 
             ''',                       
             code: '''  
-                var t : char const* = "Hello";
+                var t : *const char = "Hello";
                 assert(t)
             ''', 
         },
@@ -1184,10 +1184,10 @@
                 
             ''',                       
             code: '''  
-                var t : char const* = "Hello"
-                var x : char* = t                
+                var t : *const char = "Hello"
+                var x : *char = t                
             ''', 
-            error: "'char*' is not of type 'char const*'"
+            error: "'*char' is not of type '*const char'"
         },
         { 
             name: "Assign no const",
@@ -1195,8 +1195,8 @@
                 
             ''',                       
             code: '''  
-                var t : char* = "Hello"
-                var x : char* = t
+                var t : *char = "Hello"
+                var x : *char = t
                 assert(t == x)                
             ''',             
         },
@@ -1206,7 +1206,7 @@
                 
             ''',                       
             code: '''  
-                var t : [3]i32 const = []i32 const {1,2,3}                               
+                var t : [3]const i32 = []const i32{1,2,3}                               
             ''',             
         },
         { 
@@ -1216,14 +1216,14 @@
             ''',                       
             code: '''  
                 // doesn't work - disallow?
-                var t : i32 const* = []i32 const {1,2,3} as (i32 const*)                               
+                var t : *const i32 = []const i32{1,2,3} as (*const i32)                               
             ''',             
         },
         { 
             name: "Func Const Ptr Param",
             definitions: '''         
                 // TODO Return param       
-                func test(a: char const*) : char const* {
+                func test(a: *const char) : *const char {
                     return a
                 }
             ''',                       
@@ -1236,10 +1236,10 @@
             name: "Array Ptr assign",
             definitions: '''         
                 @include("<stdlib.h>");
-                @foreign public func malloc(size: u64) : void*;
+                @foreign public func malloc(size: u64) : *void;
             ''',                       
             code: '''  
-                var t = malloc( sizeof(:char) * 3_u64) as (char*);
+                var t = malloc( sizeof(:char) * 3_u64) as (*char);
                 t[0] = 'h';
                 t[1] = 'i';
                 t[2] = '\0';
@@ -1386,7 +1386,7 @@
             name: "Global Array of Structs init in initializer",
             definitions: '''                
                 struct A {
-                    b: B*
+                    b: *B
                 }
                 
                 struct B {
@@ -1411,7 +1411,7 @@
             name: "Global Array of primitive init in initializer",
             definitions: '''                
                 struct A {
-                    b: i32*
+                    b: *i32
                 }
                                 
                 var a = A {
@@ -1433,7 +1433,7 @@
             definitions: '''                
                 struct A {
                     z: u32
-                    b: B*
+                    b: *B
                 }
                 
                 struct B {
@@ -1460,7 +1460,7 @@
             name: "Array of primitive init in initializer",
             definitions: '''                
                 struct A {
-                    b: i32*
+                    b: *i32
                 }
                             
             ''',                       
@@ -1482,7 +1482,7 @@
             definitions: '''
                 struct A {
                     b: B
-                    array: u32*
+                    array: *u32
                 }
                 
                 struct B {
@@ -1533,7 +1533,7 @@
                     return a
                 }
                 
-                func test2(a: A*) : A* {
+                func test2(a: *A) : *A {
                     return a
                 }
                             
@@ -1551,7 +1551,7 @@
                     return a
                 }
                 
-                func test2(a: i32*) : i32* {
+                func test2(a: *i32) : *i32 {
                     return a
                 }            
             ''',                       
@@ -1571,7 +1571,7 @@
                     v: i32
                 }
                 
-                var array = [1]A* {
+                var array = [1]*A {
                     [0] = &A {
                         .b = B {
                             4
@@ -1641,7 +1641,7 @@
                 struct Object {
                     a: [32]Node
                 }
-                func Test(array: Node*, len: i32) {
+                func Test(array: *Node, len: i32) {
                     
                 }
             ''',                       

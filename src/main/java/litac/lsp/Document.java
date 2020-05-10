@@ -115,7 +115,15 @@ public class Document {
     
     private SourceLocation getSourceLocation(Workspace workspace, Position pos, boolean doFullBuild) {
         Module module = getModule(workspace, doFullBuild);
+        if(module == null) {
+            return null;
+        }
+        
         Program program = workspace.getLatestProgram();
+        if(program == null) {
+            return null;            
+        }
+        
         SourceToAst sta = new SourceToAst(log, program, module, pos);
         return sta.findSourceLocation(module.getModuleStmt());
     }

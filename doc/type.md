@@ -7,7 +7,7 @@
 ## type Variables
 
 * const [numOfTypeInfos](#numOfTypeInfos): i64
-* const [typeInfos](#typeInfos): [TypeInfo\*\*](#TypeInfo)
+* const [typeInfos](#typeInfos): [\*\*TypeInfo](#TypeInfo)
 
 
 ## type Types
@@ -23,8 +23,8 @@
 
 ## type Functions
 
-* func [TypeKindAsStr](#TypeKindAsStr)(e: [type](#type)::[TypeKind](#TypeKind)) : char const*
-* func [getTypeInfo](#getTypeInfo)(id: i64) : [TypeInfo\*](#TypeInfo)
+* func [TypeKindAsStr](#TypeKindAsStr)(e: [type](#type)::[TypeKind](#TypeKind)) : *const char
+* func [getTypeInfo](#getTypeInfo)(id: i64) : [\*TypeInfo](#TypeInfo)
 
 
 
@@ -40,7 +40,7 @@
 
 struct [EnumFieldInfo](#EnumFieldInfo)
 
-* name: char const*
+* name: *const char
 * value: i32
 
 
@@ -50,7 +50,7 @@ struct [EnumFieldInfo](#EnumFieldInfo)
 
 struct [FieldInfo](#FieldInfo)
 
-* name: char const*
+* name: *const char
 * type: i64
 * modifiers: [type](#type)::[Modifiers](#Modifiers)
 
@@ -61,7 +61,7 @@ struct [FieldInfo](#FieldInfo)
 
 struct [GenericInfo](#GenericInfo)
 
-* args: char const**
+* args: **const char
 * numOfArgs: i32
 
 
@@ -81,7 +81,7 @@ enum [Modifiers](#Modifiers)
 struct [ParamInfo](#ParamInfo)
 
 * genInfo: [type](#type)::[GenericInfo](#GenericInfo)
-* name: char const*
+* name: *const char
 * type: i64
 * modifiers: [type](#type)::[Modifiers](#Modifiers)
 
@@ -93,7 +93,7 @@ struct [ParamInfo](#ParamInfo)
 struct [TypeInfo](#TypeInfo)
 
 * kind: [type](#type)::[TypeKind](#TypeKind)
-* name: char const*
+* name: *const char
 * id: i64
 * <anonymous-union-0>: [type](#type)::[<anonymous\-union\-0>](#<anonymous\-union\-0>)
 
@@ -133,12 +133,12 @@ enum [TypeKind](#TypeKind)
 ### TypeKindAsStr
 
 
-func [TypeKindAsStr](#TypeKindAsStr)(e: [type](#type)::[TypeKind](#TypeKind)) : char const*
+func [TypeKindAsStr](#TypeKindAsStr)(e: [type](#type)::[TypeKind](#TypeKind)) : *const char
 
 
 ### getTypeInfo
 
 
-func [getTypeInfo](#getTypeInfo)(id: i64) : [TypeInfo\*](#TypeInfo)
+func [getTypeInfo](#getTypeInfo)(id: i64) : [\*TypeInfo](#TypeInfo)
 
 

@@ -515,6 +515,10 @@ public class CGen {
             }
             case Const: {
                 ConstTypeInfo constInfo = type.as();
+                if(TypeInfo.isPtrLike(constInfo.constOf)) {
+                    return String.format("%s const %s", getTypeNameForC(constInfo.constOf, false, doDecay), declName);                             
+                }
+                
                 return String.format("const %s", typeDeclForC(constInfo.constOf, declName, doDecay));
             }
             case Array: {
@@ -613,6 +617,9 @@ public class CGen {
             }
             case Const: {
                 ConstTypeInfo constInfo = type.as();
+                if(TypeInfo.isPtrLike(constInfo.constOf)) {
+                    return String.format("%s const", getTypeNameForC(constInfo.constOf, isCast, doDecay));
+                }
                 return "const " + getTypeNameForC(constInfo.constOf, isCast, doDecay);
             }
             case Array: {

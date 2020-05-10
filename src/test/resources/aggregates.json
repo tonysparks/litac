@@ -10,7 +10,7 @@
         
         %definitions%
         
-        func main(len:i32, args:char**):i32 {
+        func main(len:i32, args:**char):i32 {
             %test%
         }
     '''
@@ -43,13 +43,13 @@
             name: "Struct default values invalid type",
             definitions: '''
                 struct X {
-                    a: X* = "hi"
+                    a: *X = "hi"
                 }
             ''',                       
             code: '''   
                                 
             ''',
-            error: "'struct X*' is not of type 'char*'"            
+            error: "'*struct X' is not of type '*char'"            
         },
         {
             name: "Embedded Struct default values",

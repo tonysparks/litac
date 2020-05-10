@@ -3,13 +3,13 @@ import "io";
 import "assert";
 
 @include("<string.h>");
-@foreign func strcmp(a:char const*, b:char const*) : i32;
+@foreign func strcmp(a:*const char, b:*const char) : i32;
 
 public typedef func<K>(K) : u32 as HashFn<K>;
 public typedef func<K>(K, K) : bool as EqualFn<K>;
 
 // TODO: Fix binary expression with const
-public func StrHashFn(str: char const*) : u32 {
+public func StrHashFn(str: *const char) : u32 {
     var hash = 5381_u32;
     while (*str) {
         hash = ((hash << 5_u32) + hash) ^ ((*str) as (u32));
@@ -22,7 +22,7 @@ public func PtrEqualFn<K>(a: K, b: K) : bool {
     return a == b;
 }
 
-public func StrEqualFn(a: char const*, b: char const*) : bool {
+public func StrEqualFn(a: *const char, b: *const char) : bool {
     if(!a || !b) return false
 
     return strcmp(a, b) == 0
@@ -30,10 +30,10 @@ public func StrEqualFn(a: char const*, b: char const*) : bool {
 
 public func StrMap<V>(emptyValue: V,
                       initialSize: i32 = 16,
-                      alloc: mem::Allocator const* = null) : Map<char const*, V> {
+                      alloc: *const mem::Allocator = null) : Map<*const char, V> {
 
-    var m = Map<char const*, V>{};
-    m.init<char const*, V>(emptyValue, initialSize, StrHashFn, StrEqualFn, alloc);
+    var m = Map<*const char, V>{};
+    m.init<*const char, V>(emptyValue, initialSize, StrHashFn, StrEqualFn, alloc);
     return m;
 }
 
@@ -42,14 +42,14 @@ public struct Map<K, V> {
     capacity: i32    
     hashFn: HashFn<K>
     equalFn: EqualFn<K>
-    alloc: mem::Allocator const*
-    keys: K*
-    values: V*    
+    alloc: *const mem::Allocator
+    keys: *K
+    values: *V
     emptyValue: V
 }
 
 public struct MapIterator<K, V> {
-    m: Map<K, V>*
+    m: *Map<K, V>
     it: i32
     count: i32
 }
@@ -59,11 +59,11 @@ public struct MapEntry<K, V> {
     value: V
 }
 
-public func (m: Map<K, V>*) init<K, V>(emptyValue: V,
+public func (m: *Map<K, V>) init<K, V>(emptyValue: V,
                                        initialSize: i32 = 16,
                                        hashFn: HashFn<K> = null,
                                        equalFn: EqualFn<K> = null,
-                                       alloc: mem::Allocator const* = null) {
+                                       alloc: *const mem::Allocator = null) {
     
     if(!hashFn) {
         hashFn = &StrHashFn
@@ -89,12 +89,12 @@ public func (m: Map<K, V>*) init<K, V>(emptyValue: V,
     MapGrow<K, V>(m, initialSize);
 }
 
-public func (m: Map<K, V>*) free<K, V>() {
+public func (m: *Map<K, V>) free<K, V>() {
     if(m) {
         m.capacity = 0;
         m.length = 0;
-        m.alloc.free(m.keys as (void*));
-        m.alloc.free(m.values as (void*));    
+        m.alloc.free(m.keys as (*void));
+        m.alloc.free(m.values as (*void));    
 
         m.keys = null;
         m.values = null;    
@@ -102,16 +102,16 @@ public func (m: Map<K, V>*) free<K, V>() {
 }
 
 @inline
-public func (m: Map<K, V>*) size<K, V>() : i32 {
+public func (m: *Map<K, V>) size<K, V>() : i32 {
     return m.length
 }
 
-public func (m: Map<K, V>*) empty<K, V>() : bool {
+public func (m: *Map<K, V>) empty<K, V>() : bool {
     return m.length == 0
 }
 
 
-public func (m: Map<K, V>*) put<K, V>(key: K, value: V) {
+public func (m: *Map<K, V>) put<K, V>(key: K, value: V) {
     
     if(2 * m.length >= m.capacity) {        
         MapGrow<K, V>(m, 2 * m.capacity);    
@@ -136,7 +136,7 @@ public func (m: Map<K, V>*) put<K, V>(key: K, value: V) {
 
 }
 
-public func (m: Map<K, V>*) get<K, V>(key: K) : V {
+public func (m: *Map<K, V>) get<K, V>(key: K) : V {
     if(m.length == 0) {
         return m.emptyValue;
     }
@@ -157,7 +157,7 @@ public func (m: Map<K, V>*) get<K, V>(key: K) : V {
     return m.emptyValue;
 }
 
-public func (m: Map<K, V>*) remove<K, V>(key: K) : V {
+public func (m: *Map<K, V>) remove<K, V>(key: K) : V {
     if(m.length == 0) {
         return m.emptyValue;
     }
@@ -181,7 +181,7 @@ public func (m: Map<K, V>*) remove<K, V>(key: K) : V {
     return m.emptyValue;
 }
 
-public func (m: Map<K, V>*) contains<K, V>(key: K) : bool {
+public func (m: *Map<K, V>) contains<K, V>(key: K) : bool {
     if(m.length == 0) {
         return false;
     }
@@ -202,7 +202,7 @@ public func (m: Map<K, V>*) contains<K, V>(key: K) : bool {
     return false;
 }
 
-func MapGrow<K, V>(m: Map<K, V>*, newlength: i32) {
+func MapGrow<K, V>(m: *Map<K, V>, newlength: i32) {
     if(newlength < 16) {
         newlength = 16;
     }
@@ -210,8 +210,8 @@ func MapGrow<K, V>(m: Map<K, V>*, newlength: i32) {
     var newMap = Map<K, V> {
         .length: 0,
         .capacity: newlength,
-        .keys: m.alloc.calloc(newlength, sizeof(:K)) as (K*),
-        .values: m.alloc.alloc(newlength * sizeof(:V)) as (V*),
+        .keys: m.alloc.calloc(newlength, sizeof(:K)) as (*K),
+        .values: m.alloc.alloc(newlength * sizeof(:V)) as (*V),
         .hashFn: m.hashFn,
         .equalFn: m.equalFn,
         .alloc: m.alloc
@@ -231,7 +231,7 @@ func MapGrow<K, V>(m: Map<K, V>*, newlength: i32) {
 
 // -------------------------------------------------------
 
-public func (m: Map<K, V>*) iter<K, V>() : MapIterator<K, V> {
+public func (m: *Map<K, V>) iter<K, V>() : MapIterator<K, V> {
     return MapIterator<K, V> {
         .m: m,
         .it: 0,
@@ -239,11 +239,11 @@ public func (m: Map<K, V>*) iter<K, V>() : MapIterator<K, V> {
     }
 }
 
-public func (iter: MapIterator<K, V>*) hasNext<K, V>() : bool {
+public func (iter: *MapIterator<K, V>) hasNext<K, V>() : bool {
     return iter.count < iter.m.length;
 }
 
-public func (iter: MapIterator<K, V>*) next<K, V>() : MapEntry<K, V> {
+public func (iter: *MapIterator<K, V>) next<K, V>() : MapEntry<K, V> {
     var i = iter.it;
     assert(i < iter.m.capacity);
 

@@ -3,11 +3,11 @@ import "mem" as mem
 import "assert"
 
 public struct StringView {
-    buffer: char const*
+    buffer: *const char
     length: i32
 }
 
-public func StringViewInit(str: char const*, len: i32 = -1) : StringView {
+public func StringViewInit(str: *const char, len: i32 = -1) : StringView {
     if(str == null) {
         return StringView {
             .buffer = null,
@@ -37,7 +37,7 @@ public func (b: StringView) substring(start: i32, end: i32 = -1) : StringView {
     }
 }
 
-public func (b: StringView) startsWith(prefix: char const*, len: i32 = -1, fromIndex: i32 = 0) : bool {
+public func (b: StringView) startsWith(prefix: *const char, len: i32 = -1, fromIndex: i32 = 0) : bool {
     if(!prefix) return false;
 
     var ta = b.buffer;
@@ -60,14 +60,14 @@ public func (b: StringView) startsWith(prefix: char const*, len: i32 = -1, fromI
     return true;
 }
 
-public func (b: StringView) endsWith(suffix: char const*, len: i32 = -1) : bool {
+public func (b: StringView) endsWith(suffix: *const char, len: i32 = -1) : bool {
     if(!suffix) return false;
 
     len = (len < 0) ? strlen(suffix) : len;
     return b.startsWith(suffix, len, b.length - len)
 }
 
-public func (b: StringView) equals(str: char const*, len: i32 = -1) : bool {
+public func (b: StringView) equals(str: *const char, len: i32 = -1) : bool {
     if(!str) {
         return b.buffer == null;
     }
@@ -80,15 +80,15 @@ public func (b: StringView) equals(str: char const*, len: i32 = -1) : bool {
     return strncmp(b.buffer, str, len) == 0
 }
 
-public func (b: StringView) contains(str: char const*, len: i32 = -1) : bool {
+public func (b: StringView) contains(str: *const char, len: i32 = -1) : bool {
     return b.indexOf(str, len) > -1;
 }
 
-public func (b: StringView) indexOf(str: char const*, len: i32 = -1) : i32 {
+public func (b: StringView) indexOf(str: *const char, len: i32 = -1) : i32 {
     return b.indexOfAt(str, len, 0)
 }
 
-public func (b: StringView) indexOfAt(str: char const*, len: i32 = -1, fromIndex: i32 = 0) : i32 {
+public func (b: StringView) indexOfAt(str: *const char, len: i32 = -1, fromIndex: i32 = 0) : i32 {
     if(!str) return -1;
 
     var target = str
@@ -132,7 +132,7 @@ public func (b: StringView) indexOfAt(str: char const*, len: i32 = -1, fromIndex
     return -1;
 }
 
-public func (b: StringView) copyTo(buf: char*, len: i32, addZero: bool = true) : i32 {
+public func (b: StringView) copyTo(buf: *char, len: i32, addZero: bool = true) : i32 {
     if(!buf || len == 0) return 0;
 
     var bytesCopied = len
@@ -140,8 +140,8 @@ public func (b: StringView) copyTo(buf: char*, len: i32, addZero: bool = true) :
         bytesCopied = b.length
     }
     
-    mem::memcpy(buf as (void*),
-                (&b.buffer[0]) as (void const*), 
+    mem::memcpy(buf as (*void),
+                (&b.buffer[0]) as (*const void), 
                 bytesCopied * sizeof(:char))
 
     if(addZero) buf[bytesCopied] = '\0'

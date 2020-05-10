@@ -5,12 +5,12 @@ import "string_view";
 import "libc";
 
 public struct String {
-    str: char*
+    str: *char
     length: i32
     capacity: i32
 }
 
-public func StringInit(str: char*, capacity: i32, len: i32 = -1) : String {
+public func StringInit(str: *char, capacity: i32, len: i32 = -1) : String {
     if(str == null) {
         return String {
             .str = null,
@@ -34,7 +34,7 @@ public func StringInit(str: char*, capacity: i32, len: i32 = -1) : String {
     }
 }
 
-public func (s: String*) format(format: char const*, ...) : i32{
+public func (s: *String) format(format: *const char, ...) : i32{
     const MAX_BUFFER_SIZE = 32;
 
     // get the variable args
@@ -70,10 +70,10 @@ public func (s: String) asView() : StringView {
 public func (s: String) memset(value: i32 = 0) {
     if(s.capacity < 1) return;
 
-    mem::memset(s.str as (void*), value, s.capacity * sizeof(:char))
+    mem::memset(s.str as (*void), value, s.capacity * sizeof(:char))
 }
 
-public func (s: String) copy(allocator: mem::Allocator const* = mem::defaultAllocator) : String {
+public func (s: String) copy(allocator: *const mem::Allocator = mem::defaultAllocator) : String {
     if(s.length < 1) {
         return String {
             .str = null,
@@ -82,7 +82,7 @@ public func (s: String) copy(allocator: mem::Allocator const* = mem::defaultAllo
         }
     }
 
-    var copiedStr = allocator.alloc((s.length + 1) * sizeof(:char)) as (char*)
+    var copiedStr = allocator.alloc((s.length + 1) * sizeof(:char)) as (*char)
     copiedStr[s.length] = '\0'
 
     return String{

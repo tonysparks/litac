@@ -20,29 +20,29 @@ public enum OptionFlag {
 }
 
 public struct Option {
-    name: char const*
+    name: *const char
     shortName: char
-    description: char const*
-    value: char const*
-    defaultValue: char const*
+    description: *const char
+    value: *const char
+    defaultValue: *const char
     flags: i32
 }
 
 public struct CmdParser {
-    options: Map<char const*, Option>
+    options: Map<*const char, Option>
     errors: [MAX_MESSAGE_SIZE]char
     status: CmdParserStatus
 }
 
-public func (p: CmdParser*) init() {
+public func (p: *CmdParser) init() {
     p.options = StrMap<Option>(Option{0})
 }
 
-public func (p: CmdParser*) addOption(longName: char const*, 
+public func (p: *CmdParser) addOption(longName: *const char, 
                                       shortName: char, 
-                                      description: char const*,
+                                      description: *const char,
                                       flags: i32,
-                                      defaultValue: char const*) {
+                                      defaultValue: *const char) {
 
     p.options.put(longName, Option {
         .name = longName,
@@ -54,11 +54,11 @@ public func (p: CmdParser*) addOption(longName: char const*,
     })
 }
 
-public func (p: CmdParser*) getOption(longName: char const*) : Option {
+public func (p: *CmdParser) getOption(longName: *const char) : Option {
     return p.options.get(longName);
 }
 
-public func (p: CmdParser*) parse(argc: i32, argv: char**) : CmdParserStatus {
+public func (p: *CmdParser) parse(argc: i32, argv: **char) : CmdParserStatus {
     for(var i = 0; i < argc; i+=1) {
         var arg = argv[i]
         var len = c::strlen(arg)

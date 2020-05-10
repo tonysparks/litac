@@ -4,15 +4,15 @@ import "mem";
 @include("<stdlib.h>");
 
 @foreign public struct FILE;
-@foreign public func printf(s:char const*, ...) : void;
-@foreign public func fopen(fileName:char const*, openType:char const*) : FILE*;
-@foreign public func fgets(buf: char*, n:i64, stream: FILE*): char*;
-@foreign public func fread(buf: void*, size:u64, n:u64, stream: FILE*) : u64;
-@foreign public func fwrite(buf: void const*, sizeOfElements: u64, numOfElements:u64, stream: FILE*) : u64;
-@foreign public func fclose(stream: FILE*) : void;
-@foreign public func fseek(stream: FILE*, offset : i64, whence : i32) : i32;
-@foreign public func ftell(stream: FILE*) : i64;
-@foreign public func ferror(stream: FILE*) : i32;
+@foreign public func printf(s:*const char, ...) : void;
+@foreign public func fopen(fileName:*const char, openType:*const char) : *FILE;
+@foreign public func fgets(buf: *char, n:i64, stream: *FILE): *char;
+@foreign public func fread(buf: *void, size:u64, n:u64, stream: *FILE) : u64;
+@foreign public func fwrite(buf: *const void, sizeOfElements: u64, numOfElements:u64, stream: *FILE) : u64;
+@foreign public func fclose(stream: *FILE) : void;
+@foreign public func fseek(stream: *FILE, offset : i64, whence : i32) : i32;
+@foreign public func ftell(stream: *FILE) : i64;
+@foreign public func ferror(stream: *FILE) : i32;
 
 // TODO allow const to be undefined
 @foreign public var SEEK_SET : i32;
@@ -26,7 +26,7 @@ public enum FileStatus {
     IOError,
 }
 
-public func FileLength(fileName: char const*) : i64 {
+public func FileLength(fileName: *const char) : i64 {
     var fp = fopen(fileName, "r")
     if(fp == null) {
         return -1;
@@ -41,7 +41,7 @@ public func FileLength(fileName: char const*) : i64 {
     return len;
 }
 
-public func ReadFile(fileName: char const*, data: char**, alloc: Allocator const* = defaultAllocator) : FileStatus { 
+public func ReadFile(fileName: *const char, data: **char, alloc: *const Allocator = defaultAllocator) : FileStatus { 
 
     var fp = fopen(fileName, "r")
     if(fp == null) {
@@ -62,7 +62,7 @@ public func ReadFile(fileName: char const*, data: char**, alloc: Allocator const
         return FileStatus.IOError;
     }
     
-    var buf = alloc.alloc(sizeof(:char) * (len as(u64) + 1_u64)) as (char*);
+    var buf = alloc.alloc(sizeof(:char) * (len as(u64) + 1_u64)) as (*char);
     (*data) = buf;
 
     // stupid Windows and /r/n, the newLen will be different than that of ftell
@@ -76,7 +76,7 @@ public func ReadFile(fileName: char const*, data: char**, alloc: Allocator const
 
 }
 
-public func WriteFile(fileName: char const*, buffer: char const*, len: u64) : FileStatus {
+public func WriteFile(fileName: *const char, buffer: *const char, len: u64) : FileStatus {
     var fp = fopen(fileName, "w")
     if(fp == null) {
         return FileStatus.FileNotFoundError;
@@ -86,8 +86,8 @@ public func WriteFile(fileName: char const*, buffer: char const*, len: u64) : Fi
     return WriteBytes(fp, buffer, len)
 }
 
-public func WriteBytes(fp: FILE*, buffer: char const*, len: u64) : FileStatus {    
-    var bytesWritten = fwrite(buffer as (void const*), sizeof(:char), len, fp)
+public func WriteBytes(fp: *FILE, buffer: *const char, len: u64) : FileStatus {    
+    var bytesWritten = fwrite(buffer as (*const void), sizeof(:char), len, fp)
     if(bytesWritten != len) {
         return FileStatus.IOError;
     }

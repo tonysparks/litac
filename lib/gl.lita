@@ -304,13 +304,13 @@ public func glColor4x(_0: GLfixed, _1: GLfixed, _2: GLfixed, _3: GLfixed) : void
 public func glColorMask(_0: GLboolean, _1: GLboolean, _2: GLboolean, _3: GLboolean) : void;
 
 @foreign
-public func glColorPointer(_0: GLint, _1: GLenum, _2: GLsizei, _3: GLvoid const*) : void;
+public func glColorPointer(_0: GLint, _1: GLenum, _2: GLsizei, _3: *const GLvoid) : void;
 
 @foreign
-public func glCompressedTexImage2D(_0: GLenum, _1: GLint, _2: GLenum, _3: GLsizei, _4: GLsizei, _5: GLint, _6: GLsizei, _7: GLvoid const*) : void;
+public func glCompressedTexImage2D(_0: GLenum, _1: GLint, _2: GLenum, _3: GLsizei, _4: GLsizei, _5: GLint, _6: GLsizei, _7: *const GLvoid) : void;
 
 @foreign
-public func glCompressedTexSubImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLint, _4: GLsizei, _5: GLsizei, _6: GLenum, _7: GLsizei, _8: GLvoid const*) : void;
+public func glCompressedTexSubImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLint, _4: GLsizei, _5: GLsizei, _6: GLenum, _7: GLsizei, _8: *const GLvoid) : void;
 
 @foreign
 public func glCopyTexImage2D(_0: GLenum, _1: GLint, _2: GLenum, _3: GLint, _4: GLint, _5: GLsizei, _6: GLsizei, _7: GLint) : void;
@@ -322,7 +322,7 @@ public func glCopyTexSubImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLint, _4:
 public func glCullFace(_0: GLenum) : void;
 
 @foreign
-public func glDeleteTextures(_0: GLsizei, _1: GLuint const*) : void;
+public func glDeleteTextures(_0: GLsizei, _1: *const GLuint) : void;
 
 @foreign
 public func glDepthFunc(_0: GLenum) : void;
@@ -346,7 +346,7 @@ public func glDisableClientState(_0: GLenum) : void;
 public func glDrawArrays(_0: GLenum, _1: GLint, _2: GLsizei) : void;
 
 @foreign
-public func glDrawElements(_0: GLenum, _1: GLsizei, _2: GLenum, _3: GLvoid const*) : void;
+public func glDrawElements(_0: GLenum, _1: GLsizei, _2: GLenum, _3: *const GLvoid) : void;
 
 @foreign
 public func glEnable(_0: GLenum) : void;
@@ -364,13 +364,13 @@ public func glFlush() : void;
 public func glFogf(_0: GLenum, _1: GLfloat) : void;
 
 @foreign
-public func glFogfv(_0: GLenum, _1: GLfloat const*) : void;
+public func glFogfv(_0: GLenum, _1: *const GLfloat) : void;
 
 @foreign
 public func glFogx(_0: GLenum, _1: GLfixed) : void;
 
 @foreign
-public func glFogxv(_0: GLenum, _1: GLfixed const*) : void;
+public func glFogxv(_0: GLenum, _1: *const GLfixed) : void;
 
 @foreign
 public func glFrontFace(_0: GLenum) : void;
@@ -382,16 +382,16 @@ public func glFrustumf(_0: GLfloat, _1: GLfloat, _2: GLfloat, _3: GLfloat, _4: G
 public func glFrustumx(_0: GLfixed, _1: GLfixed, _2: GLfixed, _3: GLfixed, _4: GLfixed, _5: GLfixed) : void;
 
 @foreign
-public func glGenTextures(_0: GLsizei, _1: GLuint*) : void;
+public func glGenTextures(_0: GLsizei, _1: *GLuint) : void;
 
 @foreign
 public func glGetError() : GLenum;
 
 @foreign
-public func glGetIntegerv(_0: GLenum, _1: GLint*) : void;
+public func glGetIntegerv(_0: GLenum, _1: *GLint) : void;
 
 @foreign
-public func glGetString(_0: GLenum) : GLubyte const*;
+public func glGetString(_0: GLenum) : *const GLubyte;
 
 @foreign
 public func glHint(_0: GLenum, _1: GLenum) : void;
@@ -400,25 +400,25 @@ public func glHint(_0: GLenum, _1: GLenum) : void;
 public func glLightModelf(_0: GLenum, _1: GLfloat) : void;
 
 @foreign
-public func glLightModelfv(_0: GLenum, _1: GLfloat const*) : void;
+public func glLightModelfv(_0: GLenum, _1: *const GLfloat) : void;
 
 @foreign
 public func glLightModelx(_0: GLenum, _1: GLfixed) : void;
 
 @foreign
-public func glLightModelxv(_0: GLenum, _1: GLfixed const*) : void;
+public func glLightModelxv(_0: GLenum, _1: *const GLfixed) : void;
 
 @foreign
 public func glLightf(_0: GLenum, _1: GLenum, _2: GLfloat) : void;
 
 @foreign
-public func glLightfv(_0: GLenum, _1: GLenum, _2: GLfloat const*) : void;
+public func glLightfv(_0: GLenum, _1: GLenum, _2: *const GLfloat) : void;
 
 @foreign
 public func glLightx(_0: GLenum, _1: GLenum, _2: GLfixed) : void;
 
 @foreign
-public func glLightxv(_0: GLenum, _1: GLenum, _2: GLfixed const*) : void;
+public func glLightxv(_0: GLenum, _1: GLenum, _2: *const GLfixed) : void;
 
 @foreign
 public func glLineWidth(_0: GLfloat) : void;
@@ -430,10 +430,10 @@ public func glLineWidthx(_0: GLfixed) : void;
 public func glLoadIdentity() : void;
 
 @foreign
-public func glLoadMatrixf(_0: GLfloat const*) : void;
+public func glLoadMatrixf(_0: *const GLfloat) : void;
 
 @foreign
-public func glLoadMatrixx(_0: GLfixed const*) : void;
+public func glLoadMatrixx(_0: *const GLfixed) : void;
 
 @foreign
 public func glLogicOp(_0: GLenum) : void;
@@ -442,22 +442,22 @@ public func glLogicOp(_0: GLenum) : void;
 public func glMaterialf(_0: GLenum, _1: GLenum, _2: GLfloat) : void;
 
 @foreign
-public func glMaterialfv(_0: GLenum, _1: GLenum, _2: GLfloat const*) : void;
+public func glMaterialfv(_0: GLenum, _1: GLenum, _2: *const GLfloat) : void;
 
 @foreign
 public func glMaterialx(_0: GLenum, _1: GLenum, _2: GLfixed) : void;
 
 @foreign
-public func glMaterialxv(_0: GLenum, _1: GLenum, _2: GLfixed const*) : void;
+public func glMaterialxv(_0: GLenum, _1: GLenum, _2: *const GLfixed) : void;
 
 @foreign
 public func glMatrixMode(_0: GLenum) : void;
 
 @foreign
-public func glMultMatrixf(_0: GLfloat const*) : void;
+public func glMultMatrixf(_0: *const GLfloat) : void;
 
 @foreign
-public func glMultMatrixx(_0: GLfixed const*) : void;
+public func glMultMatrixx(_0: *const GLfixed) : void;
 
 @foreign
 public func glMultiTexCoord4f(_0: GLenum, _1: GLfloat, _2: GLfloat, _3: GLfloat, _4: GLfloat) : void;
@@ -472,7 +472,7 @@ public func glNormal3f(_0: GLfloat, _1: GLfloat, _2: GLfloat) : void;
 public func glNormal3x(_0: GLfixed, _1: GLfixed, _2: GLfixed) : void;
 
 @foreign
-public func glNormalPointer(_0: GLenum, _1: GLsizei, _2: GLvoid const*) : void;
+public func glNormalPointer(_0: GLenum, _1: GLsizei, _2: *const GLvoid) : void;
 
 @foreign
 public func glOrthof(_0: GLfloat, _1: GLfloat, _2: GLfloat, _3: GLfloat, _4: GLfloat, _5: GLfloat) : void;
@@ -502,7 +502,7 @@ public func glPopMatrix() : void;
 public func glPushMatrix() : void;
 
 @foreign
-public func glReadPixels(_0: GLint, _1: GLint, _2: GLsizei, _3: GLsizei, _4: GLenum, _5: GLenum, _6: GLvoid*) : void;
+public func glReadPixels(_0: GLint, _1: GLint, _2: GLsizei, _3: GLsizei, _4: GLenum, _5: GLenum, _6: *GLvoid) : void;
 
 @foreign
 public func glRotatef(_0: GLfloat, _1: GLfloat, _2: GLfloat, _3: GLfloat) : void;
@@ -538,22 +538,22 @@ public func glStencilMask(_0: GLuint) : void;
 public func glStencilOp(_0: GLenum, _1: GLenum, _2: GLenum) : void;
 
 @foreign
-public func glTexCoordPointer(_0: GLint, _1: GLenum, _2: GLsizei, _3: GLvoid const*) : void;
+public func glTexCoordPointer(_0: GLint, _1: GLenum, _2: GLsizei, _3: *const GLvoid) : void;
 
 @foreign
 public func glTexEnvf(_0: GLenum, _1: GLenum, _2: GLfloat) : void;
 
 @foreign
-public func glTexEnvfv(_0: GLenum, _1: GLenum, _2: GLfloat const*) : void;
+public func glTexEnvfv(_0: GLenum, _1: GLenum, _2: *const GLfloat) : void;
 
 @foreign
 public func glTexEnvx(_0: GLenum, _1: GLenum, _2: GLfixed) : void;
 
 @foreign
-public func glTexEnvxv(_0: GLenum, _1: GLenum, _2: GLfixed const*) : void;
+public func glTexEnvxv(_0: GLenum, _1: GLenum, _2: *const GLfixed) : void;
 
 @foreign
-public func glTexImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLsizei, _4: GLsizei, _5: GLint, _6: GLenum, _7: GLenum, _8: GLvoid const*) : void;
+public func glTexImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLsizei, _4: GLsizei, _5: GLint, _6: GLenum, _7: GLenum, _8: *const GLvoid) : void;
 
 @foreign
 public func glTexParameterf(_0: GLenum, _1: GLenum, _2: GLfloat) : void;
@@ -562,7 +562,7 @@ public func glTexParameterf(_0: GLenum, _1: GLenum, _2: GLfloat) : void;
 public func glTexParameterx(_0: GLenum, _1: GLenum, _2: GLfixed) : void;
 
 @foreign
-public func glTexSubImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLint, _4: GLsizei, _5: GLsizei, _6: GLenum, _7: GLenum, _8: GLvoid const*) : void;
+public func glTexSubImage2D(_0: GLenum, _1: GLint, _2: GLint, _3: GLint, _4: GLsizei, _5: GLsizei, _6: GLenum, _7: GLenum, _8: *const GLvoid) : void;
 
 @foreign
 public func glTranslatef(_0: GLfloat, _1: GLfloat, _2: GLfloat) : void;
@@ -571,7 +571,7 @@ public func glTranslatef(_0: GLfloat, _1: GLfloat, _2: GLfloat) : void;
 public func glTranslatex(_0: GLfixed, _1: GLfixed, _2: GLfixed) : void;
 
 @foreign
-public func glVertexPointer(_0: GLint, _1: GLenum, _2: GLsizei, _3: GLvoid const*) : void;
+public func glVertexPointer(_0: GLint, _1: GLenum, _2: GLsizei, _3: *const GLvoid) : void;
 
 @foreign
 public func glViewport(_0: GLint, _1: GLint, _2: GLsizei, _3: GLsizei) : void;
