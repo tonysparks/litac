@@ -1853,7 +1853,7 @@ public class TypeResolver {
                 // Determine if we need to promote the object to a
                 // pointer depending on what the method is expecting as an
                 // argument
-                if(TypeInfo.isPtrAggregate(paramInfo) && !TypeInfo.isPtrAggregate(argInfo)) {
+                if(TypeInfo.isPtrAggregate(paramInfo) && (!TypeInfo.isPtrAggregate(argInfo) && !argInfo.isKind(TypeKind.Null))) {
                     // Can't take the address of an R-Value; TODO: this should be expr.operand.isRvalue
                     // But the isLeftValue isn't working correctly atm
                     //if(!argExpr.getResolvedType().isLeftValue) {

@@ -527,7 +527,7 @@
                 
             ''',                       
             code: '''                   
-                var s: *char = "hi";
+                var s: *char = []char {'h', 'i', '\0'};
                 assert(s != null)
                 assert(s[0] == 'h')
                 assert(s[1] == 'i')
@@ -549,6 +549,24 @@
                 var integer2 = 8
                 
                 i = &integer2*/
+            ''',                    
+        },
+        
+        {
+            name: "Function Pointer Promotion",
+            definitions: '''
+                struct Test {
+                    a: i32
+                }
+                func test(a: *Test) : i32 {
+                    if(a) return a.a;
+                    return -1;
+                }
+            ''',                       
+            code: '''                   
+                var t = Test { 4 };
+                assert(test(t) == 4)
+                assert(test(null) == -1)
             ''',                    
         },
         

@@ -227,7 +227,15 @@ public abstract class TypeInfo {
     
     public static boolean isPtrAggregate(TypeInfo type) {        
         if(isPtr(type)) {
-            PtrTypeInfo ptrInfo = type.as();
+            PtrTypeInfo ptrInfo = null;
+            if(type.isKind(TypeKind.Const)) {
+                ConstTypeInfo constInfo = type.as();
+                ptrInfo = constInfo.constOf.as();
+            }
+            else {
+                ptrInfo = type.as();
+            }
+            
             return isAggregate(ptrInfo.ptrOf);
         }
         return false;

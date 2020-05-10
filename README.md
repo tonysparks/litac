@@ -15,7 +15,7 @@ The syntax:
 ```C
 import "io"
 
-func main(len:i32, args:char**):i32 {
+func main(len:i32, args:**char):i32 {
     printf("Hello World")
 }
 ```
@@ -35,7 +35,48 @@ func main(len:i32, args:char**):i32 {
 
 # Types
 
+**Primitive Types**
 
+* bool
+* u8
+* i8
+* u16
+* i16
+* u32
+* i32
+* u64
+* i64
+* f32
+* f64
+
+**Pointers**
+
+Pointers are defined slightly different than C:
+```C
+// in C this is char* str = (char[3]){'h','i','\0'}, a mutable pointer to mutable values
+var str: *char = []char {'h', 'i', '\0'};
+
+// in C this is const char* str2, a mutable pointer to an immutable value
+var str2: *const char = "Hi";
+
+// in C this is const char* const str3, an immutable pointer to an immutable value
+var str3: const* const char = "Hi";
+```
+
+**Arrays**
+
+TODO
+
+**Structures**
+
+```C
+struct Person {
+    age: i32
+    name: *const char
+}
+```
+
+**Full Examples**
 ```C
 // imports a module, namespace it with adding "as io", otherwise the public attributes
 // will be placed in this modules scope
@@ -63,7 +104,7 @@ struct X {
     }
 }
 
-func main(len:i32, args:char**):i32 {
+func main(len:i32, args:**char):i32 {
     // the io:: namespaces the function
     io::printf("Just because you are paranoid, don't mean their not after you\n") 
     
@@ -117,7 +158,7 @@ func main(len:i32, args:char**):i32 {
 ```C
 import "io" // place io public types in this scope
 
-func main(len:i32, args:char**):i32 {
+func main(len:i32, args:**char):i32 {
     if (true) {
         defer printf("there\n") // will execute at the end of this scope
         printf("Hi")
@@ -195,7 +236,7 @@ func Vec2Add<T>(a: Vec2<T>, b: Vec2<T>, out: Vec2<T>) : Vec2<T> {
 typedef Vec2<i32> as Vec2i
 
 
-func main(len:i32, args:char**):i32 {
+func main(len:i32, args:**char):i32 {
     // 
     var origin = Vec2<f32> { 0.0, 0.0 }  // using generics syntax
     var vel    = Vec2i { 0,0 }           // using the alias
@@ -225,7 +266,7 @@ func (v: Vec2) add(other: Vec2) : Vec2 {
     return Vec2 { v.x + other.x, v.y + other.y }
 }
 
-func main(len:i32, args:char**) : i32 {
+func main(len:i32, args:**char) : i32 {
     var origin = Vec2{0,0}
     
     // method syntax sugar

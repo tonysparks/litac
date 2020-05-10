@@ -64,9 +64,9 @@
 @foreign public func strcmp(a: *const char, b: *const char) : i32;
 @foreign public func snprintf(s: *char, n: u64, format: *const char, ...): i32;
 @foreign public func strtok(str: *char, delim: *const char) : *char;
-@foreign public func strtol(str: *const char, end: *char, base: i32) : i64;
-@foreign public func strtoul(str: *const char, end: *char, base: i32) : u64;
-@foreign public func strtod(str: *const char, end: *char) : f64;
+@foreign public func strtol(str: *const char, end: **char, base: i32) : i64;
+@foreign public func strtoul(str: *const char, end: **char, base: i32) : u64;
+@foreign public func strtod(str: *const char, end: **char) : f64;
 @foreign public const HUGE_VAL: f64;
 @foreign public const ULLONG_MAX: i64;
 @foreign public func isdigit(arg: i32) : i32;
