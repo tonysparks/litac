@@ -14,6 +14,8 @@ import litac.ast.NodeVisitor.AbstractNodeVisitor;
 import litac.ast.Stmt.ImportStmt;
 import litac.ast.Stmt.ModuleStmt;
 import litac.parser.*;
+import litac.util.*;
+import litac.util.Profiler.Segment;
 
 /**
  * @author Tony
@@ -66,23 +68,30 @@ public class CompilationUnit {
      */
     public static CompilationUnit modules(LitaOptions options, File moduleFile, PhaseResult result) throws IOException {   
         
+        Segment sc = Profiler.startSegment("Setup");
+        
+        Segment s3 = Profiler.startSegment("Builtin");
         ModuleId builtinId = ModuleId.fromDirectory(options.libDir, "builtins");
         ModuleStmt builtin = readModule(options, builtinId.moduleFile, result);
+        s3.close();
+        Segment s2 = Profiler.startSegment("Main");
         ModuleStmt main = readModule(options, moduleFile, result);
+        s2.close();
         
         main.imports.add(new ImportStmt("builtins", null, builtinId, false));
      
         if(options.outputType == OutputType.Test) {
             importTestModules(options, main);
         }
+        sc.close();
         
-        
+        try(Segment s = Profiler.startSegment("Visitor")) {
         CompilationUnit unit = new CompilationUnit(builtin, main);
         
         CompilationUnitNodeVisitor visitor = new CompilationUnitNodeVisitor(options, unit, result);
         visitor.visit(main);
         visitor.visit(builtin);
-        return unit;
+        return unit;}
     }
     
     private static void importTestModules(LitaOptions options, ModuleStmt module) {
@@ -103,8 +112,8 @@ public class CompilationUnit {
             throw new FileNotFoundException(moduleFile.getAbsolutePath());
         }
         
-        Source source = new Source(moduleFile, new FileReader(moduleFile));                                    
-        Parser parser = new Parser(options, result, new Scanner(source));
+        Source source = new Source(moduleFile, new MemoryMapReader(moduleFile));                                    
+        Parser parser = new Parser(options, result, new Scanner(source));        
         ModuleStmt module = parser.parseModule();
         
         return module;                       
@@ -126,8 +135,8 @@ public class CompilationUnit {
         public void visit(ModuleStmt stmt) {
             for(ImportStmt imp : stmt.imports) {
                 ModuleStmt module = loadModule(imp);
-                if(module != null) {
-                    module.visit(this);
+                if(module != null) {                    
+                    visit(module);
                 }
             }
         }
@@ -139,7 +148,7 @@ public class CompilationUnit {
                 return null;                
             }
             
-            try {
+            try {                
                 ModuleStmt module = readModule(this.options, moduleId.moduleFile, this.result);
                 this.unit.imports.put(moduleId, module);
                 return module;

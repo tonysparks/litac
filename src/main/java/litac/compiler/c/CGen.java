@@ -734,7 +734,7 @@ public class CGen {
     
     
     private String prefix(String name) {
-        return String.format("%s%s", this.options.symbolPrefix, name);
+        return this.options.symbolPrefix + name;
     }
     
     private String cTypeName(TypeInfo type) {
@@ -845,7 +845,7 @@ public class CGen {
             writtenModules.add(stmt.id.fullModuleName);
             
             for(ImportStmt i : stmt.imports) {
-                i.visit(this);
+                visit(i);
             }
             
             declarations.addAll(stmt.declarations);
@@ -858,7 +858,7 @@ public class CGen {
             }
             
             ModuleStmt module = unit.getModule(stmt.moduleId);
-            module.visit(this);
+            visit(module);
         }
     
         @Override

@@ -5,6 +5,7 @@ package litac.lsp;
 
 import java.io.*;
 import java.net.URI;
+import java.nio.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,6 +20,7 @@ import litac.compiler.*;
 import litac.lsp.JsonRpc.*;
 import litac.parser.*;
 import litac.parser.Scanner;
+import litac.util.MemoryMapReader;
 import litac.compiler.Module;
 
 /**
@@ -163,8 +165,13 @@ public class Workspace {
             return null;
         }
         
-        Source source = new Source(new File(physicalFileName != null ? physicalFileName : "<unknown>"), new StringReader(text));                                    
+        File moduleFile = new File(physicalFileName != null ? physicalFileName : "<unknown>");
+        byte[] bytes = text.getBytes();
+        MemoryMapReader reader = new MemoryMapReader(ByteBuffer.wrap(bytes, 0, bytes.length));
+        
+        Source source = new Source(moduleFile, reader);                                    
         Parser parser = new Parser(this.options, result, new Scanner(source));
+        
         ModuleStmt module = parser.parseModule();
         importAssertModule(module);
         

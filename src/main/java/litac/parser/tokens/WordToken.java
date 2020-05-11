@@ -19,17 +19,10 @@ public class WordToken extends Token {
      * @return true if valid identifier character
      */
     public static final boolean isValidIdentifierCharacter(char c) {
-        boolean isValid = Character.isLetterOrDigit(c);
-        if ( !isValid ) {
-            switch(c) {
-            //case '$':
-            case '_':
-                isValid = true;
-                break;
-            }
-        }
-
-        return isValid;
+        return (c >= '0' && c <= '9') || 
+               (c >= 'A' && c <= 'Z') ||
+               (c >= 'a' && c <= 'z') ||
+               (c == '_');
     }
 
     /**
@@ -39,17 +32,9 @@ public class WordToken extends Token {
      * @return true if valid
      */
     public static final boolean isValidStartIdentifierCharacter(char c) {
-        boolean isValid = Character.isLetter(c);
-        if ( !isValid ) {
-            switch(c) {
-            //case '$':
-            case '_':
-                isValid = true;
-                break;
-            }
-        }
-
-        return isValid;
+        return (c >= 'A' && c <= 'Z') ||
+               (c >= 'a' && c <= 'z') ||
+               (c == '_');
     }
 
     /**
@@ -60,7 +45,7 @@ public class WordToken extends Token {
     }
 
     /**
-     * Extract a Leola word token from the source.
+     * Extract a LitaC word token from the source.
      */
     @Override
     protected void extract() {

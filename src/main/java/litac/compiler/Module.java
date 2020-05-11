@@ -98,13 +98,25 @@ public class Module {
         this.currentScope = this.moduleScope;
     }
     
-    private void addSymbol(Symbol sym) {        
+    private void addSymbol(Symbol sym) {
+        int size = this.symbols.size();
+        for(int i = 0; i < size; i++) {
+            Symbol s = this.symbols.get(i);
+            if(s.name.equals(sym.name) && (sym.decl == s.decl || s.isBuiltin())) {
+                return;
+            }
+        }
+        this.symbols.add(sym);
+        
+        /*
         if(!this.symbols.stream()
                         .anyMatch(s -> {                            
                             return sym.name.equals(s.name) && (sym.decl == s.decl || s.isBuiltin());
                         })) {
+         
+            
             this.symbols.add(sym);
-        }
+        }*/
     }
 
     @Override
@@ -193,12 +205,21 @@ public class Module {
                 }
             }
             
+            List<Symbol> symbols = new ArrayList<>(module.currentScope().getSymbols());
+            int size = symbols.size();
+            for(int i = 0; i < size; i++) {
+                Symbol s = symbols.get(i);
+                if(s.decl.attributes.isPublic && module.isSymbolOwned(s)) {
+                    this.currentScope.addSymbol(alias, s);
+                }
+            }
 
+            /*
             module.currentScope().getSymbols()
                                  .stream()
                                  .filter(s -> s.decl.attributes.isPublic &&
                                               module.isSymbolOwned(s))
-                                 .forEach(s -> currentScope().addSymbol(alias, s));
+                                 .forEach(s -> currentScope().addSymbol(alias, s));*/
         }
         else {
             this.imports.put(module.id.fullModuleName, module);
@@ -228,11 +249,21 @@ public class Module {
                 }                
             }
             
+            /*
             module.currentScope().getSymbols()
                                  .stream()
                                  .filter(s -> s.decl.attributes.isPublic && 
                                               module.isSymbolOwned(s))
-                                 .forEach(s -> currentScope().addSymbol(s));
+                                 .forEach(s -> currentScope().addSymbol(s));*/
+            
+            List<Symbol> symbols = new ArrayList<>(module.currentScope().getSymbols());
+            int size = symbols.size();
+            for(int i = 0; i < size; i++) {
+                Symbol s = symbols.get(i);
+                if(s.decl.attributes.isPublic && module.isSymbolOwned(s)) {
+                    this.currentScope.addSymbol(s);
+                }
+            }
             
             for(Entry<String, Symbol> typeEntry: module.foreignTypes.entrySet()) {
                 Symbol type = typeEntry.getValue();
@@ -267,7 +298,20 @@ public class Module {
      * @return true if the supplied symbol is owned by this module
      */
     public boolean isSymbolOwned(Symbol sym) {
-        return sym.declared == this || this.usingImports.stream().anyMatch(m -> m.isSymbolOwned(sym));
+        //return sym.declared == this || this.usingImports.stream().anyMatch(m -> m.isSymbolOwned(sym));
+        if(sym.declared == this) {
+            return true;
+        }
+        
+        int size = this.usingImports.size();
+        for(int i = 0; i < size; i++) {
+            Module m = this.usingImports.get(i);
+            if(m.isSymbolOwned(sym)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     public List<NoteStmt> getNotes() {

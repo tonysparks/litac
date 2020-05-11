@@ -107,7 +107,8 @@ public class Buf {
         this.formatSb.setLength(0);
         this.formatter.format(message, args);
         
-        for(int i = 0; i < this.formatSb.length(); i++) {
+        int size = this.formatSb.length();
+        for(int i = 0; i < size; i++) {
             char c = formatSb.charAt(i);
             if(c == '\n') {
                 outln();

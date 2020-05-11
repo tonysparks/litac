@@ -6,6 +6,7 @@ import java.util.List;
 
 import litac.parser.tokens.ErrorToken;
 import litac.parser.tokens.Token;
+import litac.util.MemoryMapReader;
 
 
 /**
@@ -22,7 +23,7 @@ public class Source implements AutoCloseable {
 
     private final Token errorToken;
     
-    private BufferedReader reader; // reader for the source program
+    private MemoryMapReader reader; // reader for the source program
     private String line; // source line
     private int lineNum; // current source line number
     private int currentPos; // current source line position
@@ -39,14 +40,13 @@ public class Source implements AutoCloseable {
      * @throws IOException
      *             if an I/O error occurred
      */
-    public Source(File sourceFile, Reader reader) {
+    public Source(File sourceFile, MemoryMapReader reader) {
         this.sourceFile = sourceFile;
         this.sourceName = sourceFile.getName();
         this.lineNum = 0;
         this.currentPos = -2; // set to -2 to read the first source line
-        this.lines = new ArrayList<>();
-        this.reader = (reader instanceof BufferedReader) ? 
-                (BufferedReader)reader : new BufferedReader(reader);
+        this.lines = new ArrayList<>();        
+        this.reader = reader;
                 
         this.errorToken = new ErrorToken(this, ErrorCode.UNKNOWN_ERROR, "");
     }

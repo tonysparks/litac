@@ -8,10 +8,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import litac.parser.tokens.*;
+import litac.util.Profiler;
+import litac.util.Profiler.Segment;
 
 
 /**
- * A {@link Scanner} for the JSLT.  This will break up
+ * A {@link Scanner} for the LitaC.  This will break up
  * the source code into {@link Token} that will be used by the {@link Parser}
  * to make sense of.
  * 
@@ -28,12 +30,11 @@ public class Scanner {
     private Source source;
     
     /**
-     * Constructor
-     * 
      * @param source
      *            the source to be used with this scanner.
      */
     public Scanner(Source source) {
+        //try(Segment s = Profiler.startSegment("LX:" + source.getSourceName())) {
         this.source = source;
         this.tokens = new ArrayList<>();
         
@@ -44,7 +45,7 @@ public class Scanner {
         }
         finally {
             source.close();
-        }
+        }//}
     }
     
     /**

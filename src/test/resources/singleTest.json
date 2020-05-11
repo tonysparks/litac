@@ -520,7 +520,7 @@
                 s = "bye"
             ''',
             error: "can't reassign constant variable 's'"
-        },*/
+        },*//*
         {
             name: "New Pointer Syntax",
             definitions: '''
@@ -540,15 +540,7 @@
                 var z = 32
                 var csc: const* const i32 = &z
                 assert(csc != null)
-                assert(*csc == 32)
-                /*
-                var integer = 4
-                var i: const* i32 = &integer
-                var ip: * const i32 = &integer
-                
-                var integer2 = 8
-                
-                i = &integer2*/
+                assert(*csc == 32)            
             ''',                    
         },
         
@@ -568,6 +560,18 @@
                 assert(test(t) == 4)
                 assert(test(null) == -1)
             ''',                    
+        },*/
+        {
+            name: "Struct default values invalid type",
+            definitions: '''
+                struct X {
+                    a: *X = "hi"
+                }
+            ''',                       
+            code: '''   
+                                
+            ''',
+            error: "'*struct X' is not of type '*char'"            
         },
         
     ]

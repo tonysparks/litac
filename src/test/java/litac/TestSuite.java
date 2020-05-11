@@ -8,8 +8,7 @@ import java.nio.file.*;
 import java.util.*;
 
 import org.hjson.JsonValue;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -18,6 +17,8 @@ import static org.junit.Assert.*;
 import litac.LitaOptions.TypeInfoOption;
 import litac.compiler.PhaseResult;
 import litac.compiler.PhaseResult.PhaseError;
+import litac.util.Profiler;
+import litac.util.Profiler.Segment;
 
 /**
  * Runs a set of tests
@@ -54,15 +55,22 @@ public class TestSuite {
     public List<TestCase> tests;
     
     private int numberOfTestsRan;
+    private List<File> filesToBeDeleted = new ArrayList<>();
+    
+    @After
+    public void cleanup() {
+        for(File tmp : filesToBeDeleted) {
+            try {
+                Files.deleteIfExists(tmp.toPath());
+            }
+            catch(Exception e) {                
+            }
+        }
+    }
     
     private void runTestSuite(TestSuite suite, File outputDir, ByteArrayOutputStream errorStream) throws Exception {
         System.out.println("\n\n\n");
-        System.out.println("*******************************************");
-        System.out.println("*******************************************");
-        System.out.println("\n");
-        System.out.println("Running suite: " + suite.description);
-        System.out.println("\n");
-        System.out.println("*******************************************");
+        System.out.println("Running suite: " + suite.description);        
         System.out.println("*******************************************");
         
         if(suite.disabled) {
@@ -81,8 +89,8 @@ public class TestSuite {
             if(test.modules != null) {
                 for(TestModule tm : test.modules) {
                     File tmp = new File(outputDir, tm.name.replace(" ", "_") + ".lita");            
-                    Files.write(tmp.toPath(), tm.program.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    tmp.deleteOnExit();
+                    Files.write(tmp.toPath(), tm.program.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);                    
+                    filesToBeDeleted.add(tmp);
                 }
             }
             
@@ -92,7 +100,7 @@ public class TestSuite {
             
             File tmp = new File(outputDir, test.name.replace(" ", "_") + ".lita");            
             Files.write(tmp.toPath(), fullProgram.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            tmp.deleteOnExit();
+            filesToBeDeleted.add(tmp);
             
             try {                
                 LitaOptions options = new LitaOptions();
@@ -111,7 +119,7 @@ public class TestSuite {
                     options.cOptions.compileCmd = compileCmd;
                 }
                 
-                System.out.println("build command: '" + options.cOptions.compileCmd + "'");
+                //System.out.println("build command: '" + options.cOptions.compileCmd + "'");
                 //options.cOptions.compileCmd =
                 //        "clang.exe -g -fsanitize=undefined,address -o \"%output%\" \"%input%\" -D_CRT_SECURE_NO_WARNINGS";
                 //+= " -g -fsanitize=undefined,address ";
@@ -143,7 +151,7 @@ public class TestSuite {
                 assertTrue(e.getMessage().contains(test.error));
             }
             finally {
-                errorStream.reset();
+                errorStream.reset();                
             }
         }
     }
@@ -216,7 +224,7 @@ public class TestSuite {
     
     @Test
     public void fileTest() throws Exception {
-        singleFileTest("/readme.json");        
+        singleFileTest("/aggregates.json");        
     }
     
     
@@ -272,5 +280,107 @@ public class TestSuite {
             }            
         } 
         
+    }
+    
+    
+    @Test
+    public void profileTest() throws Exception {
+        int count = 1;//5_000;
+        
+        LitaOptions options = new LitaOptions();
+        options.buildFile = new File("C:\\Users\\antho\\git\\realm\\src\\main.lita");
+        options.cOnly = true;
+        options.debugMode = true;
+        options.outputDir = new File("C:\\Users\\antho\\eclipse-workspace\\litac\\output_tests");
+        options.profile = true;
+        for(int i = 0; i < count; i++) {
+            //System.out.println("Building instance: " + i);
+            //Segment s = Profiler.startSegment("Build #" + i);
+            PhaseResult result = LitaC.compile(options);
+            if(result.hasErrors()) {
+                for(PhaseError error : result.getErrors()) {
+                    Errors.typeCheckError(error.pos, error.message);
+                }            
+            } 
+            
+            printProfileResults();
+            //s.close();
+            Profiler.clear();
+            //long msec = s.getDeltaTimeNSec() / 1_000_000;
+            //System.out.printf("Building %s %d\n", s.name, msec);
+        }
+    }
+    
+    private static void printProfileResults() {
+        long totalTime = 0;
+        for(Segment s : Profiler.profiledSegments()) {
+            totalTime += s.getDeltaTimeNSec();                                     
+        }
+        
+        System.out.printf("\n");
+        System.out.printf("%-20s %-20s %10s\n", "Segment", "Time (NanoSec)", "% of Total");
+        System.out.printf("======================================================\n");
+        for(Segment s : Profiler.profiledSegments()) {
+            long delta = s.getDeltaTimeNSec();
+            int percentage = 0;
+            if(totalTime > 0) {
+                percentage = (int) (((double)delta / (double)totalTime) * 100);
+            }
+            
+            if(s.isTop) {
+                System.out.printf("%-20s %15d %10d%%\n", s.name, delta, percentage);
+            }
+            
+            if(s.children.isEmpty()) {
+                continue;
+            }
+            
+            long tt = 0;            
+            for(Segment c : s.children) {
+                tt += c.getDeltaTimeNSec();
+            }
+            
+            for(Segment c : s.children) {
+                long childDelta = c.getDeltaTimeNSec();
+                int childPercentage = 0;
+                if(tt > 0) {
+                    childPercentage = (int) (((double)childDelta / (double)tt) * 100);
+                }
+                
+                System.out.printf(" %-19s %15d %10d%%\n", c.name, childDelta, childPercentage);
+            }
+            
+            System.out.printf("%20s %15d ns (%d ms)\n", "Total Time:", tt, tt / 1_000_000);
+        }
+        
+        long totalTimeForLoad = 0;
+        for(Segment s : Profiler.profiledSegments()) {
+            if(!s.name.startsWith("LD:")) {
+                continue;
+            }
+            totalTimeForLoad += s.getDeltaTimeNSec();                        
+        }
+        
+        long totalTimeForParser = 0;
+        for(Segment s : Profiler.profiledSegments()) {
+            if(!s.name.startsWith("PR:")) {
+                continue;
+            }
+            totalTimeForParser += s.getDeltaTimeNSec();                        
+        }
+        
+        long totalTimeForLex = 0;
+        for(Segment s : Profiler.profiledSegments()) {
+            if(!s.name.startsWith("LX:")) {
+                continue;
+            }
+            totalTimeForLex += s.getDeltaTimeNSec();                        
+        }
+                
+        System.out.println();
+        System.out.printf("%20s %15d ns (%d ms)\n", "Total Time:", totalTime, totalTime / 1_000_000);
+        System.out.printf("%20s %15d ns (%d ms)\n", "Total Load Time:", totalTimeForLoad, totalTimeForLoad / 1_000_000);
+        System.out.printf("%20s %15d ns (%d ms)\n", "Total Parser Time:", totalTimeForParser, totalTimeForParser / 1_000_000);
+        System.out.printf("%20s %15d ns (%d ms)\n", "Total Lex Time:", totalTimeForLex, totalTimeForLex / 1_000_000);
     }
 }

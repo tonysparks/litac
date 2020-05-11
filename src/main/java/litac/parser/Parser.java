@@ -19,7 +19,8 @@ import litac.checker.TypeInfo.AggregateTypeInfo;
 import litac.compiler.*;
 import litac.generics.GenericParam;
 import litac.parser.tokens.*;
-import litac.util.Names;
+import litac.util.*;
+import litac.util.Profiler.Segment;
 
 
 /**
@@ -95,6 +96,7 @@ public class Parser {
      * @return the {@link ModuleStmt}
      */
     public ModuleStmt parseModule() {
+        //try(Segment s = Profiler.startSegment("PR:"+this.scanner.getSourceName())) {
         List<ImportStmt> imports = new ArrayList<>();
         List<NoteStmt> moduleNotes = new ArrayList<>();
         List<Decl> declarations = new ArrayList<>();
@@ -118,7 +120,7 @@ public class Parser {
         return new ModuleStmt(id,
                               imports, 
                               moduleNotes, 
-                              declarations).setSrcPos(pos, peekPos());
+                              declarations).setSrcPos(pos, peekPos()); //}
     }
     
     private void tryModuleStatement(List<ImportStmt> imports, 

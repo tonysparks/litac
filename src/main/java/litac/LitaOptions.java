@@ -82,6 +82,9 @@ public class LitaOptions {
     private boolean hasCustomSrcDir;
     private Preprocessor preprocessor;
     
+    private final String LITAC_HOME;
+    private final String LITAC_LIB;
+    
     public LitaOptions() {
         this(BackendType.C);
     }
@@ -98,9 +101,13 @@ public class LitaOptions {
         
         this.srcDir = wd;
         this.libDir = new File("./lib");
-        String path = System.getenv("LITAC_HOME");
-        if(path != null) {
-            this.libDir = new File(path, "lib");
+        this.LITAC_HOME = System.getenv("LITAC_HOME");
+        if(this.LITAC_HOME != null) {
+            this.LITAC_LIB = this.LITAC_HOME + "/lib";
+            this.libDir = new File(this.LITAC_HOME, "lib");
+        }
+        else {
+            this.LITAC_LIB = "";
         }
         
         this.targetOS = OS.getOS();
@@ -117,13 +124,10 @@ public class LitaOptions {
         this.outputDocDir = new File(wd, "output");
         
         this.cOptions = type == BackendType.C ? new CTranspiler.COptions(this) : null;
+        this.preprocessor = new LeolaPreprocessor(this);
     }
     
-    public Preprocessor preprocessor() {
-        if(this.preprocessor == null) {
-            this.preprocessor = new LeolaPreprocessor(this);
-        }
-        
+    public Preprocessor preprocessor() {        
         return this.preprocessor;
     }
     
@@ -139,10 +143,9 @@ public class LitaOptions {
         File importFile = new File(srcDir, fileName);
         if(!importFile.exists()) {
             importFile = new File(this.libDir, fileName);
-            if(!importFile.exists()) {
-                String path = System.getenv("LITAC_HOME");                
-                if(path != null) {
-                    importFile = new File(path + "/lib", fileName);                
+            if(!importFile.exists()) {                               
+                if(this.LITAC_HOME != null) {
+                    importFile = new File(this.LITAC_LIB, fileName);                
                 }
             }
         }

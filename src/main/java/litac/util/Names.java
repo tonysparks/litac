@@ -118,15 +118,18 @@ public class Names {
     public static String escapeName(TypeInfo type) {
         if(TypeInfo.isAggregate(type)) {
             return escapeName(type.getName());
+            //return type.getName() + "_" + type.getTypeId();
         }
         
         if(TypeInfo.isFunc(type)) {
             if(type.isKind(TypeKind.Func)) {
                 FuncTypeInfo funcInfo = type.as();
-                return escapeName(funcInfo.getMethodName());    
+                return escapeName(funcInfo.getMethodName());
+                //return funcInfo.getMethodName() + "_" + type.getTypeId();
             }
             
             return escapeName(type.getName());
+            //return type.getName() + "_" + type.getTypeId();
         }
         
         return type.getName();
@@ -157,7 +160,42 @@ public class Names {
     }
     
     public static String escapeName(String name) {
-        return name
+        StringBuilder sb = new StringBuilder(name);
+        for(int i = 0; i < sb.length();) {
+            char c = sb.charAt(i);
+            switch(c) {
+                case '*': sb.replace(i, i+1, "_ptr_");i+=6; break;
+                case '<': sb.replace(i, i+1, "_cb_"); i+=4; break;
+                case '>': sb.replace(i, i+1, "_ce_"); i+=4; break;
+                case '[': sb.replace(i, i+1, "_bb_"); i+=4; break;
+                case ']': sb.replace(i, i+1, "_be_"); i+=4; break;
+                case '(': sb.replace(i, i+1, "_pb_"); i+=4; break;
+                case ')': sb.replace(i, i+1, "_pe_"); i+=4; break;
+                case ',': sb.replace(i, i+1, "_c_");  i+=3; break;
+                case ' ': sb.replace(i, i+1, "_");    i+=1; break;
+                case ':': {
+                    int n = i + 1;
+                    if(n < sb.length()) {
+                        char nc = sb.charAt(n);
+                        if(nc == ':') {
+                            sb.replace(i, i+1, "__");
+                            i+=2;
+                            break;        
+                        }
+                    }
+                    
+                    sb.replace(i, i+1, "_r_");
+                    i+=3;
+                    break;
+                }
+                default: {
+                    i++;
+                    break;
+                }
+            }
+        }
+        return sb.toString();
+        /*return name
                 .replace("::", "__")
                 .replace("*", "_ptr_")
                 .replace("<", "_cb_")
@@ -168,7 +206,46 @@ public class Names {
                 .replace(")", "_pe_")
                 .replace(":", "_r_")
                 .replace(",", "_c_")
-                .replace(" ", "_");
+                .replace(" ", "_");*/
+        /*
+        name = replace(name, "::", "__");
+        name = replace(name, "*", "_ptr_");
+        name = replace(name, "<", "_cb_");
+        name = replace(name, ">", "_ce_");
+        name = replace(name, "[", "_bb_");
+        name = replace(name, "]", "_be_");
+        name = replace(name, "(", "_pb_");
+        name = replace(name, ")", "_pe_");
+        name = replace(name, ":", "_r_");
+        name = replace(name, ",", "_c_");
+        name = replace(name, " ", "_");
+        return name;*/
+    }
+    
+    public static String replace(String source, String os, String ns) {
+        if (source == null) {
+            return null;
+        }
+        int i = 0;
+        if ((i = source.indexOf(os, i)) >= 0) {
+            char[] sourceArray = source.toCharArray();
+            char[] nsArray = ns.toCharArray();
+            int oLength = os.length();
+            StringBuilder buf = new StringBuilder(sourceArray.length);
+            buf.append(sourceArray, 0, i).append(nsArray);
+            i += oLength;
+            int j = i;
+            // Replace all remaining instances of oldString with newString.
+            while ((i = source.indexOf(os, i)) > 0) {
+                buf.append(sourceArray, j, i - j).append(nsArray);
+                i += oLength;
+                j = i;
+            }
+            buf.append(sourceArray, j, sourceArray.length - j);
+            source = buf.toString();
+            buf.setLength(0);
+        }
+        return source;
     }
     
     public static String methodName(TypeInfo recvInfo, String funcName) {

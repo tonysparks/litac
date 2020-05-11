@@ -16,15 +16,28 @@ public class Profiler {
         public final String name;
         private long startTime;
         private long endTime;
+        public List<Segment> children;
+        public boolean isTop;
         
         Segment(String name) {
             this.name = name;
+            this.children = new ArrayList<>();
+            this.isTop = false;
+        }
+        
+        public void start() {           
             this.startTime = System.nanoTime();
         }
         
         @Override
-        public void close() {        
+        public void close() { 
             this.endTime = System.nanoTime();
+            
+            if(!segments.isEmpty()) {
+                if(segments.peek() == this) {
+                    segments.pop();
+                }
+            }
             profiled.add(this);
         }
         
@@ -54,7 +67,14 @@ public class Profiler {
     
     public static Segment startSegment(String segmentName) {
         Segment s = new Segment(segmentName);
-        //segments.push(s);
+        if(segments.isEmpty()) {
+            s.isTop = true;
+            segments.push(s);
+        }
+        else {
+            segments.peek().children.add(s);
+        }
+        s.start();
         return s;
     }
     
