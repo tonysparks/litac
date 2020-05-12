@@ -521,6 +521,8 @@
             ''',
             error: "can't reassign constant variable 's'"
         },*/
+        
+        /*
         {
             name: "New Pointer Syntax",
             definitions: '''
@@ -541,14 +543,14 @@
                 var csc: const* const i32 = &z
                 assert(csc != null)
                 assert(*csc == 32)
-                /*
-                var integer = 4
-                var i: const* i32 = &integer
-                var ip: * const i32 = &integer
                 
-                var integer2 = 8
+                //var integer = 4
+                //var i: const* i32 = &integer
+                //var ip: * const i32 = &integer
                 
-                i = &integer2*/
+                //var integer2 = 8
+                
+                //i = &integer2
             ''',                    
         },
         
@@ -569,6 +571,36 @@
                 assert(test(null) == -1)
             ''',                    
         },
+        */
         
+        {
+            name: "Parsing Errors",
+            definitions: '''
+                struct Test {
+                    a: i32
+                }
+                func test(a: *Test) : i32 {
+                    ~
+                    if(a) return a.a;
+                    return -1;
+                }
+                func mult() {
+                    //3$%
+                    x !$ x
+                    if(true) {
+                        something()
+                    }
+                    else 
+                    {
+                        other
+                    }
+                    return true
+                }
+            ''',                       
+            code: '''                   
+                
+            ''',
+            error: "Unexpected token"                    
+        },
     ]
 }

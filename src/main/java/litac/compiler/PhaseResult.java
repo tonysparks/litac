@@ -79,6 +79,10 @@ public class PhaseResult {
         this.errors.addAll(errors);
     }
     
+    public void addError(Token token, String message) {        
+        addError(new PhaseError(ErrorType.ERROR, message, token.getPos()));
+    }
+    
     public void addError(Token token, String message, Object ... args) {
         addError(token.getPos(), message, args);
     }

@@ -110,7 +110,7 @@ public class Parser {
                 }
                 catch(ParseException e) {
                     this.result.addError(e.getToken(), e.getMessage());
-                    adjust(); // advance the tokens to avoid infinite loop
+                    adjust(IMPORT, HASH, PUBLIC, VAR, CONST, FUNC, STRUCT, UNION, ENUM, TYPEDEF); // advance the tokens to avoid infinite loop
                 }
             }
         }
