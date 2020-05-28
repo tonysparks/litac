@@ -785,7 +785,7 @@ public class Parser {
         this.loopLevel++;
         Stmt bodyStmt = statement();
         
-        consume(WHILE, ErrorCode.MISSING_COLON);
+        consume(WHILE, ErrorCode.MISSING_WHILE);
         consume(LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
         Expr condExpr = expression();
         consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
@@ -945,8 +945,8 @@ public class Parser {
             return null;
         }
         
-        if(this.funcLevel < 0) {
-            throw error(peek(), ErrorCode.INVALID_ARRAY_DIMENSION_EXPR);
+        if(this.funcLevel < 1) {
+            throw error(peek(), ErrorCode.INVALID_LABEL_STMT);
         }
         
         return new LabelStmt(label.getText());

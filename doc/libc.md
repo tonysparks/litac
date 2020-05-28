@@ -6,12 +6,25 @@
 
 ## libc Variables
 
+* const [CHAR\_BIT](#CHAR\_BIT): i32
+* const [CHAR\_MAX](#CHAR\_MAX): i32
+* const [CHAR\_MIN](#CHAR\_MIN): i32
 * const [HUGE\_VAL](#HUGE\_VAL): f64
+* const [INT\_MAX](#INT\_MAX): i32
+* const [INT\_MIN](#INT\_MIN): i32
+* const [LONG\_MAX](#LONG\_MAX): i32
+* const [LONG\_MIN](#LONG\_MIN): i32
 * const [M\_PI](#M\_PI): f64
+* const [SCHAR\_MAX](#SCHAR\_MAX): i32
+* const [SCHAR\_MIN](#SCHAR\_MIN): i32
 * const [SEEK\_CUR](#SEEK\_CUR): i32
 * const [SEEK\_END](#SEEK\_END): i32
 * const [SEEK\_SET](#SEEK\_SET): i32
+* const [SHRT\_MAX](#SHRT\_MAX): i32
+* const [SHRT\_MIN](#SHRT\_MIN): i32
+* const [UINT\_MAX](#UINT\_MAX): i32
 * const [ULLONG\_MAX](#ULLONG\_MAX): i64
+* const [USHRT\_MAX](#USHRT\_MAX): i32
 * const [stderr](#stderr): [\*FILE](#FILE)
 * const [stdout](#stdout): [\*FILE](#FILE)
 
@@ -75,6 +88,7 @@
 * func [va\_end](#va\_end)(args: [libc](#libc)::[va\_list](#va\_list))
 * func [va\_start](#va\_start)(args: [libc](#libc)::[va\_list](#va\_list), format: *const char)
 * func [vfprintf](#vfprintf)(f: [\*FILE](#FILE), format: *const char, args: [libc](#libc)::[va\_list](#va\_list))
+* func [vprintf](#vprintf)(format: *const char, ap: [libc](#libc)::[va\_list](#va\_list)) : i32
 * func [vsnprintf\_s](#vsnprintf\_s)(ptr: [\*void](#void), len: u64, max: u64, format: *const char, args: [libc](#libc)::[va\_list](#va\_list)) : i32
 * func [vsnprintf](#vsnprintf)(buffer: *char, len: u64, format: *const char, args: [libc](#libc)::[va\_list](#va\_list)) : i32
 * func [vsprintf\_s](#vsprintf\_s)(ptr: [\*void](#void), len: u64, format: *const char, args: [libc](#libc)::[va\_list](#va\_list)) : i32
@@ -82,10 +96,37 @@
 
 
 ***
+### CHAR\_BIT
+
+
+### CHAR\_MAX
+
+
+### CHAR\_MIN
+
+
 ### HUGE\_VAL
 
 
+### INT\_MAX
+
+
+### INT\_MIN
+
+
+### LONG\_MAX
+
+
+### LONG\_MIN
+
+
 ### M\_PI
+
+
+### SCHAR\_MAX
+
+
+### SCHAR\_MIN
 
 
 ### SEEK\_CUR
@@ -97,7 +138,19 @@
 ### SEEK\_SET
 
 
+### SHRT\_MAX
+
+
+### SHRT\_MIN
+
+
+### UINT\_MAX
+
+
 ### ULLONG\_MAX
+
+
+### USHRT\_MAX
 
 
 ### stderr
@@ -426,6 +479,12 @@ func [va\_start](#va\_start)(args: [libc](#libc)::[va\_list](#va\_list), format:
 
 
 func [vfprintf](#vfprintf)(f: [\*FILE](#FILE), format: *const char, args: [libc](#libc)::[va\_list](#va\_list))
+
+
+### vprintf
+
+
+func [vprintf](#vprintf)(format: *const char, ap: [libc](#libc)::[va\_list](#va\_list)) : i32
 
 
 ### vsnprintf

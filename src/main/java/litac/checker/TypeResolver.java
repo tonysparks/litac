@@ -1527,6 +1527,7 @@ public class TypeResolver {
             case i64:
             case u64:
             case Enum:
+            case usize:
                 break;
             default: {
                 error(c.index, "'%s' invalid index value", indexKind.name());
@@ -1581,6 +1582,7 @@ public class TypeResolver {
             case i64:
             case u64:
             case Enum:
+            case usize:
                 break;
             default: {
                 error(c, "'%s' invalid index value", indexKind.name());
@@ -2475,7 +2477,12 @@ public class TypeResolver {
                 }
                 
                 for(FieldInfo field : aggInfo.fieldInfos) {
-                    TypeInfo fieldType = inferredType(genericName, field.type, argumentAggInfo.getField(field.name).type);
+                    FieldInfo argumentField = argumentAggInfo.getFieldWithAnonymous(field.name);
+                    if(argumentField == null) {
+                        continue;
+                    }
+                    
+                    TypeInfo fieldType = inferredType(genericName, field.type, argumentField.type);
                     if(fieldType != null) {
                         return fieldType;
                     }

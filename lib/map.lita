@@ -2,6 +2,7 @@ import "mem" as mem;
 import "io";
 import "assert";
 import "libc";
+import "string_view";
 
 public typedef func<K>(K) : u32 as HashFn<K>;
 public typedef func<K>(K, K) : bool as EqualFn<K>;
@@ -35,6 +36,15 @@ public func StrMap<V>(emptyValue: V,
     return m;
 }
 
+public func StringViewMap<V>(emptyValue: V,
+                             initialSize: i32 = 16,
+                             alloc: *const mem::Allocator = null) : Map<StringView, V> {
+
+    var m = Map<StringView, V>{};
+    m.init<StringView, V>(emptyValue, initialSize, StringView_hash, StringView_equalsStringView, alloc);
+    return m;
+}
+
 public struct Map<K, V> {
     length: i32
     capacity: i32    
@@ -58,19 +68,10 @@ public struct MapEntry<K, V> {
 }
 
 public func (m: *Map<K, V>) init<K, V>(emptyValue: V,
-                                       initialSize: i32 = 16,
-                                       hashFn: HashFn<K> = null,
-                                       equalFn: EqualFn<K> = null,
-                                       alloc: *const mem::Allocator = null) {
-    
-    if(!hashFn) {
-        hashFn = &StrHashFn
-    }
-    
-    if(!equalFn) {
-        equalFn = &PtrEqualFn<K>
-    }
-
+                                       initialSize: i32,
+                                       hashFn: HashFn<K>,
+                                       equalFn: EqualFn<K>,
+                                       alloc: *const mem::Allocator = null) {    
     if(!alloc) {
         alloc = mem::defaultAllocator 
     }    

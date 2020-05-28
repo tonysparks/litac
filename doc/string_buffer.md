@@ -21,6 +21,7 @@
 ## string\_buffer Functions
 
 * func [StringBufferInit](#StringBufferInit)(initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [string\_buffer](#string\_buffer)::[StringBuffer](#StringBuffer)
+* func [StringBuffer\_appendArgs](#StringBuffer\_appendArgs)(b: [\*StringBuffer](#StringBuffer), format: *const char, v: [libc](libc\.md)::[va\_list](va\_list\.md)) : i32
 * func [StringBuffer\_appendChar](#StringBuffer\_appendChar)(b: [\*StringBuffer](#StringBuffer), c: char) : i32
 * func [StringBuffer\_appendFloat](#StringBuffer\_appendFloat)(b: [\*StringBuffer](#StringBuffer), f: f64) : i32
 * func [StringBuffer\_appendI32](#StringBuffer\_appendI32)(b: [\*StringBuffer](#StringBuffer), i: i32) : i32
@@ -71,6 +72,12 @@ func [StringBufferInit](#StringBufferInit)(initialSize: i32, alloc: [\*const All
 
 
 func [StringBuffer\_append](#StringBuffer\_append)(b: [\*StringBuffer](#StringBuffer), format: *const char) : i32
+
+
+### StringBuffer\_appendArgs
+
+
+func [StringBuffer\_appendArgs](#StringBuffer\_appendArgs)(b: [\*StringBuffer](#StringBuffer), format: *const char, v: [libc](libc\.md)::[va\_list](va\_list\.md)) : i32
 
 
 ### StringBuffer\_appendChar

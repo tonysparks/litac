@@ -27,6 +27,7 @@
 * func [Array\_free](#Array\_free)(a: [\*Array<T>](#Array<T>))
 * func [Array\_get](#Array\_get)(a: [\*Array<T>](#Array<T>), index: i32) : [T](#T)
 * func [Array\_init](#Array\_init)(a: [\*Array<T>](#Array<T>), initialSize: i32, alloc: [\*const Allocator](#Allocator))
+* func [Array\_insertAt](#Array\_insertAt)(a: [\*Array<T>](#Array<T>), index: i32, element: [T](#T))
 * func [Array\_last](#Array\_last)(a: [\*Array<T>](#Array<T>)) : [T](#T)
 * func [Array\_pop](#Array\_pop)(a: [\*Array<T>](#Array<T>)) : [T](#T)
 * func [Array\_push](#Array\_push)(a: [\*Array<T>](#Array<T>), element: [T](#T))
@@ -101,6 +102,12 @@ func [Array\_get](#Array\_get)(a: [\*Array<T>](#Array<T>), index: i32) : [T](#T)
 
 
 func [Array\_init](#Array\_init)(a: [\*Array<T>](#Array<T>), initialSize: i32, alloc: [\*const Allocator](#Allocator))
+
+
+### Array\_insertAt
+
+
+func [Array\_insertAt](#Array\_insertAt)(a: [\*Array<T>](#Array<T>), index: i32, element: [T](#T))
 
 
 ### Array\_last

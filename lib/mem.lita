@@ -1,5 +1,10 @@
 import "libc" as c;
 import "array";
+import "assert"
+
+@raw("""
+#define LITAC_DEFAULT_ALIGNMENT (2*sizeof(void*))
+""");
 
 /**
 =========================================================
@@ -38,6 +43,27 @@ public func memduplicate(p: *const void,
     return copy
 }
 
+///
+// From GingerBill!!
+// Reference: http://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/
+///
+func isPowerOfTwo(x: usize) : bool {
+    return (x & (x-1)) == 0
+}
+
+public func alignForward(ptr: usize, align: usize) : usize {
+    assert(isPowerOfTwo(align))
+
+    var p:usize = ptr;
+    var a:usize = align;
+    var modulo:usize = p & (a - 1);
+
+    if(modulo != 0) {
+        p += (a - modulo)
+    }
+
+    return p
+}
 
 /**
 =========================================================
@@ -380,8 +406,142 @@ func ArenaFree(alloc: *const Allocator, ptr: *void) {
 }
 
 
+/**
+=========================================================
+// Linear allocator
+=========================================================
+*/
+public struct LinearAllocator {
+    alloc: Allocator
+    mem: *void
+    size: usize
+    currentOffset: usize
 
+    totalAllocations: u32
+    totalBytesAllocated: usize    
+}
 
+public func (this: *LinearAllocator) init(mem: *void, size: usize) {
+    this.alloc = Allocator {
+        .allocFn:   &LinearMalloc,
+        .callocFn:  &LinearCalloc,
+        .reallocFn: &LinearRealloc,
+        .freeFn:    &LinearFree
+    }
+    this.mem = mem
+    this.size = size
+    this.totalBytesAllocated = 0
+    this.totalAllocations = 0
+    this.currentOffset = 0
+}
+
+@foreign
+const LITAC_DEFAULT_ALIGNMENT: usize;
+
+public func (this: *LinearAllocator) malloc(size: usize) : *void {         
+    var currPtr = this.mem as (usize) + this.currentOffset
+    var offset = alignForward(currPtr, LITAC_DEFAULT_ALIGNMENT)
+    offset -= this.mem as (usize)
+    
+    if((offset + size) > this.size) {
+        c::printf("Failed to allocate: %zu\n", size)
+        return null
+    }
+
+    this.currentOffset = (size + offset)
+    this.totalBytesAllocated = (size + offset)
+    this.totalAllocations += 1
+
+    var ptr = &this.mem[offset]
+    return ptr;
+}
+
+#if (options.debugMode)
+    func LinearMalloc(alloc: *const Allocator, 
+                        size: usize, 
+                        file: *const char = __FILE__, 
+                        line: u64 = __LINE__) : *void {
+        var this = alloc as (*LinearAllocator);
+        return this.malloc(size);
+    }
+
+    func LinearCalloc(alloc: *const Allocator, 
+                        num: usize, 
+                        size: usize, 
+                        file: *const char = __FILE__, 
+                        line: u64 = __LINE__) : *void {
+        var this = alloc as (*LinearAllocator);
+        var result = this.malloc(size * num);
+        if(result) {
+            c::memset(result, 0, size * num)
+        }
+
+        return result
+    }
+
+    func LinearRealloc(alloc: *const Allocator, 
+                        ptr: *void, 
+                        oldSize: usize, 
+                        size: usize, 
+                        file: *const char = __FILE__, 
+                        line: u64 = __LINE__) : *void {
+        if(ptr == null) {
+            return LinearMalloc(alloc, size)
+        }
+
+        var this = alloc as (*LinearAllocator);
+
+        var result = this.malloc(size);
+        if(result) {
+            var len = c::MIN(oldSize, size)
+            c::memcpy(result, ptr, len)
+        }
+
+        return result    
+    }
+
+#else
+    func LinearMalloc(alloc: *const Allocator, 
+                        size: usize) : *void {
+        var this = alloc as (*LinearAllocator);
+        return this.malloc(size);
+    }
+
+    func LinearCalloc(alloc: *const Allocator, 
+                        num: usize, 
+                        size: usize) : *void {
+        var this = alloc as (*LinearAllocator);
+        var result = this.malloc(size * num);
+        if(result) {
+            c::memset(result, 0, size * num)
+        }
+
+        return result
+    }
+
+    func LinearRealloc(alloc: *const Allocator, 
+                        ptr: *void, 
+                        oldSize: usize, 
+                        size: usize) : *void {
+        if(ptr == null) {
+            return LinearMalloc(alloc, size)
+        }
+
+        var this = alloc as (*LinearAllocator);
+
+        var result = this.malloc(size);
+        if(result) {
+            var len = c::MIN(oldSize, size)
+            c::memcpy(result, ptr, len)
+        }
+
+        return result    
+    }
+#end
+
+func LinearFree(alloc: *const Allocator, ptr: *void) {
+    // DO NOTHING
+}
 
 /**
 =========================================================
@@ -399,7 +559,10 @@ public struct Allocation {
 public struct DebugAllocator {
     alloc: Allocator
     decorated: *const Allocator
-    allocations: Array<*Allocation>    
+    allocations: Array<*Allocation>
+    totalAllocations: u32
+    totalBytesAllocated: usize    
+    totalBytesFreed: usize  
 }
 
 public const debugAllocator = (&DebugAllocator {
@@ -414,6 +577,8 @@ public func (d: *DebugAllocator) init(alloc: *const Allocator = defaultAllocator
     }
     d.decorated = alloc    
     d.allocations.init(128, alloc)
+    d.totalBytesAllocated = 0
+    d.totalAllocations = 0
 }
 
 public func (d: *DebugAllocator) free() {
@@ -441,6 +606,8 @@ public func (d: *DebugAllocator) malloc(size: usize,
         c::strncpy(allocation.filename, file, MAX_PATH)
 
         d.allocations.add(allocation)
+        d.totalBytesAllocated += size
+        d.totalAllocations += 1
     }
 
     return mem;
@@ -541,9 +708,11 @@ func DebugFree(alloc: *const Allocator, ptr: *void) {
     for(var i = 0; i < debug.allocations.size();) {
         var allocation = debug.allocations.get(i)
         if(allocation.addr == addr) {
+            debug.totalBytesFreed += allocation.size
             debug.allocations.removeAt(i)
             debug.decorated.free(allocation)
             found = true
+            break
         }
         else {
             i += 1

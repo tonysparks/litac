@@ -58,7 +58,7 @@ public func (a: *Array<T>) get<T>(index: i32) : T {
 public func (a: *Array<T>) set<T>(index: i32, element: T) {
     assert(index >= 0 && index < a.length);
 
-    #if (isArray(scope.getSymbol("e")?type))
+    #if (isArray(scope.getSymbol("element")?type))
         memcpy(&a.elements[index], element as (*void), sizeof(:T));
     #else
         a.elements[index] = element;
@@ -100,6 +100,27 @@ public func (a: *Array<T>) removeAt<T>(index: i32) : T {
     return r
 }
 
+public func (a: *Array<T>) insertAt<T>(index: i32, element: T) {
+    assert(index >= 0 && index <= a.length)
+
+    if(index == a.length) {
+        a.add(element)
+        return;
+    }
+    
+    a.length += 1
+
+    // not optimal at all -- potential repeated mem moves
+    if(a.length + 1 > a.capacity) {
+        ArrayGrow<T>(a, 1)        
+    }
+
+    memmove((&a.elements[index + 1]) as (*void), 
+            (&a.elements[index]) as (*const void), 
+            (a.length - index) * sizeof(:T))
+
+    a.set<T>(index, element)
+}
 
 public func (a: *Array<T>) addAll<T>(other: *Array<T>) {
     if(!other && other.length > 0) {

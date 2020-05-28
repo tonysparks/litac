@@ -59,6 +59,20 @@ public func (s: *String) format(format: *const char, ...) : i32{
     return len
 }
 
+public func (s: String) substring(start: i32, end: i32) : StringView {
+    if(start < 0 || end < start) {
+        return StringView{
+            .buffer = null,
+            .length = 0
+        }
+    }
+
+    var len = end - start    
+    return StringView {
+        .buffer = s.str + start,
+        .length = len
+    }
+}
 
 public func (s: String) asView() : StringView {
     return StringView {
@@ -92,10 +106,25 @@ public func (s: String) copy(allocator: *const mem::Allocator = mem::defaultAllo
     }
 }
 
+public func (s: String) clear() {
+    s.memset(0)
+    s.length = 0    
+}
+
 public func (s: String) empty() : bool {
     return s.length < 1
 }
 
 public func (s: String) size() : i32 {
     return s.length
+}
+
+public func (s: String) cStr() : *char {
+    s.str[s.length] = '\0'
+    return s.str
+}
+
+public func (s: String) cConstStr() : *const char {
+    s.str[s.length] = '\0'
+    return s.str as (*const char)
 }
