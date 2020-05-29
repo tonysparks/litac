@@ -3,6 +3,7 @@
 ## mem Imports
 
 * [array](array\.md)
+* [assert](assert\.md)
 * [libc](libc\.md)
 
 
@@ -19,6 +20,7 @@
 * struct [Allocator](#Allocator)
 * struct [Arena](#Arena)
 * struct [DebugAllocator](#DebugAllocator)
+* struct [LinearAllocator](#LinearAllocator)
 
 
 ## mem Functions
@@ -34,6 +36,9 @@
 * func [DebugAllocator\_init](#DebugAllocator\_init)(d: [\*DebugAllocator](#DebugAllocator), alloc: [\*const Allocator](#Allocator))
 * func [DebugAllocator\_malloc](#DebugAllocator\_malloc)(d: [\*DebugAllocator](#DebugAllocator), size: usize, file: *const char, line: u64) : [\*void](#void)
 * func [DebugAllocator\_report](#DebugAllocator\_report)(d: [\*DebugAllocator](#DebugAllocator))
+* func [LinearAllocator\_init](#LinearAllocator\_init)(this: [\*LinearAllocator](#LinearAllocator), mem: [\*void](#void), size: usize)
+* func [LinearAllocator\_malloc](#LinearAllocator\_malloc)(this: [\*LinearAllocator](#LinearAllocator), size: usize) : [\*void](#void)
+* func [alignForward](#alignForward)(ptr: usize, align: usize) : usize
 * func [memduplicate](#memduplicate)(p: [\*const void](#void), len: usize, a: [\*const Allocator](#Allocator)) : [\*void](#void)
 * func [new](#new)(a: [\*const Allocator](#Allocator)) : [\*T](#T)
 
@@ -95,6 +100,23 @@ struct [DebugAllocator](#DebugAllocator)
 * alloc: [mem](#mem)::[Allocator](#Allocator)
 * decorated: [\*const Allocator](#Allocator)
 * allocations: [documentationGenerator](documentationGenerator\.md)::[Array<Allocation\*>](Array<Allocation\*>\.md)
+* totalAllocations: u32
+* totalBytesAllocated: usize
+* totalBytesFreed: usize
+
+
+
+### LinearAllocator
+
+
+struct [LinearAllocator](#LinearAllocator)
+
+* alloc: [mem](#mem)::[Allocator](#Allocator)
+* mem: [\*void](#void)
+* size: usize
+* currentOffset: usize
+* totalAllocations: u32
+* totalBytesAllocated: usize
 
 
 
@@ -162,6 +184,24 @@ func [DebugAllocator\_malloc](#DebugAllocator\_malloc)(d: [\*DebugAllocator](#De
 
 
 func [DebugAllocator\_report](#DebugAllocator\_report)(d: [\*DebugAllocator](#DebugAllocator))
+
+
+### LinearAllocator\_init
+
+
+func [LinearAllocator\_init](#LinearAllocator\_init)(this: [\*LinearAllocator](#LinearAllocator), mem: [\*void](#void), size: usize)
+
+
+### LinearAllocator\_malloc
+
+
+func [LinearAllocator\_malloc](#LinearAllocator\_malloc)(this: [\*LinearAllocator](#LinearAllocator), size: usize) : [\*void](#void)
+
+
+### alignForward
+
+
+func [alignForward](#alignForward)(ptr: usize, align: usize) : usize
 
 
 ### memduplicate

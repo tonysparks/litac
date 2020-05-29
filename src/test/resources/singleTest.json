@@ -572,11 +572,11 @@
             ''',                    
         },
         */
-        
+        /*
         {
             name: "Parsing Errors",
             definitions: '''
-                /*struct Test {
+                struct Test {
                     a: i32
                 }
                 func test(a: *Test) : i32 {
@@ -595,7 +595,7 @@
                         other
                     }
                     return true
-                }*/
+                }
                 struct Test {
                     x: i32
                 }
@@ -606,6 +606,48 @@
             code: '''                   
                 var t = Test{4}
                 assert(x(t).x == 4)
+            ''',
+            //error: "Unexpected token"                    
+        },*/
+        {
+            name: "Using Bug",
+            definitions: '''
+                struct ArrayInitExpr {
+                    expr: using Expr
+                }
+                
+                struct Expr {
+                    stmt: using Stmt
+                    operand: Operand
+                    type: *TypeInfo
+                }
+                
+                struct Stmt {
+                    node: using Node
+                }
+                
+                struct Node {
+                    kind: i32
+                }
+                
+                struct Operand {
+                    stuff: bool
+                }
+                
+                struct TypeInfo {
+                    kind: i32
+                }
+            ''',                       
+            code: '''                   
+                var type = TypeInfo {.kind = 4}
+                var init = &ArrayInitExpr {                
+                }
+                init.expr.stmt = Stmt {
+                    .node = Node{.kind = 12}
+                }
+                init.expr.type = &type
+                
+                assert(init.kind == 12)
             ''',
             //error: "Unexpected token"                    
         },

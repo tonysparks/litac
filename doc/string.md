@@ -22,11 +22,15 @@
 
 * func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#string)::[String](#String)
 * func [String\_asView](#String\_asView)(s: [string](#string)::[String](#String)) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
+* func [String\_cConstStr](#String\_cConstStr)(s: [string](#string)::[String](#String)) : *const char
+* func [String\_cStr](#String\_cStr)(s: [string](#string)::[String](#String)) : *char
+* func [String\_clear](#String\_clear)(s: [string](#string)::[String](#String))
 * func [String\_copy](#String\_copy)(s: [string](#string)::[String](#String), allocator: [\*const Allocator](#Allocator)) : [string](#string)::[String](#String)
 * func [String\_empty](#String\_empty)(s: [string](#string)::[String](#String)) : bool
 * func [String\_format](#String\_format)(s: [\*String](#String), format: *const char) : i32
 * func [String\_memset](#String\_memset)(s: [string](#string)::[String](#String), value: i32)
 * func [String\_size](#String\_size)(s: [string](#string)::[String](#String)) : i32
+* func [String\_substring](#String\_substring)(s: [string](#string)::[String](#String), start: i32, end: i32) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
 
 
 
@@ -52,6 +56,24 @@ func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#
 
 
 func [String\_asView](#String\_asView)(s: [string](#string)::[String](#String)) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
+
+
+### String\_cConstStr
+
+
+func [String\_cConstStr](#String\_cConstStr)(s: [string](#string)::[String](#String)) : *const char
+
+
+### String\_cStr
+
+
+func [String\_cStr](#String\_cStr)(s: [string](#string)::[String](#String)) : *char
+
+
+### String\_clear
+
+
+func [String\_clear](#String\_clear)(s: [string](#string)::[String](#String))
 
 
 ### String\_copy
@@ -82,5 +104,11 @@ func [String\_memset](#String\_memset)(s: [string](#string)::[String](#String), 
 
 
 func [String\_size](#String\_size)(s: [string](#string)::[String](#String)) : i32
+
+
+### String\_substring
+
+
+func [String\_substring](#String\_substring)(s: [string](#string)::[String](#String), start: i32, end: i32) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
 
 

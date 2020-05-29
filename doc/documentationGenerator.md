@@ -30,6 +30,7 @@
 * struct [Array<JsonNode\*>](#Array<JsonNode\*>)
 * struct [Array<T>](#Array<T>)
 * struct [Map<K,V>](#Map<K,V>)
+* struct [Map<StringView,V>](#Map<StringView,V>)
 * struct [Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)
 * struct [Map<char const\*,Option>](#Map<char\-const\*,Option>)
 * struct [Map<char const\*,V>](#Map<char\-const\*,V>)
@@ -41,6 +42,8 @@
 * typedef [func\(K\) : u32](#\_) as [HashFn<K>](#HashFn<K>)
 * typedef [func\(\*const char, \*const char\) : bool](#\_) as [EqualFn<char const\*>](#EqualFn<char\-const\*>)
 * typedef [func\(\*const char\) : u32](#\_) as [HashFn<char const\*>](#HashFn<char\-const\*>)
+* typedef [func\(struct StringView, struct StringView\) : bool](#\_) as [EqualFn<StringView>](#EqualFn<StringView>)
+* typedef [func\(struct StringView\) : u32](#\_) as [HashFn<StringView>](#HashFn<StringView>)
 
 
 ## documentationGenerator Functions
@@ -71,7 +74,6 @@
 * func [Map\_put<char const\*,JsonNode\*>](#Map\_put<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>), key: *const char, value: [\*JsonNode](#JsonNode))
 * func [Map\_put<char const\*,Option>](#Map\_put<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>), key: *const char, value: [cmdline](cmdline\.md)::[Option](Option\.md))
 * func [Map\_size<char const\*,JsonNode\*>](#Map\_size<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)) : i32
-* func [PtrEqualFn<char const\*>](#PtrEqualFn<char\-const\*>)(a: *const char, b: *const char) : bool
 * func [StrMap<Option>](#StrMap<Option>)(emptyValue: [cmdline](cmdline\.md)::[Option](Option\.md), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](#documentationGenerator)::[Map<char const\*,Option>](#Map<char\-const\*,Option>)
 * func [c::MIN<usize>](#c::MIN<usize>)(a: usize, b: usize) : usize
 * func [mem::new<JsonArray>](#mem::new<JsonArray>)(a: [\*const Allocator](#Allocator)) : [\*Array<JsonNode\*>](#Array<JsonNode\*>)
@@ -125,6 +127,12 @@ struct [Array<T>](#Array<T>)
 typedef [func\(K, K\) : bool](#\_) as [EqualFn<K>](#EqualFn<K>)
 
 
+### EqualFn<StringView>
+
+
+typedef [func\(struct StringView, struct StringView\) : bool](#\_) as [EqualFn<StringView>](#EqualFn<StringView>)
+
+
 ### EqualFn<char const\*>
 
 
@@ -135,6 +143,12 @@ typedef [func\(\*const char, \*const char\) : bool](#\_) as [EqualFn<char const\
 
 
 typedef [func\(K\) : u32](#\_) as [HashFn<K>](#HashFn<K>)
+
+
+### HashFn<StringView>
+
+
+typedef [func\(struct StringView\) : u32](#\_) as [HashFn<StringView>](#HashFn<StringView>)
 
 
 ### HashFn<char const\*>
@@ -154,6 +168,22 @@ struct [Map<K,V>](#Map<K,V>)
 * equalFn: [func\(K, K\) : bool](#\_)
 * alloc: [\*const Allocator](#Allocator)
 * keys: [\*K](#K)
+* values: [\*V](#V)
+* emptyValue: [V](#V)
+
+
+
+### Map<StringView,V>
+
+
+struct [Map<StringView,V>](#Map<StringView,V>)
+
+* length: i32
+* capacity: i32
+* hashFn: [func\(struct StringView\) : u32](#\_)
+* equalFn: [func\(struct StringView, struct StringView\) : bool](#\_)
+* alloc: [\*const Allocator](#Allocator)
+* keys: [\*StringView](#StringView)
 * values: [\*V](#V)
 * emptyValue: [V](#V)
 
@@ -403,12 +433,6 @@ func [Map\_put<char const\*,Option>](#Map\_put<char\-const\*,Option>)(m: [\*Map<
 
 
 func [Map\_size<char const\*,JsonNode\*>](#Map\_size<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)) : i32
-
-
-### PtrEqualFn<char const\*>
-
-
-func [PtrEqualFn<char const\*>](#PtrEqualFn<char\-const\*>)(a: *const char, b: *const char) : bool
 
 
 ### StrMap<Option>

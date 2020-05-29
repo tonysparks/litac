@@ -49,12 +49,17 @@ public class FieldPath {
             return false;
         }
         
+        private AggregateTypeInfo getAgg(TypeInfo type) {
+            AggregateTypeInfo aggInfo = type.isKind(TypeKind.Ptr) ? 
+                    ((PtrTypeInfo)type).getBaseType().as()
+                    : type.as();
+            return aggInfo;
+        }
+        
         private List<FieldPathNode> edges() {
             List<FieldPathNode> edges = new ArrayList<>();
             if(isAgg(field.type)) {
-                AggregateTypeInfo aggInfo = field.type.isKind(TypeKind.Ptr) ? 
-                                                ((PtrTypeInfo)field.type).getBaseType().as()
-                                                : field.type.as();
+                AggregateTypeInfo aggInfo = getAgg(field.type);
                                                 
                 List<FieldInfo> fieldInfos = isRoot ? aggInfo.fieldInfos : aggInfo.usingInfos;
                 if(fieldInfos == null) {
@@ -71,7 +76,8 @@ public class FieldPath {
                             continue;
                         }
                     }
-                    edges.add(new FieldPathNode(aggInfo, f, aggInfo.usingInfos != null));
+                    boolean isRoot = isAgg(f.type) && getAgg(f.type).hasUsingFields() || aggInfo.isUsingField(f);
+                    edges.add(new FieldPathNode(aggInfo, f, isRoot));
                     
                 }
             }

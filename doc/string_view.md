@@ -24,9 +24,11 @@
 * func [StringView\_copyTo](#StringView\_copyTo)(b: [string\_view](#string\_view)::[StringView](#StringView), buf: *char, len: i32, addZero: bool) : i32
 * func [StringView\_empty](#StringView\_empty)(b: [string\_view](#string\_view)::[StringView](#StringView)) : bool
 * func [StringView\_endsWith](#StringView\_endsWith)(b: [string\_view](#string\_view)::[StringView](#StringView), suffix: *const char, len: i32) : bool
+* func [StringView\_equalsStringView](#StringView\_equalsStringView)(b: [string\_view](#string\_view)::[StringView](#StringView), other: [string\_view](#string\_view)::[StringView](#StringView)) : bool
 * func [StringView\_equals](#StringView\_equals)(b: [string\_view](#string\_view)::[StringView](#StringView), str: *const char, len: i32) : bool
 * func [StringView\_forEach](#StringView\_forEach)(b: [string\_view](#string\_view)::[StringView](#StringView), fn: [func\(char\) : bool](#\_))
 * func [StringView\_get](#StringView\_get)(b: [string\_view](#string\_view)::[StringView](#StringView), index: i32) : char
+* func [StringView\_hash](#StringView\_hash)(b: [string\_view](#string\_view)::[StringView](#StringView)) : u32
 * func [StringView\_indexOfAt](#StringView\_indexOfAt)(b: [string\_view](#string\_view)::[StringView](#StringView), str: *const char, len: i32, fromIndex: i32) : i32
 * func [StringView\_indexOf](#StringView\_indexOf)(b: [string\_view](#string\_view)::[StringView](#StringView), str: *const char, len: i32) : i32
 * func [StringView\_size](#StringView\_size)(b: [string\_view](#string\_view)::[StringView](#StringView)) : i32
@@ -88,6 +90,12 @@ func [StringView\_endsWith](#StringView\_endsWith)(b: [string\_view](#string\_vi
 func [StringView\_equals](#StringView\_equals)(b: [string\_view](#string\_view)::[StringView](#StringView), str: *const char, len: i32) : bool
 
 
+### StringView\_equalsStringView
+
+
+func [StringView\_equalsStringView](#StringView\_equalsStringView)(b: [string\_view](#string\_view)::[StringView](#StringView), other: [string\_view](#string\_view)::[StringView](#StringView)) : bool
+
+
 ### StringView\_forEach
 
 
@@ -98,6 +106,12 @@ func [StringView\_forEach](#StringView\_forEach)(b: [string\_view](#string\_view
 
 
 func [StringView\_get](#StringView\_get)(b: [string\_view](#string\_view)::[StringView](#StringView), index: i32) : char
+
+
+### StringView\_hash
+
+
+func [StringView\_hash](#StringView\_hash)(b: [string\_view](#string\_view)::[StringView](#StringView)) : u32
 
 
 ### StringView\_indexOf

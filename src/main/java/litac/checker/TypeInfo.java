@@ -712,6 +712,20 @@ public abstract class TypeInfo {
             return null;
         }
         
+        public boolean isUsingField(FieldInfo field) {
+            if(!hasUsingFields()) {
+                return false;
+            }
+            
+            for(FieldInfo f : this.usingInfos) {
+                if(f.name.equals(field.name)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
         public boolean isUsingType(TypeInfo type) {            
             return isUsingType(this, type);
         }

@@ -6,6 +6,7 @@
 * [io](io\.md)
 * [libc](libc\.md)
 * [mem](mem\.md)
+* [string\_view](string\_view\.md)
 
 
 ## map Variables
@@ -38,6 +39,7 @@
 * func [StrEqualFn](#StrEqualFn)(a: *const char, b: *const char) : bool
 * func [StrHashFn](#StrHashFn)(str: *const char) : u32
 * func [StrMap](#StrMap)(emptyValue: [V](#V), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](documentationGenerator\.md)::[Map<char const\*,V>](Map<char const\*,V>\.md)
+* func [StringViewMap](#StringViewMap)(emptyValue: [V](#V), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](documentationGenerator\.md)::[Map<StringView,V>](Map<StringView,V>\.md)
 
 
 
@@ -179,5 +181,11 @@ func [StrHashFn](#StrHashFn)(str: *const char) : u32
 
 
 func [StrMap](#StrMap)(emptyValue: [V](#V), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](documentationGenerator\.md)::[Map<char const\*,V>](Map<char const\*,V>\.md)
+
+
+### StringViewMap
+
+
+func [StringViewMap](#StringViewMap)(emptyValue: [V](#V), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](documentationGenerator\.md)::[Map<StringView,V>](Map<StringView,V>\.md)
 
 

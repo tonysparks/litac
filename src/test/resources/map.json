@@ -32,7 +32,7 @@
             code: '''
                 var t = Test{}
                 var emptyValue = Sprite{0}
-                t.sprites.init(emptyValue, 16)
+                t.sprites = StrMap<Sprite>(emptyValue, 16)
                 
                 t.sprites.put("hi", Sprite{4})
                 t.sprites.put("bye", Sprite{8})
@@ -102,7 +102,7 @@
             code: '''
                 var t = Test{}
                 var emptyValue = Sprite{0}
-                t.sprites.init(null, 16)
+                t.sprites = StrMap<*Sprite>(null, 16)
                 
                 var s1 = Sprite{4}
                 var s2 = Sprite{8}
