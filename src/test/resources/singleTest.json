@@ -610,46 +610,33 @@
             //error: "Unexpected token"                    
         },*/
         {
-            name: "Using Bug",
+            name: "Type checker",
             definitions: '''
-                struct ArrayInitExpr {
-                    expr: using Expr
-                }
-                
-                struct Expr {
-                    stmt: using Stmt
-                    operand: Operand
-                    type: *TypeInfo
-                }
-                
-                struct Stmt {
-                    node: using Node
-                }
-                
-                struct Node {
-                    kind: i32
-                }
-                
-                struct Operand {
-                    stuff: bool
-                }
-                
-                struct TypeInfo {
-                    kind: i32
+                import "libc"
+                struct X {
+                    i:i32
                 }
             ''',                       
             code: '''                   
-                var type = TypeInfo {.kind = 4}
-                var init = &ArrayInitExpr {                
-                }
-                init.expr.stmt = Stmt {
-                    .node = Node{.kind = 12}
-                }
-                init.expr.type = &type
-                
-                assert(init.kind == 12)
+                //var x = X{2}
+                //var y = X{4}
+                /*var z = 2
+                z = "hi" + 1
+                //assert(x == y)
+                printf("String is: %s\n", z)
+                var w:*const char = 1 + "hi"
+                printf("W is: %s\n", w)
+                */
+                /*
+                var array = [4]i32 {1,2,3,4}
+                var array2 = [2]i32{10,11}
+                array2 = array
+                */
+                //var x = &10
+                //var z = &[1]i32{0}
+                //printf("hi\n")
+                var z: [2]*const char;
             ''',
-            //error: "Unexpected token"                    
         },
     ]
 }

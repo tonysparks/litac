@@ -561,8 +561,8 @@ public struct DebugAllocator {
     decorated: *const Allocator
     allocations: Array<*Allocation>
     totalAllocations: u32
-    totalBytesAllocated: usize    
-    totalBytesFreed: usize  
+    totalBytesAllocated: usize
+    totalBytesFreed: usize
 }
 
 public const debugAllocator = (&DebugAllocator {
