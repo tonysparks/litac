@@ -22,7 +22,7 @@
 
 * func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#string)::[String](#String)
 * func [String\_asView](#String\_asView)(s: [string](#string)::[String](#String)) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
-* func [String\_cConstStr](#String\_cConstStr)(s: [string](#string)::[String](#String)) : *const char
+* func [String\_cStrConst](#String\_cStrConst)(s: [string](#string)::[String](#String)) : *const char
 * func [String\_cStr](#String\_cStr)(s: [string](#string)::[String](#String)) : *char
 * func [String\_clear](#String\_clear)(s: [string](#string)::[String](#String))
 * func [String\_copy](#String\_copy)(s: [string](#string)::[String](#String), allocator: [\*const Allocator](#Allocator)) : [string](#string)::[String](#String)
@@ -58,16 +58,16 @@ func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#
 func [String\_asView](#String\_asView)(s: [string](#string)::[String](#String)) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
 
 
-### String\_cConstStr
-
-
-func [String\_cConstStr](#String\_cConstStr)(s: [string](#string)::[String](#String)) : *const char
-
-
 ### String\_cStr
 
 
 func [String\_cStr](#String\_cStr)(s: [string](#string)::[String](#String)) : *char
+
+
+### String\_cStrConst
+
+
+func [String\_cStrConst](#String\_cStrConst)(s: [string](#string)::[String](#String)) : *const char
 
 
 ### String\_clear

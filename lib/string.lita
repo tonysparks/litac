@@ -124,7 +124,7 @@ public func (s: String) cStr() : *char {
     return s.str
 }
 
-public func (s: String) cConstStr() : *const char {
+public func (s: String) cStrConst() : *const char {
     s.str[s.length] = '\0'
     return s.str as (*const char)
 }
