@@ -17,6 +17,11 @@ public func StrHashFn(str: *const char) : u32 {
     return hash;
 }
 
+public func PtrHashFn<K>(a: K) : u32 {
+    var hash = ((a as (usize)) % 4294967291_u32) as (u32)
+    return hash;
+}
+
 public func PtrEqualFn<K>(a: K, b: K) : bool {
     return a == b;
 }
@@ -65,6 +70,7 @@ public struct MapIterator<K, V> {
 public struct MapEntry<K, V> {
     key: K
     value: V
+    valuePtr: *V
 }
 
 public func (m: *Map<K, V>) init<K, V>(emptyValue: V,
@@ -154,6 +160,27 @@ public func (m: *Map<K, V>) get<K, V>(key: K) : V {
     }
     
     return m.emptyValue;
+}
+
+public func (m: *Map<K, V>) getPtr<K, V>(key: K) : *V {
+    if(m.length == 0) {
+        return null;
+    }
+    
+    var i = m.hashFn<K>(key);
+    for(;;) {
+        i &= m.capacity - 1;
+        if(m.equalFn<K>(m.keys[i], key)) {
+            return &m.values[i];
+        }
+        else if(!m.keys[i]) {
+            return null;
+        }
+        
+        i += 1;
+    }
+    
+    return null;
 }
 
 public func (m: *Map<K, V>) remove<K, V>(key: K) : V {
@@ -253,7 +280,8 @@ public func (iter: *MapIterator<K, V>) next<K, V>() : MapEntry<K, V> {
             iter.count += 1
             return MapEntry<K, V> {
                 .key: iter.m.keys[i],
-                .value: iter.m.values[i]
+                .value: iter.m.values[i],
+                .valuePtr: &iter.m.values[i],
             }
         }        
     }
