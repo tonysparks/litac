@@ -35,8 +35,6 @@ public func StringInit(str: *char, capacity: i32, len: i32 = -1) : String {
 }
 
 public func (s: *String) format(format: *const char, ...) : i32{
-    const MAX_BUFFER_SIZE = 32;
-
     // get the variable args
     var args1:va_list;
     va_start(args1, format);
@@ -56,6 +54,29 @@ public func (s: *String) format(format: *const char, ...) : i32{
     }
 
     s.length = len
+    return len
+}
+
+public func (s: *String) append(format: *const char, ...) : i32 {
+    // get the variable args
+    var args1:va_list;
+    va_start(args1, format);
+
+    // need to copy the args even though we won't know if we
+    // need them until after we use the first set
+    var args2: va_list; 
+    va_copy(args2, args1);
+
+    // have to call vsnprintf at least once - might as well use a small
+    // fixed-size buffer just in case the final string fits in it
+    var len = vsnprintf(s.str + s.length, s.capacity - s.length, format, args1);
+    va_end(args1);
+    
+    if(len < 0) {
+        return len
+    }
+
+    s.length += len
     return len
 }
 
@@ -97,6 +118,8 @@ public func (s: String) copy(allocator: *const mem::Allocator = mem::defaultAllo
     }
 
     var copiedStr = allocator.alloc((s.length + 1) * sizeof(:char)) as (*char)
+    memcpy(copiedStr, s.str, s.length)
+    
     copiedStr[s.length] = '\0'
 
     return String{

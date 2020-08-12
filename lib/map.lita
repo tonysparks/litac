@@ -118,8 +118,8 @@ public func (m: *Map<K, V>) empty<K, V>() : bool {
 
 public func (m: *Map<K, V>) put<K, V>(key: K, value: V) {
     
-    if(2 * m.length >= m.capacity) {        
-        MapGrow<K, V>(m, 2 * m.capacity);    
+    if(2 * m.length >= m.capacity) {
+        MapGrow<K, V>(m, 2 * m.capacity);
     }
     
     var i = m.hashFn<K>(key);
