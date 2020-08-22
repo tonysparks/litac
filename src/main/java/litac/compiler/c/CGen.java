@@ -476,7 +476,12 @@ public class CGen {
         }
 
         if(funcDecl != null) {
+            FuncTypeInfo funcInfo = funcDecl.sym.type.as();
+            currentFuncType.add(funcInfo);
+            
             funcDecl.bodyStmt.visit(this.cgen);
+            
+            currentFuncType.pop();
         }
         
         for(Decl d : this.moduleDestroyFunc) {
