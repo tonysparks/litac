@@ -1235,7 +1235,7 @@ public abstract class TypeInfo {
         
         @Override
         public String toString() {    
-            return "*char";
+            return "*const char";
         }
         
         @Override
@@ -1454,6 +1454,14 @@ public abstract class TypeInfo {
                 
                 // target must be a const pointer too, if this is a const ptr
                 if(isConstPtr) {
+                    ConstTypeInfo constInfo = this.ptrOf.as();
+                    TypeInfo ptrOf = constInfo.constOf;
+                    if(ptrOf.isKind(TypeKind.Char) ||
+                       ptrOf.isKind(TypeKind.u8) ||
+                       ptrOf.isKind(TypeKind.i8)) {
+                        return true;
+                    }
+                    
                     return false;    
                 }
                 

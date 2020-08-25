@@ -4,7 +4,7 @@ import "libc"
 
 /*
     Simple dynamically expandle array
-*/    
+*/
 public struct Array<T> {
     length: i32
     capacity: i32
@@ -12,13 +12,20 @@ public struct Array<T> {
     alloc: *const mem::Allocator
 }
 
-public func (a: *Array<T>) init<T>(initialSize: i32 = 16, 
-                                   alloc: *const mem::Allocator = mem::defaultAllocator) {    
+public func ArrayInit<T>(initialSize: i32 = 16,
+                         alloc: *const mem::Allocator = mem::defaultAllocator) : Array<T> {
+    var array = Array<T>{}
+    array.init(initialSize, alloc)
+    return array;
+}
+
+public func (a: *Array<T>) init<T>(initialSize: i32 = 16,
+                                   alloc: *const mem::Allocator = mem::defaultAllocator) {
     a.alloc = alloc;
     a.length = 0;
-    a.capacity = initialSize;    
-    
-    var length = (sizeof(:T) * initialSize as (u64));    
+    a.capacity = initialSize;
+
+    var length = (sizeof(:T) * initialSize as (u64));
     a.elements = alloc.alloc(length) as (*T)
 }
 
@@ -33,7 +40,7 @@ public func (a: *Array<T>) free<T>() {
 
 public func (a: *Array<T>) add<T>(element: T) {
     if(a.length + 1 > a.capacity) {
-        ArrayGrow<T>(a, 1)        
+        ArrayGrow<T>(a, 1)
     }
 
     #if (isArray(scope.getSymbol("element")?type))
@@ -67,35 +74,35 @@ public func (a: *Array<T>) set<T>(index: i32, element: T) {
 
 public func (a: *Array<T>) first<T>() : T {
     assert(a.length != 0)
-    
+
     return a.elements[0]
 }
 
-public func (a: *Array<T>) last<T>() : T {    
+public func (a: *Array<T>) last<T>() : T {
     assert(a.length != 0)
-    
+
     return a.elements[a.length - 1]
 }
 
 public func (a: *Array<T>) pop<T>() : T {
     assert(a.length != 0)
-    
+
     var r = a.elements[a.length - 1]
     a.length -= 1
-    
+
     return r
 }
 
 public func (a: *Array<T>) removeAt<T>(index: i32) : T {
     assert(index >= 0 && index < a.length)
-    
+
     var r = a.elements[index]
     if(index < a.length - 1) {
-        memmove((&a.elements[index]) as (*void), 
-                (&a.elements[index + 1]) as (*const void), 
+        memmove((&a.elements[index]) as (*void),
+                (&a.elements[index + 1]) as (*const void),
                 ((a.length - 1) - index) * sizeof(:T))
     }
-    
+
     a.length -= 1
     return r
 }
@@ -107,16 +114,16 @@ public func (a: *Array<T>) insertAt<T>(index: i32, element: T) {
         a.add(element)
         return;
     }
-    
+
     a.length += 1
 
     // not optimal at all -- potential repeated mem moves
     if(a.length + 1 > a.capacity) {
-        ArrayGrow<T>(a, 1)        
+        ArrayGrow<T>(a, 1)
     }
 
-    memmove((&a.elements[index + 1]) as (*void), 
-            (&a.elements[index]) as (*const void), 
+    memmove((&a.elements[index + 1]) as (*void),
+            (&a.elements[index]) as (*const void),
             (a.length - index) * sizeof(:T))
 
     a.set<T>(index, element)
@@ -126,13 +133,13 @@ public func (a: *Array<T>) addAll<T>(other: *Array<T>) {
     if(!other && other.length > 0) {
         return;
     }
-    
+
     if(a.length + other.length > a.capacity) {
         ArrayGrow<T>(a, other.length)
     }
-    
-    memcpy((&a.elements[a.length]) as (*void), 
-           (&other.elements[0]) as (*const void), 
+
+    memcpy((&a.elements[a.length]) as (*void),
+           (&other.elements[0]) as (*const void),
             other.length * sizeof(:T))
     a.length += other.length
 }
@@ -161,13 +168,13 @@ func ArrayGrow<T>(a: *Array<T>, increment: i32) {
     var doubleCurrent = a.capacity * 2
     var minReq = a.length + increment
     var n = minReq
-    
+
     if(doubleCurrent > minReq) {
-        n = doubleCurrent        
+        n = doubleCurrent
     }
-    
-    var newlength = (sizeof(:T) * n as (usize));     
+
+    var newlength = (sizeof(:T) * n as (usize));
     var oldlength = (sizeof(:T) * a.capacity as(usize));
     a.elements = a.alloc.realloc(a.elements as (*void), oldlength, newlength) as (*T)
-    a.capacity = n;    
+    a.capacity = n;
 }

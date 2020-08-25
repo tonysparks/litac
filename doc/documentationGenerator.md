@@ -28,11 +28,12 @@
 
 * struct [Array<Allocation\*>](#Array<Allocation\*>)
 * struct [Array<JsonNode\*>](#Array<JsonNode\*>)
+* struct [Array<Option>](#Array<Option>)
 * struct [Array<T>](#Array<T>)
+* struct [Array<char const\*>](#Array<char\-const\*>)
 * struct [Map<K,V>](#Map<K,V>)
 * struct [Map<StringView,V>](#Map<StringView,V>)
 * struct [Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)
-* struct [Map<char const\*,Option>](#Map<char\-const\*,Option>)
 * struct [Map<char const\*,V>](#Map<char\-const\*,V>)
 * struct [MapEntry<K,V>](#MapEntry<K,V>)
 * struct [MapEntry<char const\*,JsonNode\*>](#MapEntry<char\-const\*,JsonNode\*>)
@@ -48,33 +49,35 @@
 
 ## documentationGenerator Functions
 
+* func [ArrayInit<Option>](#ArrayInit<Option>)(initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](#documentationGenerator)::[Array<Option>](#Array<Option>)
+* func [ArrayInit<char const\*>](#ArrayInit<char\-const\*>)(initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](#documentationGenerator)::[Array<char const\*>](#Array<char\-const\*>)
 * func [Array\_add<Allocation\*>](#Array\_add<Allocation\*>)(a: [\*Array<Allocation\*>](#Array<Allocation\*>), element: [\*Allocation](#Allocation))
 * func [Array\_add<JsonNode\*>](#Array\_add<JsonNode\*>)(a: [\*Array<JsonNode\*>](#Array<JsonNode\*>), element: [\*JsonNode](#JsonNode))
+* func [Array\_add<Option>](#Array\_add<Option>)(a: [\*Array<Option>](#Array<Option>), element: [cmdline](cmdline\.md)::[Option](Option\.md))
+* func [Array\_add<char const\*>](#Array\_add<char\-const\*>)(a: [\*Array<char const\*>](#Array<char\-const\*>), element: *const char)
 * func [Array\_free<Allocation\*>](#Array\_free<Allocation\*>)(a: [\*Array<Allocation\*>](#Array<Allocation\*>))
 * func [Array\_free<JsonNode\*>](#Array\_free<JsonNode\*>)(a: [\*Array<JsonNode\*>](#Array<JsonNode\*>))
+* func [Array\_free<Option>](#Array\_free<Option>)(a: [\*Array<Option>](#Array<Option>))
 * func [Array\_get<Allocation\*>](#Array\_get<Allocation\*>)(a: [\*Array<Allocation\*>](#Array<Allocation\*>), index: i32) : [\*Allocation](#Allocation)
 * func [Array\_get<JsonNode\*>](#Array\_get<JsonNode\*>)(a: [\*Array<JsonNode\*>](#Array<JsonNode\*>), index: i32) : [\*JsonNode](#JsonNode)
 * func [Array\_init<Allocation\*>](#Array\_init<Allocation\*>)(a: [\*Array<Allocation\*>](#Array<Allocation\*>), initialSize: i32, alloc: [\*const Allocator](#Allocator))
 * func [Array\_init<JsonNode\*>](#Array\_init<JsonNode\*>)(a: [\*Array<JsonNode\*>](#Array<JsonNode\*>), initialSize: i32, alloc: [\*const Allocator](#Allocator))
+* func [Array\_init<Option>](#Array\_init<Option>)(a: [\*Array<Option>](#Array<Option>), initialSize: i32, alloc: [\*const Allocator](#Allocator))
+* func [Array\_init<char const\*>](#Array\_init<char\-const\*>)(a: [\*Array<char const\*>](#Array<char\-const\*>), initialSize: i32, alloc: [\*const Allocator](#Allocator))
 * func [Array\_removeAt<Allocation\*>](#Array\_removeAt<Allocation\*>)(a: [\*Array<Allocation\*>](#Array<Allocation\*>), index: i32) : [\*Allocation](#Allocation)
 * func [Array\_size<Allocation\*>](#Array\_size<Allocation\*>)(a: [\*Array<Allocation\*>](#Array<Allocation\*>)) : i32
 * func [Array\_size<JsonNode\*>](#Array\_size<JsonNode\*>)(a: [\*Array<JsonNode\*>](#Array<JsonNode\*>)) : i32
+* func [Array\_size<Option>](#Array\_size<Option>)(a: [\*Array<Option>](#Array<Option>)) : i32
 * func [MIN<i32>](#MIN<i32>)(a: i32, b: i32) : i32
 * func [MapIterator\_hasNext<char const\*,JsonNode\*>](#MapIterator\_hasNext<char\-const\*,JsonNode\*>)(iter: [\*MapIterator<char const\*,JsonNode\*>](#MapIterator<char\-const\*,JsonNode\*>)) : bool
 * func [MapIterator\_next<char const\*,JsonNode\*>](#MapIterator\_next<char\-const\*,JsonNode\*>)(iter: [\*MapIterator<char const\*,JsonNode\*>](#MapIterator<char\-const\*,JsonNode\*>)) : [documentationGenerator](#documentationGenerator)::[MapEntry<char const\*,JsonNode\*>](#MapEntry<char\-const\*,JsonNode\*>)
 * func [Map\_contains<char const\*,JsonNode\*>](#Map\_contains<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>), key: *const char) : bool
-* func [Map\_contains<char const\*,Option>](#Map\_contains<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>), key: *const char) : bool
 * func [Map\_free<char const\*,JsonNode\*>](#Map\_free<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>))
-* func [Map\_free<char const\*,Option>](#Map\_free<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>))
 * func [Map\_get<char const\*,JsonNode\*>](#Map\_get<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>), key: *const char) : [\*JsonNode](#JsonNode)
-* func [Map\_get<char const\*,Option>](#Map\_get<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>), key: *const char) : [cmdline](cmdline\.md)::[Option](Option\.md)
 * func [Map\_init<char const\*,JsonNode\*>](#Map\_init<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>), emptyValue: [\*JsonNode](#JsonNode), initialSize: i32, hashFn: [func\(\*const char\) : u32](#\_), equalFn: [func\(\*const char, \*const char\) : bool](#\_), alloc: [\*const Allocator](#Allocator))
-* func [Map\_init<char const\*,Option>](#Map\_init<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>), emptyValue: [cmdline](cmdline\.md)::[Option](Option\.md), initialSize: i32, hashFn: [func\(\*const char\) : u32](#\_), equalFn: [func\(\*const char, \*const char\) : bool](#\_), alloc: [\*const Allocator](#Allocator))
 * func [Map\_iter<char const\*,JsonNode\*>](#Map\_iter<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)) : [documentationGenerator](#documentationGenerator)::[MapIterator<char const\*,JsonNode\*>](#MapIterator<char\-const\*,JsonNode\*>)
 * func [Map\_put<char const\*,JsonNode\*>](#Map\_put<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>), key: *const char, value: [\*JsonNode](#JsonNode))
-* func [Map\_put<char const\*,Option>](#Map\_put<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>), key: *const char, value: [cmdline](cmdline\.md)::[Option](Option\.md))
 * func [Map\_size<char const\*,JsonNode\*>](#Map\_size<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)) : i32
-* func [StrMap<Option>](#StrMap<Option>)(emptyValue: [cmdline](cmdline\.md)::[Option](Option\.md), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](#documentationGenerator)::[Map<char const\*,Option>](#Map<char\-const\*,Option>)
 * func [c::MIN<usize>](#c::MIN<usize>)(a: usize, b: usize) : usize
 * func [mem::new<JsonArray>](#mem::new<JsonArray>)(a: [\*const Allocator](#Allocator)) : [\*Array<JsonNode\*>](#Array<JsonNode\*>)
 * func [mem::new<JsonNode>](#mem::new<JsonNode>)(a: [\*const Allocator](#Allocator)) : [\*JsonNode](#JsonNode)
@@ -109,6 +112,18 @@ struct [Array<JsonNode\*>](#Array<JsonNode\*>)
 
 
 
+### Array<Option>
+
+
+struct [Array<Option>](#Array<Option>)
+
+* length: i32
+* capacity: i32
+* elements: [\*Option](#Option)
+* alloc: [\*const Allocator](#Allocator)
+
+
+
 ### Array<T>
 
 
@@ -117,6 +132,18 @@ struct [Array<T>](#Array<T>)
 * length: i32
 * capacity: i32
 * elements: [\*T](#T)
+* alloc: [\*const Allocator](#Allocator)
+
+
+
+### Array<char const\*>
+
+
+struct [Array<char const\*>](#Array<char\-const\*>)
+
+* length: i32
+* capacity: i32
+* elements: **const char
 * alloc: [\*const Allocator](#Allocator)
 
 
@@ -205,22 +232,6 @@ struct [Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)
 
 
 
-### Map<char const\*,Option>
-
-
-struct [Map<char const\*,Option>](#Map<char\-const\*,Option>)
-
-* length: i32
-* capacity: i32
-* hashFn: [func\(\*const char\) : u32](#\_)
-* equalFn: [func\(\*const char, \*const char\) : bool](#\_)
-* alloc: [\*const Allocator](#Allocator)
-* keys: **const char
-* values: [\*Option](#Option)
-* emptyValue: [cmdline](cmdline\.md)::[Option](Option\.md)
-
-
-
 ### Map<char const\*,V>
 
 
@@ -244,6 +255,7 @@ struct [MapEntry<K,V>](#MapEntry<K,V>)
 
 * key: [K](#K)
 * value: [V](#V)
+* valuePtr: [\*V](#V)
 
 
 
@@ -254,6 +266,7 @@ struct [MapEntry<char const\*,JsonNode\*>](#MapEntry<char\-const\*,JsonNode\*>)
 
 * key: *const char
 * value: [\*JsonNode](#JsonNode)
+* valuePtr: [\*\*JsonNode](#JsonNode)
 
 
 
@@ -279,6 +292,18 @@ struct [MapIterator<char const\*,JsonNode\*>](#MapIterator<char\-const\*,JsonNod
 
 
 
+### ArrayInit<Option>
+
+
+func [ArrayInit<Option>](#ArrayInit<Option>)(initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](#documentationGenerator)::[Array<Option>](#Array<Option>)
+
+
+### ArrayInit<char const\*>
+
+
+func [ArrayInit<char const\*>](#ArrayInit<char\-const\*>)(initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](#documentationGenerator)::[Array<char const\*>](#Array<char\-const\*>)
+
+
 ### Array\_add<Allocation\*>
 
 
@@ -291,6 +316,18 @@ func [Array\_add<Allocation\*>](#Array\_add<Allocation\*>)(a: [\*Array<Allocatio
 func [Array\_add<JsonNode\*>](#Array\_add<JsonNode\*>)(a: [\*Array<JsonNode\*>](#Array<JsonNode\*>), element: [\*JsonNode](#JsonNode))
 
 
+### Array\_add<Option>
+
+
+func [Array\_add<Option>](#Array\_add<Option>)(a: [\*Array<Option>](#Array<Option>), element: [cmdline](cmdline\.md)::[Option](Option\.md))
+
+
+### Array\_add<char const\*>
+
+
+func [Array\_add<char const\*>](#Array\_add<char\-const\*>)(a: [\*Array<char const\*>](#Array<char\-const\*>), element: *const char)
+
+
 ### Array\_free<Allocation\*>
 
 
@@ -301,6 +338,12 @@ func [Array\_free<Allocation\*>](#Array\_free<Allocation\*>)(a: [\*Array<Allocat
 
 
 func [Array\_free<JsonNode\*>](#Array\_free<JsonNode\*>)(a: [\*Array<JsonNode\*>](#Array<JsonNode\*>))
+
+
+### Array\_free<Option>
+
+
+func [Array\_free<Option>](#Array\_free<Option>)(a: [\*Array<Option>](#Array<Option>))
 
 
 ### Array\_get<Allocation\*>
@@ -327,6 +370,18 @@ func [Array\_init<Allocation\*>](#Array\_init<Allocation\*>)(a: [\*Array<Allocat
 func [Array\_init<JsonNode\*>](#Array\_init<JsonNode\*>)(a: [\*Array<JsonNode\*>](#Array<JsonNode\*>), initialSize: i32, alloc: [\*const Allocator](#Allocator))
 
 
+### Array\_init<Option>
+
+
+func [Array\_init<Option>](#Array\_init<Option>)(a: [\*Array<Option>](#Array<Option>), initialSize: i32, alloc: [\*const Allocator](#Allocator))
+
+
+### Array\_init<char const\*>
+
+
+func [Array\_init<char const\*>](#Array\_init<char\-const\*>)(a: [\*Array<char const\*>](#Array<char\-const\*>), initialSize: i32, alloc: [\*const Allocator](#Allocator))
+
+
 ### Array\_removeAt<Allocation\*>
 
 
@@ -343,6 +398,12 @@ func [Array\_size<Allocation\*>](#Array\_size<Allocation\*>)(a: [\*Array<Allocat
 
 
 func [Array\_size<JsonNode\*>](#Array\_size<JsonNode\*>)(a: [\*Array<JsonNode\*>](#Array<JsonNode\*>)) : i32
+
+
+### Array\_size<Option>
+
+
+func [Array\_size<Option>](#Array\_size<Option>)(a: [\*Array<Option>](#Array<Option>)) : i32
 
 
 ### MIN<i32>
@@ -369,22 +430,10 @@ func [MapIterator\_next<char const\*,JsonNode\*>](#MapIterator\_next<char\-const
 func [Map\_contains<char const\*,JsonNode\*>](#Map\_contains<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>), key: *const char) : bool
 
 
-### Map\_contains<char const\*,Option>
-
-
-func [Map\_contains<char const\*,Option>](#Map\_contains<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>), key: *const char) : bool
-
-
 ### Map\_free<char const\*,JsonNode\*>
 
 
 func [Map\_free<char const\*,JsonNode\*>](#Map\_free<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>))
-
-
-### Map\_free<char const\*,Option>
-
-
-func [Map\_free<char const\*,Option>](#Map\_free<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>))
 
 
 ### Map\_get<char const\*,JsonNode\*>
@@ -393,22 +442,10 @@ func [Map\_free<char const\*,Option>](#Map\_free<char\-const\*,Option>)(m: [\*Ma
 func [Map\_get<char const\*,JsonNode\*>](#Map\_get<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>), key: *const char) : [\*JsonNode](#JsonNode)
 
 
-### Map\_get<char const\*,Option>
-
-
-func [Map\_get<char const\*,Option>](#Map\_get<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>), key: *const char) : [cmdline](cmdline\.md)::[Option](Option\.md)
-
-
 ### Map\_init<char const\*,JsonNode\*>
 
 
 func [Map\_init<char const\*,JsonNode\*>](#Map\_init<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>), emptyValue: [\*JsonNode](#JsonNode), initialSize: i32, hashFn: [func\(\*const char\) : u32](#\_), equalFn: [func\(\*const char, \*const char\) : bool](#\_), alloc: [\*const Allocator](#Allocator))
-
-
-### Map\_init<char const\*,Option>
-
-
-func [Map\_init<char const\*,Option>](#Map\_init<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>), emptyValue: [cmdline](cmdline\.md)::[Option](Option\.md), initialSize: i32, hashFn: [func\(\*const char\) : u32](#\_), equalFn: [func\(\*const char, \*const char\) : bool](#\_), alloc: [\*const Allocator](#Allocator))
 
 
 ### Map\_iter<char const\*,JsonNode\*>
@@ -423,22 +460,10 @@ func [Map\_iter<char const\*,JsonNode\*>](#Map\_iter<char\-const\*,JsonNode\*>)(
 func [Map\_put<char const\*,JsonNode\*>](#Map\_put<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>), key: *const char, value: [\*JsonNode](#JsonNode))
 
 
-### Map\_put<char const\*,Option>
-
-
-func [Map\_put<char const\*,Option>](#Map\_put<char\-const\*,Option>)(m: [\*Map<char const\*,Option>](#Map<char\-const\*,Option>), key: *const char, value: [cmdline](cmdline\.md)::[Option](Option\.md))
-
-
 ### Map\_size<char const\*,JsonNode\*>
 
 
 func [Map\_size<char const\*,JsonNode\*>](#Map\_size<char\-const\*,JsonNode\*>)(m: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)) : i32
-
-
-### StrMap<Option>
-
-
-func [StrMap<Option>](#StrMap<Option>)(emptyValue: [cmdline](cmdline\.md)::[Option](Option\.md), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](#documentationGenerator)::[Map<char const\*,Option>](#Map<char\-const\*,Option>)
 
 
 ### c::MIN<usize>

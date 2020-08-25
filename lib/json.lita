@@ -30,7 +30,7 @@ public union JsonValue {
 public struct JsonNode {
     alloc: *const mem::Allocator
     type: JsonType
-    value: using JsonValue    
+    value: using JsonValue
 }
 
 @inline
@@ -112,7 +112,7 @@ public func (node: *JsonNode) asObject() : *JsonObject {
     return node.value.objValue
 }
 
-public func CreateJsonNumber(value: f64, alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {    
+public func CreateJsonNumber(value: f64, alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {
     var node = mem::new<JsonNode>(alloc)
     node.alloc = alloc
     node.type = JsonType.NUMBER
@@ -127,9 +127,9 @@ public func CreateJsonNumber(value: f64, alloc: *const mem::Allocator = mem::def
 /**
     Duplicates the supplied string, and JsonNode manages the memory.  The supplied str will NOT be managed (i.e., free'd) upon
     JsonNode.free().
-*/    
-public func CreateJsonString(str: *const char, len: i32 = -1, 
-                             alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {    
+*/
+public func CreateJsonString(str: *const char, len: i32 = -1,
+                             alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {
     if(len < 0) {
         len = strlen(str);
     }
@@ -143,9 +143,9 @@ public func CreateJsonString(str: *const char, len: i32 = -1,
 /**
     The JsonNode will own the memory of str and deallocate it upon JsonNode.free()
     call
-*/    
+*/
 public func CreateJsonStringNoDup(str: *const char,
-                                  alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {    
+                                  alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {
     var node = mem::new<JsonNode>(alloc)
     node.alloc = alloc
     node.type = JsonType.STRING
@@ -156,25 +156,25 @@ public func CreateJsonStringNoDup(str: *const char,
     return node
 }
 
-public func CreateJsonArray(alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {    
+public func CreateJsonArray(alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {
     var node = mem::new<JsonNode>(alloc)
     node.alloc = alloc
     node.type = JsonType.ARRAY
     node.value = JsonValue {
         .arrayValue = mem::new<JsonArray>(alloc)
     }
-    
+
     node.value.arrayValue.init(16, alloc)
 
     return node
 }
 
-public func CreateJsonObject(alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {    
+public func CreateJsonObject(alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {
     var node = mem::new<JsonNode>(alloc)
     node.alloc = alloc
     node.type = JsonType.OBJECT
-    node.value = JsonValue { 
-        .objValue = mem::new<JsonObject>(alloc)   
+    node.value = JsonValue {
+        .objValue = mem::new<JsonObject>(alloc)
     }
 
     node.value.objValue.init(null, 16, &StrHashFn, &StrEqualFn, alloc)
@@ -215,16 +215,16 @@ public func (node: *JsonNode) get(key: *const char) : *JsonNode {
 }
 
 public func (node: *JsonNode) getBool(key: *const char, defaultValue: bool = false) : bool {
-    var n = node.get(key) 
+    var n = node.get(key)
     if(!n || !n.isBool()) {
         return defaultValue
     }
 
-    return n.boolValue 
+    return n.boolValue
 }
 
 public func (node: *JsonNode) getInt(key: *const char, defaultValue: i32 = 0) : i32 {
-    var n = node.get(key) 
+    var n = node.get(key)
     if(!n || !n.isNumber()) {
         return defaultValue
     }
@@ -233,7 +233,7 @@ public func (node: *JsonNode) getInt(key: *const char, defaultValue: i32 = 0) : 
 }
 
 public func (node: *JsonNode) getLong(key: *const char, defaultValue: i64 = 0) : i64 {
-    var n = node.get(key) 
+    var n = node.get(key)
     if(!n || !n.isNumber()) {
         return defaultValue
     }
@@ -242,7 +242,7 @@ public func (node: *JsonNode) getLong(key: *const char, defaultValue: i64 = 0) :
 }
 
 public func (node: *JsonNode) getFloat(key: *const char, defaultValue: f64 = 0) : f64 {
-    var n = node.get(key) 
+    var n = node.get(key)
     if(!n || !n.isNumber()) {
         return defaultValue
     }
@@ -251,7 +251,7 @@ public func (node: *JsonNode) getFloat(key: *const char, defaultValue: f64 = 0) 
 }
 
 public func (node: *JsonNode) getStr(key: *const char, defaultValue: *const char = null) : *const char {
-    var n = node.get(key) 
+    var n = node.get(key)
     if(!n || !n.isString()) {
         return defaultValue
     }
@@ -260,7 +260,7 @@ public func (node: *JsonNode) getStr(key: *const char, defaultValue: *const char
 }
 
 public func (node: *JsonNode) getStrCopy(key: *const char, str: *char, len: i32) : *char {
-    var n = node.get(key) 
+    var n = node.get(key)
     if(!n || !n.isString()) {
         return str;
     }
@@ -272,7 +272,7 @@ public func (node: *JsonNode) getStrCopy(key: *const char, str: *char, len: i32)
 }
 
 public func (node: *JsonNode) getArray(key: *const char) : *JsonNode {
-    var n = node.get(key) 
+    var n = node.get(key)
     if(!n || !n.isArray()) {
         return null
     }
@@ -281,12 +281,12 @@ public func (node: *JsonNode) getArray(key: *const char) : *JsonNode {
 }
 
 public func (node: *JsonNode) getObject(key: *const char) : *JsonNode {
-    var n = node.get(key) 
+    var n = node.get(key)
     if(!n || !n.isObject()) {
         return null
     }
 
-    return n 
+    return n
 }
 
 public func (node: *JsonNode) add(n: *JsonNode) {
@@ -329,7 +329,7 @@ public func (node: *JsonNode) free() {
 
     // null,true,false don't have an allocator, we don't want to deallocate them
     // as they are globals
-    if(!alloc) { 
+    if(!alloc) {
         return;
     }
 
@@ -343,7 +343,7 @@ public func (node: *JsonNode) free() {
             }
 
             node.arrayValue.free()
-            alloc.free(node.arrayValue as (*void))                    
+            alloc.free(node.arrayValue as (*void))
             break;
         }
         case JsonType.OBJECT: {
@@ -359,7 +359,7 @@ public func (node: *JsonNode) free() {
                 }
             }
             node.objValue.free()
-            alloc.free(node.objValue as (*void))                    
+            alloc.free(node.objValue as (*void))
             break;
         }
         case JsonType.STRING: {
@@ -375,26 +375,26 @@ public func (node: *JsonNode) free() {
 
 
 public const JSON_NULL = &JsonNode {
-    .alloc: null,    
+    .alloc: null,
     .type: JsonType.NULL,
-    .value: JsonValue {0},    
+    .value: JsonValue {0},
 }
 
 public const JSON_TRUE = &JsonNode {
     .alloc: null,
     .type: JsonType.BOOLEAN,
-    .value: JsonValue {.boolValue = true},    
+    .value: JsonValue {.boolValue = true},
 }
 
 public const JSON_FALSE = &JsonNode {
-    .alloc: null,    
+    .alloc: null,
     .type: JsonType.BOOLEAN,
-    .value: JsonValue {.boolValue = false},    
+    .value: JsonValue {.boolValue = false},
 }
 
 
 enum TokenKind {
-    EOF,    
+    EOF,
     ERROR,
     COMMA,
     COLON,
@@ -515,15 +515,15 @@ public func (p: *Parser) free() {
     p.lineStart = null
 }
 
-public func (p: *Parser) parseJson(buffer: *const char) : *JsonNode {    
+public func (p: *Parser) parseJson(buffer: *const char) : *JsonNode {
     p.stream = buffer
     p.lineStart = p.stream
 
     p.buffer.clear()
     p.nextToken()
 
-    var node = p.parseJsonNode()    
-    if(p.hasError()) {        
+    var node = p.parseJsonNode()
+    if(p.hasError()) {
         if(node) {
             node.free()
         }
@@ -564,7 +564,7 @@ public func PrintJson(node: *JsonNode, buf: *StringBuffer) {
             var obj = node.objValue
 
             var isFirst = true
-            var it = obj.iter() 
+            var it = obj.iter()
             while(it.hasNext()) {
                 var entry = it.next()
 
@@ -582,7 +582,7 @@ public func PrintJson(node: *JsonNode, buf: *StringBuffer) {
             var isFirst = true
             for(var i = 0; i < array.size(); i+=1) {
                 if(!isFirst) buf.append(",")
-                PrintJson(array.get(i), buf)                
+                PrintJson(array.get(i), buf)
                 isFirst = false
             }
             buf.append("]")
@@ -593,13 +593,13 @@ public func PrintJson(node: *JsonNode, buf: *StringBuffer) {
 
 
 
-func (p: *Parser) parseJsonNode() : *JsonNode {    
-    if(p.hasError()) {        
+func (p: *Parser) parseJsonNode() : *JsonNode {
+    if(p.hasError()) {
         return null;
     }
 
     switch(p.token.kind) {
-        case TokenKind.EOF: 
+        case TokenKind.EOF:
         case TokenKind.ERROR:
             return null;
         case TokenKind.TRUE:
@@ -613,7 +613,7 @@ func (p: *Parser) parseJsonNode() : *JsonNode {
             return JSON_NULL
         case TokenKind.NUMBER:
             p.nextToken()
-            return p.parseJsonNumber()            
+            return p.parseJsonNumber()
         case TokenKind.STRING:
             p.nextToken()
             return p.parseJsonStr()
@@ -622,15 +622,15 @@ func (p: *Parser) parseJsonNode() : *JsonNode {
             return p.parseJsonObject()
         case TokenKind.LEFT_BRACKET:
             p.nextToken()
-            return p.parseJsonArray()    
-        default:        
+            return p.parseJsonArray()
+        default:
     }
 
     return null
 }
 
 func (p: using *Parser) parseJsonNumber() : *JsonNode {
-    return CreateJsonNumber(token.numValue, p.alloc)    
+    return CreateJsonNumber(token.numValue, p.alloc)
 }
 
 func (p: using *Parser) parseJsonStr() : *JsonNode {
@@ -645,12 +645,12 @@ func (p: using *Parser) parseJsonArray() : *JsonNode {
             break;
         }
         var element = p.parseJsonNode();
-        node.value.arrayValue.add(element)    
+        node.value.arrayValue.add(element)
     }
     while (p.match(TokenKind.COMMA));
 
     p.expect(TokenKind.RIGHT_BRACKET)
-    return node     
+    return node
 }
 func (p: using *Parser) parseJsonObject() : *JsonNode {
     var node = CreateJsonObject(p.alloc)
@@ -663,15 +663,15 @@ func (p: using *Parser) parseJsonObject() : *JsonNode {
         var key = p.token.strValue
         p.expect(TokenKind.STRING)
 
-        p.expect(TokenKind.COLON)        
+        p.expect(TokenKind.COLON)
         var value = p.parseJsonNode();
-        
+
         node.value.objValue.put(key, value)
     }
     while (p.match(TokenKind.COMMA));
 
     p.expect(TokenKind.RIGHT_BRACE)
-    return node     
+    return node
 }
 
 func TokenName(t: TokenKind) : *const char {
@@ -682,9 +682,9 @@ func TokenName(t: TokenKind) : *const char {
 func (p: *Parser) error(format: *const char, ...) {
     var args: va_list;
     va_start(args, format);
-    
-    vsnprintf(p.errorMsg, MAX_MESSAGE_SIZE, format, args);            
-    va_end(args);        
+
+    vsnprintf(p.errorMsg, MAX_MESSAGE_SIZE, format, args);
+    va_end(args);
 
     p.status = ParserStatus.ERROR
     p.token.kind = TokenKind.ERROR
@@ -745,7 +745,7 @@ func (p: using *Parser) scanInt() {
     token.numValue = val;
 }
 
-func (p: using *Parser) scanFloat() {    
+func (p: using *Parser) scanFloat() {
     var start = p.stream;
 
     while (isdigit(*stream)) {
@@ -779,12 +779,12 @@ func (p: using *Parser) scanFloat() {
     }
 
     token.kind = TokenKind.NUMBER;
-    token.numValue = val;    
+    token.numValue = val;
 }
 
 func (p: using *Parser) scanStr() {
     assert(*stream == '"'); // "
-    stream+=1;    
+    stream+=1;
     buffer.clear()
 
     while (*stream && *stream != '"' ) { //"
@@ -807,7 +807,7 @@ func (p: using *Parser) scanStr() {
         } else {
             stream += 1;
         }
-     
+
         buffer.append("%c", val)
     }
     if (*stream) {
@@ -825,28 +825,28 @@ func (p: using *Parser) scanStr() {
 }
 
 
-func (p: using *Parser) nextToken() {    
+func (p: using *Parser) nextToken() {
 
 repeat:
-    if(p.hasError()) {        
+    if(p.hasError()) {
         return;
     }
 
     token.start = stream
     switch(*stream) {
-        case ' ': 
-        case '\n': 
-        case '\r': 
+        case ' ':
+        case '\n':
+        case '\r':
         case '\t': {
       //  case '\v':
             while (isspace(*stream)) {
                 if (*stream == '\n') {
                     lineStart = stream;
-                    token.pos.line += 1;                    
+                    token.pos.line += 1;
                 }
                 stream += 1
             }
-            goto repeat;        
+            goto repeat;
         }
         case '"': { //"
             p.scanStr();
@@ -855,17 +855,17 @@ repeat:
         case '.':
             if (isdigit(stream[1])) {
                 p.scanFloat();
-            } 
+            }
             break;
-        case '0': 
-        case '1': 
-        case '2': 
-        case '3': 
-        case '4': 
-        case '5': 
-        case '6': 
-        case '7': 
-        case '8': 
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
         case '9': {
             while (isdigit(*stream)) {
                 stream += 1;
@@ -878,14 +878,14 @@ repeat:
                 p.scanInt();
             }
             break;
-        }   
+        }
         case 'n': {
-            if(stream[1] == 'u' && stream[2] == 'l' && stream[3] == 'l') {                
+            if(stream[1] == 'u' && stream[2] == 'l' && stream[3] == 'l') {
                 stream += 4;
                 token.kind = TokenKind.NULL
                 break;
             }
-            p.error("invalid identifier, did you mean 'null'?")            
+            p.error("invalid identifier, did you mean 'null'?")
             break;
         }
         case 't': {
@@ -898,7 +898,7 @@ repeat:
             break;
         }
         case 'f': {
-            if(stream[1] == 'a' && stream[2] == 'l' && stream[3] == 's' && stream[4] == 'e') {                
+            if(stream[1] == 'a' && stream[2] == 'l' && stream[3] == 's' && stream[4] == 'e') {
                 stream += 5;
                 token.kind = TokenKind.FALSE
                 break;
@@ -920,8 +920,8 @@ repeat:
             break;
         case '[':
             token.kind = TokenKind.LEFT_BRACKET
-            stream += 1;            
-            break;      
+            stream += 1;
+            break;
         case ']':
             token.kind = TokenKind.RIGHT_BRACKET
             stream += 1;
@@ -929,7 +929,7 @@ repeat:
         case ',':
             token.kind = TokenKind.COMMA
             stream += 1;
-            break;              
+            break;
         case ':':
             token.kind = TokenKind.COLON
             stream += 1;
@@ -953,7 +953,7 @@ func (p: *Parser) match(kind: TokenKind) : bool {
     }
 
     p.nextToken()
-    return true    
+    return true
 }
 
 func (p: *Parser) expect(kind: TokenKind) : bool {
@@ -967,7 +967,7 @@ func (p: *Parser) expect(kind: TokenKind) : bool {
     }
 
     p.nextToken()
-    return true    
+    return true
 }
 
 

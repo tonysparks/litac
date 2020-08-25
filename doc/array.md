@@ -18,6 +18,7 @@
 
 ## array Functions
 
+* func [ArrayInit](#ArrayInit)(initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](documentationGenerator\.md)::[Array<T>](Array<T>\.md)
 * func [Array\_addAll](#Array\_addAll)(a: [\*Array<T>](#Array<T>), other: [\*Array<T>](#Array<T>))
 * func [Array\_add](#Array\_add)(a: [\*Array<T>](#Array<T>), element: [T](#T))
 * func [Array\_clear](#Array\_clear)(a: [\*Array<T>](#Array<T>))
@@ -48,6 +49,12 @@ struct [Array](#Array)
 * elements: [\*T](#T)
 * alloc: [\*const Allocator](#Allocator)
 
+
+
+### ArrayInit
+
+
+func [ArrayInit](#ArrayInit)(initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](documentationGenerator\.md)::[Array<T>](Array<T>\.md)
 
 
 ### Array\_add

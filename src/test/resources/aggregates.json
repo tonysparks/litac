@@ -49,7 +49,7 @@
             code: '''   
                                 
             ''',
-            error: "'*struct X' is not of type '*char'"            
+            error: "'*struct X' is not of type '*const char'"            
         },
         {
             name: "Embedded Struct default values",

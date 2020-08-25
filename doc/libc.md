@@ -72,9 +72,11 @@
 * func [sprintf](#sprintf)(b: *char, format: *const char) : i32
 * func [sqrt](#sqrt)(v: f64) : f64
 * func [sqrtf](#sqrtf)(v: f32) : f32
+* func [strcat](#strcat)(dest: *char, src: *const char) : *char
 * func [strcmp](#strcmp)(a: *const char, b: *const char) : i32
 * func [strcpy](#strcpy)(dest: *char, src: *const char) : *char
 * func [strlen](#strlen)(str: *const char) : i32
+* func [strncat](#strncat)(dest: *char, src: *const char, num: u64) : *char
 * func [strncmp](#strncmp)(a: *const char, b: *const char, num: u64) : i32
 * func [strncpy](#strncpy)(dest: *char, src: *const char, num: u64) : *char
 * func [strnlen](#strnlen)(str: *const char, len: u64) : i32
@@ -82,6 +84,7 @@
 * func [strtok](#strtok)(str: *char, delim: *const char) : *char
 * func [strtol](#strtol)(str: *const char, end: **char, base: i32) : i64
 * func [strtoul](#strtoul)(str: *const char, end: **char, base: i32) : u64
+* func [system](#system)(cmd: *const char) : i32
 * func [tan](#tan)(v: f64) : f64
 * func [tolower](#tolower)(arg: i32) : i32
 * func [va\_copy](#va\_copy)(a: [libc](#libc)::[va\_list](#va\_list), b: [libc](#libc)::[va\_list](#va\_list))
@@ -385,6 +388,12 @@ func [sqrt](#sqrt)(v: f64) : f64
 func [sqrtf](#sqrtf)(v: f32) : f32
 
 
+### strcat
+
+
+func [strcat](#strcat)(dest: *char, src: *const char) : *char
+
+
 ### strcmp
 
 
@@ -401,6 +410,12 @@ func [strcpy](#strcpy)(dest: *char, src: *const char) : *char
 
 
 func [strlen](#strlen)(str: *const char) : i32
+
+
+### strncat
+
+
+func [strncat](#strncat)(dest: *char, src: *const char, num: u64) : *char
 
 
 ### strncmp
@@ -443,6 +458,12 @@ func [strtol](#strtol)(str: *const char, end: **char, base: i32) : i64
 
 
 func [strtoul](#strtoul)(str: *const char, end: **char, base: i32) : u64
+
+
+### system
+
+
+func [system](#system)(cmd: *const char) : i32
 
 
 ### tan

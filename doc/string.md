@@ -21,6 +21,7 @@
 ## string Functions
 
 * func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#string)::[String](#String)
+* func [String\_append](#String\_append)(s: [\*String](#String), format: *const char) : i32
 * func [String\_asView](#String\_asView)(s: [string](#string)::[String](#String)) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
 * func [String\_cStrConst](#String\_cStrConst)(s: [string](#string)::[String](#String)) : *const char
 * func [String\_cStr](#String\_cStr)(s: [string](#string)::[String](#String)) : *char
@@ -50,6 +51,12 @@ struct [String](#String)
 
 
 func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#string)::[String](#String)
+
+
+### String\_append
+
+
+func [String\_append](#String\_append)(s: [\*String](#String), format: *const char) : i32
 
 
 ### String\_asView

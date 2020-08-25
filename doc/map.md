@@ -29,6 +29,7 @@
 * func [Map\_contains](#Map\_contains)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : bool
 * func [Map\_empty](#Map\_empty)(m: [\*Map<K,V>](#Map<K,V>)) : bool
 * func [Map\_free](#Map\_free)(m: [\*Map<K,V>](#Map<K,V>))
+* func [Map\_getPtr](#Map\_getPtr)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : [\*V](#V)
 * func [Map\_get](#Map\_get)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : [V](#V)
 * func [Map\_init](#Map\_init)(m: [\*Map<K,V>](#Map<K,V>), emptyValue: [V](#V), initialSize: i32, hashFn: [func\(K\) : u32](#\_), equalFn: [func\(K, K\) : bool](#\_), alloc: [\*const Allocator](#Allocator))
 * func [Map\_iter](#Map\_iter)(m: [\*Map<K,V>](#Map<K,V>)) : [documentationGenerator](documentationGenerator\.md)::[MapIterator<K,V>](MapIterator<K,V>\.md)
@@ -36,6 +37,7 @@
 * func [Map\_remove](#Map\_remove)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : [V](#V)
 * func [Map\_size](#Map\_size)(m: [\*Map<K,V>](#Map<K,V>)) : i32
 * func [PtrEqualFn](#PtrEqualFn)(a: [K](#K), b: [K](#K)) : bool
+* func [PtrHashFn](#PtrHashFn)(a: [K](#K)) : u32
 * func [StrEqualFn](#StrEqualFn)(a: *const char, b: *const char) : bool
 * func [StrHashFn](#StrHashFn)(str: *const char) : u32
 * func [StrMap](#StrMap)(emptyValue: [V](#V), initialSize: i32, alloc: [\*const Allocator](#Allocator)) : [documentationGenerator](documentationGenerator\.md)::[Map<char const\*,V>](Map<char const\*,V>\.md)
@@ -79,6 +81,7 @@ struct [MapEntry](#MapEntry)
 
 * key: [K](#K)
 * value: [V](#V)
+* valuePtr: [\*V](#V)
 
 
 
@@ -129,6 +132,12 @@ func [Map\_free](#Map\_free)(m: [\*Map<K,V>](#Map<K,V>))
 func [Map\_get](#Map\_get)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : [V](#V)
 
 
+### Map\_getPtr
+
+
+func [Map\_getPtr](#Map\_getPtr)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : [\*V](#V)
+
+
 ### Map\_init
 
 
@@ -163,6 +172,12 @@ func [Map\_size](#Map\_size)(m: [\*Map<K,V>](#Map<K,V>)) : i32
 
 
 func [PtrEqualFn](#PtrEqualFn)(a: [K](#K), b: [K](#K)) : bool
+
+
+### PtrHashFn
+
+
+func [PtrHashFn](#PtrHashFn)(a: [K](#K)) : u32
 
 
 ### StrEqualFn
