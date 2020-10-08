@@ -32,6 +32,8 @@
 * func [String\_memset](#String\_memset)(s: [string](#string)::[String](#String), value: i32)
 * func [String\_size](#String\_size)(s: [string](#string)::[String](#String)) : i32
 * func [String\_substring](#String\_substring)(s: [string](#string)::[String](#String), start: i32, end: i32) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
+* func [String\_toLower](#String\_toLower)(s: [string](#string)::[String](#String))
+* func [String\_toUpper](#String\_toUpper)(s: [string](#string)::[String](#String))
 
 
 
@@ -117,5 +119,17 @@ func [String\_size](#String\_size)(s: [string](#string)::[String](#String)) : i3
 
 
 func [String\_substring](#String\_substring)(s: [string](#string)::[String](#String), start: i32, end: i32) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
+
+
+### String\_toLower
+
+
+func [String\_toLower](#String\_toLower)(s: [string](#string)::[String](#String))
+
+
+### String\_toUpper
+
+
+func [String\_toUpper](#String\_toUpper)(s: [string](#string)::[String](#String))
 
 

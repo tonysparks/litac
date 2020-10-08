@@ -87,6 +87,7 @@
 @foreign public func strtod(str: *const char, end: **char) : f64;
 @foreign public func isdigit(arg: i32) : i32;
 @foreign public func tolower(arg: i32) : i32;
+@foreign public func toupper(arg: i32) : i32;
 @foreign public func isalnum(arg: i32) : i32;
 @foreign public func isspace(arg: i32) : i32;
 @foreign public func isalpha(c: char) : bool;

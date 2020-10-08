@@ -87,6 +87,7 @@
 * func [system](#system)(cmd: *const char) : i32
 * func [tan](#tan)(v: f64) : f64
 * func [tolower](#tolower)(arg: i32) : i32
+* func [toupper](#toupper)(arg: i32) : i32
 * func [va\_copy](#va\_copy)(a: [libc](#libc)::[va\_list](#va\_list), b: [libc](#libc)::[va\_list](#va\_list))
 * func [va\_end](#va\_end)(args: [libc](#libc)::[va\_list](#va\_list))
 * func [va\_start](#va\_start)(args: [libc](#libc)::[va\_list](#va\_list), format: *const char)
@@ -476,6 +477,12 @@ func [tan](#tan)(v: f64) : f64
 
 
 func [tolower](#tolower)(arg: i32) : i32
+
+
+### toupper
+
+
+func [toupper](#toupper)(arg: i32) : i32
 
 
 ### va\_copy

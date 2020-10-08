@@ -33,6 +33,99 @@
                 
                 return -1;
             ''',                      
-        },       
+        },    
+        { 
+            name: "Defer Switch Bug",
+            definitions: '''
+                 
+            ''',                       
+            code: '''         
+                var i = 0
+                defer i += 1
+                var x = 3;
+                switch(x) {
+                    case 1: {
+                        break;
+                    }
+                    case 2: {
+                        break;
+                    }
+                    case 3: {
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+                
+                assert(i == 0)
+            ''',                      
+        },  
+        { 
+            name: "Defer Switch Bug with Loop",
+            definitions: '''
+                 
+            ''',                       
+            code: '''         
+                var i = 0
+                defer i += 1
+                var x = 3;
+                switch(x) {
+                    case 1: {
+                        var z = 2
+                        while(z) {
+                            defer z-=1
+                        }
+                        break;
+                    }
+                    case 2: {
+                        break;
+                    }
+                    case 3: {
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+                
+                assert(i == 0)
+            ''',                      
+        },  
+        { 
+            name: "Defer Switch Bug with Outer Loop",
+            definitions: '''
+                 
+            ''',                       
+            code: '''         
+                var i = 0
+                defer i += 1
+                var x = 3;
+                var z = 2
+                while(z) {
+                    defer z-=1
+                    
+                    switch(x) {
+                        case 1: {
+                            break;
+                        }
+                        case 2: {
+                            break;
+                        }
+                        case 3: {
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
+                    if(z == 2) {
+                        break;
+                    }
+                }
+                assert(z == 1)
+                assert(i == 0)
+            ''',                      
+        },
     ]
 }

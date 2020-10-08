@@ -38,6 +38,7 @@ public class CGen {
         Stack<String> constDefs;
         Stack<DeferStmt> defers;
         boolean isLoop = false;
+        boolean isSwitch = false;
         
         public void addDefer(DeferStmt d) {
             if(this.defers == null) {
@@ -1463,6 +1464,7 @@ public class CGen {
         public void visit(SwitchStmt stmt) {
             checkLine(stmt);
             
+            pushSwitchScope();
             buf.out("switch(");
             stmt.cond.visit(this);
             buf.out(") {");
@@ -1477,11 +1479,17 @@ public class CGen {
             }
             
             buf.out("}\n");
+            popScope();
         }
          
         private void pushLoopScope() {
             Scope s = new Scope();
             s.isLoop = true;
+            scope.add(s);
+        }
+        private void pushSwitchScope() {
+            Scope s = new Scope();
+            s.isSwitch = true;
             scope.add(s);
         }
         private void pushScope() {
@@ -1507,10 +1515,25 @@ public class CGen {
                 }
             }
         }
+        
+        private void leaveLoopOrSwitchScope() {
+            for(int i = scope.size() - 1; i >= 0; i--) {
+                Scope s = scope.get(i);
+                if(s.isSwitch) {
+                    break;
+                }
+                
+                s.leave(buf, this);
+                
+                if(s.isLoop) {
+                    break;
+                }
+            }
+        }
     
         @Override
         public void visit(BreakStmt stmt) {
-            leaveLoopScope();
+            leaveLoopOrSwitchScope();
             checkLine(stmt);
             buf.out("break;\n");
         }
@@ -1690,11 +1713,16 @@ public class CGen {
             }
             
             buf.out(" {");
-            boolean isFirst = true;
-            for(Expr e : expr.arguments) {
-                if(!isFirst) buf.out(",\n");
-                e.visit(this);            
-                isFirst = false;
+            if(expr.arguments.isEmpty()) {
+                buf.out("0");
+            }
+            else {
+                boolean isFirst = true;
+                for(Expr e : expr.arguments) {
+                    if(!isFirst) buf.out(",\n");
+                    e.visit(this);            
+                    isFirst = false;
+                }
             }
             buf.out("}");
         }
@@ -2071,17 +2099,22 @@ public class CGen {
                 }
                 
                 buf.out("{");
-                boolean isFirst = true;
-                for(Expr v : expr.values) {
-                    if(!isFirst) buf.out(",\n");
-                    isFirst = false;
-                    
-                    v.visit(this);
+                if(expr.values.isEmpty()) {
+                    buf.out("0");
+                }
+                else {
+                    boolean isFirst = true;
+                    for(Expr v : expr.values) {
+                        if(!isFirst) buf.out(",\n");
+                        isFirst = false;
+                        
+                        v.visit(this);
+                    }
                 }
                 buf.out("}");
             }
             else {
-                buf.appendRaw("{}");
+                buf.appendRaw("{0}");
             }
         }
         

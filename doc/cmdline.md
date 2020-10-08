@@ -43,10 +43,10 @@
 struct [CmdParser](#CmdParser)
 
 * options: [documentationGenerator](documentationGenerator\.md)::[Array<Option>](Array<Option>\.md)
+* args: [documentationGenerator](documentationGenerator\.md)::[Array<char const\*>](Array<char const\*>\.md)
 * errors: []char
 * status: [cmdline](#cmdline)::[CmdParserStatus](#CmdParserStatus)
 * header: *const char
-* args: [documentationGenerator](documentationGenerator\.md)::[Array<char const\*>](Array<char const\*>\.md)
 
 
 

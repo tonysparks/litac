@@ -110,7 +110,7 @@ public class LitaOptions {
         this.checkerOnly = false;
         this.cOnly = false;
         this.profile = false;
-        this.disableLines = false;
+        this.disableLines = true;
         this.debugMode = false;
         
         this.generateDocs = false;

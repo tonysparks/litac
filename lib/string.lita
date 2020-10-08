@@ -41,14 +41,14 @@ public func (s: *String) format(format: *const char, ...) : i32{
 
     // need to copy the args even though we won't know if we
     // need them until after we use the first set
-    var args2: va_list; 
+    var args2: va_list;
     va_copy(args2, args1);
 
     // have to call vsnprintf at least once - might as well use a small
     // fixed-size buffer just in case the final string fits in it
     var len = vsnprintf(s.str, s.capacity, format, args1);
     va_end(args1);
-    
+
     if(len < 0) {
         return len
     }
@@ -64,14 +64,14 @@ public func (s: *String) append(format: *const char, ...) : i32 {
 
     // need to copy the args even though we won't know if we
     // need them until after we use the first set
-    var args2: va_list; 
+    var args2: va_list;
     va_copy(args2, args1);
 
     // have to call vsnprintf at least once - might as well use a small
     // fixed-size buffer just in case the final string fits in it
     var len = vsnprintf(s.str + s.length, s.capacity - s.length, format, args1);
     va_end(args1);
-    
+
     if(len < 0) {
         return len
     }
@@ -88,7 +88,7 @@ public func (s: String) substring(start: i32, end: i32) : StringView {
         }
     }
 
-    var len = end - start    
+    var len = end - start
     return StringView {
         .buffer = s.str + start,
         .length = len
@@ -108,6 +108,19 @@ public func (s: String) memset(value: i32 = 0) {
     memset(s.str as (*void), value, s.capacity * sizeof(:char))
 }
 
+
+public func (s: String) toLower() {
+    for(var i = 0; i < s.length; i+=1) {
+        s.str[i] = tolower(s.str[i]) as (char)
+    }
+}
+
+public func (s: String) toUpper() {
+    for(var i = 0; i < s.length; i+=1) {
+        s.str[i] = toupper(s.str[i]) as (char)
+    }
+}
+
 public func (s: String) copy(allocator: *const mem::Allocator = mem::defaultAllocator) : String {
     if(s.length < 1) {
         return String {
@@ -119,7 +132,7 @@ public func (s: String) copy(allocator: *const mem::Allocator = mem::defaultAllo
 
     var copiedStr = allocator.alloc((s.length + 1) * sizeof(:char)) as (*char)
     memcpy(copiedStr, s.str, s.length)
-    
+
     copiedStr[s.length] = '\0'
 
     return String{
@@ -131,7 +144,7 @@ public func (s: String) copy(allocator: *const mem::Allocator = mem::defaultAllo
 
 public func (s: String) clear() {
     s.memset(0)
-    s.length = 0    
+    s.length = 0
 }
 
 public func (s: String) empty() : bool {

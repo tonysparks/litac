@@ -59,6 +59,7 @@ public class LitaC {
         System.out.println("                       be substituted if found: ");
         System.out.println("                          %output%         The executable name ");
         System.out.println("                          %input%          The C file(s) generated ");
+        System.out.println("  -lineInfo            Enables line information in C source file");
     }
     
     
@@ -197,6 +198,10 @@ public class LitaC {
                 case "-testFile": {
                     options.outputType = OutputType.Test;
                     options.testFile = true;
+                    break;
+                }
+                case "-lineInfo": {
+                    options.disableLines = false;
                     break;
                 }
                 default:                    

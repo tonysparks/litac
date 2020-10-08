@@ -1637,6 +1637,7 @@
             name: "Func with array",
             definitions: '''
                 struct Node {
+                    x: i32
                 }
                 struct Object {
                     a: [32]Node
