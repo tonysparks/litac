@@ -1742,6 +1742,10 @@ public abstract class TypeInfo {
                 return true;
             }
             
+            if(target.isKind(TypeKind.Ptr)) {
+                return true;
+            }
+            
             return true;
         }
     }

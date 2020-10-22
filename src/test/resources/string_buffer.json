@@ -154,8 +154,8 @@
 
                 {
                     s.append("Red")
-                    assert(strcmp(s.cStr(), "Red") == 0)
                     printf("%s\n", s.cStr())
+                    assert(strcmp(s.cStr(), "Red") == 0)
                     
                     s.insert(0, "%s", AT)
                     printf("'%s'\n", s.cStr())

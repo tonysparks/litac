@@ -223,6 +223,7 @@ public func (b: *StringBuffer) replace(start: i32, end: i32, str: *const char) :
 }
 
 public func (b: *StringBuffer) insert(index: i32, format: *const char, ...) : i32 {
+
     if(index < 0) {
         index = 0
     }
@@ -236,13 +237,13 @@ public func (b: *StringBuffer) insert(index: i32, format: *const char, ...) : i3
     if(b.length + MAX_BUFFER_SIZE >= b.capacity) {
         BufferGrow(b, MAX_BUFFER_SIZE)
     }
-
     var startChar = b.buffer[index]
 
     // move the contents over
+    var moveLength = (b.length - index) + 1
     memmove((&b.buffer[index + MAX_BUFFER_SIZE]) as (*void),
             (&b.buffer[index]) as (*const void),
-            MAX_BUFFER_SIZE * sizeof(:char))
+            moveLength * sizeof(:char))
 
     // get the variable args
     var args1:va_list;
@@ -255,17 +256,21 @@ public func (b: *StringBuffer) insert(index: i32, format: *const char, ...) : i3
 
     // have to call vsnprintf at least once - might as well use a small
     // fixed-size buffer just in case the final string fits in it
-    var len = vsnprintf(&b.buffer[index], b.capacity, format, args1);
+    var len = vsnprintf(&b.buffer[index], MAX_BUFFER_SIZE, format, args1);
     va_end(args1);
 
     // if it didn't fit, expand the buffer for the necessary length
-    if (len >= b.capacity) {
-        BufferGrow(b, (len + 1) - b.capacity);
+    if (len >= MAX_BUFFER_SIZE) {
+
+        var required = b.length + len + 1
+        if(required >= b.capacity) {
+            BufferGrow(b, required - b.capacity);
+        }
 
         // move the contents over again
         memmove((&b.buffer[index + len - 1]) as (*void),
                 (&b.buffer[index + MAX_BUFFER_SIZE - 1]) as (*const void),
-                (len + 1) * sizeof(:char))
+                moveLength * sizeof(:char))
 
         var n = vsnprintf(&b.buffer[index], len + 1, format, args2);
         va_end(args2);
@@ -287,7 +292,7 @@ public func (b: *StringBuffer) insert(index: i32, format: *const char, ...) : i3
     // move the contents over to the left
     memmove((&b.buffer[index + len]) as (*void),
             (&b.buffer[index + MAX_BUFFER_SIZE]) as (*const void),
-            (MAX_BUFFER_SIZE) * sizeof(:char))
+            moveLength * sizeof(:char))
 
 
     b.length += len
