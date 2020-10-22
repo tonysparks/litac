@@ -52,7 +52,7 @@ public func StringViewMap<V>(emptyValue: V,
 
 public struct Map<K, V> {
     length: i32
-    capacity: i32    
+    capacity: i32
     hashFn: HashFn<K>
     equalFn: EqualFn<K>
     alloc: *const mem::Allocator
@@ -77,11 +77,11 @@ public func (m: *Map<K, V>) init<K, V>(emptyValue: V,
                                        initialSize: i32,
                                        hashFn: HashFn<K>,
                                        equalFn: EqualFn<K>,
-                                       alloc: *const mem::Allocator = null) {    
+                                       alloc: *const mem::Allocator = null) {
     if(!alloc) {
-        alloc = mem::defaultAllocator 
-    }    
-    
+        alloc = mem::defaultAllocator
+    }
+
     m.length = 0;
     m.capacity = 0;
     m.hashFn = hashFn;
@@ -90,7 +90,8 @@ public func (m: *Map<K, V>) init<K, V>(emptyValue: V,
     m.keys = 0;
     m.values = 0;
     m.emptyValue = emptyValue;
-    
+
+    initialSize = nextPowerOf2(initialSize) as (i32) // TODO: switch to u32
     MapGrow<K, V>(m, initialSize);
 }
 
@@ -99,10 +100,10 @@ public func (m: *Map<K, V>) free<K, V>() {
         m.capacity = 0;
         m.length = 0;
         m.alloc.free(m.keys as (*void));
-        m.alloc.free(m.values as (*void));    
+        m.alloc.free(m.values as (*void));
 
         m.keys = null;
-        m.values = null;    
+        m.values = null;
     }
 }
 
@@ -117,11 +118,11 @@ public func (m: *Map<K, V>) empty<K, V>() : bool {
 
 
 public func (m: *Map<K, V>) put<K, V>(key: K, value: V) {
-    
+
     if(2 * m.length >= m.capacity) {
         MapGrow<K, V>(m, 2 * m.capacity);
     }
-    
+
     var i = m.hashFn<K>(key);
     for(;;) {
         i &= m.capacity - 1;
@@ -135,7 +136,7 @@ public func (m: *Map<K, V>) put<K, V>(key: K, value: V) {
             m.values[i] = value;
             return;
         }
-        
+
         i += 1;
     }
 
@@ -145,7 +146,7 @@ public func (m: *Map<K, V>) get<K, V>(key: K) : V {
     if(m.length == 0) {
         return m.emptyValue;
     }
-    
+
     var i = m.hashFn<K>(key);
     for(;;) {
         i &= m.capacity - 1;
@@ -155,10 +156,10 @@ public func (m: *Map<K, V>) get<K, V>(key: K) : V {
         else if(!m.keys[i]) {
             return m.emptyValue;
         }
-        
+
         i += 1;
     }
-    
+
     return m.emptyValue;
 }
 
@@ -166,7 +167,7 @@ public func (m: *Map<K, V>) getPtr<K, V>(key: K) : *V {
     if(m.length == 0) {
         return null;
     }
-    
+
     var i = m.hashFn<K>(key);
     for(;;) {
         i &= m.capacity - 1;
@@ -176,10 +177,10 @@ public func (m: *Map<K, V>) getPtr<K, V>(key: K) : *V {
         else if(!m.keys[i]) {
             return null;
         }
-        
+
         i += 1;
     }
-    
+
     return null;
 }
 
@@ -187,7 +188,7 @@ public func (m: *Map<K, V>) remove<K, V>(key: K) : V {
     if(m.length == 0) {
         return m.emptyValue;
     }
-    
+
     var i = m.hashFn<K>(key);
     for(;;) {
         i &= m.capacity - 1;
@@ -200,10 +201,10 @@ public func (m: *Map<K, V>) remove<K, V>(key: K) : V {
         else if(!m.keys[i]) {
             return m.emptyValue;
         }
-        
+
         i += 1;
     }
-    
+
     return m.emptyValue;
 }
 
@@ -211,7 +212,7 @@ public func (m: *Map<K, V>) contains<K, V>(key: K) : bool {
     if(m.length == 0) {
         return false;
     }
-    
+
     var i = m.hashFn<K>(key);
     for(;;) {
         i &= m.capacity - 1;
@@ -221,10 +222,10 @@ public func (m: *Map<K, V>) contains<K, V>(key: K) : bool {
         else if(!m.keys[i]) {
             return false;
         }
-        
+
         i += 1;
     }
-    
+
     return false;
 }
 
@@ -232,7 +233,7 @@ func MapGrow<K, V>(m: *Map<K, V>, newlength: i32) {
     if(newlength < 16) {
         newlength = 16;
     }
-    
+
     var newMap = Map<K, V> {
         .length: 0,
         .capacity: newlength,
@@ -242,15 +243,15 @@ func MapGrow<K, V>(m: *Map<K, V>, newlength: i32) {
         .equalFn: m.equalFn,
         .alloc: m.alloc
     }
-    
+
     for(var i = 0; i < m.capacity; i+=1) {
         if(m.keys[i]) {
             newMap.put<K, V>(m.keys[i], m.values[i]);
         }
     }
-    
+
     m.free<K,V>();
-    
+
     *m = newMap;
 }
 
@@ -274,8 +275,8 @@ public func (iter: *MapIterator<K, V>) next<K, V>() : MapEntry<K, V> {
     assert(i < iter.m.capacity);
 
     defer iter.it = i + 1
-    
-    for(; i < iter.m.capacity; i += 1) {        
+
+    for(; i < iter.m.capacity; i += 1) {
         if(iter.m.keys[i]) {
             iter.count += 1
             return MapEntry<K, V> {
@@ -283,8 +284,26 @@ public func (iter: *MapIterator<K, V>) next<K, V>() : MapEntry<K, V> {
                 .value: iter.m.values[i],
                 .valuePtr: &iter.m.values[i],
             }
-        }        
+        }
     }
-        
+
     return MapEntry<K, V>{}
+}
+
+
+
+func nextPowerOf2(n: u32) : u32 {
+    var count = 0;
+
+    // First n in the below condition
+    // is for the case where n is 0
+    if (n && !(n & (n - 1)))
+        return n;
+
+    while( n != 0) {
+        n >>= 1;
+        count += 1;
+    }
+
+    return 1 << count;
 }
