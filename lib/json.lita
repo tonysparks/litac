@@ -824,6 +824,75 @@ func (p: using *Parser) scanStr() {
     token.strValue = mem::memduplicate(buffer.cStr() as (*const void), buffer.size() + 1, alloc) as (*const char);
 }
 
+func (p: using *Parser) scanMultiStr() {
+    assert(*stream == '`'); // "
+    stream+=1;
+    buffer.clear()
+
+    while (*stream && *stream != '`' ) {
+        var val: char = *stream;
+        if (val == '\\') {
+            stream += 1;
+            if(*stream == '`') {
+                val = '`'
+                stream += 1
+            } else {
+                /*val = escapeToChar[(*stream) as (i32)];
+                if (val == 0 && *stream != '0') {
+                    p.error("Invalid string literal escape '\\%c'", *stream);
+                }
+                stream += 1;*/
+
+                buffer.append("%c", val)
+                val = *stream
+                stream += 1;
+            }
+        } else {
+            stream += 1;
+        }
+
+        buffer.append("%c", val)
+    }
+    if (*stream) {
+        stream += 1;
+    } else {
+        p.error("Unexpected end of file within string literal");
+    }
+
+    if(p.hasError()) {
+        return;
+    }
+
+    token.kind = TokenKind.STRING;
+    token.strValue = mem::memduplicate(buffer.cStr() as (*const void), buffer.size() + 1, alloc) as (*const char);
+}
+
+func (l: *Parser) skipComments() {
+    if(*l.stream == '/') {
+        if(l.stream[1] == '/') {
+            l.stream += 1
+            do {
+                l.stream += 1
+                if(*l.stream == '\n') {
+                    break;
+                }
+            }
+            while(l.stream)
+        }
+        else if(l.stream[1] == '*') {
+            l.stream += 1 // eat /
+            do {
+                l.stream += 1
+                if((l.stream[0] == '*' && l.stream[1] == '/')) {
+                    l.stream += 2
+                    break;
+                }
+            }
+            while(l.stream)
+        }
+    }
+}
+
 
 func (p: using *Parser) nextToken() {
 
@@ -831,6 +900,8 @@ repeat:
     if(p.hasError()) {
         return;
     }
+
+    p.skipComments()
 
     token.start = stream
     switch(*stream) {
@@ -850,6 +921,10 @@ repeat:
         }
         case '"': { //"
             p.scanStr();
+            break;
+        }
+        case '`': {
+            p.scanMultiStr()
             break;
         }
         case '.':
