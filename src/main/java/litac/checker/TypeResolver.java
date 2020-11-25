@@ -2110,7 +2110,7 @@ public class TypeResolver {
             }
         }
         
-        typeCheck(expr.index.getSrcPos(), expr.index.getResolvedType().type, TypeInfo.I64_TYPE);
+        typeCheck(expr.index.getSrcPos(), expr.index.getResolvedType().type, TypeInfo.USIZE_TYPE);
         
         return null;
     }

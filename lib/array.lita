@@ -43,7 +43,7 @@ public func (a: *Array<T>) add<T>(element: T) {
         ArrayGrow<T>(a, 1)
     }
 
-    #if (isArray(scope.getSymbol("element")?type))
+    #if (getTypeKind("element") == "ARRAY")
         memcpy(&a.elements[a.length], element as (*void), sizeof(:T));
     #else
         a.elements[a.length] = element;
@@ -65,7 +65,7 @@ public func (a: *Array<T>) get<T>(index: i32) : T {
 public func (a: *Array<T>) set<T>(index: i32, element: T) {
     assert(index >= 0 && index < a.length);
 
-    #if (isArray(scope.getSymbol("element")?type))
+    #if (getTypeKind("element") == "ARRAY")
         memcpy(&a.elements[index], element as (*void), sizeof(:T));
     #else
         a.elements[index] = element;
@@ -162,6 +162,13 @@ public func (a: *Array<T>) size<T>() : i32 {
 
 public func (a: *Array<T>) clear<T>() {
     a.length = 0
+}
+
+public func (a: *Array<T>) copy<T>(allocator: *const mem::Allocator = null) : Array<T> {
+    var copy = ArrayInit<T>(a.length, allocator ? allocator : a.alloc)
+    memcpy(copy.elements, a.elements, a.length * sizeof(:T))
+    copy.length = a.length
+    return copy
 }
 
 func ArrayGrow<T>(a: *Array<T>, increment: i32) {

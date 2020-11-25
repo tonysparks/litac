@@ -22,6 +22,7 @@
 * func [Array\_addAll](#Array\_addAll)(a: [\*Array<T>](#Array<T>), other: [\*Array<T>](#Array<T>))
 * func [Array\_add](#Array\_add)(a: [\*Array<T>](#Array<T>), element: [T](#T))
 * func [Array\_clear](#Array\_clear)(a: [\*Array<T>](#Array<T>))
+* func [Array\_copy](#Array\_copy)(a: [\*Array<T>](#Array<T>), allocator: [\*const Allocator](#Allocator)) : [documentationGenerator](documentationGenerator\.md)::[Array<T>](Array<T>\.md)
 * func [Array\_empty](#Array\_empty)(a: [\*Array<T>](#Array<T>)) : bool
 * func [Array\_first](#Array\_first)(a: [\*Array<T>](#Array<T>)) : [T](#T)
 * func [Array\_forEach](#Array\_forEach)(a: [\*Array<T>](#Array<T>), fn: [func<T>\(T\) : bool](#\_))
@@ -73,6 +74,12 @@ func [Array\_addAll](#Array\_addAll)(a: [\*Array<T>](#Array<T>), other: [\*Array
 
 
 func [Array\_clear](#Array\_clear)(a: [\*Array<T>](#Array<T>))
+
+
+### Array\_copy
+
+
+func [Array\_copy](#Array\_copy)(a: [\*Array<T>](#Array<T>), allocator: [\*const Allocator](#Allocator)) : [documentationGenerator](documentationGenerator\.md)::[Array<T>](Array<T>\.md)
 
 
 ### Array\_empty

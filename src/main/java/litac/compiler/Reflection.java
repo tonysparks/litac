@@ -74,7 +74,7 @@ public class Reflection {
         // Get a list of all declaration types
         List<Expr> infos = addTypeInfos(symbols, typeModule);
         
-        Expr numOfTypeInfosExpr = NumberExpr.expr(TypeInfo.I64_TYPE, numOfTypeInfos);
+        Expr numOfTypeInfosExpr = NumberExpr.expr(TypeInfo.USIZE_TYPE, numOfTypeInfos);
         TypeSpec typeInfoTypeSpec = new ArrayTypeSpec(null, new PtrTypeSpec(null, new NameTypeSpec(null, "TypeInfo")), numOfTypeInfosExpr);
         
         Expr typeInfosExpr = new ArrayInitExpr(typeInfoTypeSpec, infos);
@@ -83,7 +83,7 @@ public class Reflection {
         typeInfosDecl.attributes.isPublic = true; 
         typeInfosDecl.attributes.addNote(new NoteStmt("generated"));
                 
-        Decl numOfTypeInfosDecl = new ConstDecl(new Identifier("numOfTypeInfos"), new NameTypeSpec(null, "i64"), numOfTypeInfosExpr.copy(), 0);
+        Decl numOfTypeInfosDecl = new ConstDecl(new Identifier("numOfTypeInfos"), new NameTypeSpec(null, "usize"), numOfTypeInfosExpr.copy(), 0);
         numOfTypeInfosDecl.attributes.isGlobal = true;
         numOfTypeInfosDecl.attributes.isPublic = true;
         numOfTypeInfosDecl.attributes.addNote(new NoteStmt("generated"));

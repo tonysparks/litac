@@ -661,16 +661,21 @@ func (p: using *Parser) parseJsonObject() : *JsonNode {
         }
 
         var key = p.token.strValue
-        p.expect(TokenKind.STRING)
+        if(!p.expect(TokenKind.STRING)) {
+            goto err
+        }
 
-        p.expect(TokenKind.COLON)
+        if(!p.expect(TokenKind.COLON)) {
+            goto err
+        }
+
         var value = p.parseJsonNode();
-
         node.value.objValue.put(key, value)
     }
     while (p.match(TokenKind.COMMA));
 
     p.expect(TokenKind.RIGHT_BRACE)
+err:
     return node
 }
 
@@ -837,12 +842,6 @@ func (p: using *Parser) scanMultiStr() {
                 val = '`'
                 stream += 1
             } else {
-                /*val = escapeToChar[(*stream) as (i32)];
-                if (val == 0 && *stream != '0') {
-                    p.error("Invalid string literal escape '\\%c'", *stream);
-                }
-                stream += 1;*/
-
                 buffer.append("%c", val)
                 val = *stream
                 stream += 1;

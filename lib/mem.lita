@@ -12,7 +12,7 @@ import "assert"
 =========================================================
 */
 
-#if (options.debugMode)
+#if (DEBUG)
 
     public func new<T>(a: *const Allocator = defaultAllocator,
                       file: *const char = __FILE__,
@@ -73,7 +73,7 @@ public func alignForward(ptr: usize, align: usize) : usize {
 =========================================================
 */
 
-#if (options.debugMode)
+#if (DEBUG)
 
     @foreign
     public const __FILE__: *const char;
@@ -165,7 +165,7 @@ public const cAllocator : *const Allocator = (&Allocator {
     .freeFn:    &cFree
 }) as (*const Allocator);
 
-#if (options.debugMode)
+#if (DEBUG)
 
     func cMalloc(a: *const Allocator,
                  size: usize,
@@ -269,7 +269,7 @@ public func (arena: *Arena) free() {
 }
 
 
-#if (options.debugMode)
+#if (DEBUG)
     public func (arena: *Arena) malloc(size: usize,
                                        file: *const char = __FILE__,
                                        line: u64 = __LINE__) : *void {
@@ -459,7 +459,7 @@ public func (this: *LinearAllocator) malloc(size: usize) : *void {
     return ptr;
 }
 
-#if (options.debugMode)
+#if (DEBUG)
     func LinearMalloc(alloc: *const Allocator,
                         size: usize,
                         file: *const char = __FILE__,
@@ -616,7 +616,7 @@ public func (d: *DebugAllocator) malloc(size: usize,
     return mem;
 }
 
-#if (options.debugMode)
+#if (DEBUG)
     func DebugMalloc(alloc: *const Allocator,
                      size: usize,
                      file: *const char = __FILE__,
@@ -737,7 +737,7 @@ func DebugFree(alloc: *const Allocator, ptr: *void) {
 =========================================================
 */
 
-#if (options.debugMode)
+#if (DEBUG)
 
    // @threadlocal
     // TODO: This isn't thread safe :(

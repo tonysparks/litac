@@ -127,11 +127,11 @@
             name: "Body If Simple",
             definitions: '''                
                 func test<T>(i: T) : T {
-                    #if isBool(scope.getSymbol("i")?type)
+                    #if getTypeKind("i") == "BOOL"
                         return i
-                    #elseif isFloat(scope.getSymbol("i")?type)
+                    #elseif getTypeKind("i") == "F32"
                         return i + 4.4f
-                    #elseif isInteger(scope.getSymbol("i")?type)
+                    #elseif getTypeKind("i") == "I32"
                         return i + 4
                     #else 
                         return i
@@ -152,10 +152,10 @@
             name: "Body If MultiLine",
             definitions: '''                
                 func test<T>(i: T) : T {
-                    #if isBool(scope.getSymbol("i")?type) &&\
-                        isInteger(scope.getSymbol("i")?type ) 
+                    #if getTypeKind("i") == "BOOL" ||\
+                        getTypeKind("i") == "I32" 
                         return i
-                    #elseif isFloat(scope.getSymbol("i")?type)
+                    #elseif getTypeKind("i") == "F32"
                         return i + 4.4f                    
                     #else
                         return i + 6                    
@@ -167,7 +167,7 @@
                 var y : f32 = test<f32>(3.0f)
                 var z : bool = test<bool>(true)
                 
-                assert(x == 7)
+                assert(x == 1)
                 assert(y == 7.4f)
                 assert(z == true)                  
             '''

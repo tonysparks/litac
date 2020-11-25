@@ -145,10 +145,10 @@ public class CompilationUnit {
                 return module;
             }
             catch (FileNotFoundException e) {
-                throw Compiler.error(stmt, "could not find module '%s' at '%s'", stmt.moduleName, moduleId.moduleFile.getAbsolutePath());
+                throw Compiler.error(stmt.getSrcPos(), "could not find module '%s' at '%s'", stmt.moduleName, moduleId.moduleFile.getAbsolutePath());
             }
             catch (IOException e) {
-                throw Compiler.error(stmt, "I/O error '%s'", e.getMessage());
+                throw Compiler.error(stmt.getSrcPos(), "I/O error '%s'", e.getMessage());
             }
         }
         

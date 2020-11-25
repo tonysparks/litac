@@ -1,5 +1,5 @@
 @generated public const typeInfos: **TypeInfo = [1]*TypeInfo{0};
-@generated public const numOfTypeInfos : i64 = 0;
+@generated public const numOfTypeInfos : usize = 0;
 
 @asStr
 public enum TypeKind {
@@ -10,27 +10,28 @@ public enum TypeKind {
     I32, U32,
     I64, U64,
     F32, F64,
-        
+    USIZE,
+
     Str,
     Array,
     Ptr,
     Null,
     FuncPtr,
-        
+
     Struct,
     Func,
     Enum,
     Union,
-        
+
     Void,
-    
+
     MaxTypeKind
 }
 
 typedef i64 as typeid;
 
 public enum Modifiers {
-    Using = (1<<0),    
+    Using = (1<<0),
 }
 
 public struct GenericInfo {
@@ -60,7 +61,7 @@ public struct TypeInfo {
     kind:   TypeKind;
     name:   *const char;
     id:     typeid;
-    
+
     union {
         struct arrayType {
             length:  i32
@@ -101,6 +102,6 @@ public func getTypeInfo(id: typeid) : *TypeInfo {
     if (id < 0_i64 || id >= numOfTypeInfos) {
         return null;
     }
-    
+
     return typeInfos[id];
 }

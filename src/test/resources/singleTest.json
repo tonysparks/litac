@@ -636,6 +636,7 @@
             //error: "Unexpected token"                    
         },*/
         
+        /*
         {
             name: "Generic Typedef",
             definitions: '''
@@ -664,6 +665,20 @@
                 init(f.paramDecls, f.paramDecls.size())      
             ''',
             //error: "Unexpected token"                    
+        },*/
+        {
+            name: "Break Generics",
+            definitions: '''
+                struct Person<T> {
+                    union X<T> {
+                        v: T
+                    }
+                }
+            '''
+            code: '''     
+                var x = Person<i32> { .X: X<i32>{4} }
+                assert(x.X.v == 4)                      
+            ''',
         },
 
     ]

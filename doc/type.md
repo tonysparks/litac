@@ -6,7 +6,7 @@
 
 ## type Variables
 
-* const [numOfTypeInfos](#numOfTypeInfos): i64
+* const [numOfTypeInfos](#numOfTypeInfos): usize
 * const [typeInfos](#typeInfos): [\*\*TypeInfo](#TypeInfo)
 
 
@@ -116,6 +116,7 @@ enum [TypeKind](#TypeKind)
 * U64
 * F32
 * F64
+* USIZE
 * Str
 * Array
 * Ptr

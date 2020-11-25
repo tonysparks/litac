@@ -14,13 +14,13 @@
 #define LITAC_INLINE static inline __attribute__((always_inline))
 #define LITAC_NOINLINE __attribute__((noinline))
 #define LITAC_PACKED __attribute__((packed))
-#define LITAC_PACKED_POP 
+#define LITAC_PACKED_POP
 #define LITAC_EXPORT __attribute__((visibility("default")))
 #endif
 """);
 
 
-#if(!options.typeInfo.value == "none")
+#if (REFLECTION)
     import "type";
 #end
 

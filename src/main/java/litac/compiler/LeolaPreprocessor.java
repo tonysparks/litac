@@ -4,9 +4,9 @@
 package litac.compiler;
 
 import leola.vm.Leola;
-import leola.vm.types.LeoObject;
+import leola.vm.types.*;
 import litac.LitaOptions;
-import litac.checker.TypeInfo;
+import litac.LitaOptions.TypeInfoOption;
 import litac.util.OS;
 
 /**
@@ -26,7 +26,37 @@ public class LeolaPreprocessor implements Preprocessor {
         
         this.runtime.put("options", options);
         this.runtime.put("OS", OS.getOS().name());
-        this.runtime.loadStatics(TypeInfo.class);
+        this.runtime.put("DEBUG", options.debugMode);
+        this.runtime.put("REFLECTION", !options.typeInfo.equals(TypeInfoOption.None));
+        
+        //this.runtime.loadStatics(TypeInfo.class);
+        this.runtime.put("getTypeKind", new LeoUserFunction() {
+            
+            @Override
+            public LeoObject call(LeoObject[] args) {
+                if(args.length < 1) {
+                    return new LeoError("invalid empty symbol name", 0);
+                }
+                String element = args[0].toString();
+                LeoObject scopeObj = runtime.get("scope");
+                if(scopeObj == null) {
+                    return new LeoError("no active scope defined", 0);
+                }
+                
+                Object scope = scopeObj.getValue(Scope.class);
+                if(!(scope instanceof Scope)) {
+                    return new LeoError("no active scope defined", 0);
+                }
+                
+                Scope currentScope = (Scope)scope;
+                Symbol sym = currentScope.getSymbol(element);
+                if(sym == null) {
+                    return new LeoError("no symbol found for '" + element + "'", 0);
+                }
+                
+                return LeoString.valueOf(sym.type.getKind().name().toUpperCase());
+            }
+        });        
     }
     
     @Override

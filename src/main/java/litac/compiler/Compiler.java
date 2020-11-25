@@ -16,6 +16,7 @@ import litac.doc.DocGen;
 import litac.util.Profiler;
 import litac.util.Profiler.Segment;
 import litac.compiler.Module;
+import litac.compiler.PhaseResult.PhaseError;
 
 /**
  * @author Tony
@@ -29,9 +30,14 @@ public class Compiler {
         this.options = options;
     }
     
-    public static CompileException error(Stmt stmt, String message, Object ...args) {
-        return new CompileException(String.format(message, args) + 
-                String.format(" at line %d in '%s'", stmt.getLineNumber(), stmt.getSourceName()));
+    public static CompileException error(SrcPos pos, String message, Object ...args) {
+        if(pos != null) {
+            return new CompileException(String.format(message, args) + 
+                String.format(" at line %d in '%s'", pos.lineNumber, pos.sourceName));
+        }
+        else {
+            return new CompileException(String.format(message, args));
+        }
     }
     
     public PhaseResult compile(File rootModule) throws Exception {
@@ -102,6 +108,10 @@ public class Compiler {
             ModuleId type = ModuleId.fromDirectory(options.libDir, "type");
             Module typeModule = program.getModule(type);
             reflection.createTypeInfos(typeModule, resolver, declarations);
+            if(result.hasErrors()) {
+                PhaseError error = result.getErrors().get(0);
+                throw error(error.pos, "reflection creation error: %s", error.message);
+            }
         }
     }
     
