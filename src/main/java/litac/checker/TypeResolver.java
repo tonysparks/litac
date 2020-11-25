@@ -1081,7 +1081,9 @@ public class TypeResolver {
                 if(genParam != null) {
                     return new GenericParamTypeInfo(genParam.name);
                 }
-                
+                if(nameSpec.toString().equals("t<i32>")) {
+                    System.out.println("here");
+                }
                 // This will check the current module AND if we are in a generic structure
                 // we must also see if this type is mapped to a particular call site module
                 Symbol sym = getType(nameSpec);                
@@ -2217,6 +2219,10 @@ public class TypeResolver {
         if(expr instanceof IdentifierExpr) {
             IdentifierExpr id = expr.as();
             if(id.sym != null) {
+                if(id.sym.isType()) {
+                    error(expr, "can't reassign type '%s'", id.type);
+                    return;
+                }
                 if(id.sym.isConstant()) {
                     error(expr, "can't reassign constant variable '%s'", id.type);
                     return;

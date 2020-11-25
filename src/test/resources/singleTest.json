@@ -669,16 +669,14 @@
         {
             name: "Break Generics",
             definitions: '''
-                struct Person<T> {
-                    union X<T> {
-                        v: T
-                    }
+                struct Struct {
+                    a: i32
                 }
             '''
             code: '''     
-                var x = Person<i32> { .X: X<i32>{4} }
-                assert(x.X.v == 4)                      
+                theVariable: Struct = Struct{4}                      
             ''',
+            error: "can't reassign type 'Struct'"
         },
 
     ]
