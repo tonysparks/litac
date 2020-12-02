@@ -40,11 +40,7 @@ function activate(context) {
     }
     
     var libraryPath = config.get("libraryPath");
-    if (!libraryPath) {
-        vscode.window.showErrorMessage("Could not start LitaC language server due to missing setting: litac.libraryPath");
-        return;
-    }
-    else {
+    if (libraryPath) {
         args += " -lib \"" + libraryPath + "\"";
     }
 

@@ -500,7 +500,7 @@ public struct Parser {
 public func (p: *Parser) init(alloc: *const mem::Allocator = mem::defaultAllocator) {
     p.alloc = alloc
     p.status = ParserStatus.OK
-    mem::memset(p.errorMsg, 0, MAX_MESSAGE_SIZE)
+    memset(p.errorMsg, 0, MAX_MESSAGE_SIZE)
 
     p.stream = null
     p.lineStart = null
@@ -747,7 +747,7 @@ func (p: using *Parser) scanInt() {
     }
 
     token.kind = TokenKind.NUMBER; //TOKEN_INT;
-    token.numValue = val;
+    token.numValue = val as (f64);
 }
 
 func (p: using *Parser) scanFloat() {
