@@ -666,17 +666,33 @@
             ''',
             //error: "Unexpected token"                    
         },*/
+        
         {
-            name: "Break Generics",
-            definitions: '''
-                struct Struct {
-                    a: i32
-                }
-            '''
-            code: '''     
-                theVariable: Struct = Struct{4}                      
+            "name": "Func with 2d array pointers",
+            "definitions": '''
+@include("<string.h>");
+@foreign func strcmp(a:*const char, b:*const char) : i32;
+
+struct Test {
+    name: *char
+    x: [32]char
+}
+
+struct X {
+    x: [32]char
+}
             ''',
-            error: "can't reassign type 'Struct'"
+            "code": '''
+    var m : [32]char = "Brett"
+    var x = X{m}
+    var t = Test{
+        .name = m,
+        .x = x.x
+
+    }
+
+    assert(strcmp(t.name, "Brett") == 0)
+            ''',
         },
 
     ]

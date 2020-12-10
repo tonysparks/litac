@@ -12,7 +12,7 @@ public func StringViewInit(str: *const char, len: i32 = -1) : StringView {
         return StringView {
             .buffer = null,
             .length = 0
-        }    
+        }
     }
 
     return StringView {
@@ -24,7 +24,7 @@ public func StringViewInit(str: *const char, len: i32 = -1) : StringView {
 public func (b: StringView) hash() : u32 {
     var hash = 5381_u32;
     for(var i = 0; i < b.length; i+=1) {
-        hash = ((hash << 5_u32) + hash) ^ ((b.buffer[i]) as (u32));        
+        hash = ((hash << 5_u32) + hash) ^ ((b.buffer[i]) as (u32));
     }
     return hash;
 }
@@ -151,14 +151,33 @@ public func (b: StringView) copyTo(buf: *char, len: i32, addZero: bool = true) :
     if(b.length < len) {
         bytesCopied = b.length
     }
-    
+
     memcpy(buf as (*void),
-          (&b.buffer[0]) as (*const void), 
+          (&b.buffer[0]) as (*const void),
            bytesCopied * sizeof(:char))
 
     if(addZero) buf[bytesCopied] = '\0'
 
     return (bytesCopied)
+}
+
+public func (s: StringView) copy(allocator: *const mem::Allocator = mem::defaultAllocator) : StringView {
+    if(s.length < 1) {
+        return StringView {
+            .buffer = null,
+            .length = 0
+        }
+    }
+
+    var copiedStr = allocator.alloc((s.length + 1) * sizeof(:char)) as (*char)
+    memcpy(copiedStr, s.buffer, s.length)
+
+    copiedStr[s.length] = '\0'
+
+    return StringView{
+        .buffer = copiedStr,
+        .length = s.length
+    }
 }
 
 public func (b: StringView) forEach(fn : func(char) : bool) {
@@ -215,14 +234,14 @@ func testContains() {
     assert(a.contains("World") == true)
     assert(a.contains("d") == true)
     assert(a.contains("H") == true)
-    assert(a.contains("Which", 1) == true)    
+    assert(a.contains("Which", 1) == true)
     assert(e.contains("World") == false)
     assert(a.contains(e.buffer, e.length) == false)
 }
 
 @test("startsWith")
 func testStartsWith() {
-    var a = StringViewInit("Hello World")    
+    var a = StringViewInit("Hello World")
     var e = StringViewInit(null)
 
     assert(a.startsWith("World") == false)
@@ -239,7 +258,7 @@ func testStartsWith() {
 
 @test("indexOf")
 func testIndexOf() {
-    var a = StringViewInit("Hello World")    
+    var a = StringViewInit("Hello World")
     var e = StringViewInit(null)
 
     assert(a.indexOfAt("World", 2) == 6)
@@ -247,7 +266,7 @@ func testIndexOf() {
     assert(a.indexOfAt("d") == 10)
     assert(a.indexOfAt("H") == 0)
     assert(a.indexOfAt("H", 2) == -1)
-    
+
     assert(e.indexOfAt("World") == -1)
     assert(a.indexOfAt(e.buffer, e.length) == -1)
 }

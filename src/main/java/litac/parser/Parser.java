@@ -511,6 +511,22 @@ public class Parser {
         }
         
         switch(type) {
+            case "precheck":
+            case "postparse": {
+                List<Stmt> body = Collections.emptyList();
+                while(!isAtEnd()) {
+                    if(check(HASH)) {
+                        break;
+                    }
+                    
+                    advance();
+                }
+                
+                consume(HASH, ErrorCode.MISSING_COMP_STMT_END);
+                
+                CompStmt end = compStmt();
+                return new CompStmt(type, null, body, end);
+            }
             case "if": 
             case "elseif": {
                 int currentLine = pos().lineNumber;

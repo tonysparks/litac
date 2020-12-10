@@ -22,6 +22,7 @@
 * func [StringView\_clear](#StringView\_clear)(b: [string\_view](#string\_view)::[StringView](#StringView))
 * func [StringView\_contains](#StringView\_contains)(b: [string\_view](#string\_view)::[StringView](#StringView), str: *const char, len: i32) : bool
 * func [StringView\_copyTo](#StringView\_copyTo)(b: [string\_view](#string\_view)::[StringView](#StringView), buf: *char, len: i32, addZero: bool) : i32
+* func [StringView\_copy](#StringView\_copy)(s: [string\_view](#string\_view)::[StringView](#StringView), allocator: [\*const Allocator](#Allocator)) : [string\_view](#string\_view)::[StringView](#StringView)
 * func [StringView\_empty](#StringView\_empty)(b: [string\_view](#string\_view)::[StringView](#StringView)) : bool
 * func [StringView\_endsWith](#StringView\_endsWith)(b: [string\_view](#string\_view)::[StringView](#StringView), suffix: *const char, len: i32) : bool
 * func [StringView\_equalsStringView](#StringView\_equalsStringView)(b: [string\_view](#string\_view)::[StringView](#StringView), other: [string\_view](#string\_view)::[StringView](#StringView)) : bool
@@ -64,6 +65,12 @@ func [StringView\_clear](#StringView\_clear)(b: [string\_view](#string\_view)::[
 
 
 func [StringView\_contains](#StringView\_contains)(b: [string\_view](#string\_view)::[StringView](#StringView), str: *const char, len: i32) : bool
+
+
+### StringView\_copy
+
+
+func [StringView\_copy](#StringView\_copy)(s: [string\_view](#string\_view)::[StringView](#StringView), allocator: [\*const Allocator](#Allocator)) : [string\_view](#string\_view)::[StringView](#StringView)
 
 
 ### StringView\_copyTo
