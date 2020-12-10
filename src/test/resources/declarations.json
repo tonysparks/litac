@@ -1654,5 +1654,18 @@
                 Test(obj.a, 32)
             ''',            
         },
+        
+        {
+            name: "Missing Var Reassign Type",
+            definitions: '''
+                struct Struct {
+                    a: i32
+                }
+            '''
+            code: '''     
+                theVariable: Struct = Struct{4}                      
+            ''',
+            error: "can't reassign type 'Struct'"
+        },
     ]
 }

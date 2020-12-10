@@ -24,3 +24,73 @@
     import "type";
 #end
 
+
+/**
+    Compiler script to generate Enum AsStr functions when they are noted with 'asStr'.
+
+    Example:
+    @asStr("TestAsString")
+    enum Test {
+        ONE,
+
+        @asStr("DOS")
+        TWO,
+    }
+
+    Will create this function:
+
+    func TestAsString(type: Test) : *const char {
+        switch(type) {
+            case Test.ONE: return "ONE";
+            case Test.TWO: return "DOS";
+            default: return null;
+        }
+    }
+*/
+#precheck
+    for(sym in getSymbolsByNote("asStr")) {
+        if(sym.kind == "ENUM_DECL") {
+            emitClear()
+            var symName = ""
+
+            // Look to see if there is a custom name in the enums note
+            if(sym.notes) {
+                for(note in sym.notes) {
+                    if(note.name == "asStr" && note.attributes) {
+                        symName = note.attributes[0].name
+                    }
+                }
+            }
+
+            if(symName == "") {
+                symName = concat(sym.name, "AsStr")
+            }
+
+            if(sym.isPublic) {
+                emit("public ")
+            }
+            emit("func "); emit(symName); emit("(enumType: "); emit(sym.name); emit(") : *const char {\n")
+            emit("    switch(enumType) {\n")
+            for(field in sym.enumDecl.fields) {
+                var fieldName = field.name
+
+                // Look to see if there is a custom name for the field
+                if(field.notes) {
+                    for(note in field.notes) {
+                        if(note.name == "asStr" && note.attributes) {
+                            fieldName = note.attributes[0].name
+                        }
+                    }
+                }
+                emit("        case "); emit(sym.name); emit("."); emit(field.name);
+                emit(": return \""); emit(fieldName); emit("\";\n")
+            }
+            emit("        default: return null;\n")
+            emit("    }\n")
+            emit("}\n")
+
+            addDeclaration(sym.moduleName, emitStr())
+        }
+    }
+#end
+
