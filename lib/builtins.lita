@@ -69,8 +69,8 @@
             if(sym.isPublic) {
                 emit("public ")
             }
-            emit("func "); emit(symName); emit("(enumType: "); emit(sym.name); emit(") : *const char {\n")
-            emit("    switch(enumType) {\n")
+            emit("func %s(enumType: %s) : *const char {
+                      switch(enumType) {\n", symName, sym.name);
             for(field in sym.enumDecl.fields) {
                 var fieldName = field.name
 
@@ -82,12 +82,11 @@
                         }
                     }
                 }
-                emit("        case "); emit(sym.name); emit("."); emit(field.name);
-                emit(": return \""); emit(fieldName); emit("\";\n")
+                emit("        case %s.%s: return \"%s\";\n", sym.name, field.name, fieldName);
             }
-            emit("        default: return null;\n")
-            emit("    }\n")
-            emit("}\n")
+            emit("        default: return null;
+                      }
+                }\n")
 
             addDeclaration(sym.moduleName, emitStr())
         }
