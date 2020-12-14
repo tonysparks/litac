@@ -745,14 +745,14 @@ func DebugFree(alloc: *const Allocator, ptr: *void) {
     }) as (*const Allocator);
 
     @module_init
-    func ModuleInit() {
+    public func ModuleInit() {
         var debugAllocator = defaultAllocator as (*DebugAllocator)
         debugAllocator.init(cAllocator);
         //c::printf("Module Init!\n")
     }
 
     @module_destroy
-    func ModuleDestroy() {
+    public func ModuleDestroy() {
         var debugAllocator = defaultAllocator as (*DebugAllocator)
         debugAllocator.report();
         debugAllocator.free();

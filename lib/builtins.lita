@@ -93,3 +93,60 @@
     }
 #end
 
+
+
+
+/**
+    Compiler script to inject module init and destroy functions; these
+    function must be public in order for them to be accessible to the
+    main function
+
+    Example:
+    @module_init
+    public func moduleInitialize() {
+
+    }
+
+    @module_destroy
+    public func moduleInitialize() {
+
+    }
+
+    Will modify the main function to:
+
+    func main(argc:i32, args:**char) : i32 {
+        moduleInitialize()
+        // main code
+        moduleDestroy()
+    }
+*/
+#precheck
+    var mainSym = getMainSymbol()
+
+    for(sym in getSymbolsByNote("module_init")) {
+        if(sym.kind == "FUNC_DECL" && sym.isPublic) {
+            var alias = addImport(mainSym.moduleName, sym.moduleName)
+            if(alias) {
+                emitClear()
+                emit("defer %s::%s()", alias, sym.name)
+                astInsert(mainSym.declPtr, emitStr(), 0)
+
+                emitClear()
+                emit("%s::%s()", alias, sym.name)
+                astInsert(mainSym.declPtr, emitStr(), 0)
+            }
+            else {
+
+                emitClear()
+                emit("defer %s()", sym.name)
+                astInsert(mainSym.declPtr, emitStr(), 0)
+
+                emitClear()
+                emit("%s()", sym.name)
+                astInsert(mainSym.declPtr, emitStr(), 0)
+            }
+        }
+
+    }
+#end
+
