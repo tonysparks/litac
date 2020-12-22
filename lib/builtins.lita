@@ -116,8 +116,8 @@
 
     func main(argc:i32, args:**char) : i32 {
         moduleInitialize()
+        defer moduleDestroy()
         // main code
-        moduleDestroy()
     }
 */
 #precheck

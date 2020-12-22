@@ -142,7 +142,11 @@ public func (s: String) copy(allocator: *const mem::Allocator = mem::defaultAllo
     }
 }
 
-public func (s: String) clear() {
+public func (s: *String) adjust() {
+    s.length = strnlen(s.str, s.capacity)
+}
+
+public func (s: *String) clear() {
     s.memset(0)
     s.length = 0
 }
