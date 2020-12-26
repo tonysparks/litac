@@ -56,6 +56,9 @@ public class RequestHandler {
             }
             else {
                 rootModule = scanRootModule(sourcePath);
+                if(rootModule != null) {
+                    sourcePath = rootModule.getParentFile();
+                }
             }
                     
             this.workspace.setRoot(rootModule, sourcePath);

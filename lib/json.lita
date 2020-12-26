@@ -198,6 +198,34 @@ public func (node: *JsonNode) put(key: *const char, n: *JsonNode, len: i32 = -1)
 }
 
 
+public func (node: *JsonNode) putStr(key: *const char, str: *const char, len: i32 = -1) {
+    if(node.type != JsonType.OBJECT) {
+        return;
+    }
+
+    var value = CreateJsonString(str, -1, node.alloc)
+    node.put(key, value, len)
+}
+
+
+public func (node: *JsonNode) putNumber(key: *const char, number: f64, len: i32 = -1) {
+    if(node.type != JsonType.OBJECT) {
+        return;
+    }
+
+    var value = CreateJsonNumber(number, node.alloc)
+    node.put(key, value, len)
+}
+
+public func (node: *JsonNode) putBool(key: *const char, b: bool, len: i32 = -1) {
+    if(node.type != JsonType.OBJECT) {
+        return;
+    }
+
+    node.put(key, b ? JSON_TRUE : JSON_FALSE, len)
+}
+
+
 public func (node: *JsonNode) contains(key: *const char) : bool {
     if(node.type != JsonType.OBJECT) {
         return false;
@@ -314,6 +342,86 @@ public func (node: *JsonNode) size() : i32 {
     return 0
 }
 
+
+public func (node: *JsonNode) equals(other: *JsonNode) : bool {
+    if(node == other) {
+        return true
+    }
+
+    if(!node && other) return false;
+    if(node && !other) return false;
+
+    if(node.type != other.type) {
+        return false;
+    }
+
+    switch(node.type) {
+        case JsonType.ARRAY: {
+            if(node.arrayValue.size() != other.arrayValue.size()) {
+                return false
+            }
+
+            for(var i = 0; i < node.arrayValue.size(); i+=1) {
+                var thisElement = node.arrayValue.get(i)
+                var otherElement = other.arrayValue.get(i)
+                if(!thisElement.equals(otherElement)) {
+                    return false
+                }
+            }
+
+            return true
+        }
+        case JsonType.OBJECT: {
+            var thisCount = 0
+            var it = node.objValue.iter()
+            while(it.hasNext()) {
+                var entry = it.next()
+                var key = entry.key
+                var thisValue = entry.value
+
+                if(thisValue != null && thisValue.type != JsonType.NULL) {
+                    thisCount += 1
+                }
+
+                var otherValue = other.objValue.get(key)
+                if(!thisValue.equals(otherValue)) {
+                    return false
+                }
+            }
+
+            var otherCount = 0
+            it = other.objValue.iter()
+            while(it.hasNext()) {
+                var entry = it.next()
+                var key = entry.key
+                var otherValue = entry.value
+
+                if(otherValue != null && otherValue.type != JsonType.NULL) {
+                    otherCount += 1
+                }
+            }
+
+            return otherCount == thisCount
+        }
+        case JsonType.STRING: {
+            return strcmp(node.strValue, other.strValue) == 0
+
+        }
+        case JsonType.NULL: {
+            return true
+        }
+        case JsonType.BOOLEAN: {
+            return node.boolValue == other.boolValue
+        }
+        case JsonType.NUMBER: {
+            return node.doubleValue == other.doubleValue
+        }
+        default: {
+            assert(false)
+        }
+    }
+
+}
 
 public func (node: *JsonNode) print(buf: *StringBuffer) : *const char {
     PrintJson(node, buf)
@@ -495,6 +603,12 @@ public struct Parser {
     buffer: StringBuffer
     stream: *const char
     lineStart: *const char
+}
+
+public func ParserInit(alloc: *const mem::Allocator = mem::defaultAllocator) : Parser {
+    var parser = Parser{}
+    parser.init(alloc)
+    return parser
 }
 
 public func (p: *Parser) init(alloc: *const mem::Allocator = mem::defaultAllocator) {

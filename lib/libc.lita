@@ -26,7 +26,10 @@
 @foreign public struct FILE;
 @foreign public const stderr : *FILE;
 @foreign public const stdout : *FILE;
+@foreign public const stdin  : *FILE;
 @foreign public func printf(s:*const char, ...) : void;
+@foreign public func fprintf(stream: *FILE, s:*const char, ...) : void;
+@foreign public func fflush(stream: *FILE) : void;
 @foreign public func fopen(fileName:*const char, openType:*const char) : *FILE;
 @foreign public func fgets(buf: *char, n:i64, stream: *FILE): *char;
 @foreign public func fread(buf: *char, size:usize, n:usize, stream: *FILE) : i64;
@@ -35,6 +38,8 @@
 @foreign public func fseek(stream: *FILE, offset : i64, whence : i32) : i32;
 @foreign public func ftell(stream: *FILE) : i64;
 @foreign public func ferror(stream: *FILE) : i32;
+@foreign public func scanf(format: *const char, ...) : i32;
+@foreign public func fscanf(stream: *FILE, format: *const char, ...) : i32;
 @foreign public const SEEK_SET : i32;
 @foreign public const SEEK_CUR : i32;
 @foreign public const SEEK_END : i32;
@@ -85,6 +90,7 @@
 @foreign public func strtol(str: *const char, end: **char, base: i32) : i64;
 @foreign public func strtoul(str: *const char, end: **char, base: i32) : u64;
 @foreign public func strtod(str: *const char, end: **char) : f64;
+@foreign public func sscanf(str: *const char, format: *const char, ...) : i32;
 @foreign public func isdigit(arg: i32) : i32;
 @foreign public func tolower(arg: i32) : i32;
 @foreign public func toupper(arg: i32) : i32;

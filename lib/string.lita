@@ -80,6 +80,15 @@ public func (s: *String) append(format: *const char, ...) : i32 {
     return len
 }
 
+public func (s: *String) appendChar(c: char) {
+    if(s.length >= s.capacity) {
+        return;
+    }
+
+    s.str[s.length] = c
+    s.length += 1
+}
+
 public func (s: String) substring(start: i32, end: i32) : StringView {
     if(start < 0 || end < start) {
         return StringView{
@@ -167,4 +176,16 @@ public func (s: String) cStr() : *char {
 public func (s: String) cStrConst() : *const char {
     s.str[s.length] = '\0'
     return s.str as (*const char)
+}
+
+public func StringCopy(original: *const char, len: i32 = -1, allocator: *const mem::Allocator = mem::defaultAllocator) : *char {
+    if(len < 0) {
+        len = strlen(original)
+    }
+
+    var copiedStr = allocator.alloc((len + 1) * sizeof(:char)) as (*char)
+    memcpy(copiedStr, original, len)
+
+    copiedStr[len] = '\0'
+    return copiedStr
 }

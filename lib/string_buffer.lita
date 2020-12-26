@@ -333,6 +333,14 @@ public func (b: *StringBuffer) get(index: i32) : char {
     return b.buffer[index]
 }
 
+public func (b: *StringBuffer) reserve(length: i32) {
+    var available = b.capacity - b.length
+    if(available >= length) {
+        return;
+    }
+
+    BufferGrow(b, length - available)
+}
 
 func BufferGrow(b: *StringBuffer, increment: i32) {
     var doubleCurrent = b.capacity * 2

@@ -144,6 +144,9 @@ public class LitaOptions {
                 if(path != null) {
                     importFile = new File(path + "/lib", fileName);                
                 }
+                if(!importFile.exists()) {
+                    importFile = new File(this.srcDir, fileName);
+                }
             }
         }
         
