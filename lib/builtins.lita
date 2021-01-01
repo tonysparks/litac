@@ -93,8 +93,41 @@
     }
 #end
 
+/**
+    Create a test main if we are in testing mode
 
+    This will replace the current 'main' entry point of the program with a new
+    function '__LitaTestMain()' which will call each @test method that either
+    matches the options.testsRegex or options.testFileOnly options
 
+*/
+#precheck
+    // if we are testing only, create a new main entry point
+    if(TESTING) {
+        var moduleName = getInputModuleName()
+
+        emitClear()
+        var testFunctionName = "__LitaTestMain"
+        emit("@foreign(\"printf\") func __lita_test_printf(format: *const char, ...);\n")
+        emit("func %s(len: i32, args: **char) : i32 {\n", testFunctionName)
+        for(sym in getSymbolsToTest("test")) {
+            emit("  __lita_test_printf(\"Testing '%s'\\n\")", sym.name)
+            var alias = addImport(moduleName, sym.moduleName)
+            if(alias) {
+                emit("  %s::%s()\n", alias, sym.name)
+            }
+            else {
+                emit("  %s()\n", sym.name)
+            }
+        }
+        emit("  return 0;
+                }")
+
+        addDeclaration(moduleName, emitStr())
+        setMainSymbol(moduleName, testFunctionName)
+
+    }
+#end
 
 /**
     Compiler script to inject module init and destroy functions; these

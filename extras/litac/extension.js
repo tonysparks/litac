@@ -79,8 +79,13 @@ function activate(context) {
 			args += " -outputDir \"" + testOutputPath + "\"";
 		}
 	
+        var cmd = binaryPath
+        if(libraryPath) {
+            cmd += " -lib " + libraryPath
+        }
+        cmd += " -testFile -run " + args + " " + docName
         
-        exec(binaryPath + " -lib " + libraryPath + " -testFile -run " + args + " " + docName);
+        exec(cmd);
     }));
 
     console.log("Running LitaC Language server...");

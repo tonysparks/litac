@@ -16,7 +16,16 @@ public enum JsonType {
 }
 
 public typedef Array<*JsonNode> as JsonArray;
-public typedef Map<*const char, *JsonNode> JsonObject;
+
+struct Entry {
+    key: *const char
+    value: *JsonNode
+}
+
+public struct JsonObject {
+    indexes: Map<*const char, i32>
+    values: Array<Entry>
+}
 
 public union JsonValue {
     boolValue: bool
@@ -134,10 +143,65 @@ public func CreateJsonString(str: *const char, len: i32 = -1,
         len = strlen(str);
     }
 
-    var copy = mem::memduplicate(str as (*const void), (len + 1) * sizeof(:char), alloc) as (*char)
-    copy[len] = '\0'
+    var sb = StringBufferInit(len + 1, alloc)
+    sb.append("%.*s", len, str)
+//    EscapeString(sb, str, len)
 
-    return CreateJsonStringNoDup(copy, alloc)
+    return CreateJsonStringNoDup(sb.cStr(), alloc)
+}
+
+const escapeStrings = [256]*const char {
+    ['\b'] = "\\b",
+    ['\f'] = "\\f",
+    ['\n'] = "\\n",
+    ['\r'] = "\\r",
+    ['\t'] = "\\t",
+    ['\\'] = "\\\\",
+    ['\''] = "\\'",
+    //['"'] = "\\\"",
+    ['\0'] = "\\0",
+}
+
+const escapeChars = [256]*const char {
+    ['b'] = "\\\\b",
+    ['f'] = "\\\\f",
+    ['n'] = "\\\\n",
+    ['r'] = "\\\\r",
+    ['t'] = "\\\\t",
+    ['\\'] = "\\\\",
+    ['\''] = "\\'",
+    ['"'] = "\\\\\"",
+    ['\0'] = "\\0",
+}
+
+func EscapeString(buf: *StringBuffer, string: *const char, length: i32) {
+    for(var i = 0; i < length; i += 1) {
+        var c:char = string[i]
+        var escaped = escapeStrings[c as (u32)]
+        if(escaped) {
+            buf.append("%s", escaped)
+            continue
+        }
+
+        if(c == '\\') {
+            var n = string[i+1] as (u32)
+            var escapedChar = escapeChars[n]
+            if(escapedChar) {
+                var chars = escapeChars[n]
+                assert(chars)
+                buf.append("%s", chars)
+                i += 1
+                continue
+            }
+            else {
+                buf.append("\\")
+            }
+        }
+        if(c == '"') {  // "
+            buf.append("\\")
+        }
+        buf.appendChar(c)
+    }
 }
 
 /**
@@ -177,7 +241,8 @@ public func CreateJsonObject(alloc: *const mem::Allocator = mem::defaultAllocato
         .objValue = mem::new<JsonObject>(alloc)
     }
 
-    node.value.objValue.init(null, 16, &StrHashFn, &StrEqualFn, alloc)
+    node.value.objValue.indexes.init(-1, 16, &StrHashFn, &StrEqualFn, alloc)
+    node.value.objValue.values.init(16, alloc)
 
     return node
 }
@@ -194,7 +259,12 @@ public func (node: *JsonNode) put(key: *const char, n: *JsonNode, len: i32 = -1)
     var copy = mem::memduplicate(key as (*const void), len + 1, node.alloc) as (*char)
     copy[len] = '\0'
 
-    node.objValue.put(copy, n)
+    var entry = Entry {
+        .key = copy,
+        .value = n
+    }
+    node.objValue.values.add(entry)
+    node.objValue.indexes.put(copy, node.objValue.values.size() - 1)
 }
 
 
@@ -231,7 +301,7 @@ public func (node: *JsonNode) contains(key: *const char) : bool {
         return false;
     }
 
-    return node.objValue.contains(key)
+    return node.objValue.indexes.contains(key)
 }
 
 public func (node: *JsonNode) get(key: *const char) : *JsonNode {
@@ -239,7 +309,12 @@ public func (node: *JsonNode) get(key: *const char) : *JsonNode {
         return null;
     }
 
-    return node.objValue.get(key)
+    var index = node.objValue.indexes.get(key)
+    if(index < 0) {
+        return null
+    }
+
+    return node.objValue.values.get(index).value
 }
 
 public func (node: *JsonNode) getBool(key: *const char, defaultValue: bool = false) : bool {
@@ -336,7 +411,7 @@ public func (node: *JsonNode) size() : i32 {
         return node.arrayValue.size()
     }
     else if(node.type == JsonType.OBJECT) {
-        return node.objValue.size()
+        return node.objValue.indexes.size()
     }
 
     return 0
@@ -373,9 +448,9 @@ public func (node: *JsonNode) equals(other: *JsonNode) : bool {
         }
         case JsonType.OBJECT: {
             var thisCount = 0
-            var it = node.objValue.iter()
-            while(it.hasNext()) {
-                var entry = it.next()
+
+            for(var i = 0; i < node.objValue.values.size(); i += 1) {
+                var entry = node.objValue.values.get(i)
                 var key = entry.key
                 var thisValue = entry.value
 
@@ -383,16 +458,16 @@ public func (node: *JsonNode) equals(other: *JsonNode) : bool {
                     thisCount += 1
                 }
 
-                var otherValue = other.objValue.get(key)
+                var otherValue = other.get(key)
                 if(!thisValue.equals(otherValue)) {
                     return false
                 }
             }
 
             var otherCount = 0
-            it = other.objValue.iter()
-            while(it.hasNext()) {
-                var entry = it.next()
+
+            for(var i = 0; i < other.objValue.values.size(); i += 1) {
+                var entry = other.objValue.values.get(i)
                 var key = entry.key
                 var otherValue = entry.value
 
@@ -455,18 +530,19 @@ public func (node: *JsonNode) free() {
             break;
         }
         case JsonType.OBJECT: {
-            var it = node.objValue.iter()
-            while(it.hasNext()) {
-                var entry = it.next()
+            for(var i = 0; i < node.objValue.values.size(); i += 1) {
+                var entry = node.objValue.values.get(i)
                 var key = entry.key
+                var node = entry.value
                 alloc.free(key as (*void))
 
-                var n = entry.value
-                if(n) {
-                    n.free()
+                if(node) {
+                    node.free()
                 }
             }
-            node.objValue.free()
+            node.objValue.indexes.free()
+            node.objValue.values.free()
+
             alloc.free(node.objValue as (*void))
             break;
         }
@@ -586,7 +662,7 @@ struct Token {
     }
 }
 
-public enum ParserStatus {
+public enum JsonParserStatus {
     OK = 0,
     WARNING,
     ERROR,
@@ -594,9 +670,9 @@ public enum ParserStatus {
 
 const MAX_MESSAGE_SIZE = 256
 
-public struct Parser {
+public struct JsonParser {
     alloc: *const mem::Allocator
-    status: ParserStatus
+    status: JsonParserStatus
     errorMsg: [MAX_MESSAGE_SIZE]char
 
     token: Token
@@ -605,15 +681,15 @@ public struct Parser {
     lineStart: *const char
 }
 
-public func ParserInit(alloc: *const mem::Allocator = mem::defaultAllocator) : Parser {
-    var parser = Parser{}
+public func JsonParserInit(alloc: *const mem::Allocator = mem::defaultAllocator) : JsonParser {
+    var parser = JsonParser{}
     parser.init(alloc)
     return parser
 }
 
-public func (p: *Parser) init(alloc: *const mem::Allocator = mem::defaultAllocator) {
+public func (p: *JsonParser) init(alloc: *const mem::Allocator = mem::defaultAllocator) {
     p.alloc = alloc
-    p.status = ParserStatus.OK
+    p.status = JsonParserStatus.OK
     memset(p.errorMsg, 0, MAX_MESSAGE_SIZE)
 
     p.stream = null
@@ -623,13 +699,13 @@ public func (p: *Parser) init(alloc: *const mem::Allocator = mem::defaultAllocat
     p.buffer.init(16, alloc)
 }
 
-public func (p: *Parser) free() {
+public func (p: *JsonParser) free() {
     p.buffer.free()
     p.stream = null
     p.lineStart = null
 }
 
-public func (p: *Parser) parseJson(buffer: *const char) : *JsonNode {
+public func (p: *JsonParser) parseJson(buffer: *const char) : *JsonNode {
     p.stream = buffer
     p.lineStart = p.stream
 
@@ -647,8 +723,8 @@ public func (p: *Parser) parseJson(buffer: *const char) : *JsonNode {
     return node
 }
 
-public func (p: *Parser) hasError() : bool {
-    return p.status == ParserStatus.ERROR
+public func (p: *JsonParser) hasError() : bool {
+    return p.status == JsonParserStatus.ERROR
 }
 
 public func PrintJson(node: *JsonNode, buf: *StringBuffer) {
@@ -678,9 +754,8 @@ public func PrintJson(node: *JsonNode, buf: *StringBuffer) {
             var obj = node.objValue
 
             var isFirst = true
-            var it = obj.iter()
-            while(it.hasNext()) {
-                var entry = it.next()
+            for(var i = 0; i < obj.values.size(); i += 1) {
+                var entry = obj.values.get(i)
 
                 if(!isFirst) buf.append(",")
                 buf.append("\"%s\":", entry.key)
@@ -707,7 +782,7 @@ public func PrintJson(node: *JsonNode, buf: *StringBuffer) {
 
 
 
-func (p: *Parser) parseJsonNode() : *JsonNode {
+func (p: *JsonParser) parseJsonNode() : *JsonNode {
     if(p.hasError()) {
         return null;
     }
@@ -743,15 +818,15 @@ func (p: *Parser) parseJsonNode() : *JsonNode {
     return null
 }
 
-func (p: using *Parser) parseJsonNumber() : *JsonNode {
+func (p: using *JsonParser) parseJsonNumber() : *JsonNode {
     return CreateJsonNumber(token.numValue, p.alloc)
 }
 
-func (p: using *Parser) parseJsonStr() : *JsonNode {
+func (p: using *JsonParser) parseJsonStr() : *JsonNode {
     return CreateJsonStringNoDup(token.strValue, p.alloc)
 }
 
-func (p: using *Parser) parseJsonArray() : *JsonNode {
+func (p: using *JsonParser) parseJsonArray() : *JsonNode {
     var node = CreateJsonArray(p.alloc)
 
     do {
@@ -766,7 +841,7 @@ func (p: using *Parser) parseJsonArray() : *JsonNode {
     p.expect(TokenKind.RIGHT_BRACKET)
     return node
 }
-func (p: using *Parser) parseJsonObject() : *JsonNode {
+func (p: using *JsonParser) parseJsonObject() : *JsonNode {
     var node = CreateJsonObject(p.alloc)
 
     do {
@@ -784,7 +859,7 @@ func (p: using *Parser) parseJsonObject() : *JsonNode {
         }
 
         var value = p.parseJsonNode();
-        node.value.objValue.put(key, value)
+        node.put(key, value)
     }
     while (p.match(TokenKind.COMMA));
 
@@ -798,18 +873,18 @@ func TokenName(t: TokenKind) : *const char {
 }
 
 
-func (p: *Parser) error(format: *const char, ...) {
+func (p: *JsonParser) error(format: *const char, ...) {
     var args: va_list;
     va_start(args, format);
 
     vsnprintf(p.errorMsg, MAX_MESSAGE_SIZE, format, args);
     va_end(args);
 
-    p.status = ParserStatus.ERROR
+    p.status = JsonParserStatus.ERROR
     p.token.kind = TokenKind.ERROR
 }
 
-func (p: using *Parser) scanInt() {
+func (p: using *JsonParser) scanInt() {
     var base = 10;
     var start_digits = stream;
     if (*stream == '0') {
@@ -864,7 +939,7 @@ func (p: using *Parser) scanInt() {
     token.numValue = val as (f64);
 }
 
-func (p: using *Parser) scanFloat() {
+func (p: using *JsonParser) scanFloat() {
     var start = p.stream;
 
     while (isdigit(*stream)) {
@@ -901,7 +976,7 @@ func (p: using *Parser) scanFloat() {
     token.numValue = val;
 }
 
-func (p: using *Parser) scanStr() {
+func (p: using *JsonParser) scanStr() {
     assert(*stream == '"'); // "
     stream+=1;
     buffer.clear()
@@ -943,7 +1018,7 @@ func (p: using *Parser) scanStr() {
     token.strValue = mem::memduplicate(buffer.cStr() as (*const void), buffer.size() + 1, alloc) as (*const char);
 }
 
-func (p: using *Parser) scanMultiStr() {
+func (p: using *JsonParser) scanMultiStr() {
     assert(*stream == '`'); // "
     stream+=1;
     buffer.clear()
@@ -980,7 +1055,7 @@ func (p: using *Parser) scanMultiStr() {
     token.strValue = mem::memduplicate(buffer.cStr() as (*const void), buffer.size() + 1, alloc) as (*const char);
 }
 
-func (l: *Parser) skipComments() {
+func (l: *JsonParser) skipComments() {
     if(*l.stream == '/') {
         if(l.stream[1] == '/') {
             l.stream += 1
@@ -1007,7 +1082,7 @@ func (l: *Parser) skipComments() {
 }
 
 
-func (p: using *Parser) nextToken() {
+func (p: using *JsonParser) nextToken() {
 
 repeat:
     if(p.hasError()) {
@@ -1131,11 +1206,11 @@ repeat:
         token.end = stream;
 }
 
-func (p: *Parser) check(kind: TokenKind) : bool {
+func (p: *JsonParser) check(kind: TokenKind) : bool {
     return p.token.kind == kind
 }
 
-func (p: *Parser) match(kind: TokenKind) : bool {
+func (p: *JsonParser) match(kind: TokenKind) : bool {
     if(!p.check(kind)) {
         return false
     }
@@ -1144,7 +1219,7 @@ func (p: *Parser) match(kind: TokenKind) : bool {
     return true
 }
 
-func (p: *Parser) expect(kind: TokenKind) : bool {
+func (p: *JsonParser) expect(kind: TokenKind) : bool {
     if(!p.check(kind)) {
         if(p.hasError()) {
             return false

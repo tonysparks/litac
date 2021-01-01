@@ -241,6 +241,7 @@ func MapGrow<K, V>(m: *Map<K, V>, newlength: i32) {
         .values: m.alloc.alloc(newlength * sizeof(:V)) as (*V),
         .hashFn: m.hashFn,
         .equalFn: m.equalFn,
+        .emptyValue = m.emptyValue,
         .alloc: m.alloc
     }
 
