@@ -156,24 +156,30 @@
 #precheck
     var mainSym = getMainSymbol()
     if(mainSym) {
-        for(sym in getSymbolsByNote("module_init")) {
+        for(sym in getSymbolsByNote("module_destroy")) {
             if(sym.kind == "FUNC_DECL" && sym.isPublic) {
                 var alias = addImport(mainSym.moduleName, sym.moduleName)
                 if(alias) {
                     emitClear()
                     emit("defer %s::%s()", alias, sym.name)
                     astInsert(mainSym.declPtr, emitStr(), 0)
-
+                }
+                else {
+                    emitClear()
+                    emit("defer %s()", sym.name)
+                    astInsert(mainSym.declPtr, emitStr(), 0)
+                }
+            }
+        }
+        for(sym in getSymbolsByNote("module_init")) {
+            if(sym.kind == "FUNC_DECL" && sym.isPublic) {
+                var alias = addImport(mainSym.moduleName, sym.moduleName)
+                if(alias) {
                     emitClear()
                     emit("%s::%s()", alias, sym.name)
                     astInsert(mainSym.declPtr, emitStr(), 0)
                 }
                 else {
-
-                    emitClear()
-                    emit("defer %s()", sym.name)
-                    astInsert(mainSym.declPtr, emitStr(), 0)
-
                     emitClear()
                     emit("%s()", sym.name)
                     astInsert(mainSym.declPtr, emitStr(), 0)

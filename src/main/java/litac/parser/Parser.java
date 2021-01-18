@@ -1284,28 +1284,34 @@ public class Parser {
     }
     
     private Expr typeofExpr() {
-        boolean hasParen = match(TokenType.LEFT_PAREN);
+        consume(TokenType.LEFT_PAREN, ErrorCode.MISSING_LEFT_PAREN);
+        
+        boolean isType = match(COLON);
         
         Expr expr = null;
         TypeSpec type = null;
         
-        Token t = peek();        
-        if(t.getType().isPrimitiveToken() || t.getType().equals(LEFT_BRACKET)) {            
-            type = type();            
+        int backtrack = this.current;
+        
+        if(isType) {
+            type = type();
+            
+            // check to see if this is an enum type (or a field expression)
+            if(check(DOT)) {
+                this.current = backtrack;
+                expr = unary();
+            }
+            else {
+                expr = new TypeIdentifierExpr(type.as());
+            }
         }
         else {
-            expr = expression();
-        }
-                
-        if(hasParen) {
-            consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
+            expr = unary();
         }
         
-        if(expr != null) {
-            return new TypeOfExpr(expr);
-        }
+        consume(RIGHT_PAREN, ErrorCode.MISSING_RIGHT_PAREN);
         
-        return new TypeOfExpr(type);
+        return new TypeOfExpr(expr);
     }
     
     private Expr offsetofExpr() {

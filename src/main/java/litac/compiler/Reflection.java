@@ -168,7 +168,7 @@ public class Reflection {
         args.add(new InitArgExpr("name", argPosition++, new StringExpr(prim.getName())));
         args.add(new InitArgExpr("id", argPosition++, NumberExpr.expr(TypeInfo.I64_TYPE, prim.getTypeId())));
         
-        String name = Character.isLowerCase(prim.getKind().name().charAt(0)) ? prim.getKind().name().toUpperCase() : prim.getKind().name();
+        String name = prim.getKind().name().toUpperCase();//Character.isLowerCase(prim.getKind().name().charAt(0)) ? prim.getKind().name().toUpperCase() : prim.getKind().name();
         
         GetExpr getExpr = getTypeKindAst(name, typeKind);
         args.add(new InitArgExpr("kind", argPosition++, getExpr));
@@ -201,24 +201,24 @@ public class Reflection {
         
         switch(d.kind) {
             case ENUM: {
-                GetExpr getExpr = getTypeKindAst("Enum", typeKind);
+                GetExpr getExpr = getTypeKindAst("ENUM", typeKind);
                 args.add(new InitArgExpr("kind", argPosition++, getExpr));
                 args.add(new InitArgExpr("enumType", argPosition++, newEnum((EnumDecl)d, main, anonInfo.getField("enumType").type.as())));
                 break;
             }
             case FUNC: {                
-                GetExpr getExpr = getTypeKindAst("Func", typeKind);
+                GetExpr getExpr = getTypeKindAst("FUNC", typeKind);
                 args.add(new InitArgExpr("kind", argPosition++, getExpr));
                 args.add(new InitArgExpr("funcType", argPosition++, newFunc((FuncDecl)d, main, anonInfo.getField("funcType").type.as())));
                 break;
             }
             case STRUCT: {                
-                GetExpr getExpr = getTypeKindAst("Struct", typeKind);
+                GetExpr getExpr = getTypeKindAst("STRUCT", typeKind);
                 args.add(new InitArgExpr("kind", argPosition++, getExpr));
                 break;
             }
             case UNION: {
-                GetExpr getExpr = getTypeKindAst("Union", typeKind);
+                GetExpr getExpr = getTypeKindAst("UNION", typeKind);
                 args.add(new InitArgExpr("kind", argPosition++, getExpr));
                 break;
             }

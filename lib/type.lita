@@ -1,36 +1,49 @@
 @generated public const typeInfos: **TypeInfo = [1]*TypeInfo{0};
 @generated public const numOfTypeInfos : usize = 0;
 
+
 @asStr
 public enum TypeKind {
-    Bool,
-    Char,
+    BOOL,
+    CHAR,
     I8,  U8,
     I16, U16,
     I32, U32,
     I64, U64,
     F32, F64,
     USIZE,
+    NULL,
+    VOID,
 
-    Str,
-    Array,
-    Ptr,
-    Null,
-    FuncPtr,
+    STR,
+    ARRAY,
+    PTR,
+    FUNC_PTR,
 
-    Struct,
-    Func,
-    Enum,
-    Union,
+    STRUCT,
+    UNION,
+    ENUM,
+    FUNC,
 
-    Void,
+    CONST,
+    GENERIC_PARAM,
 
-    MaxTypeKind
+    POISON,
+
+    MAX_TYPE_KIND
 }
 
-typedef i64 as typeid;
+public enum FieldInfoKind {
+    VAR_FIELD,
+    ENUM_FIELD,
+    STRUCT_FIELD,
+    UNION_FIELD,
+}
+
+typedef u64 as typeid;
 
 public enum Modifiers {
+    None  = 0,
     Using = (1<<0),
 }
 
@@ -47,9 +60,11 @@ public struct ParamInfo {
 }
 
 public struct FieldInfo {
+    kind: FieldInfoKind
     name: *const char
     type: typeid
     modifiers: Modifiers
+    offset: usize
 }
 
 public struct EnumFieldInfo {
@@ -70,11 +85,15 @@ public struct TypeInfo {
         struct ptrType {
             ptrOfType: typeid
         }
+        struct constType {
+            constOfType: typeid
+        }
         struct funcPtrType {
             genInfo: using GenericInfo
             returnType: typeid
             params: *ParamInfo
             numOfParams: i32
+            ptr: *void
         }
         struct funcType {
             genInfo: using GenericInfo
@@ -83,11 +102,7 @@ public struct TypeInfo {
             params: *ParamInfo
             numOfParams: i32
         }
-        struct structType {
-            fields: *FieldInfo
-            numOfFields: i32
-        }
-        struct unionType {
+        struct aggType {
             fields: *FieldInfo
             numOfFields: i32
         }

@@ -1,0 +1,50 @@
+public const profileEntries = [1]ProfileEntry{}
+public var nextEntryId: usize = 0
+
+
+public struct ProfileEntry {
+    functionName: *const char
+    startTime: u64
+    count: u64
+    totalTime: u64
+}
+
+public func GetCurrentTimeMSec() : u64 {
+    return 0
+}
+
+public func StartWatch(name: *const char) {
+    var entry = &profileEntries[nextEntryId]
+    nextEntryId += 1
+
+    entry.functionName = name
+    entry.count += 1
+    entry.startTime = GetCurrentTimeMSec()
+}
+
+public func StopWatch() {
+    var endTime = GetCurrentTimeMSec()
+    assert(nextEntryId > 0)
+    nextEntryId -= 1
+
+    var entry = &profileEntries[nextEntryId]
+    entry.totalTime += (endTime - entry.startTime)
+}
+
+#precheck
+    for(sym in getSymbolsByNote("profile")) {
+        if(sym.kind == "FUNC_DECL" && sym.isPublic) {
+            var alias = addImport(mainSym.moduleName, sym.moduleName)
+            if(alias) {
+                emitClear()
+                emit("defer %s::%s()", alias, sym.name)
+                astInsert(mainSym.declPtr, emitStr(), 0)
+            }
+            else {
+                emitClear()
+                emit("defer %s()", sym.name)
+                astInsert(mainSym.declPtr, emitStr(), 0)
+            }
+        }
+    }
+#end
