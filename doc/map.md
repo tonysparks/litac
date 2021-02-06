@@ -19,6 +19,7 @@
 * struct [MapIterator](#MapIterator)
 * struct [Map](#Map)
 * typedef [func<K>\(K, K\) : bool](#\_) as [EqualFn](#EqualFn)
+* typedef [func<K>\(K\) : bool](#\_) as [IsEmpty](#IsEmpty)
 * typedef [func<K>\(K\) : u32](#\_) as [HashFn](#HashFn)
 
 
@@ -31,7 +32,7 @@
 * func [Map\_free](#Map\_free)(m: [\*Map<K,V>](#Map<K,V>))
 * func [Map\_getPtr](#Map\_getPtr)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : [\*V](#V)
 * func [Map\_get](#Map\_get)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : [V](#V)
-* func [Map\_init](#Map\_init)(m: [\*Map<K,V>](#Map<K,V>), emptyValue: [V](#V), initialSize: i32, hashFn: [func\(K\) : u32](#\_), equalFn: [func\(K, K\) : bool](#\_), alloc: [\*const Allocator](#Allocator))
+* func [Map\_init](#Map\_init)(m: [\*Map<K,V>](#Map<K,V>), emptyValue: [V](#V), initialSize: i32, hashFn: [func\(K\) : u32](#\_), equalFn: [func\(K, K\) : bool](#\_), alloc: [\*const Allocator](#Allocator), emptyKey: [K](#K))
 * func [Map\_iter](#Map\_iter)(m: [\*Map<K,V>](#Map<K,V>)) : [documentationGenerator](documentationGenerator\.md)::[MapIterator<K,V>](MapIterator<K,V>\.md)
 * func [Map\_put](#Map\_put)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K), value: [V](#V))
 * func [Map\_remove](#Map\_remove)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : [V](#V)
@@ -58,6 +59,12 @@ typedef [func<K>\(K, K\) : bool](#\_) as [EqualFn](#EqualFn)
 typedef [func<K>\(K\) : u32](#\_) as [HashFn](#HashFn)
 
 
+### IsEmpty
+
+
+typedef [func<K>\(K\) : bool](#\_) as [IsEmpty](#IsEmpty)
+
+
 ### Map
 
 
@@ -71,6 +78,7 @@ struct [Map](#Map)
 * keys: [\*K](#K)
 * values: [\*V](#V)
 * emptyValue: [V](#V)
+* emptyKey: [K](#K)
 
 
 
@@ -141,7 +149,7 @@ func [Map\_getPtr](#Map\_getPtr)(m: [\*Map<K,V>](#Map<K,V>), key: [K](#K)) : [\*
 ### Map\_init
 
 
-func [Map\_init](#Map\_init)(m: [\*Map<K,V>](#Map<K,V>), emptyValue: [V](#V), initialSize: i32, hashFn: [func\(K\) : u32](#\_), equalFn: [func\(K, K\) : bool](#\_), alloc: [\*const Allocator](#Allocator))
+func [Map\_init](#Map\_init)(m: [\*Map<K,V>](#Map<K,V>), emptyValue: [V](#V), initialSize: i32, hashFn: [func\(K\) : u32](#\_), equalFn: [func\(K, K\) : bool](#\_), alloc: [\*const Allocator](#Allocator), emptyKey: [K](#K))
 
 
 ### Map\_iter

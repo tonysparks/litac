@@ -12,6 +12,7 @@
 
 ## type Types
 
+* enum [FieldInfoKind](#FieldInfoKind)
 * enum [Modifiers](#Modifiers)
 * enum [TypeKind](#TypeKind)
 * struct [EnumFieldInfo](#EnumFieldInfo)
@@ -24,7 +25,7 @@
 ## type Functions
 
 * func [TypeKindAsStr](#TypeKindAsStr)(e: [type](#type)::[TypeKind](#TypeKind)) : *const char
-* func [getTypeInfo](#getTypeInfo)(id: i64) : [\*TypeInfo](#TypeInfo)
+* func [getTypeInfo](#getTypeInfo)(id: u64) : [\*TypeInfo](#TypeInfo)
 
 
 
@@ -50,9 +51,22 @@ struct [EnumFieldInfo](#EnumFieldInfo)
 
 struct [FieldInfo](#FieldInfo)
 
+* kind: [type](#type)::[FieldInfoKind](#FieldInfoKind)
 * name: *const char
-* type: i64
+* type: u64
 * modifiers: [type](#type)::[Modifiers](#Modifiers)
+
+
+
+### FieldInfoKind
+
+
+enum [FieldInfoKind](#FieldInfoKind)
+
+* VAR_FIELD
+* ENUM_FIELD
+* STRUCT_FIELD
+* UNION_FIELD
 
 
 
@@ -71,6 +85,7 @@ struct [GenericInfo](#GenericInfo)
 
 enum [Modifiers](#Modifiers)
 
+* None
 * Using
 
 
@@ -82,7 +97,7 @@ struct [ParamInfo](#ParamInfo)
 
 * genInfo: [type](#type)::[GenericInfo](#GenericInfo)
 * name: *const char
-* type: i64
+* type: u64
 * modifiers: [type](#type)::[Modifiers](#Modifiers)
 
 
@@ -94,7 +109,7 @@ struct [TypeInfo](#TypeInfo)
 
 * kind: [type](#type)::[TypeKind](#TypeKind)
 * name: *const char
-* id: i64
+* id: u64
 * <anonymous-union-0>: [type](#type)::[<anonymous\-union\-0>](#<anonymous\-union\-0>)
 
 
@@ -104,8 +119,8 @@ struct [TypeInfo](#TypeInfo)
 
 enum [TypeKind](#TypeKind)
 
-* Bool
-* Char
+* BOOL
+* CHAR
 * I8
 * U8
 * I16
@@ -117,17 +132,20 @@ enum [TypeKind](#TypeKind)
 * F32
 * F64
 * USIZE
-* Str
-* Array
-* Ptr
-* Null
-* FuncPtr
-* Struct
-* Func
-* Enum
-* Union
-* Void
-* MaxTypeKind
+* NULL
+* VOID
+* STR
+* ARRAY
+* PTR
+* FUNC_PTR
+* STRUCT
+* UNION
+* ENUM
+* FUNC
+* CONST
+* GENERIC_PARAM
+* POISON
+* MAX_TYPE_KIND
 
 
 
@@ -140,6 +158,6 @@ func [TypeKindAsStr](#TypeKindAsStr)(e: [type](#type)::[TypeKind](#TypeKind)) : 
 ### getTypeInfo
 
 
-func [getTypeInfo](#getTypeInfo)(id: i64) : [\*TypeInfo](#TypeInfo)
+func [getTypeInfo](#getTypeInfo)(id: u64) : [\*TypeInfo](#TypeInfo)
 
 

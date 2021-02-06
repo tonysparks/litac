@@ -3,7 +3,7 @@
     disabled: false,
     debug: true,
     disableLines: true,
-    includeTypeInfos: true,
+    includeTypeInfos: false,
     program: '''                
         @include("assert.h");
         @foreign func assert(e:bool):void;
@@ -666,34 +666,43 @@
             ''',
             //error: "Unexpected token"                    
         },*/
-        
+        /*
         {
             "name": "Func with 2d array pointers",
             "definitions": '''
-@include("<string.h>");
-@foreign func strcmp(a:*const char, b:*const char) : i32;
-
-struct Test {
-    name: *char
-    x: [32]char
-}
-
-struct X {
-    x: [32]char
-}
+                struct Bucket<T> {
+                    bucket: *T
+                }
+                
+                func (this: *Bucket<T>) add<T>(a: T) {
+                
+                }
             ''',
             "code": '''
-    var m : [32]char = "Brett"
-    var x = X{m}
-    var t = Test{
-        .name = m,
-        .x = x.x
-
-    }
-
-    assert(strcmp(t.name, "Brett") == 0)
+                var buckets = Bucket<Bucket<i32>>{}
+                var ok = Bucket<i32>{}
+                buckets.add(ok)
             ''',
-        },
-
+        },*/
+        /*{
+            "name": "Generics with Alias",
+            "definitions": '''
+                
+                typedef i32 as int;
+                
+                struct X<T> {
+                    a: T
+                }
+                
+                func (this: X<T>) name<T>() : T {
+                    return this.a
+                }
+            ''',
+            "code": '''
+                var x = X<int>{4}
+                assert(x.a == 4)
+                assert(x.name() == 4)
+            ''',
+        },*/
     ]
 }

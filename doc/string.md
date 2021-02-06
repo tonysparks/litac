@@ -20,12 +20,15 @@
 
 ## string Functions
 
+* func [StringCopy](#StringCopy)(original: *const char, len: i32, allocator: [\*const Allocator](#Allocator)) : *char
 * func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#string)::[String](#String)
+* func [String\_adjust](#String\_adjust)(s: [\*String](#String))
+* func [String\_appendChar](#String\_appendChar)(s: [\*String](#String), c: char)
 * func [String\_append](#String\_append)(s: [\*String](#String), format: *const char) : i32
 * func [String\_asView](#String\_asView)(s: [string](#string)::[String](#String)) : [string\_view](string\_view\.md)::[StringView](StringView\.md)
 * func [String\_cStrConst](#String\_cStrConst)(s: [string](#string)::[String](#String)) : *const char
 * func [String\_cStr](#String\_cStr)(s: [string](#string)::[String](#String)) : *char
-* func [String\_clear](#String\_clear)(s: [string](#string)::[String](#String))
+* func [String\_clear](#String\_clear)(s: [\*String](#String))
 * func [String\_copy](#String\_copy)(s: [string](#string)::[String](#String), allocator: [\*const Allocator](#Allocator)) : [string](#string)::[String](#String)
 * func [String\_empty](#String\_empty)(s: [string](#string)::[String](#String)) : bool
 * func [String\_format](#String\_format)(s: [\*String](#String), format: *const char) : i32
@@ -43,10 +46,16 @@
 
 struct [String](#String)
 
-* str: *char
+* buffer: *char
 * length: i32
 * capacity: i32
 
+
+
+### StringCopy
+
+
+func [StringCopy](#StringCopy)(original: *const char, len: i32, allocator: [\*const Allocator](#Allocator)) : *char
 
 
 ### StringInit
@@ -55,10 +64,22 @@ struct [String](#String)
 func [StringInit](#StringInit)(str: *char, capacity: i32, len: i32) : [string](#string)::[String](#String)
 
 
+### String\_adjust
+
+
+func [String\_adjust](#String\_adjust)(s: [\*String](#String))
+
+
 ### String\_append
 
 
 func [String\_append](#String\_append)(s: [\*String](#String), format: *const char) : i32
+
+
+### String\_appendChar
+
+
+func [String\_appendChar](#String\_appendChar)(s: [\*String](#String), c: char)
 
 
 ### String\_asView
@@ -82,7 +103,7 @@ func [String\_cStrConst](#String\_cStrConst)(s: [string](#string)::[String](#Str
 ### String\_clear
 
 
-func [String\_clear](#String\_clear)(s: [string](#string)::[String](#String))
+func [String\_clear](#String\_clear)(s: [\*String](#String))
 
 
 ### String\_copy

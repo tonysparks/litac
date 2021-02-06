@@ -26,6 +26,7 @@
 * const [ULLONG\_MAX](#ULLONG\_MAX): i64
 * const [USHRT\_MAX](#USHRT\_MAX): i32
 * const [stderr](#stderr): [\*FILE](#FILE)
+* const [stdin](#stdin): [\*FILE](#FILE)
 * const [stdout](#stdout): [\*FILE](#FILE)
 
 
@@ -48,11 +49,14 @@
 * func [fabs](#fabs)(v: f32) : f32
 * func [fclose](#fclose)(stream: [\*FILE](#FILE))
 * func [ferror](#ferror)(stream: [\*FILE](#FILE)) : i32
+* func [fflush](#fflush)(stream: [\*FILE](#FILE))
 * func [fgets](#fgets)(buf: *char, n: i64, stream: [\*FILE](#FILE)) : *char
 * func [fopen](#fopen)(fileName: *const char, openType: *const char) : [\*FILE](#FILE)
+* func [fprintf](#fprintf)(stream: [\*FILE](#FILE), s: *const char)
 * func [fputs](#fputs)(format: *const char, f: [\*FILE](#FILE))
 * func [fread](#fread)(buf: *char, size: usize, n: usize, stream: [\*FILE](#FILE)) : i64
 * func [free](#free)(ptr: [\*void](#void))
+* func [fscanf](#fscanf)(stream: [\*FILE](#FILE), format: *const char) : i32
 * func [fseek](#fseek)(stream: [\*FILE](#FILE), offset: i64, whence: i32) : i32
 * func [ftell](#ftell)(stream: [\*FILE](#FILE)) : i64
 * func [fwrite](#fwrite)(buf: [\*const void](#void), sizeOfElements: usize, numOfElements: usize, stream: [\*FILE](#FILE)) : u64
@@ -66,12 +70,14 @@
 * func [memset](#memset)(ptr: [\*void](#void), value: i32, num: usize) : [\*void](#void)
 * func [printf](#printf)(s: *const char)
 * func [realloc](#realloc)(ptr: [\*void](#void), size: usize) : [\*void](#void)
+* func [scanf](#scanf)(format: *const char) : i32
 * func [sin](#sin)(v: f64) : f64
 * func [sinf](#sinf)(v: f32) : f32
 * func [snprintf](#snprintf)(s: *char, n: u64, format: *const char) : i32
 * func [sprintf](#sprintf)(b: *char, format: *const char) : i32
 * func [sqrt](#sqrt)(v: f64) : f64
 * func [sqrtf](#sqrtf)(v: f32) : f32
+* func [sscanf](#sscanf)(str: *const char, format: *const char) : i32
 * func [strcat](#strcat)(dest: *char, src: *const char) : *char
 * func [strcmp](#strcmp)(a: *const char, b: *const char) : i32
 * func [strcpy](#strcpy)(dest: *char, src: *const char) : *char
@@ -160,6 +166,9 @@
 ### stderr
 
 
+### stdin
+
+
 ### stdout
 
 
@@ -245,6 +254,12 @@ func [fclose](#fclose)(stream: [\*FILE](#FILE))
 func [ferror](#ferror)(stream: [\*FILE](#FILE)) : i32
 
 
+### fflush
+
+
+func [fflush](#fflush)(stream: [\*FILE](#FILE))
+
+
 ### fgets
 
 
@@ -255,6 +270,12 @@ func [fgets](#fgets)(buf: *char, n: i64, stream: [\*FILE](#FILE)) : *char
 
 
 func [fopen](#fopen)(fileName: *const char, openType: *const char) : [\*FILE](#FILE)
+
+
+### fprintf
+
+
+func [fprintf](#fprintf)(stream: [\*FILE](#FILE), s: *const char)
 
 
 ### fputs
@@ -273,6 +294,12 @@ func [fread](#fread)(buf: *char, size: usize, n: usize, stream: [\*FILE](#FILE))
 
 
 func [free](#free)(ptr: [\*void](#void))
+
+
+### fscanf
+
+
+func [fscanf](#fscanf)(stream: [\*FILE](#FILE), format: *const char) : i32
 
 
 ### fseek
@@ -353,6 +380,12 @@ func [printf](#printf)(s: *const char)
 func [realloc](#realloc)(ptr: [\*void](#void), size: usize) : [\*void](#void)
 
 
+### scanf
+
+
+func [scanf](#scanf)(format: *const char) : i32
+
+
 ### sin
 
 
@@ -387,6 +420,12 @@ func [sqrt](#sqrt)(v: f64) : f64
 
 
 func [sqrtf](#sqrtf)(v: f32) : f32
+
+
+### sscanf
+
+
+func [sscanf](#sscanf)(str: *const char, format: *const char) : i32
 
 
 ### strcat

@@ -20,10 +20,19 @@
 """);
 
 
+typedef u64 as typeid;
+
+public struct any {
+    value: *void
+    id: typeid
+}
+
+
+/*
 #if (REFLECTION)
     import "type";
 #end
-
+*/
 
 /**
     Compiler script to generate Enum AsStr functions when they are noted with 'asStr'.

@@ -9,7 +9,8 @@ import "libc";
 public enum JsonType {
     NULL,
     BOOLEAN,
-    NUMBER,
+    INT_NUMBER,
+    FLOAT_NUMBER,
     STRING,
     OBJECT,
     ARRAY,
@@ -30,6 +31,7 @@ public struct JsonObject {
 public union JsonValue {
     boolValue: bool
     doubleValue: f64
+    intValue: i64
     strValue: *const char
 
     objValue: *JsonObject
@@ -64,7 +66,8 @@ public func (node: *JsonNode) isFalse() : bool {
 
 @inline
 public func (node: *JsonNode) isNumber() : bool {
-    return node.type == JsonType.NUMBER
+    return node.type == JsonType.INT_NUMBER ||
+           node.type == JsonType.FLOAT_NUMBER
 }
 @inline
 public func (node: *JsonNode) isString() : bool {
@@ -103,12 +106,12 @@ public func (node: *JsonNode) asFloat() : f64 {
 
 @inline
 public func (node: *JsonNode) asInt() : i32 {
-    return node.value.doubleValue as (i32)
+    return node.value.intValue as (i32)
 }
 
 @inline
 public func (node: *JsonNode) asLong() : i64 {
-    return node.value.doubleValue as (i64)
+    return node.value.intValue as (i64)
 }
 
 @inline
@@ -124,7 +127,7 @@ public func (node: *JsonNode) asObject() : *JsonObject {
 public func CreateJsonNumber(value: f64, alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {
     var node = mem::new<JsonNode>(alloc)
     node.alloc = alloc
-    node.type = JsonType.NUMBER
+    node.type = JsonType.FLOAT_NUMBER
     node.value = JsonValue {
         .doubleValue = value
     }
@@ -132,6 +135,22 @@ public func CreateJsonNumber(value: f64, alloc: *const mem::Allocator = mem::def
     return node
 }
 
+
+public func CreateJsonIntNumber(value: i64, alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {
+    var node = mem::new<JsonNode>(alloc)
+    node.alloc = alloc
+    node.type = JsonType.INT_NUMBER
+    node.value = JsonValue {
+        .intValue = value
+    }
+
+    return node
+}
+
+
+public func CreateJsonFloatNumber(value: f64, alloc: *const mem::Allocator = mem::defaultAllocator) : *JsonNode {
+    return CreateJsonNumber(value, alloc)
+}
 
 /**
     Duplicates the supplied string, and JsonNode manages the memory.  The supplied str will NOT be managed (i.e., free'd) upon
@@ -267,6 +286,22 @@ public func (node: *JsonNode) put(key: *const char, n: *JsonNode, len: i32 = -1)
     node.objValue.indexes.put(copy, node.objValue.values.size() - 1)
 }
 
+public func (node: *JsonNode) putNoDup(key: *const char, n: *JsonNode, len: i32 = -1) {
+    if(node.type != JsonType.OBJECT) {
+        return;
+    }
+
+    if(len < 0) {
+        len = strlen(key);
+    }
+
+    var entry = Entry {
+        .key = key,
+        .value = n
+    }
+    node.objValue.values.add(entry)
+    node.objValue.indexes.put(key, node.objValue.values.size() - 1)
+}
 
 public func (node: *JsonNode) putStr(key: *const char, str: *const char, len: i32 = -1) {
     if(node.type != JsonType.OBJECT) {
@@ -283,7 +318,25 @@ public func (node: *JsonNode) putNumber(key: *const char, number: f64, len: i32 
         return;
     }
 
-    var value = CreateJsonNumber(number, node.alloc)
+    var value = CreateJsonFloatNumber(number, node.alloc)
+    node.put(key, value, len)
+}
+
+public func (node: *JsonNode) putIntNumber(key: *const char, number: i64, len: i32 = -1) {
+    if(node.type != JsonType.OBJECT) {
+        return;
+    }
+
+    var value = CreateJsonIntNumber(number, node.alloc)
+    node.put(key, value, len)
+}
+
+public func (node: *JsonNode) putFloatNumber(key: *const char, number: f64, len: i32 = -1) {
+    if(node.type != JsonType.OBJECT) {
+        return;
+    }
+
+    var value = CreateJsonFloatNumber(number, node.alloc)
     node.put(key, value, len)
 }
 
@@ -328,11 +381,18 @@ public func (node: *JsonNode) getBool(key: *const char, defaultValue: bool = fal
 
 public func (node: *JsonNode) getInt(key: *const char, defaultValue: i32 = 0) : i32 {
     var n = node.get(key)
-    if(!n || !n.isNumber()) {
+    if(!n) {
         return defaultValue
     }
 
-    return n.doubleValue as (i32)
+    if(n.type == JsonType.FLOAT_NUMBER) {
+        return n.doubleValue as (i32)
+    }
+    else if(n.type == JsonType.INT_NUMBER) {
+        return n.intValue as (i32)
+    }
+
+    return defaultValue
 }
 
 public func (node: *JsonNode) getLong(key: *const char, defaultValue: i64 = 0) : i64 {
@@ -341,16 +401,30 @@ public func (node: *JsonNode) getLong(key: *const char, defaultValue: i64 = 0) :
         return defaultValue
     }
 
-    return n.doubleValue as (i64)
+    if(n.type == JsonType.FLOAT_NUMBER) {
+        return n.doubleValue as (i64)
+    }
+    else if(n.type == JsonType.INT_NUMBER) {
+        return n.intValue
+    }
+
+    return defaultValue
 }
 
 public func (node: *JsonNode) getFloat(key: *const char, defaultValue: f64 = 0) : f64 {
     var n = node.get(key)
-    if(!n || !n.isNumber()) {
+    if(!n) {
         return defaultValue
     }
 
-    return n.doubleValue
+    if(n.type == JsonType.FLOAT_NUMBER) {
+        return n.doubleValue
+    }
+    else if(n.type == JsonType.INT_NUMBER) {
+        return n.intValue as (f64)
+    }
+
+    return defaultValue
 }
 
 public func (node: *JsonNode) getStr(key: *const char, defaultValue: *const char = null) : *const char {
@@ -488,7 +562,10 @@ public func (node: *JsonNode) equals(other: *JsonNode) : bool {
         case JsonType.BOOLEAN: {
             return node.boolValue == other.boolValue
         }
-        case JsonType.NUMBER: {
+        case JsonType.INT_NUMBER: {
+            return node.intValue == other.intValue
+        }
+        case JsonType.FLOAT_NUMBER: {
             return node.doubleValue == other.doubleValue
         }
         default: {
@@ -587,7 +664,8 @@ enum TokenKind {
     LEFT_BRACKET,
     RIGHT_BRACKET,
     NULL,
-    NUMBER,
+    INT_NUMBER,
+    REAL_NUMBER,
     TRUE,
     FALSE,
     STRING,
@@ -603,7 +681,8 @@ const tokenKindNames = []*const char {
     [TokenKind.LEFT_BRACKET] = "[",
     [TokenKind.RIGHT_BRACKET] = "]",
     [TokenKind.NULL] = "null",
-    [TokenKind.NUMBER] = "number",
+    [TokenKind.INT_NUMBER] = "int",
+    [TokenKind.REAL_NUMBER] = "float",
     [TokenKind.TRUE] = "true",
     [TokenKind.FALSE] = "false",
     [TokenKind.STRING] = "string",
@@ -656,7 +735,8 @@ struct Token {
     end: *const char
 
     union {
-        numValue: f64
+        intNumValue: i64
+        realNumValue: f64
         strValue: *const char
         name: *const char
     }
@@ -741,7 +821,11 @@ public func PrintJson(node: *JsonNode, buf: *StringBuffer) {
                 buf.append("true") : buf.append("false")
             break;
         }
-        case JsonType.NUMBER: {
+        case JsonType.INT_NUMBER: {
+            buf.append("%lld", node.intValue)
+            break;
+        }
+        case JsonType.FLOAT_NUMBER: {
             buf.append("%f", node.doubleValue)
             break;
         }
@@ -800,9 +884,12 @@ func (p: *JsonParser) parseJsonNode() : *JsonNode {
         case TokenKind.NULL:
             p.nextToken()
             return JSON_NULL
-        case TokenKind.NUMBER:
+        case TokenKind.INT_NUMBER:
             p.nextToken()
-            return p.parseJsonNumber()
+            return p.parseJsonIntNumber()
+        case TokenKind.REAL_NUMBER:
+            p.nextToken()
+            return p.parseJsonRealNumber()
         case TokenKind.STRING:
             p.nextToken()
             return p.parseJsonStr()
@@ -818,8 +905,12 @@ func (p: *JsonParser) parseJsonNode() : *JsonNode {
     return null
 }
 
-func (p: using *JsonParser) parseJsonNumber() : *JsonNode {
-    return CreateJsonNumber(token.numValue, p.alloc)
+func (p: using *JsonParser) parseJsonIntNumber() : *JsonNode {
+    return CreateJsonIntNumber(token.intNumValue, p.alloc)
+}
+
+func (p: using *JsonParser) parseJsonRealNumber() : *JsonNode {
+    return CreateJsonFloatNumber(token.realNumValue, p.alloc)
 }
 
 func (p: using *JsonParser) parseJsonStr() : *JsonNode {
@@ -859,7 +950,7 @@ func (p: using *JsonParser) parseJsonObject() : *JsonNode {
         }
 
         var value = p.parseJsonNode();
-        node.put(key, value)
+        node.putNoDup(key, value)
     }
     while (p.match(TokenKind.COMMA));
 
@@ -935,8 +1026,8 @@ func (p: using *JsonParser) scanInt() {
         return;
     }
 
-    token.kind = TokenKind.NUMBER; //TOKEN_INT;
-    token.numValue = val as (f64);
+    token.kind = TokenKind.INT_NUMBER; //TOKEN_INT;
+    token.intNumValue = val
 }
 
 func (p: using *JsonParser) scanFloat() {
@@ -972,8 +1063,8 @@ func (p: using *JsonParser) scanFloat() {
         return;
     }
 
-    token.kind = TokenKind.NUMBER;
-    token.numValue = val;
+    token.kind = TokenKind.REAL_NUMBER;
+    token.realNumValue = val;
 }
 
 func (p: using *JsonParser) scanStr() {

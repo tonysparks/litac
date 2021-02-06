@@ -89,7 +89,7 @@ static void NTAPI _tinycthread_tss_callback(PVOID h, DWORD dwReason, PVOID pv)
 
 """);
 
-import "mem"
+import "libc" as c
 
 
 @asStr
@@ -111,13 +111,13 @@ public enum MutexType {
 /*==============================================================
     Windows specific Types bindings
   ==============================================================
-*/    
+*/
 
 @foreign
-typedef i32 as DWORD;
+typedef void as DWORD;
 
 @foreign
-typedef i32 as LPDWORD;
+typedef void as LPDWORD;
 
 @foreign
 typedef *void as LPVOID;
@@ -126,7 +126,7 @@ typedef *void as LPVOID;
 struct CRITICAL_SECTION;
 
 @foreign
-struct HANDLE;
+typedef void as HANDLE;
 
 @foreign
 struct _timeb {
@@ -180,7 +180,7 @@ func LeaveCriticalSection(cs: *CRITICAL_SECTION);
 func DeleteCriticalSection(cs: *CRITICAL_SECTION);
 
 @foreign
-func WaitForSingleObject(handle: HANDLE, t: i32) : i32;
+func WaitForSingleObject(handle: HANDLE, t: i64) : i32;
 
 @foreign
 func WaitForMultipleObjects(count: i32, handles: *HANDLE, b: bool, t: DWORD) : DWORD;
@@ -219,7 +219,7 @@ func _tinycthread_tss_cleanup();
 struct TinyCThreadTSSData;
 
 @foreign
-var _tinycthread_tss_head: TinyCThreadTSSData;
+var _tinycthread_tss_head: *TinyCThreadTSSData;
 
 @foreign
 func CreateThread(n: *void, i: i32, fn: func(LPVOID): DWORD, t: LPVOID, z:i32, v: *void) : HANDLE;
@@ -239,7 +239,7 @@ func ExitThread(res: DWORD);
 /*==============================================================
     Public APIs
   ==============================================================
-*/    
+*/
 
 public struct TimeSpec {
     sec: time_t
@@ -251,7 +251,7 @@ public func (ts: *TimeSpec) get(base: i32) : i32 {
     if (base != TIME_UTC) {
         return 0;
     }
-    
+
     var tb: _timeb;
     _ftime_s(&tb);
 
@@ -266,7 +266,7 @@ public func (ts: *TimeSpec) get(base: i32) : i32 {
 /*==============================================================
     Mutex Public API
   ==============================================================
-*/  
+*/
 
 public struct Mutex {
     union mHandle {
@@ -282,7 +282,7 @@ public func (mtx: *Mutex) init(type: i32) : ThreadStatus {
     mtx.mAlreadyLocked = false;
     mtx.mRecursive = type & MutexType.RECURSIVE;
     mtx.mTimed = type & MutexType.TIMED;
-  
+
     if (!mtx.mTimed) {
         InitializeCriticalSection(&(mtx.mHandle.cs));
     }
@@ -292,7 +292,7 @@ public func (mtx: *Mutex) init(type: i32) : ThreadStatus {
             return ThreadStatus.ERROR;
         }
     }
-    return ThreadStatus.SUCCESS;    
+    return ThreadStatus.SUCCESS;
 }
 
 public func (mtx: *Mutex) destroy() {
@@ -301,7 +301,7 @@ public func (mtx: *Mutex) destroy() {
     }
     else {
         CloseHandle(mtx.mHandle.mut);
-    }    
+    }
 }
 
 public func (mtx: *Mutex) lock() : ThreadStatus {
@@ -329,11 +329,11 @@ public func (mtx: *Mutex) tryLock() : ThreadStatus {
     var ret : ThreadStatus;
 
     if (!mtx.mTimed) {
-        ret = TryEnterCriticalSection(&(mtx.mHandle.cs)) 
+        ret = TryEnterCriticalSection(&(mtx.mHandle.cs))
                 ? ThreadStatus.SUCCESS : ThreadStatus.BUSY;
     }
     else {
-        ret = (WaitForSingleObject(mtx.mHandle.mut, 0) == WAIT_OBJECT_0) 
+        ret = (WaitForSingleObject(mtx.mHandle.mut, 0) == WAIT_OBJECT_0)
                 ? ThreadStatus.SUCCESS : ThreadStatus.BUSY;
     }
 
@@ -372,14 +372,14 @@ public func (mtx: *Mutex) timedLock(ts: *TimeSpec) : ThreadStatus {
 
     current_ts.get(TIME_UTC);
 
-    if ((current_ts.sec > ts.sec) || 
-        ((current_ts.sec == ts.sec) && 
+    if ((current_ts.sec > ts.sec) ||
+        ((current_ts.sec == ts.sec) &&
          (current_ts.nsec >= ts.nsec))) {
         timeoutMs = 0;
     }
     else {
-        timeoutMs  = (ts.sec  - current_ts.sec) * 1_000;
-        timeoutMs += (ts.nsec - current_ts.nsec) / 1_000_000;
+        timeoutMs  = (ts.sec  - current_ts.sec) * 1_000_i64;
+        timeoutMs += (ts.nsec - current_ts.nsec) / 1_000_000_i64;
         timeoutMs += 1;
     }
 
@@ -407,7 +407,7 @@ public func (mtx: *Mutex) timedLock(ts: *TimeSpec) : ThreadStatus {
 /*==============================================================
     Cond Public API
   ==============================================================
-*/  
+*/
 
 public struct Cond {
     mEvents: [2]HANDLE;                   /* Signal and broadcast event HANDLEs. */
@@ -415,7 +415,7 @@ public struct Cond {
     mWaitersCountLock: CRITICAL_SECTION ; /* Serialize access to mWaitersCount. */
 }
 
-public func (cond: *Cond) init() : ThreadStatus {    
+public func (cond: *Cond) init() : ThreadStatus {
     cond.mWaitersCount = 0;
 
     /* Init critical section */
@@ -424,14 +424,14 @@ public func (cond: *Cond) init() : ThreadStatus {
     /* Init events */
     cond.mEvents[_CONDITION_EVENT_ONE] = CreateEvent(null, false, false, null);
     if (cond.mEvents[_CONDITION_EVENT_ONE] == null) {
-        cond.mEvents[_CONDITION_EVENT_ALL] = null;
+        cond.mEvents[_CONDITION_EVENT_ALL] = 0;
         return ThreadStatus.ERROR;
     }
-  
+
     cond.mEvents[_CONDITION_EVENT_ALL] = CreateEvent(null, true, false, null);
     if (cond.mEvents[_CONDITION_EVENT_ALL] == null) {
         CloseHandle(cond.mEvents[_CONDITION_EVENT_ONE]);
-        cond.mEvents[_CONDITION_EVENT_ONE] = null;
+        cond.mEvents[_CONDITION_EVENT_ONE] = 0;
         return ThreadStatus.ERROR;
     }
 
@@ -445,7 +445,7 @@ public func (cond: *Cond) destroy() {
     if (cond.mEvents[_CONDITION_EVENT_ALL] != null) {
         CloseHandle(cond.mEvents[_CONDITION_EVENT_ALL]);
     }
-    DeleteCriticalSection(&cond.mWaitersCountLock);    
+    DeleteCriticalSection(&cond.mWaitersCountLock);
 }
 
 
@@ -464,7 +464,7 @@ public func (cond: *Cond) signal() : ThreadStatus {
         }
     }
 
-    return ThreadStatus.SUCCESS;    
+    return ThreadStatus.SUCCESS;
 }
 
 public func (cond: *Cond) broadcast() : ThreadStatus {
@@ -482,7 +482,7 @@ public func (cond: *Cond) broadcast() : ThreadStatus {
         }
     }
 
-    return ThreadStatus.SUCCESS;    
+    return ThreadStatus.SUCCESS;
 }
 
 func (cond: *Cond) _timedWait(mtx: *Mutex, timeout: DWORD) : ThreadStatus {
@@ -495,7 +495,7 @@ func (cond: *Cond) _timedWait(mtx: *Mutex, timeout: DWORD) : ThreadStatus {
     LeaveCriticalSection(&cond.mWaitersCountLock);
 
     /* Release the mutex while waiting for the condition (will decrease
-     the number of waiters when done)... */    
+     the number of waiters when done)... */
     mtx.unlock();
 
     /* Wait for either event to become signaled due to cnd_signal() or
@@ -528,7 +528,7 @@ func (cond: *Cond) _timedWait(mtx: *Mutex, timeout: DWORD) : ThreadStatus {
         }
     }
 
-    /* Re-acquire the mutex */    
+    /* Re-acquire the mutex */
     mtx.lock();
 
     return ThreadStatus.SUCCESS;
@@ -548,14 +548,14 @@ public func (cond: *Cond) timedWait(mtx: *Mutex, ts: *const TimeSpec) : ThreadSt
                         (tsInMilliseconds - nowInMilliseconds) as (DWORD) : 0 as (DWORD);
         return cond._timedWait(mtx, delta);
     }
-  
+
     return ThreadStatus.ERROR;
 }
 
 /*==============================================================
     Thread Public APIs
   ==============================================================
-*/ 
+*/
 
 public typedef func(*void) : i32 as ThreadStartFn;
 public struct Thread {
@@ -566,7 +566,7 @@ public struct Thread {
 public struct ThreadStartInfo {
     mFunction: ThreadStartFn; /**< Pointer to the function to be executed. */
     mArg: *void;              /**< Function argument for the thread function. */
-} 
+}
 
 
 @raw("WINAPI ")
@@ -581,7 +581,7 @@ func _thrd_wrapper_function(aArg: LPVOID) : DWORD {
     arg = ti.mArg;
 
     /* The thread is responsible for freeing the startup information */
-    free(ti as (*void));
+    c::free(ti as (*void));
 
     /* Call the actual client thread function */
     res = fun(arg);
@@ -596,7 +596,7 @@ func _thrd_wrapper_function(aArg: LPVOID) : DWORD {
 public func (thr: *Thread) create(fun: ThreadStartFn, arg: *void) : ThreadStatus {
     /* Fill out the thread startup information (passed to the thread wrapper,
      which will eventually free it) */
-    var ti = malloc(sizeof(:ThreadStartInfo)) as (*ThreadStartInfo);
+    var ti = c::malloc(sizeof(:ThreadStartInfo)) as (*ThreadStartInfo);
     if (ti == null) {
         return ThreadStatus.NOMEM;
     }
@@ -607,7 +607,7 @@ public func (thr: *Thread) create(fun: ThreadStartFn, arg: *void) : ThreadStatus
 
     /* Did we fail to create the thread? */
     if(!thr.hnd) {
-        free(ti);
+        c::free(ti);
         return ThreadStatus.ERROR;
     }
 
@@ -652,7 +652,7 @@ public func (thr: Thread) join(res: *i32) : ThreadStatus {
         }
         else {
             return ThreadStatus.ERROR;
-        }        
+        }
     }
     CloseHandle(thr.hnd as (HANDLE));
 
@@ -670,8 +670,8 @@ public func (thr: Thread) sleep(duration: *TimeSpec, remaining: *TimeSpec = null
 
     if (t == 0) {
         return 0;
-    } 
-    
+    }
+
     if (remaining != null) {
         remaining.get(TIME_UTC);
         remaining.sec -= start.sec;
@@ -683,7 +683,7 @@ public func (thr: Thread) sleep(duration: *TimeSpec, remaining: *TimeSpec = null
     }
 
     return (t == WAIT_IO_COMPLETION) ? -1 : -2;
-     
+
 }
 
 public func (thr: Thread) yield() {

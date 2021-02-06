@@ -1,3 +1,5 @@
+import "libc"
+
 @generated public const typeInfos: **TypeInfo = [1]*TypeInfo{0};
 @generated public const numOfTypeInfos : usize = 0;
 
@@ -40,7 +42,15 @@ public enum FieldInfoKind {
     UNION_FIELD,
 }
 
-typedef u64 as typeid;
+/*
+typedef u64 as typeid; // TODO: Make this part of builtins
+
+// TODO: Make this a builtin type
+public struct any {
+    data: *void
+    id: typeid
+}*/
+
 
 public enum Modifiers {
     None  = 0,
@@ -119,4 +129,24 @@ public func getTypeInfo(id: typeid) : *TypeInfo {
     }
 
     return typeInfos[id];
+}
+
+public func getFieldValue(agg: any, fieldName: *const char) : any {
+    var typeInfo = getTypeInfo(agg.id)
+
+    if(typeInfo.kind != TypeKind.UNION && typeInfo.kind != TypeKind.STRUCT) {
+        return any{}
+    }
+
+    for(var i = 0; i < typeInfo.aggType.numOfFields; i += 1) {
+        var field = typeInfo.aggType.fields[i]
+        if(strcmp(fieldName, field.name) == 0) {
+            return any {
+                    .value = (agg.value as (usize) + field.offset) as (*void),
+                    .id = field.type
+            }
+        }
+    }
+
+    return any{}
 }

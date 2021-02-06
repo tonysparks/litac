@@ -46,6 +46,7 @@
 * func [StringBuffer\_init](#StringBuffer\_init)(b: [\*StringBuffer](#StringBuffer), initialSize: i32, alloc: [\*const Allocator](#Allocator))
 * func [StringBuffer\_insert](#StringBuffer\_insert)(b: [\*StringBuffer](#StringBuffer), index: i32, format: *const char) : i32
 * func [StringBuffer\_replace](#StringBuffer\_replace)(b: [\*StringBuffer](#StringBuffer), start: i32, end: i32, str: *const char) : i32
+* func [StringBuffer\_reserve](#StringBuffer\_reserve)(b: [\*StringBuffer](#StringBuffer), length: i32)
 * func [StringBuffer\_size](#StringBuffer\_size)(b: [\*StringBuffer](#StringBuffer)) : i32
 
 
@@ -217,6 +218,12 @@ func [StringBuffer\_insert](#StringBuffer\_insert)(b: [\*StringBuffer](#StringBu
 
 
 func [StringBuffer\_replace](#StringBuffer\_replace)(b: [\*StringBuffer](#StringBuffer), start: i32, end: i32, str: *const char) : i32
+
+
+### StringBuffer\_reserve
+
+
+func [StringBuffer\_reserve](#StringBuffer\_reserve)(b: [\*StringBuffer](#StringBuffer), length: i32)
 
 
 ### StringBuffer\_size

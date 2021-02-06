@@ -62,6 +62,12 @@ public func (a: *Array<T>) get<T>(index: i32) : T {
     return a.elements[index]
 }
 
+public func (a: *Array<T>) getPtr<T>(index: i32) : *T {
+    assert(index >= 0 && index < a.length)
+
+    return &a.elements[index]
+}
+
 public func (a: *Array<T>) set<T>(index: i32, element: T) {
     assert(index >= 0 && index < a.length);
 

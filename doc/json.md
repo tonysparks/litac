@@ -19,12 +19,12 @@
 
 ## json Types
 
+* enum [JsonParserStatus](#JsonParserStatus)
 * enum [JsonType](#JsonType)
-* enum [ParserStatus](#ParserStatus)
 * struct [JsonNode](#JsonNode)
-* struct [Parser](#Parser)
+* struct [JsonObject](#JsonObject)
+* struct [JsonParser](#JsonParser)
 * typedef [documentationGenerator](documentationGenerator\.md)::[Array<JsonNode\*>](Array<JsonNode\*>\.md) as [JsonArray](#JsonArray)
-* typedef [documentationGenerator](documentationGenerator\.md)::[Map<char const\*,JsonNode\*>](Map<char const\*,JsonNode\*>\.md) as [JsonObject](#JsonObject)
 * union [JsonValue](#JsonValue)
 
 
@@ -42,10 +42,11 @@
 * func [JsonNode\_asInt](#JsonNode\_asInt)(node: [\*JsonNode](#JsonNode)) : i32
 * func [JsonNode\_asLong](#JsonNode\_asLong)(node: [\*JsonNode](#JsonNode)) : i64
 * func [JsonNode\_asNumber](#JsonNode\_asNumber)(node: [\*JsonNode](#JsonNode)) : f64
-* func [JsonNode\_asObject](#JsonNode\_asObject)(node: [\*JsonNode](#JsonNode)) : [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)
+* func [JsonNode\_asObject](#JsonNode\_asObject)(node: [\*JsonNode](#JsonNode)) : [\*JsonObject](#JsonObject)
 * func [JsonNode\_asString](#JsonNode\_asString)(node: [\*JsonNode](#JsonNode)) : *const char
 * func [JsonNode\_at](#JsonNode\_at)(node: [\*JsonNode](#JsonNode), index: i32) : [\*JsonNode](#JsonNode)
 * func [JsonNode\_contains](#JsonNode\_contains)(node: [\*JsonNode](#JsonNode), key: *const char) : bool
+* func [JsonNode\_equals](#JsonNode\_equals)(node: [\*JsonNode](#JsonNode), other: [\*JsonNode](#JsonNode)) : bool
 * func [JsonNode\_free](#JsonNode\_free)(node: [\*JsonNode](#JsonNode))
 * func [JsonNode\_getArray](#JsonNode\_getArray)(node: [\*JsonNode](#JsonNode), key: *const char) : [\*JsonNode](#JsonNode)
 * func [JsonNode\_getBool](#JsonNode\_getBool)(node: [\*JsonNode](#JsonNode), key: *const char, defaultValue: bool) : bool
@@ -65,13 +66,17 @@
 * func [JsonNode\_isString](#JsonNode\_isString)(node: [\*JsonNode](#JsonNode)) : bool
 * func [JsonNode\_isTrue](#JsonNode\_isTrue)(node: [\*JsonNode](#JsonNode)) : bool
 * func [JsonNode\_print](#JsonNode\_print)(node: [\*JsonNode](#JsonNode), buf: [\*StringBuffer](#StringBuffer)) : *const char
+* func [JsonNode\_putBool](#JsonNode\_putBool)(node: [\*JsonNode](#JsonNode), key: *const char, b: bool, len: i32)
+* func [JsonNode\_putNumber](#JsonNode\_putNumber)(node: [\*JsonNode](#JsonNode), key: *const char, number: f64, len: i32)
+* func [JsonNode\_putStr](#JsonNode\_putStr)(node: [\*JsonNode](#JsonNode), key: *const char, str: *const char, len: i32)
 * func [JsonNode\_put](#JsonNode\_put)(node: [\*JsonNode](#JsonNode), key: *const char, n: [\*JsonNode](#JsonNode), len: i32)
 * func [JsonNode\_size](#JsonNode\_size)(node: [\*JsonNode](#JsonNode)) : i32
+* func [JsonParserInit](#JsonParserInit)(alloc: [\*const Allocator](#Allocator)) : [json](#json)::[JsonParser](#JsonParser)
+* func [JsonParser\_free](#JsonParser\_free)(p: [\*JsonParser](#JsonParser))
+* func [JsonParser\_hasError](#JsonParser\_hasError)(p: [\*JsonParser](#JsonParser)) : bool
+* func [JsonParser\_init](#JsonParser\_init)(p: [\*JsonParser](#JsonParser), alloc: [\*const Allocator](#Allocator))
+* func [JsonParser\_parseJson](#JsonParser\_parseJson)(p: [\*JsonParser](#JsonParser), buffer: *const char) : [\*JsonNode](#JsonNode)
 * func [JsonTypeAsStr](#JsonTypeAsStr)(e: [json](#json)::[JsonType](#JsonType)) : *const char
-* func [Parser\_free](#Parser\_free)(p: [\*Parser](#Parser))
-* func [Parser\_hasError](#Parser\_hasError)(p: [\*Parser](#Parser)) : bool
-* func [Parser\_init](#Parser\_init)(p: [\*Parser](#Parser), alloc: [\*const Allocator](#Allocator))
-* func [Parser\_parseJson](#Parser\_parseJson)(p: [\*Parser](#Parser), buffer: *const char) : [\*JsonNode](#JsonNode)
 * func [PrintJson](#PrintJson)(node: [\*JsonNode](#JsonNode), buf: [\*StringBuffer](#StringBuffer))
 
 
@@ -106,7 +111,37 @@ struct [JsonNode](#JsonNode)
 ### JsonObject
 
 
-typedef [documentationGenerator](documentationGenerator\.md)::[Map<char const\*,JsonNode\*>](Map<char const\*,JsonNode\*>\.md) as [JsonObject](#JsonObject)
+struct [JsonObject](#JsonObject)
+
+* indexes: [documentationGenerator](documentationGenerator\.md)::[Map<char const\*,i32>](Map<char const\*,i32>\.md)
+* values: [documentationGenerator](documentationGenerator\.md)::[Array<Entry>](Array<Entry>\.md)
+
+
+
+### JsonParser
+
+
+struct [JsonParser](#JsonParser)
+
+* alloc: [\*const Allocator](#Allocator)
+* status: [json](#json)::[JsonParserStatus](#JsonParserStatus)
+* errorMsg: []char
+* token: [json](#json)::[Token](#Token)
+* buffer: [string\_buffer](string\_buffer\.md)::[StringBuffer](StringBuffer\.md)
+* stream: *const char
+* lineStart: *const char
+
+
+
+### JsonParserStatus
+
+
+enum [JsonParserStatus](#JsonParserStatus)
+
+* OK
+* WARNING
+* ERROR
+
 
 
 ### JsonType
@@ -131,34 +166,8 @@ union [JsonValue](#JsonValue)
 * boolValue: bool
 * doubleValue: f64
 * strValue: *const char
-* objValue: [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)
+* objValue: [\*JsonObject](#JsonObject)
 * arrayValue: [\*Array<JsonNode\*>](#Array<JsonNode\*>)
-
-
-
-### Parser
-
-
-struct [Parser](#Parser)
-
-* alloc: [\*const Allocator](#Allocator)
-* status: [json](#json)::[ParserStatus](#ParserStatus)
-* errorMsg: []char
-* token: [json](#json)::[Token](#Token)
-* buffer: [string\_buffer](string\_buffer\.md)::[StringBuffer](StringBuffer\.md)
-* stream: *const char
-* lineStart: *const char
-
-
-
-### ParserStatus
-
-
-enum [ParserStatus](#ParserStatus)
-
-* OK
-* WARNING
-* ERROR
 
 
 
@@ -237,7 +246,7 @@ func [JsonNode\_asNumber](#JsonNode\_asNumber)(node: [\*JsonNode](#JsonNode)) : 
 ### JsonNode\_asObject
 
 
-func [JsonNode\_asObject](#JsonNode\_asObject)(node: [\*JsonNode](#JsonNode)) : [\*Map<char const\*,JsonNode\*>](#Map<char\-const\*,JsonNode\*>)
+func [JsonNode\_asObject](#JsonNode\_asObject)(node: [\*JsonNode](#JsonNode)) : [\*JsonObject](#JsonObject)
 
 
 ### JsonNode\_asString
@@ -256,6 +265,12 @@ func [JsonNode\_at](#JsonNode\_at)(node: [\*JsonNode](#JsonNode), index: i32) : 
 
 
 func [JsonNode\_contains](#JsonNode\_contains)(node: [\*JsonNode](#JsonNode), key: *const char) : bool
+
+
+### JsonNode\_equals
+
+
+func [JsonNode\_equals](#JsonNode\_equals)(node: [\*JsonNode](#JsonNode), other: [\*JsonNode](#JsonNode)) : bool
 
 
 ### JsonNode\_free
@@ -378,40 +393,64 @@ func [JsonNode\_print](#JsonNode\_print)(node: [\*JsonNode](#JsonNode), buf: [\*
 func [JsonNode\_put](#JsonNode\_put)(node: [\*JsonNode](#JsonNode), key: *const char, n: [\*JsonNode](#JsonNode), len: i32)
 
 
+### JsonNode\_putBool
+
+
+func [JsonNode\_putBool](#JsonNode\_putBool)(node: [\*JsonNode](#JsonNode), key: *const char, b: bool, len: i32)
+
+
+### JsonNode\_putNumber
+
+
+func [JsonNode\_putNumber](#JsonNode\_putNumber)(node: [\*JsonNode](#JsonNode), key: *const char, number: f64, len: i32)
+
+
+### JsonNode\_putStr
+
+
+func [JsonNode\_putStr](#JsonNode\_putStr)(node: [\*JsonNode](#JsonNode), key: *const char, str: *const char, len: i32)
+
+
 ### JsonNode\_size
 
 
 func [JsonNode\_size](#JsonNode\_size)(node: [\*JsonNode](#JsonNode)) : i32
 
 
+### JsonParserInit
+
+
+func [JsonParserInit](#JsonParserInit)(alloc: [\*const Allocator](#Allocator)) : [json](#json)::[JsonParser](#JsonParser)
+
+
+### JsonParser\_free
+
+
+func [JsonParser\_free](#JsonParser\_free)(p: [\*JsonParser](#JsonParser))
+
+
+### JsonParser\_hasError
+
+
+func [JsonParser\_hasError](#JsonParser\_hasError)(p: [\*JsonParser](#JsonParser)) : bool
+
+
+### JsonParser\_init
+
+
+func [JsonParser\_init](#JsonParser\_init)(p: [\*JsonParser](#JsonParser), alloc: [\*const Allocator](#Allocator))
+
+
+### JsonParser\_parseJson
+
+
+func [JsonParser\_parseJson](#JsonParser\_parseJson)(p: [\*JsonParser](#JsonParser), buffer: *const char) : [\*JsonNode](#JsonNode)
+
+
 ### JsonTypeAsStr
 
 
 func [JsonTypeAsStr](#JsonTypeAsStr)(e: [json](#json)::[JsonType](#JsonType)) : *const char
-
-
-### Parser\_free
-
-
-func [Parser\_free](#Parser\_free)(p: [\*Parser](#Parser))
-
-
-### Parser\_hasError
-
-
-func [Parser\_hasError](#Parser\_hasError)(p: [\*Parser](#Parser)) : bool
-
-
-### Parser\_init
-
-
-func [Parser\_init](#Parser\_init)(p: [\*Parser](#Parser), alloc: [\*const Allocator](#Allocator))
-
-
-### Parser\_parseJson
-
-
-func [Parser\_parseJson](#Parser\_parseJson)(p: [\*Parser](#Parser), buffer: *const char) : [\*JsonNode](#JsonNode)
 
 
 ### PrintJson
