@@ -1081,9 +1081,7 @@ public class TypeResolver {
                 if(genParam != null) {
                     return new GenericParamTypeInfo(genParam.name);
                 }
-                if(nameSpec.toString().equals("t<i32>")) {
-                    System.out.println("here");
-                }
+                
                 // This will check the current module AND if we are in a generic structure
                 // we must also see if this type is mapped to a particular call site module
                 Symbol sym = getType(nameSpec);                

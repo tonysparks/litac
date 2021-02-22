@@ -1,50 +1,123 @@
-public const profileEntries = [1]ProfileEntry{}
-public var nextEntryId: usize = 0
+import "system"
+import "assert"
+import "libc"
+
+// must be first
+@generated
+public enum ProfileTag {
+    MAX_PROFILE_TAGS
+};
+
+
+// must be second
+@generated
+public const profileEntries = [1]ProfileEntry{
+    ProfileEntry {
+        .functionName = "hello"
+    }
+}
 
 
 public struct ProfileEntry {
     functionName: *const char
-    startTime: u64
     count: u64
-    totalTime: u64
+    startTime: f64
+    totalTime: f64
 }
 
-public func GetCurrentTimeMSec() : u64 {
-    return 0
-}
-
-public func StartWatch(name: *const char) {
-    var entry = &profileEntries[nextEntryId]
-    nextEntryId += 1
-
-    entry.functionName = name
+public func StartWatch(tag: ProfileTag) {
+    var entry = &profileEntries[tag]
     entry.count += 1
-    entry.startTime = GetCurrentTimeMSec()
+    entry.startTime = SystemTimeMSec()
 }
 
-public func StopWatch() {
-    var endTime = GetCurrentTimeMSec()
-    assert(nextEntryId > 0)
-    nextEntryId -= 1
-
-    var entry = &profileEntries[nextEntryId]
+public func StopWatch(tag: ProfileTag) {
+    var endTime = SystemTimeMSec()
+    var entry = &profileEntries[tag]
     entry.totalTime += (endTime - entry.startTime)
 }
 
+public func ExportTimings(filename: *const char) {
+    printf("Exporting %d timings...\n", ProfileTag.MAX_PROFILE_TAGS)
+
+    printf("%-65s %-9s %-10s %-20s\n", "Function", "Count", "Total(ms)", "Avg(ms)")
+    printf("==================================================================================================\n")
+    for(var i = 0; i < ProfileTag.MAX_PROFILE_TAGS; i += 1) {
+        var entry = profileEntries[i]
+        var avgTime = entry.totalTime
+        if(entry.count > 0) {
+            avgTime = entry.totalTime / entry.count as (f64)
+        }
+        printf("%-60s %10llu %10.4f %10.4f\n", entry.functionName, entry.count, entry.totalTime, avgTime)
+    }
+    printf("\n")
+}
+
 #precheck
-    for(sym in getSymbolsByNote("profile")) {
-        if(sym.kind == "FUNC_DECL" && sym.isPublic) {
-            var alias = addImport(mainSym.moduleName, sym.moduleName)
-            if(alias) {
-                emitClear()
-                emit("defer %s::%s()", alias, sym.name)
-                astInsert(mainSym.declPtr, emitStr(), 0)
-            }
-            else {
-                emitClear()
-                emit("defer %s()", sym.name)
-                astInsert(mainSym.declPtr, emitStr(), 0)
-            }
+    var mainSym = getMainSymbol()
+    if(mainSym && INSTRUMENT) {
+        var currentModule = getCurrentModuleFilename()
+        var alias = addImport(mainSym.moduleFilename, currentModule)
+        if(alias) {
+            emitClear()
+            emit("defer %s::ExportTimings(\"\")", alias)
+            astInsert(mainSym.declPtr, emitStr(), 0)
+        }
+        else {
+            emitClear()
+            emit("defer ExportTimings(\"\")")
+            astInsert(mainSym.declPtr, emitStr(), 0)
         }
     }
 #end
+
+/*
+#precheck
+    if(INSTRUMENT) {
+        var profiledSyms = getSymbolsByNote("profile")
+        if(len(profiledSyms) > 0) {
+            var currentModule = getCurrentModuleFilename()
+
+            // First make the ProfileTag enum with all functions
+            // as enum values for reference
+            {
+                emitClear()
+                emit("@generated public enum ProfileTag {\n")
+                for(sym in profiledSyms) {
+                    emit("    %s__%s,\n", sym.moduleName, sym.name)
+                }
+                emit("\n}\n")
+                replaceDeclaration(currentModule, emitStr())
+            }
+
+            // Now instrument each function marked with @profile
+            {
+                for(sym in profiledSyms) {
+                    if(sym.kind == "FUNC_DECL") {
+                        var alias = addImport(sym.moduleFilename, currentModule)
+                        if(alias) {
+                            emitClear()
+                            emit("defer %s::StopWatch(%s::ProfileTag.%s__%s)\n", alias, alias, sym.moduleName, sym.name)
+                            astInsert(sym.declPtr, emitStr(), 0)
+
+                            emitClear()
+                            emit("%s::StartWatch(%s::ProfileTag.%s__%s)\n", alias, alias, sym.moduleName, sym.name)
+                            astInsert(sym.declPtr, emitStr(), 0)
+                        }
+                        else {
+                            emitClear()
+                            emit("defer StopWatch(ProfileTag.%s__%s)\n", sym.moduleName, sym.name)
+                            astInsert(sym.declPtr, emitStr(), 0)
+
+                            emitClear()
+                            emit("StartWatch(ProfileTag.%s__%s)\n", sym.moduleName, sym.name)
+                            astInsert(sym.declPtr, emitStr(), 0)
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+#end
+*/

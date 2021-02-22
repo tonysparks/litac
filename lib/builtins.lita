@@ -97,7 +97,7 @@ public struct any {
                       }
                 }\n")
 
-            addDeclaration(sym.moduleName, emitStr())
+            addDeclaration(sym.moduleFilename, emitStr())
         }
     }
 #end
@@ -113,7 +113,7 @@ public struct any {
 #precheck
     // if we are testing only, create a new main entry point
     if(TESTING) {
-        var moduleName = getInputModuleName()
+        var moduleName = getInputModuleFilename()
 
         emitClear()
         var testFunctionName = "__LitaTestMain"
@@ -121,7 +121,7 @@ public struct any {
         emit("func %s(len: i32, args: **char) : i32 {\n", testFunctionName)
         for(sym in getSymbolsToTest("test")) {
             emit("  __lita_test_printf(\"Testing '%s'\\n\")", sym.name)
-            var alias = addImport(moduleName, sym.moduleName)
+            var alias = addImport(moduleName, sym.moduleFilename)
             if(alias) {
                 emit("  %s::%s()\n", alias, sym.name)
             }
@@ -167,7 +167,7 @@ public struct any {
     if(mainSym) {
         for(sym in getSymbolsByNote("module_destroy")) {
             if(sym.kind == "FUNC_DECL" && sym.isPublic) {
-                var alias = addImport(mainSym.moduleName, sym.moduleName)
+                var alias = addImport(mainSym.moduleFilename, sym.moduleFilename)
                 if(alias) {
                     emitClear()
                     emit("defer %s::%s()", alias, sym.name)
@@ -182,7 +182,7 @@ public struct any {
         }
         for(sym in getSymbolsByNote("module_init")) {
             if(sym.kind == "FUNC_DECL" && sym.isPublic) {
-                var alias = addImport(mainSym.moduleName, sym.moduleName)
+                var alias = addImport(mainSym.moduleFilename, sym.moduleFilename)
                 if(alias) {
                     emitClear()
                     emit("%s::%s()", alias, sym.name)

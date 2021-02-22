@@ -191,6 +191,15 @@ public func (m: *Map<K, V>) getPtr<K, V>(key: K) : *V {
     return null;
 }
 
+public func (m: *Map<K, V>) clear<K, V>() {
+    m.length = 0
+    for(var i = 0; i < m.capacity; i += 1) {
+        m.keys[i] = m.emptyKey
+        m.values[i] = m.emptyValue
+    }
+}
+
+
 public func (m: *Map<K, V>) remove<K, V>(key: K) : V {
     if(m.length == 0) {
         return m.emptyValue;

@@ -1,6 +1,6 @@
 {
     description: "Json",
-    disabled: false,
+    disabled: true,
     program: '''                
         @include("assert.h");
         @foreign func assert(e:bool):void;

@@ -136,7 +136,7 @@ public func (a: *Array<T>) insertAt<T>(index: i32, element: T) {
 }
 
 public func (a: *Array<T>) addAll<T>(other: *Array<T>) {
-    if(!other && other.length > 0) {
+    if(!other || other.length == 0) {
         return;
     }
 

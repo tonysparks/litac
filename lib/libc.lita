@@ -40,6 +40,7 @@
 @foreign public func ferror(stream: *FILE) : i32;
 @foreign public func scanf(format: *const char, ...) : i32;
 @foreign public func fscanf(stream: *FILE, format: *const char, ...) : i32;
+@foreign public func getchar() : i32;
 @foreign public const SEEK_SET : i32;
 @foreign public const SEEK_CUR : i32;
 @foreign public const SEEK_END : i32;
@@ -98,8 +99,10 @@
 @foreign public func isalnum(arg: i32) : i32;
 @foreign public func isspace(arg: i32) : i32;
 @foreign public func isalpha(c: char) : bool;
+@foreign public func atoi(str: *const char) : i32;
 
 // numbers
+@foreign public const EOF: i32;
 @foreign public const CHAR_BIT: i32;
 @foreign public const SCHAR_MIN: i32;
 @foreign public const SCHAR_MAX: i32;
