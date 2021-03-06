@@ -1642,7 +1642,7 @@ public class CGen {
         public void visit(LabelStmt stmt) {
             checkLine(stmt);
             
-            buf.out("%s:\n", stmt.label);
+            buf.out("%s:;\n", stmt.label);
         }
     
         @Override

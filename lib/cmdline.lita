@@ -52,6 +52,7 @@ public func (p: *CmdParser) init(allocator: *const Allocator = defaultAllocator)
 
 public func (p: *CmdParser) free() {
     p.options.free()
+    p.args.free()
 }
 
 public func (p: *CmdParser) addOption(longName: *const char,

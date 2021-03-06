@@ -15,8 +15,8 @@ import "assert"
 #if (DEBUG)
 
     public func new<T>(a: *const Allocator = defaultAllocator,
-                      file: *const char = __FILE__,
-                      line: u64 = __LINE__) : *T {
+                      file: *const char = c::__FILE__,
+                      line: u64 = c::__LINE__) : *T {
 
         var result = a.calloc(1, sizeof(:T), file, line) as (*T)
         return result
@@ -74,13 +74,6 @@ public func alignForward(ptr: usize, align: usize) : usize {
 */
 
 #if (DEBUG)
-
-    @foreign
-    public const __FILE__: *const char;
-
-    @foreign
-    public const __LINE__: u64;
-
     public struct Allocator {
         allocFn:   func(*const Allocator, usize, *const char, u64): *void
         callocFn:  func(*const Allocator, usize, usize, *const char, u64): *void
@@ -90,16 +83,16 @@ public func alignForward(ptr: usize, align: usize) : usize {
 
     @inline
     public func (a: *const Allocator) alloc(size: usize,
-                                            file: *const char = __FILE__,
-                                            line: u64 = __LINE__) : *void {
+                                            file: *const char = c::__FILE__,
+                                            line: u64 = c::__LINE__) : *void {
         return a.allocFn(a, size, file, line)
     }
 
     @inline
     public func (a: *const Allocator) calloc(num: usize,
                                              size: usize,
-                                             file: *const char = __FILE__,
-                                             line: u64 = __LINE__) : *void {
+                                             file: *const char = c::__FILE__,
+                                             line: u64 = c::__LINE__) : *void {
         return a.callocFn(a, num, size, file, line)
     }
 
@@ -107,8 +100,8 @@ public func alignForward(ptr: usize, align: usize) : usize {
     public func (a: *const Allocator) realloc(ptr: *void,
                                               oldsize: usize,
                                               newsize: usize,
-                                              file: *const char = __FILE__,
-                                              line: u64 = __LINE__) : *void {
+                                              file: *const char = c::__FILE__,
+                                              line: u64 = c::__LINE__) : *void {
         return a.reallocFn(a, ptr, oldsize, newsize, file, line)
     }
 
@@ -169,16 +162,16 @@ public const cAllocator : *const Allocator = (&Allocator {
 
     func cMalloc(a: *const Allocator,
                  size: usize,
-                 file: *const char = __FILE__,
-                 line: u64 = __LINE__) : *void {
+                 file: *const char = c::__FILE__,
+                 line: u64 = c::__LINE__) : *void {
         return c::malloc(size);
     }
 
     func cCalloc(a: *const Allocator,
                  num: usize,
                  size: usize,
-                 file: *const char = __FILE__,
-                 line: u64 = __LINE__) : *void {
+                 file: *const char = c::__FILE__,
+                 line: u64 = c::__LINE__) : *void {
         return c::calloc(num, size);
     }
 
@@ -186,8 +179,8 @@ public const cAllocator : *const Allocator = (&Allocator {
                   ptr: *void,
                   oldSize: usize,
                   size: usize,
-                  file: *const char = __FILE__,
-                  line: u64 = __LINE__) : *void {
+                  file: *const char = c::__FILE__,
+                  line: u64 = c::__LINE__) : *void {
         return c::realloc(ptr, size);
     }
 
@@ -271,8 +264,8 @@ public func (arena: *Arena) free() {
 
 #if (DEBUG)
     public func (arena: *Arena) malloc(size: usize,
-                                       file: *const char = __FILE__,
-                                       line: u64 = __LINE__) : *void {
+                                       file: *const char = c::__FILE__,
+                                       line: u64 = c::__LINE__) : *void {
         var a = arena
         var last = arena
 
@@ -298,8 +291,8 @@ public func (arena: *Arena) free() {
 
     func ArenaMalloc(alloc: *const Allocator,
                      size: usize,
-                     file: *const char = __FILE__,
-                     line: u64 = __LINE__) : *void {
+                     file: *const char = c::__FILE__,
+                     line: u64 = c::__LINE__) : *void {
         var arena = alloc as (*Arena);
         return arena.malloc(size);
     }
@@ -307,8 +300,8 @@ public func (arena: *Arena) free() {
     func ArenaCalloc(alloc: *const Allocator,
                      num: usize,
                      size: usize,
-                     file: *const char = __FILE__,
-                     line: u64 = __LINE__) : *void {
+                     file: *const char = c::__FILE__,
+                     line: u64 = c::__LINE__) : *void {
         var arena = alloc as (*Arena);
         var result = arena.malloc(size * num);
         if(result) {
@@ -322,8 +315,8 @@ public func (arena: *Arena) free() {
                       ptr: *void,
                       oldSize: usize,
                       size: usize,
-                      file: *const char = __FILE__,
-                      line: u64 = __LINE__) : *void {
+                      file: *const char = c::__FILE__,
+                      line: u64 = c::__LINE__) : *void {
         if(ptr == null) {
             return ArenaMalloc(alloc, size)
         }
@@ -462,8 +455,8 @@ public func (this: *LinearAllocator) malloc(size: usize) : *void {
 #if (DEBUG)
     func LinearMalloc(alloc: *const Allocator,
                         size: usize,
-                        file: *const char = __FILE__,
-                        line: u64 = __LINE__) : *void {
+                        file: *const char = c::__FILE__,
+                        line: u64 = c::__LINE__) : *void {
         var this = alloc as (*LinearAllocator);
         return this.malloc(size);
     }
@@ -471,8 +464,8 @@ public func (this: *LinearAllocator) malloc(size: usize) : *void {
     func LinearCalloc(alloc: *const Allocator,
                         num: usize,
                         size: usize,
-                        file: *const char = __FILE__,
-                        line: u64 = __LINE__) : *void {
+                        file: *const char = c::__FILE__,
+                        line: u64 = c::__LINE__) : *void {
         var this = alloc as (*LinearAllocator);
         var result = this.malloc(size * num);
         if(result) {
@@ -486,8 +479,8 @@ public func (this: *LinearAllocator) malloc(size: usize) : *void {
                         ptr: *void,
                         oldSize: usize,
                         size: usize,
-                        file: *const char = __FILE__,
-                        line: u64 = __LINE__) : *void {
+                        file: *const char = c::__FILE__,
+                        line: u64 = c::__LINE__) : *void {
         if(ptr == null) {
             return LinearMalloc(alloc, size)
         }
@@ -619,8 +612,8 @@ public func (d: *DebugAllocator) malloc(size: usize,
 #if (DEBUG)
     func DebugMalloc(alloc: *const Allocator,
                      size: usize,
-                     file: *const char = __FILE__,
-                     line: u64 = __LINE__) : *void {
+                     file: *const char = c::__FILE__,
+                     line: u64 = c::__LINE__) : *void {
         var debug = alloc as (*DebugAllocator);
         return debug.malloc(size, file, line);
     }
@@ -628,8 +621,8 @@ public func (d: *DebugAllocator) malloc(size: usize,
     func DebugCalloc(alloc: *const Allocator,
                      num: usize,
                      size: usize,
-                     file: *const char = __FILE__,
-                     line: u64 = __LINE__) : *void {
+                     file: *const char = c::__FILE__,
+                     line: u64 = c::__LINE__) : *void {
         var debug = alloc as (*DebugAllocator);
         var result = debug.malloc(size * num, file, line);
         if(result) {
@@ -643,8 +636,8 @@ public func (d: *DebugAllocator) malloc(size: usize,
                       ptr: *void,
                       oldSize: usize,
                       size: usize,
-                      file: *const char = __FILE__,
-                      line: u64 = __LINE__) : *void {
+                      file: *const char = c::__FILE__,
+                      line: u64 = c::__LINE__) : *void {
         if(ptr == null) {
             return DebugMalloc(alloc, size)
         }

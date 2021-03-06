@@ -17,6 +17,7 @@ import "libc";
 @foreign func strlen(str: *const char) : u64;
 */
 
+
 const MAX_BUFFER_SIZE = 32;
 public struct StringBuffer {
     buffer: *char
@@ -56,7 +57,16 @@ public func (b: *StringBuffer) free() {
     }
 }
 
-public func (b: *StringBuffer) appendStr(str: *const char, len: i32) {
+public func (b: *StringBuffer) appendStr(str: *const char) {
+    if(str == null) {
+        return;
+    }
+    var len = strlen(str)
+    b.appendStrn(str, len)
+}
+
+
+public func (b: *StringBuffer) appendStrn(str: *const char, len: i32) {
     if(str == null || len < 1) {
         return;
     }
@@ -93,20 +103,35 @@ public func (b: *StringBuffer) appendU64(i: u64) : i32 {
 }
 
 public func (b: *StringBuffer) appendChar(c: char) : i32 {
-    return b.append("%c", c)
+    // ensure we have enough of a buffer initially
+    if(b.length + 1 >= b.capacity) {
+        BufferGrow(b, 1)
+    }
+
+    b.buffer[b.length] = c
+    b.length += 1
+    return b.length
 }
 
 public func (b: *StringBuffer) append(format: *const char, ...) : i32 {
 
     // ensure we have enough of a buffer initially
-    if(b.length + MAX_BUFFER_SIZE >= b.capacity) {
+    /*if(b.length + MAX_BUFFER_SIZE >= b.capacity) {
         BufferGrow(b, MAX_BUFFER_SIZE)
-    }
+    }*/
 
     // get the variable args
     var args1:va_list;
     va_start(args1, format);
 
+    var len = _vscprintf(format, args1)
+    if(b.length + len >= b.capacity) {
+        BufferGrow(b, (len + 1) - b.capacity);
+    }
+
+    len = vsnprintf(&b.buffer[b.length], len + 1, format, args1);
+    va_end(args1);
+/*
     // need to copy the args even though we won't know if we
     // need them until after we use the first set
     var args2: va_list;
@@ -125,7 +150,7 @@ public func (b: *StringBuffer) append(format: *const char, ...) : i32 {
         len = vsnprintf(&b.buffer[b.length], len + 1, format, args2);
         va_end(args2);
     }
-
+*/
     if(len < 0) {
         return len
     }
@@ -134,7 +159,19 @@ public func (b: *StringBuffer) append(format: *const char, ...) : i32 {
     return len
 }
 
-public func (b: *StringBuffer) appendArgs(format: *const char, v: va_list) : i32 {
+public func (b: *StringBuffer) appendArgs(format: *const char, args: va_list) : i32 {
+    var copyArgs: va_list;
+    va_copy(copyArgs, args);
+
+    var len = _vscprintf(format, copyArgs)
+    if(b.length + len >= b.capacity) {
+        BufferGrow(b, (len + 1) - b.capacity);
+    }
+
+    len = vsnprintf(&b.buffer[b.length], len + 1, format, copyArgs);
+    va_end(copyArgs);
+
+    /*
     // ensure we have enough of a buffer initially
     if(b.length + MAX_BUFFER_SIZE >= b.capacity) {
         BufferGrow(b, MAX_BUFFER_SIZE)
@@ -155,7 +192,7 @@ public func (b: *StringBuffer) appendArgs(format: *const char, v: va_list) : i32
 
         len = vsnprintf(&b.buffer[b.length], len + 1, format, args2);
         va_end(args2);
-    }
+    }*/
 
     if(len < 0) {
         return len
@@ -236,17 +273,17 @@ public func (b: *StringBuffer) insert(index: i32, format: *const char, ...) : i3
     }
 
     // get the variable args
-    var args1:va_list;
-    va_start(args1, format);
+    var args:va_list;
+    va_start(args, format);
 
     // need to copy the args even though we won't know if we
     // need them until after we use the first set
-    var args2: va_list;
-    va_copy(args2, args1);
+    //var args2: va_list;
+    //va_copy(args2, args1);
 
     // get the length
-    var len = vsnprintf(&b.buffer[b.length], 1, format, args1);
-    va_end(args1);
+    var len = _vscprintf(format, args)
+    //va_end(args1);
 
     if(len < 0) {
         return len
@@ -262,8 +299,8 @@ public func (b: *StringBuffer) insert(index: i32, format: *const char, ...) : i3
     memmove((&b.buffer[index + len]) as (*void),
             (&b.buffer[index]) as (*const void),
             moveLength * sizeof(:char))
-    var n = vsnprintf(&b.buffer[index], len + 1, format, args2);
-    va_end(args2);
+    var n = vsnprintf(&b.buffer[index], len + 1, format, args);
+    va_end(args);
 
     if(n < 0) {
         return n;

@@ -163,7 +163,7 @@ public func CreateJsonString(str: *const char, len: i32 = -1,
     }
 
     var sb = StringBufferInit(len + 1, alloc)
-    sb.append("%.*s", len, str)
+    sb.appendStrn(str, len)
 //    EscapeString(sb, str, len)
 
     return CreateJsonStringNoDup(sb.cStr(), alloc)
@@ -198,7 +198,7 @@ func EscapeString(buf: *StringBuffer, string: *const char, length: i32) {
         var c:char = string[i]
         var escaped = escapeStrings[c as (u32)]
         if(escaped) {
-            buf.append("%s", escaped)
+            buf.appendStr(escaped)
             continue
         }
 
@@ -208,16 +208,16 @@ func EscapeString(buf: *StringBuffer, string: *const char, length: i32) {
             if(escapedChar) {
                 var chars = escapeChars[n]
                 assert(chars)
-                buf.append("%s", chars)
+                buf.appendStr(chars)
                 i += 1
                 continue
             }
             else {
-                buf.append("\\")
+                buf.appendStrn("\\", 1)
             }
         }
         if(c == '"') {  // "
-            buf.append("\\")
+            buf.appendStrn("\\", 1)
         }
         buf.appendChar(c)
     }
@@ -813,12 +813,12 @@ public func PrintJson(node: *JsonNode, buf: *StringBuffer) {
     }
     switch(node.type) {
         case JsonType.NULL: {
-            buf.append("null")
+            buf.appendStrn("null", 4)
             break;
         }
         case JsonType.BOOLEAN: {
             (node.boolValue) ?
-                buf.append("true") : buf.append("false")
+                buf.appendStrn("true", 4) : buf.appendStrn("false", 5)
             break;
         }
         case JsonType.INT_NUMBER: {
@@ -834,31 +834,31 @@ public func PrintJson(node: *JsonNode, buf: *StringBuffer) {
             break;
         }
         case JsonType.OBJECT: {
-            buf.append("{")
+            buf.appendStrn("{", 1)
             var obj = node.objValue
 
             var isFirst = true
             for(var i = 0; i < obj.values.size(); i += 1) {
                 var entry = obj.values.get(i)
 
-                if(!isFirst) buf.append(",")
+                if(!isFirst) buf.appendStrn(",", 1)
                 buf.append("\"%s\":", entry.key)
                 PrintJson(entry.value, buf)
                 isFirst = false
             }
-            buf.append("}")
+            buf.appendStrn("}", 1)
             break;
         }
         case JsonType.ARRAY: {
-            buf.append("[")
+            buf.appendStrn("[", 1)
             var array = node.arrayValue
             var isFirst = true
             for(var i = 0; i < array.size(); i+=1) {
-                if(!isFirst) buf.append(",")
+                if(!isFirst) buf.appendStrn(",", 1)
                 PrintJson(array.get(i), buf)
                 isFirst = false
             }
-            buf.append("]")
+            buf.appendStrn("]", 1)
             break;
         }
     }

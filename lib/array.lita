@@ -26,7 +26,12 @@ public func (a: *Array<T>) init<T>(initialSize: i32 = 16,
     a.capacity = initialSize;
 
     var length = (sizeof(:T) * initialSize as (u64));
-    a.elements = alloc.alloc(length) as (*T)
+    if(initialSize > 0) {
+        a.elements = alloc.alloc(length) as (*T)
+    }
+    else {
+        a.elements = null
+    }
 }
 
 public func (a: *Array<T>) free<T>() {
@@ -158,14 +163,17 @@ public func (a: *Array<T>) forEach<T>(fn : func<T>(T) : bool) {
     }
 }
 
+@inline
 public func (a: *Array<T>) empty<T>() : bool {
     return a.length == 0
 }
 
+@inline
 public func (a: *Array<T>) size<T>() : i32 {
     return a.length
 }
 
+@inline
 public func (a: *Array<T>) clear<T>() {
     a.length = 0
 }

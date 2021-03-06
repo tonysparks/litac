@@ -17,6 +17,16 @@
 #define LITAC_PACKED_POP
 #define LITAC_EXPORT __attribute__((visibility("default")))
 #endif
+
+
+#if __TINYC__
+#define LITAC_THREADLOCAL __thread
+#define LITAC_INLINE 
+#define LITAC_NOINLINE
+#define LITAC_PACKED __attribute__((packed))
+#define LITAC_PACKED_POP
+#define LITAC_EXPORT __attribute__((dllexport))
+#endif
 """);
 
 

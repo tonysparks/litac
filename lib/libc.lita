@@ -44,6 +44,8 @@
 @foreign public const SEEK_SET : i32;
 @foreign public const SEEK_CUR : i32;
 @foreign public const SEEK_END : i32;
+@foreign public var errno: i32;
+@foreign public func perror(str: *const char);
 
 // Math operations
 @foreign public func MAX<T>(a: T, b: T) : T;
@@ -120,3 +122,28 @@
 @foreign public const HUGE_VAL: f64;
 
 
+@foreign
+public const __FILE__: *const char;
+
+@foreign
+public const __FUNCTION__: *const char;
+
+@foreign
+public const __LINE__: u64;
+
+/**
+    Because vsnprintf does not return consistent behavior
+*/
+#if OS == "WINDOWS"
+    @foreign public func _vscprintf(format: *const char, args: va_list) : i32;
+#else
+    public func _vscprintf(format: *const char, args: va_list) : i32 {
+        var retval: i32;
+        argcopy: va_lit;
+        va_copy(argcopy, args);
+        retval = vsnprintf(NULL, 0, format, argcopy);
+        va_end(argcopy);
+
+        return retval;
+    }
+#end
