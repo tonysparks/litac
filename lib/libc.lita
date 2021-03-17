@@ -61,6 +61,7 @@
 @foreign public func fabs(v: f32) : f32;
 @foreign public func tan(v: f64) : f64;
 @foreign public func exp2(v: f64) : f64;
+@foreign public func pow(base: f64, exponent: f64) : f64;
 @foreign public const M_PI: f64;
 
 // Varargs
