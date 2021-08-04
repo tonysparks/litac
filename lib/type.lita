@@ -24,6 +24,7 @@ public enum TypeKind {
 
     STRUCT,
     UNION,
+    TRAIT,
     ENUM,
     FUNC,
 
@@ -37,6 +38,7 @@ public enum TypeKind {
 
 public enum FieldInfoKind {
     VAR_FIELD,
+    TRAIT_FIELD,
     ENUM_FIELD,
     STRUCT_FIELD,
     UNION_FIELD,
@@ -134,7 +136,9 @@ public func getTypeInfo(id: typeid) : *TypeInfo {
 public func getFieldValue(agg: any, fieldName: *const char) : any {
     var typeInfo = getTypeInfo(agg.id)
 
-    if(typeInfo.kind != TypeKind.UNION && typeInfo.kind != TypeKind.STRUCT) {
+    if(typeInfo.kind != TypeKind.UNION &&
+       typeInfo.kind != TypeKind.STRUCT &&
+       typeInfo.kind != TypeKind.TRAIT) {
         return any{}
     }
 
