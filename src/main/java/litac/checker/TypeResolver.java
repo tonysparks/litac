@@ -844,6 +844,8 @@ public class TypeResolver {
             return;
         }
         
+        sym.markAsComplete();
+        
         enterModuleFor(sym);
         switch(sym.decl.kind) {
             case STRUCT:
@@ -864,18 +866,14 @@ public class TypeResolver {
                 if(aggDecl.hasGenericParams()) {
                     this.genericStack.pop();
                 }
-                
-                sym.markAsComplete();                
                 break;
             }
             case ENUM: {
                 sym.decl.visit(stmtVisitor);
-                sym.markAsComplete();
                 break;
             }
             case TYPEDEF: {
                 sym.decl.visit(stmtVisitor);
-                sym.markAsComplete();
                 break;
             }
             default:
@@ -1061,11 +1059,12 @@ public class TypeResolver {
         
         // create the TypeInfo's for this symbol
         resolveSym(genericSym);
-        
+                
         // resolve any embedded fields for aggregates 
         finishResolveSym(genericSym);
         
         this.resolvedTypeMap.put(nameSpec, genericSym.type);
+        
         return genericSym.type;
     }
     
@@ -1107,11 +1106,12 @@ public class TypeResolver {
                 
                 resolveSym(sym);
                 
+                this.resolvedTypeMap.put(typeSpec, sym.type);
+                
                 if(nameSpec.hasGenericArgs()) {
                     return createTypeFromGenericTemplate(sym, nameSpec);
                 }
                                 
-                this.resolvedTypeMap.put(typeSpec, sym.type);
                 return sym.type;
             }
             case ARRAY: {

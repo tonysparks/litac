@@ -278,7 +278,7 @@ public struct Mutex {
     mTimed: bool;                /* TRUE if the mutex is timed */
 }
 
-public func (mtx: *Mutex) init(type: i32) : ThreadStatus {
+public func (mtx: *Mutex) init(type: i32 = MutexType.PLAIN) : ThreadStatus {
     mtx.mAlreadyLocked = false;
     mtx.mRecursive = type & MutexType.RECURSIVE;
     mtx.mTimed = type & MutexType.TIMED;

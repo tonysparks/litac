@@ -152,6 +152,6 @@ int tss_set(tss_t key, void *val);
 
 #if (OS == "WINDOWS")
     import using "thread_win"
-#else  
+#else
     import using "thread_posix"
 #end
